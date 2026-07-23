@@ -1,0 +1,4 @@
+employee_id,employee_name,department,job,shift_date,start_time,end_time,pickup_location
+1001,Test Employee 1,Food Service,Team Member,2026-07-22,09:00,15:02,Employee Gate
+1002,Test Employee 2,Retail,Cashier,2026-07-22,09:00,15:08,Employee Gate
+1003,Test Employee 3,Rides,Ride Operator,2026-07-22,10:00,15:19,Employee Gate
