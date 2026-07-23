@@ -9,7 +9,6 @@ import org.springframework.stereotype.Component;
 
 import com.victorpena.shuttleflow.model.ShiftRecord;
 
-@Component
 public class MockScheduleProvider implements ScheduleProvider {
 
     @Override
