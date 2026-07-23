@@ -9,10 +9,77 @@
             font-family: Arial, sans-serif;
             margin: 40px;
             background-color: #f4f6f8;
+            color: #1f2937;
         }
 
-        h1 {
+        h1,
+        h2 {
             color: #1f2937;
+        }
+
+        .controls {
+            max-width: 900px;
+            margin-bottom: 24px;
+            padding: 20px;
+            background-color: white;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        input {
+            padding: 8px;
+        }
+
+        button {
+            padding: 9px 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .message {
+            max-width: 900px;
+            padding: 12px;
+            border-radius: 4px;
+        }
+
+        .success {
+            color: #166534;
+            background-color: #dcfce7;
+        }
+
+        .error {
+            color: #991b1b;
+            background-color: #fee2e2;
+        }
+
+        .available-dates {
+            margin: 16px 0;
+            color: #4b5563;
+        }
+
+        .available-date {
+            display: inline-block;
+            margin: 3px;
+            padding: 5px 8px;
+            background-color: #e5e7eb;
+            border-radius: 4px;
         }
 
         table {
@@ -40,40 +107,135 @@
 
     <h1>Shuttle Pickup Dashboard</h1>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Pickup window</th>
-                <th>Pickup location</th>
-                <th>Team members</th>
-                <th>Priority</th>
-            </tr>
-        </thead>
+    <p
+        th:if="${successMessage}"
+        class="message success"
+        th:text="${successMessage}">
+    </p>
 
-        <tbody>
-            <tr th:each="window : ${pickupWindows}">
-                <td th:text="|${#temporals.format(window.windowStart, 'h:mm')}–${#temporals.format(window.windowEnd, 'h:mm a')}|">
-                    3:00–3:15 PM
-                </td>
+    <p
+        th:if="${errorMessage}"
+        class="message error"
+        th:text="${errorMessage}">
+    </p>
 
-                <td th:text="${window.pickupLocation}">
-                    Employee Gate
-                </td>
+    <div class="controls">
 
-                <td th:text="${window.teamMemberCount}">
-                    2
-                </td>
+        <h2>1. Upload Weekly Schedule</h2>
 
-                <td th:text="${window.priority}">
-                    LOW
-                </td>
-            </tr>
+        <form
+            th:action="@{/upload}"
+            method="post"
+            enctype="multipart/form-data">
 
-            <tr th:if="${#lists.isEmpty(pickupWindows)}">
-                <td colspan="4">No pickup windows found.</td>
-            </tr>
-        </tbody>
-    </table>
+            <div class="form-group">
+                <label for="scheduleFile">Schedule CSV</label>
+
+                <input
+                    type="file"
+                    id="scheduleFile"
+                    name="scheduleFile"
+                    accept=".csv"
+                    required>
+            </div>
+
+            <button type="submit">Upload Schedule</button>
+        </form>
+
+        <div th:if="${scheduleUploaded}">
+
+            <p class="available-dates">
+                Available dates:
+
+                <span
+                    class="available-date"
+                    th:each="availableDate : ${availableDates}"
+                    th:text="${#temporals.format(
+                        availableDate,
+                        'MMM d, yyyy'
+                    )}">
+                </span>
+            </p>
+
+            <h2>2. Generate Pickup Plan</h2>
+
+            <form th:action="@{/}" method="get">
+
+                <div class="form-group">
+                    <label for="date">Schedule date</label>
+
+                    <input
+                        type="date"
+                        id="date"
+                        name="date"
+                        th:value="${selectedDate}"
+                        required>
+                </div>
+
+                <button type="submit">
+                    Generate
+                </button>
+            </form>
+
+        </div>
+    </div>
+
+    <div th:if="${generated}">
+
+        <h2
+            th:text="|Pickup plan for ${#temporals.format(
+                selectedDate,
+                'MMMM d, yyyy'
+            )}|">
+            Pickup plan
+        </h2>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Pickup window</th>
+                    <th>Pickup location</th>
+                    <th>Team members</th>
+                    <th>Priority</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr th:each="window : ${pickupWindows}">
+
+                    <td
+                        th:text="|${#temporals.format(
+                            window.windowStart,
+                            'h:mm'
+                        )}–${#temporals.format(
+                            window.windowEnd,
+                            'h:mm a'
+                        )}|">
+                        3:00–3:15 PM
+                    </td>
+
+                    <td th:text="${window.pickupLocation}">
+                        Employee Gate
+                    </td>
+
+                    <td th:text="${window.teamMemberCount}">
+                        2
+                    </td>
+
+                    <td th:text="${window.priority}">
+                        LOW
+                    </td>
+                </tr>
+
+                <tr th:if="${#lists.isEmpty(pickupWindows)}">
+                    <td colspan="4">
+                        No pickup windows were found for this date.
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
 
 </body>
 </html>
