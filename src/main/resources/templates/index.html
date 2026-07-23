@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>ShuttleFlow Dashboard</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f6f8;
+        }
+
+        h1 {
+            color: #1f2937;
+        }
+
+        table {
+            width: 100%;
+            max-width: 900px;
+            border-collapse: collapse;
+            background-color: white;
+        }
+
+        th,
+        td {
+            padding: 12px;
+            border: 1px solid #d1d5db;
+            text-align: left;
+        }
+
+        th {
+            background-color: #1f2937;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Shuttle Pickup Dashboard</h1>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Pickup window</th>
+                <th>Pickup location</th>
+                <th>Team members</th>
+                <th>Priority</th>
+            </tr>
+        </thead>
+
+        <tbody>
+            <tr th:each="window : ${pickupWindows}">
+                <td th:text="|${#temporals.format(window.windowStart, 'h:mm')}–${#temporals.format(window.windowEnd, 'h:mm a')}|">
+                    3:00–3:15 PM
+                </td>
+
+                <td th:text="${window.pickupLocation}">
+                    Employee Gate
+                </td>
+
+                <td th:text="${window.teamMemberCount}">
+                    2
+                </td>
+
+                <td th:text="${window.priority}">
+                    LOW
+                </td>
+            </tr>
+
+            <tr th:if="${#lists.isEmpty(pickupWindows)}">
+                <td colspan="4">No pickup windows found.</td>
+            </tr>
+        </tbody>
+    </table>
+
+</body>
+</html>
