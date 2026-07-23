@@ -13,30 +13,39 @@ import java.util.List;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.victorpena.shuttleflow.model.ShiftRecord;
 
 @Component
 public class CsvScheduleProvider implements ScheduleProvider {
 
-    private static final String CSV_FILE = "data/schedules.csv";
-
     private static final DateTimeFormatter TIME_FORMAT =
             DateTimeFormatter.ofPattern("H:mm");
 
-    private final Resource scheduleFile =
-            new ClassPathResource(CSV_FILE);
+    /*
+     * This stores all shifts from the most recently uploaded CSV.
+     *
+     * The data stays in memory until:
+     * 1. Another CSV is uploaded, or
+     * 2. The application restarts.
+     */
+    private volatile List<ShiftRecord> uploadedShifts = List.of();
 
-    @Override
-    public List<ShiftRecord> getSchedulesForDate(LocalDate date) {
-        List<ShiftRecord> shifts = new ArrayList<>();
+    public int loadSchedule(MultipartFile file) {
+
+        if (file.isEmpty()) {
+            throw new IllegalStateException(
+                    "Please select a CSV file to upload."
+            );
+        }
+
+        List<ShiftRecord> parsedShifts = new ArrayList<>();
 
         try (
             Reader reader = new InputStreamReader(
-                    scheduleFile.getInputStream(),
+                    file.getInputStream(),
                     StandardCharsets.UTF_8
             );
 
@@ -50,23 +59,53 @@ public class CsvScheduleProvider implements ScheduleProvider {
         ) {
             for (CSVRecord record : parser) {
                 ShiftRecord shift = createShiftRecord(record);
-
-                if (shift.getShiftDate().equals(date)) {
-                    shifts.add(shift);
-                }
+                parsedShifts.add(shift);
             }
-
-            return shifts;
 
         } catch (IOException exception) {
             throw new IllegalStateException(
-                    "Could not read " + CSV_FILE,
+                    "Could not read the uploaded CSV file.",
                     exception
             );
         }
+
+        if (parsedShifts.isEmpty()) {
+            throw new IllegalStateException(
+                    "The uploaded CSV does not contain any shifts."
+            );
+        }
+
+        /*
+         * Replace the old schedule with the newly uploaded schedule.
+         */
+        uploadedShifts = List.copyOf(parsedShifts);
+
+        return uploadedShifts.size();
+    }
+
+    @Override
+    public List<ShiftRecord> getSchedulesForDate(LocalDate date) {
+
+        return uploadedShifts.stream()
+                .filter(shift -> shift.getShiftDate().equals(date))
+                .toList();
+    }
+
+    public boolean hasUploadedSchedule() {
+        return !uploadedShifts.isEmpty();
+    }
+
+    public List<LocalDate> getAvailableDates() {
+
+        return uploadedShifts.stream()
+                .map(ShiftRecord::getShiftDate)
+                .distinct()
+                .sorted()
+                .toList();
     }
 
     private ShiftRecord createShiftRecord(CSVRecord record) {
+
         try {
             return new ShiftRecord(
                     record.get("employee_id"),
