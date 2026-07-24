@@ -100,6 +100,14 @@
             background-color: #1f2937;
             color: white;
         }
+		.warning {
+		    max-width: 876px;
+		    margin-top: 16px;
+		    padding: 12px;
+		    color: #854d0e;
+		    background-color: #fef9c3;
+		    border-radius: 4px;
+		}
     </style>
 </head>
 
@@ -240,6 +248,63 @@
                 </tr>
             </tbody>
         </table>
+		
+		<h2>Scheduled Drivers</h2>
+
+		<p>
+		    Drivers are matched to the uploaded schedule by employee ID.
+		</p>
+
+		<table>
+		    <thead>
+		        <tr>
+		            <th>Driver</th>
+		            <th>Employee ID</th>
+		            <th>Shift start</th>
+		            <th>Shift end</th>
+		        </tr>
+		    </thead>
+
+		    <tbody>
+		        <tr th:each="driverSchedule : ${driverSchedules}">
+		            <td th:text="${driverSchedule.driverName}"></td>
+		            <td th:text="${driverSchedule.employeeId}"></td>
+
+		            <td
+		                th:text="${#temporals.format(
+		                    driverSchedule.startTime,
+		                    'h:mm a'
+		                )}">
+		            </td>
+
+		            <td
+		                th:text="${#temporals.format(
+		                    driverSchedule.endTime,
+		                    'h:mm a'
+		                )}">
+		            </td>
+		        </tr>
+
+		        <tr th:if="${#lists.isEmpty(driverSchedules)}">
+		            <td colspan="4">
+		                No active registered drivers matched this date's
+		                uploaded schedule.
+		            </td>
+		        </tr>
+		    </tbody>
+		</table>
+
+		<div
+		    th:if="${!#lists.isEmpty(driversWithoutSchedules)}"
+		    class="warning">
+
+		    <strong>Active drivers without a matching schedule:</strong>
+
+		    <span
+		        th:each="driver, status : ${driversWithoutSchedules}"
+		        th:text="|${driver.name} (${driver.employeeId})${status.last ? '' : ', '}|">
+		    </span>
+		</div>
 
     </div>
 

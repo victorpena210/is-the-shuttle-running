@@ -12,8 +12,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.victorpena.shuttleflow.model.Driver;
+import com.victorpena.shuttleflow.model.DriverSchedule;
+import com.victorpena.shuttleflow.model.DriverScheduleResult;
 import com.victorpena.shuttleflow.model.PickupWindow;
 import com.victorpena.shuttleflow.provider.CsvScheduleProvider;
+import com.victorpena.shuttleflow.service.DriverScheduleService;
 import com.victorpena.shuttleflow.service.PickupPlanningService;
 
 @Controller
@@ -21,13 +25,16 @@ public class PickupPlanningController {
 
     private final PickupPlanningService pickupPlanningService;
     private final CsvScheduleProvider csvScheduleProvider;
+    private final DriverScheduleService driverScheduleService;
 
     public PickupPlanningController(
             PickupPlanningService pickupPlanningService,
-            CsvScheduleProvider csvScheduleProvider) {
+            CsvScheduleProvider csvScheduleProvider,
+            DriverScheduleService driverScheduleService) {
 
         this.pickupPlanningService = pickupPlanningService;
         this.csvScheduleProvider = csvScheduleProvider;
+        this.driverScheduleService = driverScheduleService;
     }
 
     @GetMapping("/")
@@ -58,6 +65,8 @@ public class PickupPlanningController {
         }
 
         List<PickupWindow> pickupWindows;
+        List<DriverSchedule> driverSchedules = List.of();
+        List<Driver> driversWithoutSchedules = List.of();
 
         /*
          * Only generate the table after the Generate button
@@ -68,6 +77,16 @@ public class PickupPlanningController {
         } else {
             pickupWindows =
                     pickupPlanningService.getPickupWindowsForDate(date);
+
+            DriverScheduleResult driverScheduleResult =
+                    driverScheduleService
+                            .getDriverSchedulesForDate(date);
+
+            driverSchedules =
+                    driverScheduleResult.scheduledDrivers();
+
+            driversWithoutSchedules =
+                    driverScheduleResult.driversWithoutSchedules();
         }
 
         model.addAttribute("selectedDate", selectedDate);
@@ -78,7 +97,11 @@ public class PickupPlanningController {
         );
         model.addAttribute("generated", date != null);
         model.addAttribute("pickupWindows", pickupWindows);
-
+        model.addAttribute("driverSchedules", driverSchedules);
+        model.addAttribute(
+                "driversWithoutSchedules",
+                driversWithoutSchedules
+        );
         return "index";
     }
 
