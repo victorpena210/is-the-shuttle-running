@@ -14,10 +14,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.victorpena.shuttleflow.model.Driver;
 import com.victorpena.shuttleflow.model.DriverSchedule;
-import com.victorpena.shuttleflow.model.DriverScheduleResult;
 import com.victorpena.shuttleflow.model.PickupWindow;
 import com.victorpena.shuttleflow.provider.CsvScheduleProvider;
-import com.victorpena.shuttleflow.service.DriverScheduleService;
 import com.victorpena.shuttleflow.service.PickupPlanningService;
 
 @Controller
@@ -25,16 +23,13 @@ public class PickupPlanningController {
 
     private final PickupPlanningService pickupPlanningService;
     private final CsvScheduleProvider csvScheduleProvider;
-    private final DriverScheduleService driverScheduleService;
 
     public PickupPlanningController(
             PickupPlanningService pickupPlanningService,
-            CsvScheduleProvider csvScheduleProvider,
-            DriverScheduleService driverScheduleService) {
+            CsvScheduleProvider csvScheduleProvider) {
 
         this.pickupPlanningService = pickupPlanningService;
         this.csvScheduleProvider = csvScheduleProvider;
-        this.driverScheduleService = driverScheduleService;
     }
 
     @GetMapping("/")
@@ -78,15 +73,6 @@ public class PickupPlanningController {
             pickupWindows =
                     pickupPlanningService.getPickupWindowsForDate(date);
 
-            DriverScheduleResult driverScheduleResult =
-                    driverScheduleService
-                            .getDriverSchedulesForDate(date);
-
-            driverSchedules =
-                    driverScheduleResult.scheduledDrivers();
-
-            driversWithoutSchedules =
-                    driverScheduleResult.driversWithoutSchedules();
         }
 
         model.addAttribute("selectedDate", selectedDate);
