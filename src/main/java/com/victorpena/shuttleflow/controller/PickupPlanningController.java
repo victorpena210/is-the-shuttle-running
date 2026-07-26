@@ -114,6 +114,13 @@ public class PickupPlanningController {
         try {
             int shiftCount =
                     csvScheduleProvider.loadSchedule(scheduleFile);
+            LocalDate firstAvailableDate =
+                    csvScheduleProvider.getAvailableDates().get(0);
+
+            redirectAttributes.addAttribute(
+                    "date",
+                    firstAvailableDate.toString()
+            );
 
             redirectAttributes.addFlashAttribute(
                     "successMessage",
