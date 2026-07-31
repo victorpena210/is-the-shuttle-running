@@ -2,7 +2,6 @@ package com.victorpena.shuttleflow.service;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,55 +24,41 @@ public class PickupPlanningService {
         this.scheduleProvider = scheduleProvider;
     }
 
-    public List<PickupWindow> getPickupWindowsForDate(LocalDate date) {
-        List<ShiftRecord> shifts =
-                scheduleProvider.getSchedulesForDate(date);
+public List<PickupWindow> getPickupWindowsForDate(LocalDate date) {
+    List<ShiftRecord> shifts =
+            scheduleProvider.getSchedulesForDate(date);
 
-        Map<WindowKey, Long> shiftCounts = shifts.stream()
-                .collect(Collectors.groupingBy(
-                        shift -> new WindowKey(
-                                shift.getPickupLocation(),
-                                calculateWindowStart(shift.getEndTime())
-                        ),
-                        Collectors.counting()
-                ));
+    Map<LocalTime, Long> shiftCounts = shifts.stream()
+            .collect(Collectors.groupingBy(
+                    shift -> calculateWindowStart(
+                            shift.getEndTime()
+                    ),
+                    Collectors.counting()
+            ));
 
-        return shiftCounts.entrySet()
-                .stream()
-                .sorted(
-                        Comparator
-                                .comparing(
-                                        (Map.Entry<WindowKey, Long> entry) ->
-                                                entry.getKey().windowStart()
-                                )
-                                .thenComparing(
-                                        entry ->
-                                                entry.getKey().pickupLocation()
-                                )
-                )
-                .map(entry -> createPickupWindow(
-                        entry.getKey(),
-                        entry.getValue()
-                ))
-                .toList();
-    }
+    return shiftCounts.entrySet()
+            .stream()
+            .sorted(Map.Entry.comparingByKey())
+            .map(entry -> createPickupWindow(
+                    entry.getKey(),
+                    entry.getValue()
+            ))
+            .toList();
+}
 
-    private PickupWindow createPickupWindow(
-            WindowKey windowKey,
-            long teamMemberCount) {
+private PickupWindow createPickupWindow(
+        LocalTime windowStart,
+        long teamMemberCount) {
 
-        int count = Math.toIntExact(teamMemberCount);
-        LocalTime windowStart = windowKey.windowStart();
+    int count = Math.toIntExact(teamMemberCount);
 
-        return new PickupWindow(
-                windowStart,
-                windowStart.plusMinutes(WINDOW_MINUTES),
-                count,
-                determinePriority(count),
-                windowKey.pickupLocation()
-        );
-    }
-
+    return new PickupWindow(
+            windowStart,
+            windowStart.plusMinutes(WINDOW_MINUTES),
+            count,
+            determinePriority(count)
+    );
+}
     private LocalTime calculateWindowStart(LocalTime endTime) {
         int roundedMinute =
                 (endTime.getMinute() / WINDOW_MINUTES) * WINDOW_MINUTES;
@@ -96,8 +81,5 @@ public class PickupPlanningService {
         return PickupPriority.LOW;
     }
 
-    private record WindowKey(
-            String pickupLocation,
-            LocalTime windowStart) {
-    }
+
 }
