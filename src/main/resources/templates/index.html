@@ -116,9 +116,9 @@
     <h1>Shuttle Pickup Dashboard</h1>
 	
 	<p>
-	    <button type="button" disabled title="Coming soon">
-	        Manage Drivers
-	    </button>
+		<a th:href="@{/drivers}">
+		    Manage Drivers
+		</a>
 	</p>
 
     <p
@@ -206,12 +206,11 @@
 
         <table>
             <thead>
-                <tr>
-                    <th>Pickup window</th>
-                    <th>Pickup location</th>
-                    <th>Team members</th>
-                    <th>Priority</th>
-                </tr>
+				<tr>
+				    <th>Pickup window</th>
+				    <th>Team members</th>
+				    <th>Priority</th>
+				</tr>
             </thead>
 
             <tbody>
@@ -228,9 +227,7 @@
                         3:00–3:15 PM
                     </td>
 
-                    <td th:text="${window.pickupLocation}">
-                        Employee Gate
-                    </td>
+
 
                     <td th:text="${window.teamMemberCount}">
                         2
@@ -242,7 +239,7 @@
                 </tr>
 
                 <tr th:if="${#lists.isEmpty(pickupWindows)}">
-                    <td colspan="4">
+                    <td colspan="3">
                         No pickup windows were found for this date.
                     </td>
                 </tr>
