@@ -108,6 +108,15 @@
 		    background-color: #fef9c3;
 		    border-radius: 4px;
 		}
+		
+		.calendar-status {
+		    max-width: 876px;
+		    margin: 16px 0;
+		    padding: 12px;
+		    border-radius: 4px;
+		    background-color: #e5e7eb;
+		    font-weight: bold;
+		}
     </style>
 </head>
 
@@ -203,7 +212,14 @@
             )}|">
             Pickup plan
         </h2>
-
+		
+		<p
+		    th:if="${calendarMessage != null}"
+		    class="calendar-status"
+		    th:text="${calendarMessage}">
+		    Park operating status
+		</p>
+		<div th:if="${showSchedule}">
         <table>
             <thead>
 				<tr>
@@ -246,10 +262,10 @@
             </tbody>
         </table>
 		
-		<h2>Scheduled Drivers</h2>
-
+		<h2>Eligible Drivers Working This Day</h2>
 		<p>
-		    Drivers are matched to the uploaded schedule by employee ID.
+		    Active registered drivers are matched to the uploaded
+		    schedule by employee ID.
 		</p>
 
 		<table>
@@ -304,6 +320,8 @@
 		</div>
 
     </div>
+</div>
+
 
 </body>
 </html>

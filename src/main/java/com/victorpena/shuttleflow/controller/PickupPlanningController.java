@@ -14,8 +14,13 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.victorpena.shuttleflow.model.Driver;
 import com.victorpena.shuttleflow.model.DriverSchedule;
+import com.victorpena.shuttleflow.model.DriverScheduleResult;
+import com.victorpena.shuttleflow.model.ParkOperatingDay;
+import com.victorpena.shuttleflow.model.ParkOperatingStatus;
 import com.victorpena.shuttleflow.model.PickupWindow;
 import com.victorpena.shuttleflow.provider.CsvScheduleProvider;
+import com.victorpena.shuttleflow.service.DriverScheduleService;
+import com.victorpena.shuttleflow.service.ParkOperatingDayService;
 import com.victorpena.shuttleflow.service.PickupPlanningService;
 
 @Controller
@@ -23,13 +28,17 @@ public class PickupPlanningController {
 
     private final PickupPlanningService pickupPlanningService;
     private final CsvScheduleProvider csvScheduleProvider;
+    private final DriverScheduleService driverScheduleService;
+    private final ParkOperatingDayService parkOperatingDayService;
 
     public PickupPlanningController(
             PickupPlanningService pickupPlanningService,
-            CsvScheduleProvider csvScheduleProvider) {
-
+            CsvScheduleProvider csvScheduleProvider, DriverScheduleService driverScheduleService,
+            ParkOperatingDayService parkOperatingDayService) {
         this.pickupPlanningService = pickupPlanningService;
         this.csvScheduleProvider = csvScheduleProvider;
+        this.driverScheduleService = driverScheduleService;
+        this.parkOperatingDayService = parkOperatingDayService;
     }
 
     @GetMapping("/")
@@ -59,20 +68,55 @@ public class PickupPlanningController {
             selectedDate = LocalDate.now();
         }
 
-        List<PickupWindow> pickupWindows;
+        List<PickupWindow> pickupWindows = List.of();
         List<DriverSchedule> driverSchedules = List.of();
         List<Driver> driversWithoutSchedules = List.of();
 
-        /*
-         * Only generate the table after the Generate button
-         * submits a date.
-         */
-        if (date == null) {
-            pickupWindows = List.of();
-        } else {
-            pickupWindows =
-                    pickupPlanningService.getPickupWindowsForDate(date);
+        ParkOperatingDay operatingDay = null;
+        String calendarMessage = null;
 
+        if (date != null) {
+
+            operatingDay =
+                    parkOperatingDayService.getOperatingDay(date);
+
+            if (operatingDay.status()
+                    == ParkOperatingStatus.CLOSED) {
+
+                calendarMessage =
+                        "Park closed — shuttle not scheduled";
+
+            } else if (operatingDay.status()
+                    == ParkOperatingStatus.UNKNOWN) {
+
+                calendarMessage =
+                        "Calendar could not be verified — review required";
+
+            } else {
+
+                /*
+                 * This is the OPEN branch.
+                 *
+                 * Both public operating days and private buyouts
+                 * reach this branch and schedule the shuttle.
+                 */
+                calendarMessage = operatingDay.buyout()
+                        ? "Open — Private Buyout"
+                        : "Open — Public Operating Day";
+
+                pickupWindows =
+                        pickupPlanningService
+                                .getPickupWindowsForDate(date);
+
+                DriverScheduleResult result =
+                        driverScheduleService
+                                .getDriverSchedulesForDate(date);
+
+                driverSchedules = result.scheduledDrivers();
+
+                driversWithoutSchedules =
+                        result.driversWithoutSchedules();
+            }
         }
 
         model.addAttribute("selectedDate", selectedDate);
@@ -87,6 +131,16 @@ public class PickupPlanningController {
         model.addAttribute(
                 "driversWithoutSchedules",
                 driversWithoutSchedules
+                
+        );
+        
+        model.addAttribute("operatingDay", operatingDay);
+        model.addAttribute("calendarMessage", calendarMessage);
+
+        model.addAttribute(
+                "showSchedule",
+                operatingDay != null
+                        && operatingDay.shouldScheduleShuttle()
         );
         return "index";
     }
