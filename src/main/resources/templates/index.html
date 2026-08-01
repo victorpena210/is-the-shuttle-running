@@ -262,6 +262,41 @@
             </tbody>
         </table>
 		
+		<h2>Shuttle Driver Assignments</h2>
+
+		<p
+		    th:if="${assignmentMessage != null}"
+		    class="warning"
+		    th:text="${assignmentMessage}">
+		    Manual coverage required
+		</p>
+
+		<table th:if="${!#lists.isEmpty(driverAssignments)}">
+		    <thead>
+		        <tr>
+		            <th>Period</th>
+		            <th>Driver</th>
+		            <th>Employee ID</th>
+		        </tr>
+		    </thead>
+
+		    <tbody>
+		        <tr th:each="assignment : ${driverAssignments}">
+		            <td th:text="${assignment.period}">
+		                MORNING
+		            </td>
+
+		            <td th:text="${assignment.driver.name}">
+		                Driver name
+		            </td>
+
+		            <td th:text="${assignment.driver.employeeId}">
+		                Employee ID
+		            </td>
+		        </tr>
+		    </tbody>
+		</table>
+		
 		<h2>Eligible Drivers Working This Day</h2>
 		<p>
 		    Active registered drivers are matched to the uploaded
