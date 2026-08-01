@@ -1,6 +1,7 @@
 package com.victorpena.shuttleflow.controller;
 
 import java.time.LocalDate;
+
 import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -22,7 +23,8 @@ import com.victorpena.shuttleflow.provider.CsvScheduleProvider;
 import com.victorpena.shuttleflow.service.DriverScheduleService;
 import com.victorpena.shuttleflow.service.ParkOperatingDayService;
 import com.victorpena.shuttleflow.service.PickupPlanningService;
-
+import com.victorpena.shuttleflow.model.DriverAssignment;
+import com.victorpena.shuttleflow.service.DriverAssignmentService;
 @Controller
 public class PickupPlanningController {
 
@@ -30,15 +32,20 @@ public class PickupPlanningController {
     private final CsvScheduleProvider csvScheduleProvider;
     private final DriverScheduleService driverScheduleService;
     private final ParkOperatingDayService parkOperatingDayService;
+    private final DriverAssignmentService driverAssignmentService;
 
     public PickupPlanningController(
             PickupPlanningService pickupPlanningService,
-            CsvScheduleProvider csvScheduleProvider, DriverScheduleService driverScheduleService,
-            ParkOperatingDayService parkOperatingDayService) {
+            CsvScheduleProvider csvScheduleProvider,
+            DriverScheduleService driverScheduleService,
+            ParkOperatingDayService parkOperatingDayService,
+            DriverAssignmentService driverAssignmentService) {
+
         this.pickupPlanningService = pickupPlanningService;
         this.csvScheduleProvider = csvScheduleProvider;
         this.driverScheduleService = driverScheduleService;
         this.parkOperatingDayService = parkOperatingDayService;
+        this.driverAssignmentService = driverAssignmentService;
     }
 
     @GetMapping("/")
@@ -71,7 +78,9 @@ public class PickupPlanningController {
         List<PickupWindow> pickupWindows = List.of();
         List<DriverSchedule> driverSchedules = List.of();
         List<Driver> driversWithoutSchedules = List.of();
-
+        List<DriverAssignment> driverAssignments = List.of();
+       
+        String assignmentMessage = null;
         ParkOperatingDay operatingDay = null;
         String calendarMessage = null;
 
@@ -109,13 +118,30 @@ public class PickupPlanningController {
                                 .getPickupWindowsForDate(date);
 
                 DriverScheduleResult result =
-                        driverScheduleService
+                      driverScheduleService
                                 .getDriverSchedulesForDate(date);
 
                 driverSchedules = result.scheduledDrivers();
 
                 driversWithoutSchedules =
                         result.driversWithoutSchedules();
+                
+                driverAssignments =
+                        driverAssignmentService
+                                .getOrCreateAssignments(date);
+
+                if (driverAssignments.isEmpty()) {
+
+                    assignmentMessage =
+                            "Manual morning and afternoon coverage required — "
+                            + "no eligible drivers are working this date.";
+
+                } else if (driverAssignments.size() == 1) {
+
+                    assignmentMessage =
+                            "Morning driver assigned — manual afternoon "
+                            + "coverage required.";
+                }
             }
         }
 
@@ -141,6 +167,17 @@ public class PickupPlanningController {
                 "showSchedule",
                 operatingDay != null
                         && operatingDay.shouldScheduleShuttle()
+                       
+        );
+  
+        model.addAttribute(
+                "driverAssignments",
+                driverAssignments
+        );
+
+        model.addAttribute(
+                "assignmentMessage",
+                assignmentMessage
         );
         return "index";
     }
