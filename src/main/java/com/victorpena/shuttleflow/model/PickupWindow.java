@@ -8,20 +8,17 @@ public class PickupWindow {
     private LocalTime windowEnd;
     private int teamMemberCount;
     private PickupPriority priority;
-    private String pickupLocation;
 
     public PickupWindow(
             LocalTime windowStart,
             LocalTime windowEnd,
             int teamMemberCount,
-            PickupPriority priority,
-            String pickupLocation) {
+            PickupPriority priority) {
 
         this.windowStart = windowStart;
         this.windowEnd = windowEnd;
         this.teamMemberCount = teamMemberCount;
         this.priority = priority;
-        this.pickupLocation = pickupLocation;
     }
 
     public LocalTime getWindowStart() {
@@ -38,9 +35,5 @@ public class PickupWindow {
 
     public PickupPriority getPriority() {
         return priority;
-    }
-
-    public String getPickupLocation() {
-        return pickupLocation;
     }
 }

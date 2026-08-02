@@ -108,6 +108,15 @@
 		    background-color: #fef9c3;
 		    border-radius: 4px;
 		}
+		
+		.calendar-status {
+		    max-width: 876px;
+		    margin: 16px 0;
+		    padding: 12px;
+		    border-radius: 4px;
+		    background-color: #e5e7eb;
+		    font-weight: bold;
+		}
     </style>
 </head>
 
@@ -116,9 +125,9 @@
     <h1>Shuttle Pickup Dashboard</h1>
 	
 	<p>
-	    <button type="button" disabled title="Coming soon">
-	        Manage Drivers
-	    </button>
+		<a th:href="@{/drivers}">
+		    Manage Drivers
+		</a>
 	</p>
 
     <p
@@ -203,15 +212,21 @@
             )}|">
             Pickup plan
         </h2>
-
+		
+		<p
+		    th:if="${calendarMessage != null}"
+		    class="calendar-status"
+		    th:text="${calendarMessage}">
+		    Park operating status
+		</p>
+		<div th:if="${showSchedule}">
         <table>
             <thead>
-                <tr>
-                    <th>Pickup window</th>
-                    <th>Pickup location</th>
-                    <th>Team members</th>
-                    <th>Priority</th>
-                </tr>
+				<tr>
+				    <th>Pickup window</th>
+				    <th>Team members</th>
+				    <th>Priority</th>
+				</tr>
             </thead>
 
             <tbody>
@@ -228,9 +243,7 @@
                         3:00–3:15 PM
                     </td>
 
-                    <td th:text="${window.pickupLocation}">
-                        Employee Gate
-                    </td>
+
 
                     <td th:text="${window.teamMemberCount}">
                         2
@@ -242,17 +255,52 @@
                 </tr>
 
                 <tr th:if="${#lists.isEmpty(pickupWindows)}">
-                    <td colspan="4">
+                    <td colspan="3">
                         No pickup windows were found for this date.
                     </td>
                 </tr>
             </tbody>
         </table>
 		
-		<h2>Scheduled Drivers</h2>
+		<h2>Shuttle Driver Assignments</h2>
 
+		<p
+		    th:if="${assignmentMessage != null}"
+		    class="warning"
+		    th:text="${assignmentMessage}">
+		    Manual coverage required
+		</p>
+
+		<table th:if="${!#lists.isEmpty(driverAssignments)}">
+		    <thead>
+		        <tr>
+		            <th>Period</th>
+		            <th>Driver</th>
+		            <th>Employee ID</th>
+		        </tr>
+		    </thead>
+
+		    <tbody>
+		        <tr th:each="assignment : ${driverAssignments}">
+		            <td th:text="${assignment.period}">
+		                MORNING
+		            </td>
+
+		            <td th:text="${assignment.driver.name}">
+		                Driver name
+		            </td>
+
+		            <td th:text="${assignment.driver.employeeId}">
+		                Employee ID
+		            </td>
+		        </tr>
+		    </tbody>
+		</table>
+		
+		<h2>Eligible Drivers Working This Day</h2>
 		<p>
-		    Drivers are matched to the uploaded schedule by employee ID.
+		    Active registered drivers are matched to the uploaded
+		    schedule by employee ID.
 		</p>
 
 		<table>
@@ -307,6 +355,8 @@
 		</div>
 
     </div>
+</div>
+
 
 </body>
 </html>
