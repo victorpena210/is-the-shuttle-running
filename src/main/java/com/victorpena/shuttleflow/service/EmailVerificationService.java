@@ -3,8 +3,6 @@ package com.victorpena.shuttleflow.service;
 import java.time.LocalDateTime;
 
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -23,26 +21,23 @@ public class EmailVerificationService {
 
     private final SecureTokenService secureTokenService;
 
-    private final JavaMailSender mailSender;
+    private final VerificationEmailSender
+            verificationEmailSender;
 
     private final String applicationBaseUrl;
-
-    private final String fromAddress;
 
     public EmailVerificationService(
             EmailVerificationTokenRepository tokenRepository,
             SecureTokenService secureTokenService,
-            JavaMailSender mailSender,
+            VerificationEmailSender verificationEmailSender,
             @Value("${app.base-url}")
-            String applicationBaseUrl,
-            @Value("${app.mail.from}")
-            String fromAddress) {
+            String applicationBaseUrl) {
 
         this.tokenRepository = tokenRepository;
         this.secureTokenService = secureTokenService;
-        this.mailSender = mailSender;
+        this.verificationEmailSender =
+                verificationEmailSender;
         this.applicationBaseUrl = applicationBaseUrl;
-        this.fromAddress = fromAddress;
     }
 
     @Transactional
@@ -79,27 +74,11 @@ public class EmailVerificationService {
                         .encode()
                         .toUriString();
 
-        SimpleMailMessage message =
-                new SimpleMailMessage();
-
-        message.setFrom(fromAddress);
-        message.setTo(user.getEmail());
-
-        message.setSubject(
-                "Verify your ShuttleFlow email address"
-        );
-
-        message.setText(
-                "Hello " + user.getFirstName() + ",\n\n"
-                + "Verify your ShuttleFlow email address by "
-                + "opening this link:\n\n"
-                + verificationUrl + "\n\n"
-                + "This link expires in 24 hours. If you did "
-                + "not create this account, you can ignore "
-                + "this email."
-        );
-
-        mailSender.send(message);
+        verificationEmailSender
+                .sendVerificationEmail(
+                        user,
+                        verificationUrl
+                );
     }
 
     @Transactional
