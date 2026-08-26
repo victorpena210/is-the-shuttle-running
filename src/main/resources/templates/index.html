@@ -302,6 +302,30 @@
 		    Active registered drivers are matched to the uploaded
 		    schedule by employee ID.
 		</p>
+		<p
+		    th:if="${param.verified}"
+		    class="message success">
+		    Your email address has been verified. You can now
+		    sign in.
+		</p>
+
+		<p
+		    th:if="${param.verificationExpired}"
+		    class="message error">
+		    That verification link has expired.
+		</p>
+
+		<p
+		    th:if="${param.verificationUsed}"
+		    class="message error">
+		    That verification link has already been used.
+		</p>
+
+		<p
+		    th:if="${param.verificationError}"
+		    class="message error">
+		    That verification link is invalid.
+		</p>
 
 		<table>
 		    <thead>

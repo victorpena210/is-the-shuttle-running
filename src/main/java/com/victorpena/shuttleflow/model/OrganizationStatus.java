@@ -1,5 +1,9 @@
 package com.victorpena.shuttleflow.model;
 
-public class OrganizationStatus {
-
+public enum OrganizationStatus {
+	TRIAL,
+	ACTIVE,
+	EXPIRED,
+	SUSPENDED,
+	CANCELLED
 }

@@ -85,6 +85,9 @@
 <body>
 
     <p><a th:href="@{/}">← Back to dashboard</a></p>
+	<form th:action="@{/logout}" method="post">
+	    <button type="submit">Sign Out</button>
+	</form>
 
     <h1>Driver Registration</h1>
 

@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1">
+
+    <title>Create an Account | ShuttleFlow</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f6f8;
+            color: #1f2937;
+        }
+
+        .registration-panel {
+            max-width: 560px;
+            margin: 40px auto;
+            padding: 24px;
+            background-color: white;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        input {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #9ca3af;
+            border-radius: 4px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 8px;
+            padding: 11px;
+            border: none;
+            border-radius: 4px;
+            background-color: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .help-text {
+            color: #4b5563;
+            font-size: 0.9rem;
+        }
+
+        .error-message {
+            margin-top: 5px;
+            color: #991b1b;
+            font-size: 0.9rem;
+        }
+
+        .error-summary {
+            margin-bottom: 20px;
+            padding: 12px;
+            color: #991b1b;
+            background-color: #fee2e2;
+            border-radius: 4px;
+        }
+
+        .login-link {
+            margin-top: 20px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="registration-panel">
+
+        <h1>Create a ShuttleFlow account</h1>
+
+        <p>
+            Register your organization and create its first
+            manager account.
+        </p>
+
+        <p class="help-text">
+            The first manager registered for this organization
+            will become its owner. Additional managers can be
+            invited afterward.
+        </p>
+
+        <form
+            th:action="@{/register}"
+            th:object="${registrationForm}"
+            method="post">
+
+            <div
+                th:if="${#fields.hasGlobalErrors()}"
+                class="error-summary">
+
+                <p
+                    th:each="error : ${#fields.globalErrors()}"
+                    th:text="${error}">
+                    Registration error
+                </p>
+            </div>
+
+            <div class="form-group">
+
+                <label for="organizationLegalName">
+                    Organization legal name
+                </label>
+
+                <input
+                    type="text"
+                    id="organizationLegalName"
+                    th:field="*{organizationLegalName}"
+                    autocomplete="organization"
+                    required>
+
+                <p
+                    th:if="${#fields.hasErrors(
+                        'organizationLegalName'
+                    )}"
+                    th:errors="*{organizationLegalName}"
+                    class="error-message">
+                </p>
+            </div>
+
+            <div class="form-group">
+
+                <label for="organizationDisplayName">
+                    Organization display name
+                </label>
+
+                <input
+                    type="text"
+                    id="organizationDisplayName"
+                    th:field="*{organizationDisplayName}"
+                    required>
+
+                <p class="help-text">
+                    This is the organization name users will see
+                    inside ShuttleFlow.
+                </p>
+
+                <p
+                    th:if="${#fields.hasErrors(
+                        'organizationDisplayName'
+                    )}"
+                    th:errors="*{organizationDisplayName}"
+                    class="error-message">
+                </p>
+            </div>
+
+            <div class="form-group">
+
+                <label for="firstName">
+                    First name
+                </label>
+
+                <input
+                    type="text"
+                    id="firstName"
+                    th:field="*{firstName}"
+                    autocomplete="given-name"
+                    required>
+
+                <p
+                    th:if="${#fields.hasErrors('firstName')}"
+                    th:errors="*{firstName}"
+                    class="error-message">
+                </p>
+            </div>
+
+            <div class="form-group">
+
+                <label for="lastName">
+                    Last name
+                </label>
+
+                <input
+                    type="text"
+                    id="lastName"
+                    th:field="*{lastName}"
+                    autocomplete="family-name"
+                    required>
+
+                <p
+                    th:if="${#fields.hasErrors('lastName')}"
+                    th:errors="*{lastName}"
+                    class="error-message">
+                </p>
+            </div>
+
+            <div class="form-group">
+
+                <label for="email">
+                    Email address
+                </label>
+
+                <input
+                    type="email"
+                    id="email"
+                    th:field="*{email}"
+                    autocomplete="email"
+                    required>
+
+                <p
+                    th:if="${#fields.hasErrors('email')}"
+                    th:errors="*{email}"
+                    class="error-message">
+                </p>
+            </div>
+
+            <div class="form-group">
+
+                <label for="password">
+                    Password
+                </label>
+
+                <input
+                    type="password"
+                    id="password"
+                    th:field="*{password}"
+                    autocomplete="new-password"
+                    minlength="12"
+                    required>
+
+                <p class="help-text">
+                    Use between 12 and 72 characters.
+                </p>
+
+                <p
+                    th:if="${#fields.hasErrors('password')}"
+                    th:errors="*{password}"
+                    class="error-message">
+                </p>
+            </div>
+
+            <div class="form-group">
+
+                <label for="confirmPassword">
+                    Confirm password
+                </label>
+
+                <input
+                    type="password"
+                    id="confirmPassword"
+                    th:field="*{confirmPassword}"
+                    autocomplete="new-password"
+                    minlength="12"
+                    required>
+
+                <p
+                    th:if="${#fields.hasErrors(
+                        'confirmPassword'
+                    )}"
+                    th:errors="*{confirmPassword}"
+                    class="error-message">
+                </p>
+            </div>
+
+            <button type="submit">
+                Create Organization and Account
+            </button>
+        </form>
+
+        <p class="login-link">
+            Already have an account?
+            <a th:href="@{/login}">Sign in</a>
+        </p>
+
+    </main>
+
+</body>
+</html>
