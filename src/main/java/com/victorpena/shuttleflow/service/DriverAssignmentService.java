@@ -1,7 +1,7 @@
 package com.victorpena.shuttleflow.service;
 
-import java.util.ArrayList;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -22,49 +22,61 @@ import com.victorpena.shuttleflow.repository.DriverRepository;
 @Service
 public class DriverAssignmentService {
 
-    private final DriverAssignmentRepository assignmentRepository;
+    private final DriverAssignmentRepository
+            assignmentRepository;
+
     private final DriverRepository driverRepository;
-    private final DriverScheduleService driverScheduleService;
+
+    private final DriverScheduleService
+            driverScheduleService;
 
     public DriverAssignmentService(
             DriverAssignmentRepository assignmentRepository,
             DriverRepository driverRepository,
             DriverScheduleService driverScheduleService) {
 
-        this.assignmentRepository = assignmentRepository;
-        this.driverRepository = driverRepository;
-        this.driverScheduleService = driverScheduleService;
+        this.assignmentRepository =
+                assignmentRepository;
+
+        this.driverRepository =
+                driverRepository;
+
+        this.driverScheduleService =
+                driverScheduleService;
     }
 
     @Transactional
     public List<DriverAssignment> getOrCreateAssignments(
+            Long organizationId,
             LocalDate assignmentDate) {
 
         /*
-         * Never change assignments simply because the page
-         * was refreshed.
+         * Only assignments belonging to the current
+         * organization are loaded.
          */
         List<DriverAssignment> existingAssignments =
-                assignmentRepository.findAllByAssignmentDate(
-                        assignmentDate
-                );
+                assignmentRepository
+                        .findAllByOrganization_IdAndAssignmentDate(
+                                organizationId,
+                                assignmentDate
+                        );
 
         if (!existingAssignments.isEmpty()) {
-            return orderByPeriod(existingAssignments);
+            return orderByPeriod(
+                    existingAssignments
+            );
         }
 
-        /*
-         * DriverScheduleService already removes inactive drivers
-         * and matches employee IDs against the uploaded schedule.
-         */
         DriverScheduleResult scheduleResult =
-                driverScheduleService.getDriverSchedulesForDate(
-                        assignmentDate
-                );
+                driverScheduleService
+                        .getDriverSchedulesForDate(
+                                organizationId,
+                                assignmentDate
+                        );
 
         /*
-         * Deduplicate by driver ID in case the CSV ever contains
-         * multiple shift rows for one driver.
+         * Deduplicate by driver ID in case the CSV
+         * contains multiple shift rows for one driver.
          */
         Map<Long, DriverSchedule> schedulesByDriverId =
                 scheduleResult.scheduledDrivers()
@@ -80,12 +92,6 @@ public class DriverAssignmentService {
                         .stream()
                         .toList();
 
-        /*
-         * Do not create only half of the day's coverage.
-         */
-        /*
-         * No assignments can be created when nobody is eligible.
-         */
         if (eligibleDrivers.isEmpty()) {
             return List.of();
         }
@@ -94,16 +100,18 @@ public class DriverAssignmentService {
                 eligibleDrivers.stream()
                         .collect(Collectors.toMap(
                                 DriverSchedule::driverId,
-                                schedule -> assignmentRepository
-                                        .countByDriver_IdAndAssignmentDateBefore(
-                                                schedule.driverId(),
-                                                assignmentDate
-                                        )
+                                schedule ->
+                                        assignmentRepository
+                                                .countByOrganization_IdAndDriver_IdAndAssignmentDateBefore(
+                                                        organizationId,
+                                                        schedule.driverId(),
+                                                        assignmentDate
+                                                )
                         ));
 
         /*
          * Fewest previous assignments wins.
-         * Name and employee ID provide consistent tie-breakers.
+         * Name and employee ID provide stable tie-breakers.
          */
         List<DriverSchedule> fairestOrder =
                 eligibleDrivers.stream()
@@ -111,9 +119,10 @@ public class DriverAssignmentService {
                                 Comparator
                                         .comparingLong(
                                                 (DriverSchedule schedule) ->
-                                                        previousAssignmentCounts.get(
-                                                                schedule.driverId()
-                                                        )
+                                                        previousAssignmentCounts
+                                                                .get(
+                                                                        schedule.driverId()
+                                                                )
                                         )
                                         .thenComparing(
                                                 DriverSchedule::driverName
@@ -125,7 +134,10 @@ public class DriverAssignmentService {
                         .toList();
 
         Driver morningDriver =
-                loadDriver(fairestOrder.get(0).driverId());
+                loadDriver(
+                        organizationId,
+                        fairestOrder.get(0).driverId()
+                );
 
         List<DriverAssignment> newAssignments =
                 new ArrayList<>();
@@ -139,13 +151,16 @@ public class DriverAssignmentService {
         );
 
         /*
-         * Only create the afternoon assignment when a second,
-         * different driver is available.
+         * Only create the afternoon assignment when
+         * a second, different driver is available.
          */
         if (fairestOrder.size() >= 2) {
 
             Driver afternoonDriver =
-                    loadDriver(fairestOrder.get(1).driverId());
+                    loadDriver(
+                            organizationId,
+                            fairestOrder.get(1).driverId()
+                    );
 
             newAssignments.add(
                     new DriverAssignment(
@@ -157,12 +172,21 @@ public class DriverAssignmentService {
         }
 
         return orderByPeriod(
-                assignmentRepository.saveAll(newAssignments)
+                assignmentRepository.saveAll(
+                        newAssignments
+                )
         );
     }
 
-    private Driver loadDriver(Long driverId) {
-        return driverRepository.findById(driverId)
+    private Driver loadDriver(
+            Long organizationId,
+            Long driverId) {
+
+        return driverRepository
+                .findByIdAndOrganization_Id(
+                        driverId,
+                        organizationId
+                )
                 .orElseThrow(() ->
                         new IllegalStateException(
                                 "Eligible driver was not found."
@@ -174,10 +198,14 @@ public class DriverAssignmentService {
             List<DriverAssignment> assignments) {
 
         return assignments.stream()
-                .sorted(Comparator.comparingInt(
-                        assignment ->
-                                assignment.getPeriod().ordinal()
-                ))
+                .sorted(
+                        Comparator.comparingInt(
+                                assignment ->
+                                        assignment
+                                                .getPeriod()
+                                                .ordinal()
+                        )
+                )
                 .toList();
     }
 }

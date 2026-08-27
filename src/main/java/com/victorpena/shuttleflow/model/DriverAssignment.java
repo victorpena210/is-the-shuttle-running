@@ -22,15 +22,17 @@ import jakarta.persistence.UniqueConstraint;
         name = "driver_assignments",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "uk_driver_assignments_date_period",
+                        name = "uk_driver_assignments_org_date_period",
                         columnNames = {
+                                "organization_id",
                                 "assignment_date",
                                 "shuttle_period"
                         }
                 ),
                 @UniqueConstraint(
-                        name = "uk_driver_assignments_date_driver",
+                        name = "uk_driver_assignments_org_date_driver",
                         columnNames = {
+                                "organization_id",
                                 "assignment_date",
                                 "driver_id"
                         }
@@ -43,7 +45,21 @@ public class DriverAssignment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "assignment_date", nullable = false)
+    @ManyToOne(
+            fetch = FetchType.LAZY,
+            optional = false
+    )
+    @JoinColumn(
+            name = "organization_id",
+            nullable = false,
+            updatable = false
+    )
+    private Organization organization;
+
+    @Column(
+            name = "assignment_date",
+            nullable = false
+    )
     private LocalDate assignmentDate;
 
     @Enumerated(EnumType.STRING)
@@ -54,8 +70,14 @@ public class DriverAssignment {
     )
     private ShuttlePeriod period;
 
-    @ManyToOne(fetch = FetchType.EAGER, optional = false)
-    @JoinColumn(name = "driver_id", nullable = false)
+    @ManyToOne(
+            fetch = FetchType.EAGER,
+            optional = false
+    )
+    @JoinColumn(
+            name = "driver_id",
+            nullable = false
+    )
     private Driver driver;
 
     @Column(
@@ -73,6 +95,7 @@ public class DriverAssignment {
             ShuttlePeriod period,
             Driver driver) {
 
+        this.organization = driver.getOrganization();
         this.assignmentDate = assignmentDate;
         this.period = period;
         this.driver = driver;
@@ -85,6 +108,10 @@ public class DriverAssignment {
 
     public Long getId() {
         return id;
+    }
+
+    public Organization getOrganization() {
+        return organization;
     }
 
     public LocalDate getAssignmentDate() {

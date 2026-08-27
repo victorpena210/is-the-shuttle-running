@@ -9,6 +9,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.victorpena.shuttleflow.model.Driver;
 import com.victorpena.shuttleflow.model.DriverSchedule;
@@ -18,6 +19,7 @@ import com.victorpena.shuttleflow.provider.ScheduleProvider;
 import com.victorpena.shuttleflow.repository.DriverRepository;
 
 @Service
+@Transactional(readOnly = true)
 public class DriverScheduleService {
 
     private final DriverRepository driverRepository;
@@ -32,13 +34,20 @@ public class DriverScheduleService {
     }
 
     public DriverScheduleResult getDriverSchedulesForDate(
+            Long organizationId,
             LocalDate date) {
 
         List<Driver> activeDrivers =
-                driverRepository.findAllByActiveTrueOrderByNameAsc();
+                driverRepository
+                        .findAllByOrganization_IdAndActiveTrueOrderByNameAsc(
+                                organizationId
+                        );
 
         List<ShiftRecord> shifts =
-                scheduleProvider.getSchedulesForDate(date);
+                scheduleProvider.getSchedulesForDate(
+                        organizationId,
+                        date
+                );
 
         Map<String, Driver> activeDriversByEmployeeId =
                 activeDrivers.stream()
@@ -47,40 +56,48 @@ public class DriverScheduleService {
                                 Function.identity()
                         ));
 
-        List<DriverSchedule> scheduledDrivers = shifts.stream()
-                .filter(shift ->
-                        activeDriversByEmployeeId.containsKey(
-                                shift.getEmployeeId()
+        List<DriverSchedule> scheduledDrivers =
+                shifts.stream()
+                        .filter(shift ->
+                                activeDriversByEmployeeId
+                                        .containsKey(
+                                                shift.getEmployeeId()
+                                        )
                         )
-                )
-                .map(shift -> {
-                    Driver driver =
-                            activeDriversByEmployeeId.get(
-                                    shift.getEmployeeId()
-                            );
+                        .map(shift -> {
+                            Driver driver =
+                                    activeDriversByEmployeeId.get(
+                                            shift.getEmployeeId()
+                                    );
 
-                    return new DriverSchedule(
-                            driver.getId(),
-                            driver.getEmployeeId(),
-                            driver.getName(),
-                            shift.getShiftDate(),
-                            shift.getStartTime(),
-                            shift.getEndTime()
-                    );
-                })
-                .sorted(
-                        Comparator
-                                .comparing(DriverSchedule::startTime)
-                                .thenComparing(
-                                        DriverSchedule::driverName
-                                )
-                )
-                .toList();
+                            return new DriverSchedule(
+                                    driver.getId(),
+                                    driver.getEmployeeId(),
+                                    driver.getName(),
+                                    shift.getShiftDate(),
+                                    shift.getStartTime(),
+                                    shift.getEndTime()
+                            );
+                        })
+                        .sorted(
+                                Comparator
+                                        .comparing(
+                                                DriverSchedule::startTime
+                                        )
+                                        .thenComparing(
+                                                DriverSchedule::driverName
+                                        )
+                        )
+                        .toList();
 
         Set<String> scheduledEmployeeIds =
                 scheduledDrivers.stream()
-                        .map(DriverSchedule::employeeId)
-                        .collect(Collectors.toSet());
+                        .map(
+                                DriverSchedule::employeeId
+                        )
+                        .collect(
+                                Collectors.toSet()
+                        );
 
         List<Driver> driversWithoutSchedules =
                 activeDrivers.stream()

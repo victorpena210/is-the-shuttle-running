@@ -1,9 +1,14 @@
 package com.victorpena.shuttleflow.provider;
 
-import com.victorpena.shuttleflow.model.ShiftRecord;
 import java.time.LocalDate;
 import java.util.List;
 
+import com.victorpena.shuttleflow.model.ShiftRecord;
+
 public interface ScheduleProvider {
-    List<ShiftRecord> getSchedulesForDate(LocalDate date);
+
+    List<ShiftRecord> getSchedulesForDate(
+            Long organizationId,
+            LocalDate date
+    );
 }

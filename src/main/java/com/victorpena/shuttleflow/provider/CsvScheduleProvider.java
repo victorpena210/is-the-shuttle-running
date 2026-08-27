@@ -10,6 +10,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
@@ -20,7 +22,8 @@ import org.springframework.web.multipart.MultipartFile;
 import com.victorpena.shuttleflow.model.ShiftRecord;
 
 @Component
-public class CsvScheduleProvider implements ScheduleProvider {
+public class CsvScheduleProvider
+        implements ScheduleProvider {
 
     private static final DateTimeFormatter DATE_TIME_FORMAT =
             DateTimeFormatter.ofPattern(
@@ -28,9 +31,6 @@ public class CsvScheduleProvider implements ScheduleProvider {
                     Locale.US
             );
 
-    /*
-     * Column positions in the Dayforce CSV.
-     */
     private static final int EMPLOYEE_ID_COLUMN = 0;
     private static final int EMPLOYEE_NAME_COLUMN = 1;
     private static final int SHIFT_START_COLUMN = 2;
@@ -39,11 +39,18 @@ public class CsvScheduleProvider implements ScheduleProvider {
     private static final int PRIMARY_JOB_COLUMN = 5;
 
     /*
-     * Stores the most recently uploaded schedule in memory.
+     * Each organization receives its own stored schedule.
+     *
+     * The map is safe when multiple web requests access it
+     * at the same time. Each stored list is immutable.
      */
-    private volatile List<ShiftRecord> uploadedShifts = List.of();
+    private final Map<Long, List<ShiftRecord>>
+            uploadedShiftsByOrganization =
+                    new ConcurrentHashMap<>();
 
-    public int loadSchedule(MultipartFile file) {
+    public int loadSchedule(
+            Long organizationId,
+            MultipartFile file) {
 
         if (file.isEmpty()) {
             throw new IllegalStateException(
@@ -51,7 +58,9 @@ public class CsvScheduleProvider implements ScheduleProvider {
             );
         }
 
-        List<ShiftRecord> parsedShifts = new ArrayList<>();
+        List<ShiftRecord> parsedShifts =
+                new ArrayList<>();
+
         boolean scheduleHeaderFound = false;
 
         try (
@@ -69,8 +78,8 @@ public class CsvScheduleProvider implements ScheduleProvider {
             for (CSVRecord record : parser) {
 
                 /*
-                 * Dayforce puts seven report-information rows
-                 * before the real CSV headings.
+                 * Dayforce puts report-information rows before
+                 * the actual CSV heading.
                  */
                 if (!scheduleHeaderFound) {
                     if (isScheduleHeader(record)) {
@@ -81,14 +90,16 @@ public class CsvScheduleProvider implements ScheduleProvider {
                 }
 
                 /*
-                 * Dayforce includes employees without a shift.
+                 * Dayforce includes employees without shifts.
                  * Those rows have blank start and end times.
                  */
                 if (doesNotContainScheduledShift(record)) {
                     continue;
                 }
 
-                parsedShifts.add(createShiftRecord(record));
+                parsedShifts.add(
+                        createShiftRecord(record)
+                );
             }
 
         } catch (IOException exception) {
@@ -106,80 +117,131 @@ public class CsvScheduleProvider implements ScheduleProvider {
 
         if (parsedShifts.isEmpty()) {
             throw new IllegalStateException(
-                    "The uploaded CSV does not contain any scheduled shifts."
+                    "The uploaded CSV does not contain "
+                            + "any scheduled shifts."
             );
         }
 
-        uploadedShifts = List.copyOf(parsedShifts);
+        List<ShiftRecord> immutableShifts =
+                List.copyOf(parsedShifts);
 
-        return uploadedShifts.size();
+        uploadedShiftsByOrganization.put(
+                organizationId,
+                immutableShifts
+        );
+
+        return immutableShifts.size();
     }
 
     @Override
-    public List<ShiftRecord> getSchedulesForDate(LocalDate date) {
+    public List<ShiftRecord> getSchedulesForDate(
+            Long organizationId,
+            LocalDate date) {
 
-        return uploadedShifts.stream()
-                .filter(shift -> shift.getShiftDate().equals(date))
+        return getUploadedShifts(organizationId)
+                .stream()
+                .filter(shift ->
+                        shift.getShiftDate().equals(date)
+                )
                 .toList();
     }
 
-    public boolean hasUploadedSchedule() {
-        return !uploadedShifts.isEmpty();
+    public boolean hasUploadedSchedule(
+            Long organizationId) {
+
+        return !getUploadedShifts(
+                organizationId
+        ).isEmpty();
     }
 
-    public List<LocalDate> getAvailableDates() {
+    public List<LocalDate> getAvailableDates(
+            Long organizationId) {
 
-        return uploadedShifts.stream()
+        return getUploadedShifts(organizationId)
+                .stream()
                 .map(ShiftRecord::getShiftDate)
                 .distinct()
                 .sorted()
                 .toList();
     }
 
-    private boolean isScheduleHeader(CSVRecord record) {
-        return record.size() > 0
-                && "Employee ID".equalsIgnoreCase(
-                        record.get(EMPLOYEE_ID_COLUMN).strip()
+    private List<ShiftRecord> getUploadedShifts(
+            Long organizationId) {
+
+        return uploadedShiftsByOrganization
+                .getOrDefault(
+                        organizationId,
+                        List.of()
                 );
     }
 
-    private boolean doesNotContainScheduledShift(CSVRecord record) {
-        return record.size() <= SHIFT_END_COLUMN
-                || record.get(SHIFT_START_COLUMN).isBlank()
-                || record.get(SHIFT_END_COLUMN).isBlank();
+    private boolean isScheduleHeader(
+            CSVRecord record) {
+
+        return record.size() > 0
+                && "Employee ID".equalsIgnoreCase(
+                        record.get(
+                                EMPLOYEE_ID_COLUMN
+                        ).strip()
+                );
     }
 
-    private ShiftRecord createShiftRecord(CSVRecord record) {
+    private boolean doesNotContainScheduledShift(
+            CSVRecord record) {
+
+        return record.size() <= SHIFT_END_COLUMN
+                || record.get(
+                        SHIFT_START_COLUMN
+                ).isBlank()
+                || record.get(
+                        SHIFT_END_COLUMN
+                ).isBlank();
+    }
+
+    private ShiftRecord createShiftRecord(
+            CSVRecord record) {
 
         try {
-            LocalDateTime shiftStart = LocalDateTime.parse(
-                    record.get(SHIFT_START_COLUMN).strip(),
-                    DATE_TIME_FORMAT
-            );
+            LocalDateTime shiftStart =
+                    LocalDateTime.parse(
+                            record.get(
+                                    SHIFT_START_COLUMN
+                            ).strip(),
+                            DATE_TIME_FORMAT
+                    );
 
-            LocalDateTime shiftEnd = LocalDateTime.parse(
-                    record.get(SHIFT_END_COLUMN).strip(),
-                    DATE_TIME_FORMAT
-            );
+            LocalDateTime shiftEnd =
+                    LocalDateTime.parse(
+                            record.get(
+                                    SHIFT_END_COLUMN
+                            ).strip(),
+                            DATE_TIME_FORMAT
+                    );
 
             String locationPath =
-                    record.get(LOCATION_PATH_COLUMN).strip();
+                    record.get(
+                            LOCATION_PATH_COLUMN
+                    ).strip();
 
             return new ShiftRecord(
-                    record.get(EMPLOYEE_ID_COLUMN).strip(),
-                    record.get(EMPLOYEE_NAME_COLUMN).strip(),
-                    extractDepartment(locationPath),
-                    record.get(PRIMARY_JOB_COLUMN).strip(),
-
-                    /*
-                     * Use the ending date because ShuttleFlow
-                     * plans when the employee needs a pickup.
-                     */
+                    record.get(
+                            EMPLOYEE_ID_COLUMN
+                    ).strip(),
+                    record.get(
+                            EMPLOYEE_NAME_COLUMN
+                    ).strip(),
+                    extractDepartment(
+                            locationPath
+                    ),
+                    record.get(
+                            PRIMARY_JOB_COLUMN
+                    ).strip(),
                     shiftEnd.toLocalDate(),
-
                     shiftStart.toLocalTime(),
                     shiftEnd.toLocalTime(),
-                    extractPickupLocation(locationPath)
+                    extractPickupLocation(
+                            locationPath
+                    )
             );
 
         } catch (RuntimeException exception) {
@@ -191,15 +253,12 @@ public class CsvScheduleProvider implements ScheduleProvider {
         }
     }
 
-    private String extractDepartment(String locationPath) {
-        String[] pathParts = locationPath.split("/");
+    private String extractDepartment(
+            String locationPath) {
 
-        /*
-         * Example:
-         * SF/SFFT/SFFT/RID/A1/1530 Pandemonium
-         *
-         * RID is the department code.
-         */
+        String[] pathParts =
+                locationPath.split("/");
+
         if (pathParts.length > 3) {
             return pathParts[3].strip();
         }
@@ -207,22 +266,23 @@ public class CsvScheduleProvider implements ScheduleProvider {
         return "Unknown";
     }
 
-    private String extractPickupLocation(String locationPath) {
-        int lastSlash = locationPath.lastIndexOf('/');
+    private String extractPickupLocation(
+            String locationPath) {
+
+        int lastSlash =
+                locationPath.lastIndexOf('/');
 
         String location = lastSlash >= 0
-                ? locationPath.substring(lastSlash + 1)
+                ? locationPath.substring(
+                        lastSlash + 1
+                )
                 : locationPath;
 
-        /*
-         * Turns:
-         * 1530 Pandemonium
-         *
-         * Into:
-         * Pandemonium
-         */
         location = location
-                .replaceFirst("^\\d+\\s*", "")
+                .replaceFirst(
+                        "^\\d+\\s*",
+                        ""
+                )
                 .strip();
 
         return location.isBlank()

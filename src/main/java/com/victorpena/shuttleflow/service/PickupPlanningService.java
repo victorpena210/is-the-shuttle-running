@@ -20,48 +20,72 @@ public class PickupPlanningService {
 
     private final ScheduleProvider scheduleProvider;
 
-    public PickupPlanningService(ScheduleProvider scheduleProvider) {
+    public PickupPlanningService(
+            ScheduleProvider scheduleProvider) {
+
         this.scheduleProvider = scheduleProvider;
     }
 
-public List<PickupWindow> getPickupWindowsForDate(LocalDate date) {
-    List<ShiftRecord> shifts =
-            scheduleProvider.getSchedulesForDate(date);
+    public List<PickupWindow> getPickupWindowsForDate(
+            Long organizationId,
+            LocalDate date) {
 
-    Map<LocalTime, Long> shiftCounts = shifts.stream()
-            .collect(Collectors.groupingBy(
-                    shift -> calculateWindowStart(
-                            shift.getEndTime()
-                    ),
-                    Collectors.counting()
-            ));
+        List<ShiftRecord> shifts =
+                scheduleProvider.getSchedulesForDate(
+                        organizationId,
+                        date
+                );
 
-    return shiftCounts.entrySet()
-            .stream()
-            .sorted(Map.Entry.comparingByKey())
-            .map(entry -> createPickupWindow(
-                    entry.getKey(),
-                    entry.getValue()
-            ))
-            .toList();
-}
+        Map<LocalTime, Long> shiftCounts =
+                shifts.stream()
+                        .collect(Collectors.groupingBy(
+                                shift ->
+                                        calculateWindowStart(
+                                                shift.getEndTime()
+                                        ),
+                                Collectors.counting()
+                        ));
 
-private PickupWindow createPickupWindow(
-        LocalTime windowStart,
-        long teamMemberCount) {
+        return shiftCounts.entrySet()
+                .stream()
+                .sorted(
+                        Map.Entry.comparingByKey()
+                )
+                .map(entry ->
+                        createPickupWindow(
+                                entry.getKey(),
+                                entry.getValue()
+                        )
+                )
+                .toList();
+    }
 
-    int count = Math.toIntExact(teamMemberCount);
+    private PickupWindow createPickupWindow(
+            LocalTime windowStart,
+            long teamMemberCount) {
 
-    return new PickupWindow(
-            windowStart,
-            windowStart.plusMinutes(WINDOW_MINUTES),
-            count,
-            determinePriority(count)
-    );
-}
-    private LocalTime calculateWindowStart(LocalTime endTime) {
+        int count =
+                Math.toIntExact(
+                        teamMemberCount
+                );
+
+        return new PickupWindow(
+                windowStart,
+                windowStart.plusMinutes(
+                        WINDOW_MINUTES
+                ),
+                count,
+                determinePriority(count)
+        );
+    }
+
+    private LocalTime calculateWindowStart(
+            LocalTime endTime) {
+
         int roundedMinute =
-                (endTime.getMinute() / WINDOW_MINUTES) * WINDOW_MINUTES;
+                (endTime.getMinute()
+                        / WINDOW_MINUTES)
+                        * WINDOW_MINUTES;
 
         return endTime
                 .withMinute(roundedMinute)
@@ -69,7 +93,9 @@ private PickupWindow createPickupWindow(
                 .withNano(0);
     }
 
-    private PickupPriority determinePriority(int count) {
+    private PickupPriority determinePriority(
+            int count) {
+
         if (count >= 6) {
             return PickupPriority.HIGH;
         }
@@ -80,6 +106,4 @@ private PickupWindow createPickupWindow(
 
         return PickupPriority.LOW;
     }
-
-
 }
