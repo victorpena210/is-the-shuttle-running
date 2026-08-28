@@ -1,6 +1,7 @@
 package com.victorpena.shuttleflow.controller;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 import org.springframework.format.annotation.DateTimeFormat;
@@ -8,6 +9,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
@@ -20,10 +22,13 @@ import com.victorpena.shuttleflow.model.DriverScheduleResult;
 import com.victorpena.shuttleflow.model.ParkOperatingDay;
 import com.victorpena.shuttleflow.model.ParkOperatingStatus;
 import com.victorpena.shuttleflow.model.PickupWindow;
+import com.victorpena.shuttleflow.model.ScheduleImport;
+import com.victorpena.shuttleflow.model.ShuttlePeriod;
 import com.victorpena.shuttleflow.provider.CsvScheduleProvider;
 import com.victorpena.shuttleflow.service.CurrentOrganizationService;
 import com.victorpena.shuttleflow.service.DriverAssignmentService;
 import com.victorpena.shuttleflow.service.DriverScheduleService;
+import com.victorpena.shuttleflow.service.DriverService;
 import com.victorpena.shuttleflow.service.ParkOperatingDayService;
 import com.victorpena.shuttleflow.service.PickupPlanningService;
 
@@ -45,6 +50,8 @@ public class PickupPlanningController {
     private final DriverAssignmentService
             driverAssignmentService;
 
+    private final DriverService driverService;
+
     private final CurrentOrganizationService
             currentOrganizationService;
 
@@ -54,6 +61,7 @@ public class PickupPlanningController {
             DriverScheduleService driverScheduleService,
             ParkOperatingDayService parkOperatingDayService,
             DriverAssignmentService driverAssignmentService,
+            DriverService driverService,
             CurrentOrganizationService
                     currentOrganizationService) {
 
@@ -71,6 +79,9 @@ public class PickupPlanningController {
 
         this.driverAssignmentService =
                 driverAssignmentService;
+
+        this.driverService =
+                driverService;
 
         this.currentOrganizationService =
                 currentOrganizationService;
@@ -92,30 +103,53 @@ public class PickupPlanningController {
                                 authentication
                         );
 
-        List<LocalDate> availableDates =
-                csvScheduleProvider.getAvailableDates(
-                        organizationId
-                );
+        boolean isOwner =
+                authentication
+                        .getAuthorities()
+                        .stream()
+                        .anyMatch(authority ->
+                                authority
+                                        .getAuthority()
+                                        .equals("ROLE_OWNER")
+                        );
 
-        LocalDate selectedDate = date;
+        model.addAttribute(
+                "isOwner",
+                isOwner
+        );
+
+        List<LocalDate> availableDates =
+                csvScheduleProvider
+                        .getAvailableDates(
+                                organizationId
+                        );
+
+        LocalDate selectedDate =
+                date;
 
         /*
-         * After uploading, default the date picker
-         * to the first date in the CSV.
+         * If no date was explicitly selected,
+         * default to the first date belonging
+         * to the newest CSV import.
          */
         if (selectedDate == null
                 && !availableDates.isEmpty()) {
 
             selectedDate =
-                    availableDates.get(0);
+                    csvScheduleProvider
+                            .getFirstDateOfLatestImport(
+                                    organizationId
+                            );
         }
 
         /*
-         * Before a CSV is uploaded, default
-         * the picker to today's date.
+         * Before a CSV is uploaded,
+         * default the picker to today's date.
          */
         if (selectedDate == null) {
-            selectedDate = LocalDate.now();
+            selectedDate =
+                    driverAssignmentService
+                            .getCurrentOperationsDate();
         }
 
         List<PickupWindow> pickupWindows =
@@ -130,15 +164,28 @@ public class PickupPlanningController {
         List<DriverAssignment> driverAssignments =
                 List.of();
 
-        String assignmentMessage = null;
-        ParkOperatingDay operatingDay = null;
-        String calendarMessage = null;
+        List<Driver> activeDrivers =
+                driverService
+                        .getActiveDrivers(
+                                organizationId
+                        );
+
+        String assignmentMessage =
+                null;
+
+        ParkOperatingDay operatingDay =
+                null;
+
+        String calendarMessage =
+                null;
 
         if (date != null) {
 
             operatingDay =
                     parkOperatingDayService
-                            .getOperatingDay(date);
+                            .getOperatingDay(
+                                    date
+                            );
 
             if (operatingDay.status()
                     == ParkOperatingStatus.CLOSED) {
@@ -197,15 +244,39 @@ public class PickupPlanningController {
                 } else if (driverAssignments.size() == 1) {
 
                     assignmentMessage =
-                            "Morning driver assigned — manual "
-                                    + "afternoon coverage required.";
+                            "One shuttle period still needs "
+                                    + "manual coverage.";
                 }
             }
         }
 
+        boolean morningAssignmentExists =
+                driverAssignments.stream()
+                        .anyMatch(assignment ->
+                                assignment.getPeriod()
+                                        == ShuttlePeriod.MORNING
+                        );
+
+        boolean afternoonAssignmentExists =
+                driverAssignments.stream()
+                        .anyMatch(assignment ->
+                                assignment.getPeriod()
+                                        == ShuttlePeriod.AFTERNOON
+                        );
+
         model.addAttribute(
                 "selectedDate",
                 selectedDate
+        );
+
+        /*
+         * Used by the dashboard to determine whether
+         * Start Driving should be available.
+         */
+        model.addAttribute(
+                "currentOperationsDate",
+                driverAssignmentService
+                        .getCurrentOperationsDate()
         );
 
         model.addAttribute(
@@ -217,6 +288,14 @@ public class PickupPlanningController {
                 "scheduleUploaded",
                 csvScheduleProvider
                         .hasUploadedSchedule(
+                                organizationId
+                        )
+        );
+
+        model.addAttribute(
+                "recentScheduleImports",
+                csvScheduleProvider
+                        .getRecentImports(
                                 organizationId
                         )
         );
@@ -239,6 +318,11 @@ public class PickupPlanningController {
         model.addAttribute(
                 "driversWithoutSchedules",
                 driversWithoutSchedules
+        );
+
+        model.addAttribute(
+                "activeDrivers",
+                activeDrivers
         );
 
         model.addAttribute(
@@ -268,14 +352,50 @@ public class PickupPlanningController {
                 assignmentMessage
         );
 
+        model.addAttribute(
+                "morningAssignmentExists",
+                morningAssignmentExists
+        );
+
+        model.addAttribute(
+                "afternoonAssignmentExists",
+                afternoonAssignmentExists
+        );
+
         return "index";
     }
 
-    @PostMapping("/upload")
-    public String uploadSchedule(
+    @PostMapping("/assignments/manual")
+    public String createManualAssignment(
             Authentication authentication,
-            @RequestParam("scheduleFile")
-            MultipartFile scheduleFile,
+
+            @RequestParam
+            @DateTimeFormat(
+                    iso = DateTimeFormat.ISO.DATE
+            )
+            LocalDate assignmentDate,
+
+            @RequestParam
+            ShuttlePeriod period,
+
+            @RequestParam
+            Long driverId,
+
+            @RequestParam
+            @DateTimeFormat(
+                    iso = DateTimeFormat.ISO.TIME
+            )
+            LocalTime scheduledStartTime,
+
+            @RequestParam
+            @DateTimeFormat(
+                    iso = DateTimeFormat.ISO.TIME
+            )
+            LocalTime scheduledEndTime,
+
+            @RequestParam(required = false)
+            String changeReason,
+
             RedirectAttributes redirectAttributes) {
 
         Long organizationId =
@@ -285,28 +405,340 @@ public class PickupPlanningController {
                         );
 
         try {
-            int shiftCount =
-                    csvScheduleProvider.loadSchedule(
+
+            driverAssignmentService
+                    .createManualAssignment(
                             organizationId,
-                            scheduleFile
+                            assignmentDate,
+                            period,
+                            driverId,
+                            scheduledStartTime,
+                            scheduledEndTime,
+                            changeReason
                     );
 
-            LocalDate firstAvailableDate =
+            redirectAttributes
+                    .addFlashAttribute(
+                            "successMessage",
+                            "Manual shuttle assignment created."
+                    );
+
+        } catch (
+                IllegalArgumentException
+                | IllegalStateException exception) {
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "errorMessage",
+                            exception.getMessage()
+                    );
+        }
+
+        redirectAttributes.addAttribute(
+                "date",
+                assignmentDate.toString()
+        );
+
+        return "redirect:/";
+    }
+
+    @PostMapping(
+            "/assignments/{assignmentId}/driver"
+    )
+    public String updateAssignedDriver(
+            Authentication authentication,
+
+            @PathVariable
+            Long assignmentId,
+
+            @RequestParam
+            Long finalDriverId,
+
+            @RequestParam(required = false)
+            String changeReason,
+
+            @RequestParam
+            @DateTimeFormat(
+                    iso = DateTimeFormat.ISO.DATE
+            )
+            LocalDate assignmentDate,
+
+            RedirectAttributes redirectAttributes) {
+
+        Long organizationId =
+                currentOrganizationService
+                        .requireOrganizationId(
+                                authentication
+                        );
+
+        try {
+
+            driverAssignmentService
+                    .changeAssignedDriver(
+                            organizationId,
+                            assignmentId,
+                            finalDriverId,
+                            changeReason
+                    );
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "successMessage",
+                            "Driver assignment updated and "
+                                    + "the change was recorded."
+                    );
+
+        } catch (
+                IllegalArgumentException
+                | IllegalStateException exception) {
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "errorMessage",
+                            exception.getMessage()
+                    );
+        }
+
+        redirectAttributes.addAttribute(
+                "date",
+                assignmentDate.toString()
+        );
+
+        return "redirect:/";
+    }
+
+    @PostMapping(
+            "/assignments/{assignmentId}/schedule"
+    )
+    public String updateAssignmentSchedule(
+            Authentication authentication,
+
+            @PathVariable
+            Long assignmentId,
+
+            @RequestParam
+            @DateTimeFormat(
+                    iso = DateTimeFormat.ISO.TIME
+            )
+            LocalTime scheduledStartTime,
+
+            @RequestParam
+            @DateTimeFormat(
+                    iso = DateTimeFormat.ISO.TIME
+            )
+            LocalTime scheduledEndTime,
+
+            @RequestParam
+            @DateTimeFormat(
+                    iso = DateTimeFormat.ISO.DATE
+            )
+            LocalDate assignmentDate,
+
+            RedirectAttributes redirectAttributes) {
+
+        Long organizationId =
+                currentOrganizationService
+                        .requireOrganizationId(
+                                authentication
+                        );
+
+        try {
+
+            driverAssignmentService
+                    .updateScheduledTimes(
+                            organizationId,
+                            assignmentId,
+                            scheduledStartTime,
+                            scheduledEndTime
+                    );
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "successMessage",
+                            "Driving assignment "
+                                    + "schedule updated."
+                    );
+
+        } catch (
+                IllegalArgumentException
+                | IllegalStateException exception) {
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "errorMessage",
+                            exception.getMessage()
+                    );
+        }
+
+        redirectAttributes.addAttribute(
+                "date",
+                assignmentDate.toString()
+        );
+
+        return "redirect:/";
+    }
+
+    /*
+     * Records the exact time that actual
+     * shuttle driving begins.
+     */
+    @PostMapping(
+            "/assignments/{assignmentId}/start"
+    )
+    public String startDriving(
+            Authentication authentication,
+
+            @PathVariable
+            Long assignmentId,
+
+            @RequestParam
+            @DateTimeFormat(
+                    iso = DateTimeFormat.ISO.DATE
+            )
+            LocalDate assignmentDate,
+
+            RedirectAttributes redirectAttributes) {
+
+        Long organizationId =
+                currentOrganizationService
+                        .requireOrganizationId(
+                                authentication
+                        );
+
+        try {
+
+            driverAssignmentService
+                    .startDriving(
+                            organizationId,
+                            assignmentId
+                    );
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "successMessage",
+                            "Driving started. RoutePulse recorded "
+                                    + "the actual start time."
+                    );
+
+        } catch (
+                IllegalArgumentException
+                | IllegalStateException exception) {
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "errorMessage",
+                            exception.getMessage()
+                    );
+        }
+
+        redirectAttributes.addAttribute(
+                "date",
+                assignmentDate.toString()
+        );
+
+        return "redirect:/";
+    }
+
+    /*
+     * Records the exact time that actual
+     * shuttle driving ends.
+     */
+    @PostMapping(
+            "/assignments/{assignmentId}/end"
+    )
+    public String endDriving(
+            Authentication authentication,
+
+            @PathVariable
+            Long assignmentId,
+
+            @RequestParam
+            @DateTimeFormat(
+                    iso = DateTimeFormat.ISO.DATE
+            )
+            LocalDate assignmentDate,
+
+            RedirectAttributes redirectAttributes) {
+
+        Long organizationId =
+                currentOrganizationService
+                        .requireOrganizationId(
+                                authentication
+                        );
+
+        try {
+
+            driverAssignmentService
+                    .endDriving(
+                            organizationId,
+                            assignmentId
+                    );
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "successMessage",
+                            "Driving ended. RoutePulse recorded "
+                                    + "the actual end time."
+                    );
+
+        } catch (
+                IllegalArgumentException
+                | IllegalStateException exception) {
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "errorMessage",
+                            exception.getMessage()
+                    );
+        }
+
+        redirectAttributes.addAttribute(
+                "date",
+                assignmentDate.toString()
+        );
+
+        return "redirect:/";
+    }
+
+    @PostMapping("/upload")
+    public String uploadSchedule(
+            Authentication authentication,
+
+            @RequestParam("scheduleFile")
+            MultipartFile scheduleFile,
+
+            RedirectAttributes redirectAttributes) {
+
+        Long organizationId =
+                currentOrganizationService
+                        .requireOrganizationId(
+                                authentication
+                        );
+
+        try {
+
+            ScheduleImport scheduleImport =
                     csvScheduleProvider
-                            .getAvailableDates(
-                                    organizationId
-                            )
-                            .get(0);
+                            .loadSchedule(
+                                    organizationId,
+                                    authentication.getName(),
+                                    scheduleFile
+                            );
 
             redirectAttributes.addAttribute(
                     "date",
-                    firstAvailableDate.toString()
+                    scheduleImport
+                            .getFirstShiftDate()
+                            .toString()
             );
 
             redirectAttributes.addFlashAttribute(
                     "successMessage",
-                    shiftCount
-                            + " shifts were successfully uploaded."
+                    scheduleImport.getRowCount()
+                            + " shifts were successfully uploaded. "
+                            + "Import "
+                            + scheduleImport.getShortVersionId()
+                            + "."
             );
 
         } catch (IllegalStateException exception) {

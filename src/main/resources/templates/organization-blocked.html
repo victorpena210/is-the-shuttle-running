@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Organization Access | ShuttleFlow</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f6f8;
+            color: #1f2937;
+        }
+
+        .access-panel {
+            max-width: 520px;
+            margin: 80px auto;
+            padding: 24px;
+            background-color: white;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+        }
+
+        .message {
+            padding: 12px;
+            border-radius: 4px;
+            color: #991b1b;
+            background-color: #fee2e2;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 10px 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="access-panel">
+
+        <h1>Organization access unavailable</h1>
+
+        <p
+            class="message"
+            th:text="${accessMessage}">
+            This organization is not currently allowed to use ShuttleFlow.
+        </p>
+
+        <p>
+            If you believe this is incorrect, contact the account owner
+            or ShuttleFlow support.
+        </p>
+
+        <form th:action="@{/logout}" method="post">
+            <button type="submit">
+                Sign Out
+            </button>
+        </form>
+
+    </main>
+
+</body>
+
+</html>

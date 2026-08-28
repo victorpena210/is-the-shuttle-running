@@ -137,4 +137,19 @@ public class Organization {
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
+    
+    public boolean hasApplicationAccess(
+            LocalDateTime now) {
+
+        if (status == OrganizationStatus.ACTIVE) {
+            return true;
+        }
+
+        if (status == OrganizationStatus.TRIAL) {
+            return trialEndsAt != null
+                    && now.isBefore(trialEndsAt);
+        }
+
+        return false;
+    }
 }

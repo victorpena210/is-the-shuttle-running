@@ -110,6 +110,20 @@
 				    class="message error">
 				    That verification link is invalid.
 				</p>
+				
+				<p
+				    th:if="${param.invitationAccepted}"
+				    class="message success">
+				    Your manager account was created successfully.
+				    You can now sign in.
+				</p>
+
+				<p
+				    th:if="${param.invitationError}"
+				    class="message error">
+				    That manager invitation is invalid, expired,
+				    or has already been used.
+				</p>
 
         <form th:action="@{/login}" method="post">
 

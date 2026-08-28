@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+
+    <meta
+        name="referrer"
+        content="no-referrer">
+
+    <title>Accept Invitation | ShuttleFlow</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 40px;
+            background-color: #f4f6f8;
+            color: #1f2937;
+        }
+
+        .panel {
+            max-width: 480px;
+            margin: 80px auto;
+            padding: 24px;
+            background-color: white;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+        }
+
+        label {
+            display: block;
+            margin: 16px 0 6px;
+            font-weight: bold;
+        }
+
+        input {
+            box-sizing: border-box;
+            width: 100%;
+            padding: 10px;
+        }
+
+        .readonly-email {
+            padding: 10px;
+            background-color: #f3f4f6;
+            border: 1px solid #d1d5db;
+            border-radius: 4px;
+        }
+
+        button {
+            width: 100%;
+            margin-top: 20px;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: #2563eb;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #1d4ed8;
+        }
+
+        .message {
+            padding: 10px;
+            border-radius: 4px;
+        }
+
+        .error {
+            color: #991b1b;
+            background-color: #fee2e2;
+        }
+    </style>
+</head>
+
+<body>
+
+<main class="panel">
+
+    <h1>Accept Manager Invitation</h1>
+
+    <p>
+        You've been invited to help manage drivers for:
+    </p>
+
+    <h2
+        th:text="${invitation.organization.displayName}">
+        Organization Name
+    </h2>
+
+    <p>
+        Your manager account will use:
+    </p>
+
+    <p
+        class="readonly-email"
+        th:text="${invitation.invitedEmail}">
+        manager@example.com
+    </p>
+
+    <form
+        th:action="@{/invitations/accept}"
+        th:object="${invitationAcceptanceForm}"
+        method="post">
+
+        <input
+            type="hidden"
+            th:field="*{token}">
+
+        <div
+            th:if="${#fields.hasGlobalErrors()}"
+            class="message error">
+
+            <p
+                th:each="error : ${#fields.globalErrors()}"
+                th:text="${error}">
+                Invitation error
+            </p>
+
+        </div>
+
+        <label for="firstName">
+            First name
+        </label>
+
+        <input
+            type="text"
+            id="firstName"
+            th:field="*{firstName}"
+            autocomplete="given-name"
+            required>
+
+        <p
+            th:if="${#fields.hasErrors('firstName')}"
+            th:errors="*{firstName}"
+            class="message error">
+            First name error
+        </p>
+
+        <label for="lastName">
+            Last name
+        </label>
+
+        <input
+            type="text"
+            id="lastName"
+            th:field="*{lastName}"
+            autocomplete="family-name"
+            required>
+
+        <p
+            th:if="${#fields.hasErrors('lastName')}"
+            th:errors="*{lastName}"
+            class="message error">
+            Last name error
+        </p>
+
+        <label for="password">
+            Password
+        </label>
+
+        <input
+            type="password"
+            id="password"
+            th:field="*{password}"
+            autocomplete="new-password"
+            required>
+
+        <p
+            th:if="${#fields.hasErrors('password')}"
+            th:errors="*{password}"
+            class="message error">
+            Password error
+        </p>
+
+        <label for="confirmPassword">
+            Confirm password
+        </label>
+
+        <input
+            type="password"
+            id="confirmPassword"
+            th:field="*{confirmPassword}"
+            autocomplete="new-password"
+            required>
+
+        <p
+            th:if="${#fields.hasErrors('confirmPassword')}"
+            th:errors="*{confirmPassword}"
+            class="message error">
+            Password confirmation error
+        </p>
+
+        <button type="submit">
+            Create Manager Account
+        </button>
+
+    </form>
+
+</main>
+
+</body>
+</html>

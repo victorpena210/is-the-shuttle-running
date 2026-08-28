@@ -10,16 +10,26 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.victorpena.shuttleflow.model.Organization;
+import com.victorpena.shuttleflow.model.ScheduleImport;
 import com.victorpena.shuttleflow.model.ShiftRecord;
+import com.victorpena.shuttleflow.model.UploadedShift;
+import com.victorpena.shuttleflow.model.UserAccount;
+import com.victorpena.shuttleflow.repository.OrganizationRepository;
+import com.victorpena.shuttleflow.repository.ScheduleImportRepository;
+import com.victorpena.shuttleflow.repository.UploadedShiftRepository;
+import com.victorpena.shuttleflow.repository.UserAccountRepository;
 
 @Component
 public class CsvScheduleProvider
@@ -38,18 +48,41 @@ public class CsvScheduleProvider
     private static final int LOCATION_PATH_COLUMN = 4;
     private static final int PRIMARY_JOB_COLUMN = 5;
 
-    /*
-     * Each organization receives its own stored schedule.
-     *
-     * The map is safe when multiple web requests access it
-     * at the same time. Each stored list is immutable.
-     */
-    private final Map<Long, List<ShiftRecord>>
-            uploadedShiftsByOrganization =
-                    new ConcurrentHashMap<>();
+    private final UploadedShiftRepository
+            uploadedShiftRepository;
 
-    public int loadSchedule(
+    private final OrganizationRepository
+            organizationRepository;
+
+    private final ScheduleImportRepository
+            scheduleImportRepository;
+
+    private final UserAccountRepository
+            userAccountRepository;
+
+    public CsvScheduleProvider(
+            UploadedShiftRepository uploadedShiftRepository,
+            OrganizationRepository organizationRepository,
+            ScheduleImportRepository scheduleImportRepository,
+            UserAccountRepository userAccountRepository) {
+
+        this.uploadedShiftRepository =
+                uploadedShiftRepository;
+
+        this.organizationRepository =
+                organizationRepository;
+
+        this.scheduleImportRepository =
+                scheduleImportRepository;
+
+        this.userAccountRepository =
+                userAccountRepository;
+    }
+
+    @Transactional
+    public ScheduleImport loadSchedule(
             Long organizationId,
+            String uploaderEmail,
             MultipartFile file) {
 
         if (file.isEmpty()) {
@@ -122,15 +155,115 @@ public class CsvScheduleProvider
             );
         }
 
-        List<ShiftRecord> immutableShifts =
-                List.copyOf(parsedShifts);
+        Organization organization =
+                organizationRepository
+                        .findById(organizationId)
+                        .orElseThrow(() ->
+                                new IllegalStateException(
+                                        "The organization could not be found."
+                                )
+                        );
 
-        uploadedShiftsByOrganization.put(
-                organizationId,
-                immutableShifts
+        UserAccount uploadedBy =
+                userAccountRepository
+                        .findByEmailIgnoreCase(
+                                uploaderEmail
+                        )
+                        .orElseThrow(() ->
+                                new IllegalStateException(
+                                        "The signed-in user could not be found."
+                                )
+                        );
+
+        /*
+         * Find every unique date contained in this CSV.
+         */
+        Set<LocalDate> uploadedDateSet =
+                parsedShifts.stream()
+                        .map(ShiftRecord::getShiftDate)
+                        .collect(Collectors.toSet());
+
+        List<LocalDate> uploadedDates =
+                uploadedDateSet.stream()
+                        .sorted()
+                        .toList();
+
+        LocalDate firstShiftDate =
+                uploadedDates.get(0);
+
+        LocalDate lastShiftDate =
+                uploadedDates.get(
+                        uploadedDates.size() - 1
+                );
+
+        String datesRepresented =
+                uploadedDates.stream()
+                        .map(LocalDate::toString)
+                        .collect(
+                                Collectors.joining(",")
+                        );
+
+        LocalDateTime uploadedAt =
+                LocalDateTime.now();
+
+        /*
+         * Create exactly one audit/history record for this upload.
+         * The UUID is the import/version ID that can be shown to
+         * managers or used later for analytics and troubleshooting.
+         */
+        ScheduleImport scheduleImport =
+                new ScheduleImport(
+                        organization,
+                        uploadedBy,
+                        UUID.randomUUID().toString(),
+                        cleanOriginalFilename(file),
+                        parsedShifts.size(),
+                        firstShiftDate,
+                        lastShiftDate,
+                        datesRepresented,
+                        uploadedAt
+                );
+
+        scheduleImportRepository.save(
+                scheduleImport
         );
 
-        return immutableShifts.size();
+        /*
+         * Do NOT delete older rows here.
+         *
+         * Every upload is kept as a permanent schedule version
+         * for pilot history, analytics, troubleshooting, and
+         * auditing.
+         *
+         * Normal schedule reads use only the rows with the newest
+         * importedAt value for each organization/date.
+         *
+         * This means:
+         *
+         * Import #1 remains stored.
+         * Import #2 remains stored.
+         * Import #3 remains stored.
+         *
+         * But RoutePulse uses Import #3 when it is the newest
+         * version containing the requested date.
+         */
+        List<UploadedShift> uploadedShifts =
+                parsedShifts.stream()
+                        .map(shift ->
+                                toUploadedShift(
+                                        organization,
+                                        scheduleImport,
+                                        shift,
+                                        uploadedAt
+                                )
+                        )
+                        .toList();
+
+        uploadedShiftRepository.saveAll(
+                uploadedShifts
+        );
+
+        return scheduleImport;
     }
 
     @Override
@@ -138,41 +271,147 @@ public class CsvScheduleProvider
             Long organizationId,
             LocalDate date) {
 
-        return getUploadedShifts(organizationId)
-                .stream()
-                .filter(shift ->
-                        shift.getShiftDate().equals(date)
+        /*
+         * Only return the newest version of this date.
+         *
+         * Historical versions stay in MySQL but do not appear
+         * in the current planning calculations.
+         */
+        return uploadedShiftRepository
+                .findLatestVersionForDate(
+                        organizationId,
+                        date
                 )
+                .stream()
+                .map(this::toShiftRecord)
                 .toList();
     }
 
     public boolean hasUploadedSchedule(
             Long organizationId) {
 
-        return !getUploadedShifts(
-                organizationId
-        ).isEmpty();
+        return uploadedShiftRepository
+                .existsByOrganization_Id(
+                        organizationId
+                );
     }
 
     public List<LocalDate> getAvailableDates(
             Long organizationId) {
 
-        return getUploadedShifts(organizationId)
-                .stream()
-                .map(ShiftRecord::getShiftDate)
-                .distinct()
-                .sorted()
-                .toList();
+        return uploadedShiftRepository
+                .findAvailableDates(
+                        organizationId
+                );
     }
 
-    private List<ShiftRecord> getUploadedShifts(
+    public LocalDate getFirstDateOfLatestImport(
             Long organizationId) {
 
-        return uploadedShiftsByOrganization
-                .getOrDefault(
-                        organizationId,
-                        List.of()
+        return scheduleImportRepository
+                .findFirstByOrganization_IdOrderByUploadedAtDesc(
+                        organizationId
+                )
+                .map(
+                        ScheduleImport::getFirstShiftDate
+                )
+                /*
+                 * Fallback for schedule rows that already existed
+                 * before migration V14 introduced import history.
+                 */
+                .or(() ->
+                        uploadedShiftRepository
+                                .findFirstDateOfLatestImport(
+                                        organizationId
+                                )
+                )
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "No uploaded schedule could be found."
+                        )
                 );
+    }
+
+    public List<ScheduleImport> getRecentImports(
+            Long organizationId) {
+
+        return scheduleImportRepository
+                .findTop10ByOrganization_IdOrderByUploadedAtDesc(
+                        organizationId
+                );
+    }
+
+    private UploadedShift toUploadedShift(
+            Organization organization,
+            ScheduleImport scheduleImport,
+            ShiftRecord shift,
+            LocalDateTime importedAt) {
+
+        return new UploadedShift(
+                organization,
+                scheduleImport,
+                shift.getEmployeeId(),
+                shift.getEmployeeName(),
+                shift.getDepartment(),
+                shift.getJob(),
+                shift.getShiftDate(),
+                shift.getStartTime(),
+                shift.getEndTime(),
+                shift.getPickupLocation(),
+                importedAt
+        );
+    }
+
+    private ShiftRecord toShiftRecord(
+            UploadedShift uploadedShift) {
+
+        return new ShiftRecord(
+                uploadedShift.getEmployeeId(),
+                uploadedShift.getEmployeeName(),
+                uploadedShift.getDepartment(),
+                uploadedShift.getJob(),
+                uploadedShift.getShiftDate(),
+                uploadedShift.getStartTime(),
+                uploadedShift.getEndTime(),
+                uploadedShift.getPickupLocation()
+        );
+    }
+
+    private String cleanOriginalFilename(
+            MultipartFile file) {
+
+        String originalFilename =
+                file.getOriginalFilename();
+
+        if (originalFilename == null
+                || originalFilename.isBlank()) {
+
+            return "schedule.csv";
+        }
+
+        String cleaned = originalFilename
+                .replace('\\', '/');
+
+        int lastSlash =
+                cleaned.lastIndexOf('/');
+
+        if (lastSlash >= 0) {
+            cleaned = cleaned.substring(
+                    lastSlash + 1
+            );
+        }
+
+        cleaned = cleaned.strip();
+
+        if (cleaned.isBlank()) {
+            return "schedule.csv";
+        }
+
+        if (cleaned.length() > 255) {
+            return cleaned.substring(0, 255);
+        }
+
+        return cleaned;
     }
 
     private boolean isScheduleHeader(

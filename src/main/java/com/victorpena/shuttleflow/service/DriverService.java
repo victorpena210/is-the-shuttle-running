@@ -34,6 +34,15 @@ public class DriverService {
                 );
     }
 
+    public List<Driver> getActiveDrivers(
+            Long organizationId) {
+
+        return driverRepository
+                .findAllByOrganization_IdAndActiveTrueOrderByNameAsc(
+                        organizationId
+                );
+    }
+
     @Transactional
     public Driver registerDriver(
             Long organizationId,
