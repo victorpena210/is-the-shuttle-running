@@ -2,191 +2,90 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>ShuttleFlow Dashboard</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-            background-color: #f4f6f8;
-            color: #1f2937;
-        }
-
-        h1,
-        h2 {
-            color: #1f2937;
-        }
-
-        .controls {
-            max-width: 900px;
-            margin-bottom: 24px;
-            padding: 20px;
-            background-color: white;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: bold;
-        }
-
-        input {
-            padding: 8px;
-        }
-
-        button {
-            padding: 9px 16px;
-            border: none;
-            border-radius: 4px;
-            background-color: #2563eb;
-            color: white;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background-color: #1d4ed8;
-        }
-
-        .message {
-            max-width: 900px;
-            padding: 12px;
-            border-radius: 4px;
-        }
-
-        .success {
-            color: #166534;
-            background-color: #dcfce7;
-        }
-
-        .error {
-            color: #991b1b;
-            background-color: #fee2e2;
-        }
-
-        .available-dates {
-            margin: 16px 0;
-            color: #4b5563;
-        }
-
-        .available-date {
-            display: inline-block;
-            margin: 3px;
-            padding: 5px 8px;
-            background-color: #e5e7eb;
-            border-radius: 4px;
-        }
-
-        table {
-            width: 100%;
-            max-width: 900px;
-            border-collapse: collapse;
-            background-color: white;
-        }
-
-        th,
-        td {
-            padding: 12px;
-            border: 1px solid #d1d5db;
-            text-align: left;
-        }
-
-        th {
-            background-color: #1f2937;
-            color: white;
-        }
-		.warning {
-		    max-width: 876px;
-		    margin-top: 16px;
-		    padding: 12px;
-		    color: #854d0e;
-		    background-color: #fef9c3;
-		    border-radius: 4px;
-		}
-		
-		.calendar-status {
-		    max-width: 876px;
-		    margin: 16px 0;
-		    padding: 12px;
-		    border-radius: 4px;
-		    background-color: #e5e7eb;
-		    font-weight: bold;
-		}
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <title>Operations Dashboard | RoutePulse</title>
+    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/routepulse.css}">
 </head>
 
-<body>
+<body class="app-page">
+<a class="skip-link" href="#main-content">Skip to main content</a>
 
-    <h1>Shuttle Pickup Dashboard</h1>
-	
-	<p>
-		<a th:href="@{/drivers}">
-		    Manage Drivers
-		</a>
-	</p>
+<header class="app-topbar">
+    <div class="app-topbar__inner">
+        <a class="brand" th:href="@{/}" aria-label="RoutePulse dashboard">
+            <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+            <span class="brand-copy">
+                <span class="brand-name">RoutePulse</span>
+                <span class="brand-tagline">Shuttle operations</span>
+            </span>
+        </a>
 
-    <p
-        th:if="${successMessage}"
-        class="message success"
-        th:text="${successMessage}">
-    </p>
+        <nav class="app-nav" aria-label="Primary navigation">
+            <a class="app-nav__link" th:href="@{/}" aria-current="page">Dashboard</a>
+            <a class="app-nav__link" th:href="@{/drivers}">Drivers</a>
+            <a
+                class="app-nav__link"
+                th:if="${isOwner}"
+                th:href="@{/organization/invitations}">
+                Managers
+            </a>
+            <form class="app-nav__form" th:action="@{/logout}" method="post">
+                <button class="app-nav__button" type="submit">Sign out</button>
+            </form>
+        </nav>
+    </div>
+</header>
 
-    <p
-        th:if="${errorMessage}"
-        class="message error"
-        th:text="${errorMessage}">
-    </p>
-
-    <div class="controls">
-
-        <h2>1. Upload Weekly Schedule</h2>
-
-        <form
-            th:action="@{/upload}"
-            method="post"
-            enctype="multipart/form-data">
-
-            <div class="form-group">
-                <label for="scheduleFile">Schedule CSV</label>
-
-                <input
-                    type="file"
-                    id="scheduleFile"
-                    name="scheduleFile"
-                    accept=".csv"
-                    required>
-            </div>
-
-            <button type="submit">Upload Schedule</button>
-        </form>
-
-        <div th:if="${scheduleUploaded}">
-
-            <p class="available-dates">
-                Available dates:
-
-                <span
-                    class="available-date"
-                    th:each="availableDate : ${availableDates}"
-                    th:text="${#temporals.format(
-                        availableDate,
-                        'MMM d, yyyy'
-                    )}">
-                </span>
+<main id="main-content" class="app-main">
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">Daily command center</p>
+            <h1>Shuttle operations dashboard</h1>
+            <p>
+                Upload the weekly schedule, review pickup pressure, confirm driver coverage,
+                and record what happened during the day.
             </p>
+        </div>
 
-            <h2>2. Generate Pickup Plan</h2>
+        <div class="page-date" th:if="${selectedDate != null}">
+            Planning for
+            <span th:text="${#temporals.format(selectedDate, 'MMM d, yyyy')}">Aug 28, 2026</span>
+        </div>
+    </header>
 
-            <form th:action="@{/}" method="get">
+    <div th:if="${successMessage}" class="alert alert--success" role="status" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></div>
 
+    <section class="workflow-grid" aria-label="Schedule planning workflow">
+        <article class="workflow-card">
+            <span class="workflow-card__step" aria-hidden="true">1</span>
+            <h2>Upload weekly schedule</h2>
+            <p>Use the exported Dayforce CSV. Existing imports stay available for history.</p>
+
+            <form th:action="@{/upload}" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label for="scheduleFile">Schedule CSV</label>
+                    <input
+                        type="file"
+                        id="scheduleFile"
+                        name="scheduleFile"
+                        accept=".csv,text/csv"
+                        required>
+                </div>
+                <button class="button" type="submit">Upload schedule</button>
+            </form>
+        </article>
+
+        <article class="workflow-card">
+            <span class="workflow-card__step" aria-hidden="true">2</span>
+            <h2>Open a pickup plan</h2>
+            <p>Select one of the dates represented in an uploaded schedule.</p>
+
+            <form th:if="${scheduleUploaded}" th:action="@{/}" method="get">
                 <div class="form-group">
                     <label for="date">Schedule date</label>
-
                     <input
                         type="date"
                         id="date"
@@ -194,169 +93,518 @@
                         th:value="${selectedDate}"
                         required>
                 </div>
-
-                <button type="submit">
-                    Generate
-                </button>
+                <button class="button" type="submit">Open pickup plan</button>
             </form>
 
+            <div th:unless="${scheduleUploaded}" class="alert alert--info">
+                Upload a schedule to make planning dates available.
+            </div>
+
+            <div th:if="${scheduleUploaded}" class="date-chip-list" aria-label="Available schedule dates">
+                <span
+                    class="date-chip"
+                    th:each="availableDate : ${availableDates}"
+                    th:text="${#temporals.format(availableDate, 'MMM d')}">
+                    Aug 28
+                </span>
+            </div>
+        </article>
+    </section>
+
+    <section class="section" th:if="${!#lists.isEmpty(recentScheduleImports)}" aria-labelledby="imports-heading">
+        <div class="section-heading">
+            <div>
+                <h2 id="imports-heading">Recent schedule imports</h2>
+                <p>RoutePulse uses the newest import containing each planning date.</p>
+            </div>
         </div>
-    </div>
+
+        <div class="table-shell">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col">Import</th>
+                    <th scope="col">Uploaded</th>
+                    <th scope="col">Manager</th>
+                    <th scope="col">File</th>
+                    <th scope="col">Rows</th>
+                    <th scope="col">Date range</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="scheduleImport : ${recentScheduleImports}">
+                    <td class="mono" th:text="${scheduleImport.shortVersionId}">abc12345</td>
+                    <td class="nowrap" th:text="${#temporals.format(scheduleImport.uploadedAt, 'MMM d, yyyy h:mm a')}">
+                        Aug 28, 2026 8:00 AM
+                    </td>
+                    <td>
+                        <strong th:text="${scheduleImport.uploadedByDisplayName}">Manager</strong><br>
+                        <span class="muted" th:text="${scheduleImport.uploadedBy.email}">manager@example.com</span>
+                    </td>
+                    <td th:text="${scheduleImport.originalFilename}">schedule.csv</td>
+                    <td th:text="${scheduleImport.rowCount}">100</td>
+                    <td class="nowrap">
+                        <span th:text="${#temporals.format(scheduleImport.firstShiftDate, 'MMM d')}">Aug 28</span>
+                        –
+                        <span th:text="${#temporals.format(scheduleImport.lastShiftDate, 'MMM d, yyyy')}">Sep 3, 2026</span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
 
     <div th:if="${generated}">
+        <section class="section" aria-labelledby="plan-heading">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Operating plan</p>
+                    <h2
+                        id="plan-heading"
+                        th:text="|Pickup plan for ${#temporals.format(selectedDate, 'MMMM d, yyyy')}|">
+                        Pickup plan
+                    </h2>
+                </div>
+            </div>
 
-        <h2
-            th:text="|Pickup plan for ${#temporals.format(
-                selectedDate,
-                'MMMM d, yyyy'
-            )}|">
-            Pickup plan
-        </h2>
-		
-		<p
-		    th:if="${calendarMessage != null}"
-		    class="calendar-status"
-		    th:text="${calendarMessage}">
-		    Park operating status
-		</p>
-		<div th:if="${showSchedule}">
-        <table>
-            <thead>
-				<tr>
-				    <th>Pickup window</th>
-				    <th>Team members</th>
-				    <th>Priority</th>
-				</tr>
-            </thead>
+            <div class="status-strip" th:if="${operatingDay != null}">
+                <div class="status-strip__copy">
+                    <span
+                        class="status-strip__dot"
+                        th:classappend="${operatingDay.status.name() == 'OPEN'} ? 'status-strip__dot--open' : (${operatingDay.status.name() == 'CLOSED'} ? 'status-strip__dot--closed' : 'status-strip__dot--unknown')"
+                        aria-hidden="true">
+                    </span>
+                    <div>
+                        <strong th:text="${calendarMessage}">Park operating status</strong>
+                        <small>Six Flags operating calendar</small>
+                    </div>
+                </div>
 
-            <tbody>
-                <tr th:each="window : ${pickupWindows}">
+                <span
+                    class="badge"
+                    th:classappend="${operatingDay.status.name() == 'OPEN'} ? 'badge--open' : (${operatingDay.status.name() == 'CLOSED'} ? 'badge--closed' : 'badge--unknown')"
+                    th:text="${operatingDay.status}">
+                    OPEN
+                </span>
+            </div>
 
-                    <td
-                        th:text="|${#temporals.format(
-                            window.windowStart,
-                            'h:mm'
-                        )}–${#temporals.format(
-                            window.windowEnd,
-                            'h:mm a'
-                        )}|">
-                        3:00–3:15 PM
-                    </td>
+            <div th:if="${showSchedule}">
+                <section aria-labelledby="pickup-windows-heading">
+                    <div class="section-heading">
+                        <div>
+                            <h2 id="pickup-windows-heading">Pickup demand</h2>
+                            <p>Team-member shift endings grouped into 15-minute pickup windows.</p>
+                        </div>
+                    </div>
 
+                    <div class="pickup-grid" th:if="${!#lists.isEmpty(pickupWindows)}">
+                        <article class="pickup-card" th:each="window : ${pickupWindows}">
+                            <div
+                                class="pickup-card__time"
+                                th:text="|${#temporals.format(window.windowStart, 'h:mm')}–${#temporals.format(window.windowEnd, 'h:mm a')}|">
+                                3:00–3:15 PM
+                            </div>
+                            <div class="pickup-card__meta">
+                                <span>
+                                    <strong th:text="${window.teamMemberCount}">2</strong>
+                                    team members
+                                </span>
+                                <span
+                                    class="badge"
+                                    th:classappend="${window.priority.name() == 'HIGH'} ? 'badge--closed' : (${window.priority.name() == 'MEDIUM'} ? 'badge--pending' : 'badge--active')"
+                                    th:text="${window.priority}">
+                                    LOW
+                                </span>
+                            </div>
+                        </article>
+                    </div>
 
-
-                    <td th:text="${window.teamMemberCount}">
-                        2
-                    </td>
-
-                    <td th:text="${window.priority}">
-                        LOW
-                    </td>
-                </tr>
-
-                <tr th:if="${#lists.isEmpty(pickupWindows)}">
-                    <td colspan="3">
+                    <div th:if="${#lists.isEmpty(pickupWindows)}" class="alert alert--info">
                         No pickup windows were found for this date.
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-		
-		<h2>Shuttle Driver Assignments</h2>
+                    </div>
+                </section>
 
-		<p
-		    th:if="${assignmentMessage != null}"
-		    class="warning"
-		    th:text="${assignmentMessage}">
-		    Manual coverage required
-		</p>
+                <section class="section" aria-labelledby="assignments-heading">
+                    <div class="section-heading">
+                        <div>
+                            <h2 id="assignments-heading">Driver coverage</h2>
+                            <p>
+                                AUTO is the RoutePulse recommendation. OVERRIDE records a manager change.
+                                MANUAL means the manager created coverage directly.
+                            </p>
+                        </div>
+                    </div>
 
-		<table th:if="${!#lists.isEmpty(driverAssignments)}">
-		    <thead>
-		        <tr>
-		            <th>Period</th>
-		            <th>Driver</th>
-		            <th>Employee ID</th>
-		        </tr>
-		    </thead>
+                    <div
+                        th:if="${assignmentMessage != null}"
+                        class="alert alert--warning"
+                        role="alert"
+                        th:text="${assignmentMessage}">
+                        Manual coverage required.
+                    </div>
 
-		    <tbody>
-		        <tr th:each="assignment : ${driverAssignments}">
-		            <td th:text="${assignment.period}">
-		                MORNING
-		            </td>
+                    <div class="assignment-list" th:if="${!#lists.isEmpty(driverAssignments)}">
+                        <article class="assignment-card" th:each="assignment : ${driverAssignments}">
+                            <header class="assignment-card__header">
+                                <div class="assignment-card__title">
+                                    <span
+                                        class="period-icon"
+                                        th:text="${assignment.period.name() == 'MORNING'} ? 'AM' : 'PM'">
+                                        AM
+                                    </span>
+                                    <div>
+                                        <h3 th:text="|${assignment.period} coverage|">MORNING coverage</h3>
+                                        <p th:text="${#temporals.format(assignment.assignmentDate, 'EEEE, MMMM d')}">
+                                            Friday, August 28
+                                        </p>
+                                    </div>
+                                </div>
 
-		            <td th:text="${assignment.driver.name}">
-		                Driver name
-		            </td>
+                                <span
+                                    class="badge"
+                                    th:classappend="${assignment.assignmentSource.name() == 'AUTO'} ? 'badge--auto' : (${assignment.assignmentSource.name() == 'OVERRIDE'} ? 'badge--override' : 'badge--manual')"
+                                    th:text="${assignment.assignmentSource}">
+                                    AUTO
+                                </span>
+                            </header>
 
-		            <td th:text="${assignment.driver.employeeId}">
-		                Employee ID
-		            </td>
-		        </tr>
-		    </tbody>
-		</table>
-		
-		<h2>Eligible Drivers Working This Day</h2>
-		<p>
-		    Active registered drivers are matched to the uploaded
-		    schedule by employee ID.
-		</p>
+                            <div class="assignment-card__body">
+                                <div class="assignment-summary">
+                                    <div class="stat">
+                                        <span class="stat__label">Suggested driver</span>
+                                        <span
+                                            class="stat__value"
+                                            th:if="${assignment.originallySuggestedDriver != null}"
+                                            th:text="${assignment.originallySuggestedDriver.name}">
+                                            Driver
+                                        </span>
+                                        <span
+                                            class="stat__value muted"
+                                            th:unless="${assignment.originallySuggestedDriver != null}">
+                                            No suggestion
+                                        </span>
+                                    </div>
 
-		<table>
-		    <thead>
-		        <tr>
-		            <th>Driver</th>
-		            <th>Employee ID</th>
-		            <th>Shift start</th>
-		            <th>Shift end</th>
-		        </tr>
-		    </thead>
+                                    <div class="stat">
+                                        <span class="stat__label">Final driver</span>
+                                        <span class="stat__value" th:text="${assignment.finalDriver.name}">Driver</span>
+                                    </div>
 
-		    <tbody>
-		        <tr th:each="driverSchedule : ${driverSchedules}">
-		            <td th:text="${driverSchedule.driverName}"></td>
-		            <td th:text="${driverSchedule.employeeId}"></td>
+                                    <div class="stat">
+                                        <span class="stat__label">Scheduled</span>
+                                        <span
+                                            class="stat__value"
+                                            th:if="${assignment.scheduledStartTime != null and assignment.scheduledEndTime != null}"
+                                            th:text="|${#temporals.format(assignment.scheduledStartTime, 'h:mm a')}–${#temporals.format(assignment.scheduledEndTime, 'h:mm a')}|">
+                                            9:00 AM–12:00 PM
+                                        </span>
+                                        <span
+                                            class="stat__value muted"
+                                            th:unless="${assignment.scheduledStartTime != null and assignment.scheduledEndTime != null}">
+                                            Not set
+                                        </span>
+                                    </div>
 
-		            <td
-		                th:text="${#temporals.format(
-		                    driverSchedule.startTime,
-		                    'h:mm a'
-		                )}">
-		            </td>
+                                    <div class="stat">
+                                        <span class="stat__label">Driving status</span>
+                                        <span
+                                            class="badge badge--pending"
+                                            th:if="${assignment.actualStartedAt == null}">
+                                            Not started
+                                        </span>
+                                        <span
+                                            class="badge badge--driving"
+                                            th:if="${assignment.driving}">
+                                            Driving
+                                        </span>
+                                        <span
+                                            class="badge badge--complete"
+                                            th:if="${assignment.drivingCompleted}">
+                                            Completed
+                                        </span>
+                                    </div>
+                                </div>
 
-		            <td
-		                th:text="${#temporals.format(
-		                    driverSchedule.endTime,
-		                    'h:mm a'
-		                )}">
-		            </td>
-		        </tr>
+                                <div class="alert alert--info" th:if="${assignment.changeReason != null}">
+                                    <span>
+                                        <strong>Recorded change:</strong>
+                                        <span th:text="${assignment.changeReason}">Driver called out</span>
+                                        <span th:if="${assignment.changedAt != null}">
+                                            ·
+                                            <span th:text="${#temporals.format(assignment.changedAt, 'MMM d, h:mm a')}">
+                                                Aug 28, 8:15 AM
+                                            </span>
+                                        </span>
+                                    </span>
+                                </div>
 
-		        <tr th:if="${#lists.isEmpty(driverSchedules)}">
-		            <td colspan="4">
-		                No active registered drivers matched this date's
-		                uploaded schedule.
-		            </td>
-		        </tr>
-		    </tbody>
-		</table>
+                                <div class="assignment-controls">
+                                    <section class="control-card" aria-label="Actual driving controls">
+                                        <h3>Actual driving</h3>
+                                        <p>Capture the real start and end time for this assignment.</p>
 
-		<div
-		    th:if="${!#lists.isEmpty(driversWithoutSchedules)}"
-		    class="warning">
+                                        <div th:if="${assignment.actualStartedAt != null}" class="form-group">
+                                            <span class="field-label">Started</span>
+                                            <strong th:text="${#temporals.format(assignment.actualStartedAt, 'MMM d, h:mm a')}">
+                                                Aug 28, 9:03 AM
+                                            </strong>
+                                        </div>
 
-		    <strong>Active drivers without a matching schedule:</strong>
+                                        <div th:if="${assignment.actualEndedAt != null}" class="form-group">
+                                            <span class="field-label">Ended</span>
+                                            <strong th:text="${#temporals.format(assignment.actualEndedAt, 'MMM d, h:mm a')}">
+                                                Aug 28, 11:58 AM
+                                            </strong>
+                                        </div>
 
-		    <span
-		        th:each="driver, status : ${driversWithoutSchedules}"
-		        th:text="|${driver.name} (${driver.employeeId})${status.last ? '' : ', '}|">
-		    </span>
-		</div>
+                                        <div th:if="${assignment.drivingCompleted}" class="form-group">
+                                            <span class="field-label">Actual duration</span>
+                                            <strong th:text="|${#numbers.formatDecimal(assignment.actualHours, 1, 1)} hours|">
+                                                2.9 hours
+                                            </strong>
+                                            <p
+                                                class="help-text"
+                                                th:if="${assignment.actualVsScheduledMinutes != null}"
+                                                th:text="|${assignment.actualVsScheduledMinutes} minutes from the scheduled duration|">
+                                                -5 minutes from the scheduled duration
+                                            </p>
+                                        </div>
 
+                                        <form
+                                            th:if="${assignment.actualStartedAt == null and assignment.scheduledStartTime != null and assignment.scheduledEndTime != null and assignment.assignmentDate.equals(currentOperationsDate)}"
+                                            th:action="@{/assignments/{assignmentId}/start(assignmentId=${assignment.id})}"
+                                            method="post">
+                                            <input type="hidden" name="assignmentDate" th:value="${selectedDate}">
+                                            <button class="button button--success button--block" type="submit">Start driving</button>
+                                        </form>
+
+                                        <p
+                                            class="locked-note"
+                                            th:if="${assignment.actualStartedAt == null and (assignment.scheduledStartTime == null or assignment.scheduledEndTime == null)}">
+                                            Set scheduled times before starting.
+                                        </p>
+
+                                        <p
+                                            class="locked-note"
+                                            th:if="${assignment.actualStartedAt == null and assignment.scheduledStartTime != null and assignment.scheduledEndTime != null and not assignment.assignmentDate.equals(currentOperationsDate)}">
+                                            Start Driving becomes available on the assignment date.
+                                        </p>
+
+                                        <form
+                                            th:if="${assignment.driving}"
+                                            th:action="@{/assignments/{assignmentId}/end(assignmentId=${assignment.id})}"
+                                            method="post">
+                                            <input type="hidden" name="assignmentDate" th:value="${selectedDate}">
+                                            <button class="button button--danger button--block" type="submit">End driving</button>
+                                        </form>
+                                    </section>
+
+                                    <section class="control-card" aria-label="Assigned driver controls">
+                                        <h3>Assigned driver</h3>
+                                        <p>Change coverage and keep the original recommendation for audit history.</p>
+
+                                        <form
+                                            th:if="${assignment.actualStartedAt == null}"
+                                            th:action="@{/assignments/{assignmentId}/driver(assignmentId=${assignment.id})}"
+                                            method="post">
+                                            <input type="hidden" name="assignmentDate" th:value="${selectedDate}">
+
+                                            <div class="form-group">
+                                                <label th:for="${'driver-' + assignment.id}">Final driver</label>
+                                                <select
+                                                    th:id="${'driver-' + assignment.id}"
+                                                    name="finalDriverId"
+                                                    required>
+                                                    <option
+                                                        th:each="driver : ${activeDrivers}"
+                                                        th:value="${driver.id}"
+                                                        th:selected="${driver.id == assignment.finalDriver.id}"
+                                                        th:text="|${driver.name} (${driver.employeeId})|">
+                                                        Driver
+                                                    </option>
+                                                </select>
+                                            </div>
+
+                                            <div class="form-group">
+                                                <label th:for="${'reason-' + assignment.id}">Reason <span class="muted">(optional)</span></label>
+                                                <textarea
+                                                    th:id="${'reason-' + assignment.id}"
+                                                    name="changeReason"
+                                                    maxlength="500"
+                                                    placeholder="Example: driver called out"></textarea>
+                                            </div>
+
+                                            <button class="button button--secondary button--block" type="submit">Save driver</button>
+                                        </form>
+
+                                        <p class="locked-note" th:if="${assignment.actualStartedAt != null}">
+                                            Driver changes are locked because driving has started.
+                                        </p>
+                                    </section>
+
+                                    <section class="control-card" aria-label="Scheduled driving controls">
+                                        <h3>Scheduled driving</h3>
+                                        <p>Set the manager-approved driving window before the assignment begins.</p>
+
+                                        <form
+                                            th:if="${assignment.actualStartedAt == null}"
+                                            th:action="@{/assignments/{assignmentId}/schedule(assignmentId=${assignment.id})}"
+                                            method="post">
+                                            <input type="hidden" name="assignmentDate" th:value="${selectedDate}">
+
+                                            <div class="form-grid">
+                                                <div class="form-group">
+                                                    <label th:for="${'start-' + assignment.id}">Start</label>
+                                                    <input
+                                                        type="time"
+                                                        th:id="${'start-' + assignment.id}"
+                                                        name="scheduledStartTime"
+                                                        th:value="${assignment.scheduledStartTime}"
+                                                        required>
+                                                </div>
+
+                                                <div class="form-group">
+                                                    <label th:for="${'end-' + assignment.id}">End</label>
+                                                    <input
+                                                        type="time"
+                                                        th:id="${'end-' + assignment.id}"
+                                                        name="scheduledEndTime"
+                                                        th:value="${assignment.scheduledEndTime}"
+                                                        required>
+                                                </div>
+                                            </div>
+
+                                            <button class="button button--secondary button--block" type="submit">Save schedule</button>
+                                        </form>
+
+                                        <p class="locked-note" th:if="${assignment.actualStartedAt != null}">
+                                            Scheduled times are locked because driving has started.
+                                        </p>
+                                    </section>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <section
+                        class="panel manual-panel"
+                        th:if="${showSchedule and (!morningAssignmentExists or !afternoonAssignmentExists)}"
+                        aria-labelledby="manual-assignment-heading">
+                        <div class="panel__header">
+                            <div>
+                                <h2 id="manual-assignment-heading">Add manual coverage</h2>
+                                <p>Use this when RoutePulse could not create coverage for a shuttle period.</p>
+                            </div>
+                            <span class="badge badge--manual">Manual</span>
+                        </div>
+                        <div class="panel__body">
+                            <div th:if="${#lists.isEmpty(activeDrivers)}" class="alert alert--warning">
+                                No active drivers are available. Add or reactivate a driver first.
+                            </div>
+
+                            <form
+                                th:unless="${#lists.isEmpty(activeDrivers)}"
+                                th:action="@{/assignments/manual}"
+                                method="post">
+                                <input type="hidden" name="assignmentDate" th:value="${selectedDate}">
+
+                                <div class="form-grid">
+                                    <div class="form-group">
+                                        <label for="manual-period">Shuttle period</label>
+                                        <select id="manual-period" name="period" required>
+                                            <option th:if="${!morningAssignmentExists}" value="MORNING">Morning</option>
+                                            <option th:if="${!afternoonAssignmentExists}" value="AFTERNOON">Afternoon</option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="manual-driver">Driver</label>
+                                        <select id="manual-driver" name="driverId" required>
+                                            <option value="" selected disabled>Choose a driver</option>
+                                            <option
+                                                th:each="driver : ${activeDrivers}"
+                                                th:value="${driver.id}"
+                                                th:text="|${driver.name} (${driver.employeeId})|">
+                                                Driver
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="manual-start">Scheduled start</label>
+                                        <input type="time" id="manual-start" name="scheduledStartTime" required>
+                                    </div>
+
+                                    <div class="form-group">
+                                        <label for="manual-end">Scheduled end</label>
+                                        <input type="time" id="manual-end" name="scheduledEndTime" required>
+                                    </div>
+
+                                    <div class="form-group form-group--full">
+                                        <label for="manual-reason">Reason <span class="muted">(optional)</span></label>
+                                        <textarea
+                                            id="manual-reason"
+                                            name="changeReason"
+                                            maxlength="500"
+                                            placeholder="Example: only available driver"></textarea>
+                                    </div>
+                                </div>
+
+                                <button class="button" type="submit">Add manual assignment</button>
+                            </form>
+                        </div>
+                    </section>
+                </section>
+
+                <section class="section" aria-labelledby="eligible-drivers-heading">
+                    <div class="section-heading">
+                        <div>
+                            <h2 id="eligible-drivers-heading">Eligible drivers working this day</h2>
+                            <p>Active drivers matched to the uploaded schedule using employee ID.</p>
+                        </div>
+                    </div>
+
+                    <div class="table-shell">
+                        <table>
+                            <thead>
+                            <tr>
+                                <th scope="col">Driver</th>
+                                <th scope="col">Employee ID</th>
+                                <th scope="col">Shift start</th>
+                                <th scope="col">Shift end</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="driverSchedule : ${driverSchedules}">
+                                <td><strong th:text="${driverSchedule.driverName}"></strong></td>
+                                <td class="mono" th:text="${driverSchedule.employeeId}"></td>
+                                <td th:text="${#temporals.format(driverSchedule.startTime, 'h:mm a')}"></td>
+                                <td th:text="${#temporals.format(driverSchedule.endTime, 'h:mm a')}"></td>
+                            </tr>
+
+                            <tr th:if="${#lists.isEmpty(driverSchedules)}">
+                                <td class="empty-cell" colspan="4">
+                                    No active registered drivers matched this date’s uploaded schedule.
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div th:if="${!#lists.isEmpty(driversWithoutSchedules)}" class="alert alert--warning">
+                        <span>
+                            <strong>Active drivers without a matching schedule:</strong>
+                            <span
+                                th:each="driver, status : ${driversWithoutSchedules}"
+                                th:text="|${driver.name} (${driver.employeeId})${status.last ? '' : ', '}|">
+                            </span>
+                        </span>
+                    </div>
+                </section>
+            </div>
+        </section>
     </div>
-</div>
-
-
+</main>
+<footer th:replace="~{fragments/footer :: footer('app')}"></footer>
 </body>
 </html>

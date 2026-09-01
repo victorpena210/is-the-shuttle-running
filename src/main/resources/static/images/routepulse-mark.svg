@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">RoutePulse</title>
+  <defs>
+    <linearGradient id="route" x1="12" y1="52" x2="52" y2="12" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#22D3EE"/>
+      <stop offset="0.55" stop-color="#3B82F6"/>
+      <stop offset="1" stop-color="#14B8A6"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="#12233B"/>
+  <path d="M15 47c0-9 6-14 16-14h2c10 0 16-5 16-16" fill="none" stroke="url(#route)" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="15" cy="47" r="5" fill="#22D3EE" stroke="#07111F" stroke-width="3"/>
+  <circle cx="49" cy="17" r="5" fill="#14B8A6" stroke="#07111F" stroke-width="3"/>
+</svg>
