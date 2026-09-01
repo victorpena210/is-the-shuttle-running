@@ -2,197 +2,149 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>ShuttleFlow Drivers</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 40px;
-            background-color: #f4f6f8;
-            color: #1f2937;
-        }
-
-        .panel {
-            max-width: 900px;
-            margin-bottom: 24px;
-            padding: 20px;
-            background-color: white;
-            border: 1px solid #d1d5db;
-            border-radius: 8px;
-        }
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-        label {
-            display: block;
-            margin-bottom: 6px;
-            font-weight: bold;
-        }
-
-        input[type="text"] {
-            width: 300px;
-            padding: 8px;
-        }
-
-        button {
-            padding: 9px 16px;
-            border: none;
-            border-radius: 4px;
-            background-color: #2563eb;
-            color: white;
-            cursor: pointer;
-        }
-
-        table {
-            width: 100%;
-            max-width: 900px;
-            border-collapse: collapse;
-            background-color: white;
-        }
-
-        th,
-        td {
-            padding: 12px;
-            border: 1px solid #d1d5db;
-            text-align: left;
-        }
-
-        th {
-            background-color: #1f2937;
-            color: white;
-        }
-
-        .message {
-            max-width: 876px;
-            padding: 12px;
-            border-radius: 4px;
-        }
-
-        .success {
-            color: #166534;
-            background-color: #dcfce7;
-        }
-
-        .error {
-            color: #991b1b;
-            background-color: #fee2e2;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <title>Drivers | RoutePulse</title>
+    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/routepulse.css}">
 </head>
 
-<body>
+<body class="app-page">
+<a class="skip-link" href="#main-content">Skip to main content</a>
 
-    <p><a th:href="@{/}">← Back to dashboard</a></p>
+<header class="app-topbar">
+    <div class="app-topbar__inner">
+        <a class="brand" th:href="@{/}" aria-label="RoutePulse dashboard">
+            <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+            <span class="brand-copy">
+                <span class="brand-name">RoutePulse</span>
+                <span class="brand-tagline">Shuttle operations</span>
+            </span>
+        </a>
 
-    <h1>Driver Registration</h1>
-
-    <p
-        th:if="${successMessage}"
-        class="message success"
-        th:text="${successMessage}">
-    </p>
-
-    <p
-        th:if="${errorMessage}"
-        class="message error"
-        th:text="${errorMessage}">
-    </p>
-
-    <div class="panel">
-
-        <h2>Register a driver</h2>
-
-        <form th:action="@{/drivers}" method="post">
-
-            <div class="form-group">
-                <label for="employeeId">Employee ID</label>
-
-                <input
-                    type="text"
-                    id="employeeId"
-                    name="employeeId"
-                    required>
-            </div>
-
-            <div class="form-group">
-                <label for="name">Name</label>
-
-                <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    required>
-            </div>
-
-            <div class="form-group">
-                <label>
-                    <input
-                        type="checkbox"
-                        name="active"
-                        value="true"
-                        checked>
-                    Active driver
-                </label>
-            </div>
-
-            <button type="submit">Register Driver</button>
-        </form>
+        <nav class="app-nav" aria-label="Primary navigation">
+            <a class="app-nav__link" th:href="@{/}">Dashboard</a>
+            <a class="app-nav__link" th:href="@{/drivers}" aria-current="page">Drivers</a>
+            <form class="app-nav__form" th:action="@{/logout}" method="post">
+                <button class="app-nav__button" type="submit">Sign out</button>
+            </form>
+        </nav>
     </div>
+</header>
 
-    <h2>Registered Drivers</h2>
+<main id="main-content" class="app-main">
+    <header class="page-header">
+        <div>
+            <p class="eyebrow">Driver directory</p>
+            <h1>Manage shuttle drivers</h1>
+            <p>
+                Register drivers using the employee ID found in the uploaded schedule.
+                Active drivers can be considered for assignments.
+            </p>
+        </div>
+    </header>
 
-    <table>
-        <thead>
-            <tr>
-                <th>Employee ID</th>
-                <th>Name</th>
-                <th>Status</th>
-                <th>Change status</th>
-            </tr>
-        </thead>
+    <div th:if="${successMessage}" class="alert alert--success" role="status" th:text="${successMessage}"></div>
+    <div th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></div>
 
-        <tbody>
-            <tr th:each="driver : ${drivers}">
-                <td th:text="${driver.employeeId}"></td>
-                <td th:text="${driver.name}"></td>
-
-                <td
-                    th:text="${driver.active
-                        ? 'Active'
-                        : 'Inactive'}">
-                </td>
-
-                <td>
-                    <form
-                        th:action="@{/drivers/{id}/status(
-                            id=${driver.id}
-                        )}"
-                        method="post">
-
+    <div class="driver-layout">
+        <section class="panel panel--raised" aria-labelledby="register-driver-heading">
+            <div class="panel__header">
+                <div>
+                    <h2 id="register-driver-heading">Register a driver</h2>
+                    <p>Add a driver to this organization.</p>
+                </div>
+            </div>
+            <div class="panel__body">
+                <form th:action="@{/drivers}" method="post">
+                    <div class="form-group">
+                        <label for="employeeId">Employee ID</label>
                         <input
-                            type="hidden"
-                            name="active"
-                            th:value="${!driver.active}">
+                            type="text"
+                            id="employeeId"
+                            name="employeeId"
+                            maxlength="50"
+                            autocomplete="off"
+                            required>
+                    </div>
 
-                        <button
-                            type="submit"
-                            th:text="${driver.active
-                                ? 'Set Inactive'
-                                : 'Set Active'}">
-                        </button>
-                    </form>
-                </td>
-            </tr>
+                    <div class="form-group">
+                        <label for="name">Driver name</label>
+                        <input
+                            type="text"
+                            id="name"
+                            name="name"
+                            maxlength="100"
+                            autocomplete="name"
+                            required>
+                    </div>
 
-            <tr th:if="${#lists.isEmpty(drivers)}">
-                <td colspan="4">
-                    No drivers have been registered.
-                </td>
-            </tr>
-        </tbody>
-    </table>
+                    <div class="form-group checkbox-row">
+                        <input type="checkbox" id="active" name="active" value="true" checked>
+                        <label for="active">Available for assignments</label>
+                    </div>
 
+                    <button class="button button--block" type="submit">Register driver</button>
+                </form>
+            </div>
+        </section>
+
+        <section aria-labelledby="registered-drivers-heading">
+            <div class="section-heading">
+                <div>
+                    <h2 id="registered-drivers-heading">Registered drivers</h2>
+                    <p>Change availability without removing the driver’s assignment history.</p>
+                </div>
+            </div>
+
+            <div class="table-shell">
+                <table>
+                    <thead>
+                    <tr>
+                        <th scope="col">Employee ID</th>
+                        <th scope="col">Driver</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Action</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="driver : ${drivers}">
+                        <td class="mono" th:text="${driver.employeeId}"></td>
+                        <td><strong th:text="${driver.name}"></strong></td>
+                        <td>
+                            <span
+                                class="badge"
+                                th:classappend="${driver.active} ? 'badge--active' : 'badge--inactive'"
+                                th:text="${driver.active} ? 'Active' : 'Inactive'">
+                                Active
+                            </span>
+                        </td>
+                        <td>
+                            <form
+                                th:action="@{/drivers/{id}/status(id=${driver.id})}"
+                                method="post">
+                                <input type="hidden" name="active" th:value="${!driver.active}">
+                                <button
+                                    class="button button--secondary button--small"
+                                    type="submit"
+                                    th:text="${driver.active} ? 'Set inactive' : 'Set active'">
+                                    Set inactive
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+
+                    <tr th:if="${#lists.isEmpty(drivers)}">
+                        <td class="empty-cell" colspan="4">
+                            No drivers have been registered yet.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</main>
+<footer th:replace="~{fragments/footer :: footer('app')}"></footer>
 </body>
 </html>

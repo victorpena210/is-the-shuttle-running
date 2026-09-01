@@ -31,3 +31,23 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Sensitive local data ###
+.env
+.env.*
+!.env.example
+uploads/
+local-data/
+src/main/resources/data/
+*.csv
+*.tsv
+*.log
+*.dump
+*.sql.gz
+*.db
+*.sqlite
+*.sqlite3
+*.pem
+*.key
+*.p12
+*.jks

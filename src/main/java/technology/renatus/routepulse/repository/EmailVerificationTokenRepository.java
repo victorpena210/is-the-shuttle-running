@@ -1,0 +1,29 @@
+package technology.renatus.routepulse.repository;
+
+import java.util.Optional;
+
+import jakarta.persistence.LockModeType;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import technology.renatus.routepulse.model.EmailVerificationToken;
+
+public interface EmailVerificationTokenRepository
+        extends JpaRepository<EmailVerificationToken, Long> {
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT token
+            FROM EmailVerificationToken token
+            JOIN FETCH token.user
+            WHERE token.tokenHash = :tokenHash
+            """)
+    Optional<EmailVerificationToken>
+            findByTokenHashForUpdate(
+                    @Param("tokenHash")
+                    String tokenHash
+            );
+}

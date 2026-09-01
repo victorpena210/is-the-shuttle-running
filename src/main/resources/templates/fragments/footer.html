@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<footer
+    th:fragment="footer(variant)"
+    class="site-footer"
+    th:classappend="${variant == 'public'} ? ' site-footer--public' : ''">
+
+    <div class="site-footer__inner">
+        <div class="site-footer__identity">
+            <img
+                class="site-footer__mark"
+                th:src="@{/images/routepulse-mark.svg}"
+                alt="">
+
+            <div>
+                <strong>RoutePulse</strong>
+                <span>Shuttle operations planning</span>
+            </div>
+        </div>
+
+        <div class="site-footer__meta">
+            <p>
+                &copy;
+                <span th:text="${#temporals.format(#temporals.createNow(), 'yyyy')}">2026</span>
+                RoutePulse. A
+                <a href="https://renatus.technology">Renatus Technology</a>
+                product.
+            </p>
+
+            <a href="mailto:victor@renatus.technology">Support</a>
+        </div>
+    </div>
+</footer>
+</body>
+</html>
