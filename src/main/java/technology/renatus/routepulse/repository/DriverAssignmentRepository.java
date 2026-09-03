@@ -31,19 +31,6 @@ public interface DriverAssignmentRepository
                     ShuttlePeriod period
             );
 
-    boolean existsByOrganization_IdAndAssignmentDateAndDriver_Id(
-            Long organizationId,
-            LocalDate assignmentDate,
-            Long driverId
-    );
-
-    boolean existsByOrganization_IdAndAssignmentDateAndDriver_IdAndIdNot(
-            Long organizationId,
-            LocalDate assignmentDate,
-            Long driverId,
-            Long assignmentId
-    );
-
     long countByOrganization_IdAndDriver_IdAndAssignmentDateBefore(
             Long organizationId,
             Long driverId,

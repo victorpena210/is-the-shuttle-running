@@ -32,15 +32,6 @@ import jakarta.persistence.UniqueConstraint;
                                 "assignment_date",
                                 "shuttle_period"
                         }
-                ),
-                @UniqueConstraint(
-                        name =
-                                "uk_driver_assignments_org_date_driver",
-                        columnNames = {
-                                "organization_id",
-                                "assignment_date",
-                                "driver_id"
-                        }
                 )
         }
 )
@@ -100,6 +91,24 @@ public class DriverAssignment {
     )
     private Driver originallySuggestedDriver;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(
+            name = "source_schedule_import_id",
+            updatable = false
+    )
+    private ScheduleImport sourceScheduleImport;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "reviewed_schedule_import_id")
+    private ScheduleImport reviewedScheduleImport;
+
+    @Column(name = "schedule_reviewed_at")
+    private LocalDateTime scheduleReviewedAt;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "schedule_reviewed_by_user_id")
+    private UserAccount scheduleReviewedBy;
+
     @Column(
             name = "scheduled_start_time"
     )
@@ -115,10 +124,18 @@ public class DriverAssignment {
     )
     private LocalDateTime actualStartedAt;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "actual_started_by_user_id")
+    private UserAccount actualStartedBy;
+
     @Column(
             name = "actual_ended_at"
     )
     private LocalDateTime actualEndedAt;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "actual_ended_by_user_id")
+    private UserAccount actualEndedBy;
 
     @Enumerated(EnumType.STRING)
     @Column(
@@ -132,6 +149,10 @@ public class DriverAssignment {
             name = "changed_at"
     )
     private LocalDateTime changedAt;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "changed_by_user_id")
+    private UserAccount changedBy;
 
     @Column(
             name = "change_reason",
@@ -154,6 +175,7 @@ public class DriverAssignment {
             ShuttlePeriod period,
             Driver driver,
             Driver originallySuggestedDriver,
+            ScheduleImport sourceScheduleImport,
             AssignmentSource assignmentSource,
             String changeReason) {
 
@@ -184,6 +206,9 @@ public class DriverAssignment {
         this.originallySuggestedDriver =
                 originallySuggestedDriver;
 
+        this.sourceScheduleImport =
+                sourceScheduleImport;
+
         this.assignmentSource =
                 Objects.requireNonNull(
                         assignmentSource,
@@ -199,11 +224,26 @@ public class DriverAssignment {
             ShuttlePeriod period,
             Driver suggestedDriver) {
 
+        return automatic(
+                assignmentDate,
+                period,
+                suggestedDriver,
+                null
+        );
+    }
+
+    public static DriverAssignment automatic(
+            LocalDate assignmentDate,
+            ShuttlePeriod period,
+            Driver suggestedDriver,
+            ScheduleImport sourceScheduleImport) {
+
         return new DriverAssignment(
                 assignmentDate,
                 period,
                 suggestedDriver,
                 suggestedDriver,
+                sourceScheduleImport,
                 AssignmentSource.AUTO,
                 null
         );
@@ -219,6 +259,7 @@ public class DriverAssignment {
                 assignmentDate,
                 period,
                 driver,
+                null,
                 null,
                 AssignmentSource.MANUAL,
                 reason
@@ -242,7 +283,8 @@ public class DriverAssignment {
 
     public boolean changeDriver(
             Driver newDriver,
-            String reason) {
+            String reason,
+            UserAccount actor) {
 
         ensureDrivingHasNotStarted(
                 "The assigned driver cannot be changed after driving has started."
@@ -284,13 +326,18 @@ public class DriverAssignment {
         }
 
         changedAt = LocalDateTime.now();
+        changedBy = Objects.requireNonNull(
+                actor,
+                "The manager making the change is required."
+        );
         changeReason = normalizeReason(reason);
 
         return true;
     }
 
     public void startDriving(
-            LocalDateTime startedAt) {
+            LocalDateTime startedAt,
+            UserAccount actor) {
 
         Objects.requireNonNull(
                 startedAt,
@@ -318,10 +365,15 @@ public class DriverAssignment {
         }
 
         actualStartedAt = startedAt;
+        actualStartedBy = Objects.requireNonNull(
+                actor,
+                "The manager starting driving is required."
+        );
     }
 
     public void endDriving(
-            LocalDateTime endedAt) {
+            LocalDateTime endedAt,
+            UserAccount actor) {
 
         Objects.requireNonNull(
                 endedAt,
@@ -347,6 +399,10 @@ public class DriverAssignment {
         }
 
         actualEndedAt = endedAt;
+        actualEndedBy = Objects.requireNonNull(
+                actor,
+                "The manager ending driving is required."
+        );
     }
 
     @PrePersist
@@ -406,6 +462,82 @@ public class DriverAssignment {
         return originallySuggestedDriver;
     }
 
+    public ScheduleImport getSourceScheduleImport() {
+        return sourceScheduleImport;
+    }
+
+    public boolean requiresReviewAgainst(
+            Long latestScheduleImportId) {
+
+        if (assignmentSource == AssignmentSource.MANUAL) {
+            return false;
+        }
+
+        if (latestScheduleImportId == null) {
+            return true;
+        }
+
+        ScheduleImport comparisonImport =
+                reviewedScheduleImport == null
+                        ? sourceScheduleImport
+                        : reviewedScheduleImport;
+
+        if (comparisonImport == null) {
+            return true;
+        }
+
+        return !Objects.equals(
+                comparisonImport.getId(),
+                latestScheduleImportId
+        );
+    }
+
+    public void confirmScheduleReview(
+            ScheduleImport scheduleImport,
+            UserAccount actor,
+            LocalDateTime reviewedAt) {
+
+        ensureDrivingHasNotStarted(
+                "Schedule coverage cannot be confirmed after driving has started."
+        );
+
+        Objects.requireNonNull(
+                scheduleImport,
+                "Schedule import is required."
+        );
+
+        if (!Objects.equals(
+                organization.getId(),
+                scheduleImport.getOrganization().getId()
+        )) {
+            throw new IllegalArgumentException(
+                    "The schedule import must belong to the assignment organization."
+            );
+        }
+
+        reviewedScheduleImport = scheduleImport;
+        scheduleReviewedBy = Objects.requireNonNull(
+                actor,
+                "The manager reviewing coverage is required."
+        );
+        scheduleReviewedAt = Objects.requireNonNull(
+                reviewedAt,
+                "Schedule review time is required."
+        );
+    }
+
+    public ScheduleImport getReviewedScheduleImport() {
+        return reviewedScheduleImport;
+    }
+
+    public LocalDateTime getScheduleReviewedAt() {
+        return scheduleReviewedAt;
+    }
+
+    public UserAccount getScheduleReviewedBy() {
+        return scheduleReviewedBy;
+    }
+
     public LocalTime getScheduledStartTime() {
         return scheduledStartTime;
     }
@@ -435,8 +567,16 @@ public class DriverAssignment {
         return actualStartedAt;
     }
 
+    public UserAccount getActualStartedBy() {
+        return actualStartedBy;
+    }
+
     public LocalDateTime getActualEndedAt() {
         return actualEndedAt;
+    }
+
+    public UserAccount getActualEndedBy() {
+        return actualEndedBy;
     }
 
     public boolean isDriving() {
@@ -483,6 +623,10 @@ public class DriverAssignment {
 
     public LocalDateTime getChangedAt() {
         return changedAt;
+    }
+
+    public UserAccount getChangedBy() {
+        return changedBy;
     }
 
     public String getChangeReason() {

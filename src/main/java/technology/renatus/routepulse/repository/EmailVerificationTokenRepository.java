@@ -1,5 +1,6 @@
 package technology.renatus.routepulse.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import jakarta.persistence.LockModeType;
@@ -25,5 +26,10 @@ public interface EmailVerificationTokenRepository
             findByTokenHashForUpdate(
                     @Param("tokenHash")
                     String tokenHash
+            );
+
+    List<EmailVerificationToken>
+            findAllByUser_IdAndUsedAtIsNull(
+                    Long userId
             );
 }

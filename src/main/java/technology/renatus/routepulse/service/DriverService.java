@@ -50,8 +50,13 @@ public class DriverService {
             String name,
             boolean active) {
 
-        String cleanedEmployeeId = employeeId.trim();
-        String cleanedName = name.trim();
+        String cleanedEmployeeId = employeeId == null
+                ? ""
+                : employeeId.trim();
+
+        String cleanedName = name == null
+                ? ""
+                : name.trim();
 
         if (cleanedEmployeeId.isBlank()) {
             throw new IllegalArgumentException(
@@ -62,6 +67,18 @@ public class DriverService {
         if (cleanedName.isBlank()) {
             throw new IllegalArgumentException(
                     "Driver name is required."
+            );
+        }
+
+        if (cleanedEmployeeId.length() > 50) {
+            throw new IllegalArgumentException(
+                    "Employee ID cannot exceed 50 characters."
+            );
+        }
+
+        if (cleanedName.length() > 100) {
+            throw new IllegalArgumentException(
+                    "Driver name cannot exceed 100 characters."
             );
         }
 
