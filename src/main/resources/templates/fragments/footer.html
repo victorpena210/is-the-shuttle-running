@@ -1,12 +1,15 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <body>
+
 <footer
     th:fragment="footer(variant)"
     class="site-footer"
     th:classappend="${variant == 'public'} ? ' site-footer--public' : ''">
 
     <div class="site-footer__inner">
+
+        <!-- RoutePulse -->
         <div class="site-footer__identity">
             <img
                 class="site-footer__mark"
@@ -19,18 +22,45 @@
             </div>
         </div>
 
+        <!-- Renatus -->
+        <div class="site-footer__renatus">
+
+            <span class="site-footer__renatus-label">
+                A product by
+            </span>
+
+            <a
+                href="https://renatus.technology"
+                aria-label="Visit Renatus Technology">
+
+                <img
+                    class="site-footer__renatus-logo"
+                    th:src="@{/images/renatus-technology-logo.png}"
+                    alt="Renatus Technology">
+            </a>
+
+        </div>
+
+        <!-- Copyright / Support -->
         <div class="site-footer__meta">
+
             <p>
                 &copy;
-                <span th:text="${#temporals.format(#temporals.createNow(), 'yyyy')}">2026</span>
-                RoutePulse. A
-                <a href="https://renatus.technology">Renatus Technology</a>
-                product.
+                <span th:text="${#temporals.format(#temporals.createNow(), 'yyyy')}">
+                    2026
+                </span>
+                RoutePulse
             </p>
 
-            <a href="mailto:victor@renatus.technology">Support</a>
+            <a href="mailto:victor@renatus.technology">
+                Support
+            </a>
+
         </div>
+
     </div>
+
 </footer>
+
 </body>
 </html>
