@@ -10,6 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -341,6 +342,17 @@ public class CsvScheduleProvider
                 );
     }
 
+    public Optional<ScheduleImport> getLatestImportForDate(
+            Long organizationId,
+            LocalDate date) {
+
+        return uploadedShiftRepository
+                .findLatestScheduleImportForDate(
+                        organizationId,
+                        date
+                );
+    }
+
     private UploadedShift toUploadedShift(
             Organization organization,
             ScheduleImport scheduleImport,
@@ -428,11 +440,18 @@ public class CsvScheduleProvider
     private boolean doesNotContainScheduledShift(
             CSVRecord record) {
 
-        return record.size() <= SHIFT_END_COLUMN
-                || record.get(
+        /*
+         * Dayforce represents an employee without a shift by
+         * leaving both time fields blank. A row with only one
+         * blank time (or too few columns) is malformed and must
+         * continue into createShiftRecord so the upload fails
+         * with a useful validation error instead of being ignored.
+         */
+        return record.size() > SHIFT_END_COLUMN
+                && record.get(
                         SHIFT_START_COLUMN
                 ).isBlank()
-                || record.get(
+                && record.get(
                         SHIFT_END_COLUMN
                 ).isBlank();
     }
@@ -441,46 +460,88 @@ public class CsvScheduleProvider
             CSVRecord record) {
 
         try {
+            String employeeId = requireValue(
+                    record,
+                    EMPLOYEE_ID_COLUMN,
+                    "Employee ID",
+                    50
+            );
+
+            String employeeName = requireValue(
+                    record,
+                    EMPLOYEE_NAME_COLUMN,
+                    "Employee Name",
+                    200
+            );
+
             LocalDateTime shiftStart =
                     LocalDateTime.parse(
-                            record.get(
-                                    SHIFT_START_COLUMN
-                            ).strip(),
+                            requireValue(
+                                    record,
+                                    SHIFT_START_COLUMN,
+                                    "Shift Start",
+                                    50
+                            ),
                             DATE_TIME_FORMAT
                     );
 
             LocalDateTime shiftEnd =
                     LocalDateTime.parse(
-                            record.get(
-                                    SHIFT_END_COLUMN
-                            ).strip(),
+                            requireValue(
+                                    record,
+                                    SHIFT_END_COLUMN,
+                                    "Shift End",
+                                    50
+                            ),
                             DATE_TIME_FORMAT
                     );
 
+            if (!shiftEnd.isAfter(shiftStart)) {
+                throw new IllegalArgumentException(
+                        "Shift End must be after Shift Start."
+                );
+            }
+
             String locationPath =
-                    record.get(
-                            LOCATION_PATH_COLUMN
-                    ).strip();
+                    optionalValue(
+                            record,
+                            LOCATION_PATH_COLUMN,
+                            1000,
+                            "Location Path"
+                    );
+
+            String department = limitValue(
+                    extractDepartment(locationPath),
+                    200,
+                    "Department"
+            );
+
+            String job = optionalValue(
+                    record,
+                    PRIMARY_JOB_COLUMN,
+                    200,
+                    "Primary Job"
+            );
+
+            if (job.isBlank()) {
+                job = "Unknown";
+            }
+
+            String pickupLocation = limitValue(
+                    extractPickupLocation(locationPath),
+                    200,
+                    "Pickup Location"
+            );
 
             return new ShiftRecord(
-                    record.get(
-                            EMPLOYEE_ID_COLUMN
-                    ).strip(),
-                    record.get(
-                            EMPLOYEE_NAME_COLUMN
-                    ).strip(),
-                    extractDepartment(
-                            locationPath
-                    ),
-                    record.get(
-                            PRIMARY_JOB_COLUMN
-                    ).strip(),
+                    employeeId,
+                    employeeName,
+                    department,
+                    job,
                     shiftEnd.toLocalDate(),
                     shiftStart.toLocalTime(),
                     shiftEnd.toLocalTime(),
-                    extractPickupLocation(
-                            locationPath
-                    )
+                    pickupLocation
             );
 
         } catch (RuntimeException exception) {
@@ -490,6 +551,64 @@ public class CsvScheduleProvider
                     exception
             );
         }
+    }
+
+    private String requireValue(
+            CSVRecord record,
+            int column,
+            String fieldName,
+            int maximumLength) {
+
+        String value = optionalValue(
+                record,
+                column,
+                maximumLength,
+                fieldName
+        );
+
+        if (value.isBlank()) {
+            throw new IllegalArgumentException(
+                    fieldName + " is required."
+            );
+        }
+
+        return value;
+    }
+
+    private String optionalValue(
+            CSVRecord record,
+            int column,
+            int maximumLength,
+            String fieldName) {
+
+        if (record.size() <= column) {
+            throw new IllegalArgumentException(
+                    fieldName + " column is missing."
+            );
+        }
+
+        return limitValue(
+                record.get(column).strip(),
+                maximumLength,
+                fieldName
+        );
+    }
+
+    private String limitValue(
+            String value,
+            int maximumLength,
+            String fieldName) {
+
+        if (value.length() > maximumLength) {
+            throw new IllegalArgumentException(
+                    fieldName
+                            + " cannot exceed "
+                            + maximumLength
+                            + " characters."
+            );
+        }
+
+        return value;
     }
 
     private String extractDepartment(

@@ -11,6 +11,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import technology.renatus.routepulse.service.CurrentOrganizationService;
 import technology.renatus.routepulse.service.DriverService;
+import technology.renatus.routepulse.model.Organization;
 
 @Controller
 public class DriverController {
@@ -35,11 +36,28 @@ public class DriverController {
             Authentication authentication,
             Model model) {
 
-        Long organizationId =
+        Organization organization =
                 currentOrganizationService
-                        .requireOrganizationId(
+                        .requireOrganization(
                                 authentication
                         );
+
+        Long organizationId = organization.getId();
+
+        model.addAttribute(
+                "organizationName",
+                organization.getDisplayName()
+        );
+
+        model.addAttribute(
+                "isOwner",
+                authentication.getAuthorities()
+                        .stream()
+                        .anyMatch(authority ->
+                                authority.getAuthority()
+                                        .equals("ROLE_OWNER")
+                        )
+        );
 
         model.addAttribute(
                 "drivers",

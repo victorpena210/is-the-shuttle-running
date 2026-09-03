@@ -77,8 +77,9 @@ public class RegistrationService {
             );
         }
 
-        if (!form.getPassword()
-                .equals(form.getConfirmPassword())) {
+        if (form.getPassword() == null
+                || !form.getPassword()
+                        .equals(form.getConfirmPassword())) {
 
             throw new IllegalArgumentException(
                     "The passwords do not match."

@@ -16,12 +16,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import technology.renatus.routepulse.model.Driver;
+import technology.renatus.routepulse.model.AssignmentSource;
 import technology.renatus.routepulse.model.DriverAssignment;
 import technology.renatus.routepulse.model.DriverSchedule;
 import technology.renatus.routepulse.model.DriverScheduleResult;
+import technology.renatus.routepulse.model.ScheduleImport;
 import technology.renatus.routepulse.model.ShuttlePeriod;
+import technology.renatus.routepulse.model.UserAccount;
 import technology.renatus.routepulse.repository.DriverAssignmentRepository;
 import technology.renatus.routepulse.repository.DriverRepository;
+import technology.renatus.routepulse.repository.UploadedShiftRepository;
+import technology.renatus.routepulse.repository.UserAccountRepository;
+import technology.renatus.routepulse.repository.OrganizationMembershipRepository;
 
 @Service
 public class DriverAssignmentService {
@@ -34,12 +40,25 @@ public class DriverAssignmentService {
     private final DriverScheduleService
             driverScheduleService;
 
+    private final UploadedShiftRepository
+            uploadedShiftRepository;
+
+    private final UserAccountRepository
+            userAccountRepository;
+
+    private final OrganizationMembershipRepository
+            organizationMembershipRepository;
+
     private final ZoneId operationsZone;
 
     public DriverAssignmentService(
             DriverAssignmentRepository assignmentRepository,
             DriverRepository driverRepository,
             DriverScheduleService driverScheduleService,
+            UploadedShiftRepository uploadedShiftRepository,
+            UserAccountRepository userAccountRepository,
+            OrganizationMembershipRepository
+                    organizationMembershipRepository,
             @Value("${app.operations-zone:America/Chicago}")
             String operationsZone) {
 
@@ -51,6 +70,15 @@ public class DriverAssignmentService {
 
         this.driverScheduleService =
                 driverScheduleService;
+
+        this.uploadedShiftRepository =
+                uploadedShiftRepository;
+
+        this.userAccountRepository =
+                userAccountRepository;
+
+        this.organizationMembershipRepository =
+                organizationMembershipRepository;
 
         this.operationsZone =
                 ZoneId.of(operationsZone);
@@ -138,6 +166,14 @@ public class DriverAssignmentService {
                         fairestOrder.get(0).driverId()
                 );
 
+        ScheduleImport sourceScheduleImport =
+                uploadedShiftRepository
+                        .findLatestScheduleImportForDate(
+                                organizationId,
+                                assignmentDate
+                        )
+                        .orElse(null);
+
         List<DriverAssignment> newAssignments =
                 new ArrayList<>();
 
@@ -145,7 +181,8 @@ public class DriverAssignmentService {
                 DriverAssignment.automatic(
                         assignmentDate,
                         ShuttlePeriod.MORNING,
-                        morningDriver
+                        morningDriver,
+                        sourceScheduleImport
                 )
         );
 
@@ -159,9 +196,10 @@ public class DriverAssignmentService {
 
             newAssignments.add(
                     DriverAssignment.automatic(
-                            assignmentDate,
-                            ShuttlePeriod.AFTERNOON,
-                            afternoonDriver
+                        assignmentDate,
+                        ShuttlePeriod.AFTERNOON,
+                        afternoonDriver,
+                        sourceScheduleImport
                     )
             );
         }
@@ -182,6 +220,8 @@ public class DriverAssignmentService {
             LocalTime scheduledStartTime,
             LocalTime scheduledEndTime,
             String reason) {
+
+        validateReason(reason);
 
         if (assignmentDate == null) {
             throw new IllegalArgumentException(
@@ -210,19 +250,6 @@ public class DriverAssignmentService {
 
             throw new IllegalArgumentException(
                     "That shuttle period already has an assignment."
-            );
-        }
-
-        if (assignmentRepository
-                .existsByOrganization_IdAndAssignmentDateAndDriver_Id(
-                        organizationId,
-                        assignmentDate,
-                        driverId
-                )) {
-
-            throw new IllegalArgumentException(
-                    "That driver already has a shuttle assignment "
-                            + "for this date."
             );
         }
 
@@ -255,7 +282,10 @@ public class DriverAssignmentService {
             Long organizationId,
             Long assignmentId,
             Long newDriverId,
-            String reason) {
+            String reason,
+            String actorEmail) {
+
+        validateReason(reason);
 
         DriverAssignment assignment =
                 loadAssignment(
@@ -263,30 +293,22 @@ public class DriverAssignmentService {
                         assignmentId
                 );
 
-        if (assignmentRepository
-                .existsByOrganization_IdAndAssignmentDateAndDriver_IdAndIdNot(
-                        organizationId,
-                        assignment.getAssignmentDate(),
-                        newDriverId,
-                        assignmentId
-                )) {
-
-            throw new IllegalArgumentException(
-                    "That driver already has another shuttle "
-                            + "assignment for this date."
-            );
-        }
-
         Driver newDriver =
                 loadActiveDriver(
                         organizationId,
                         newDriverId
                 );
 
+        UserAccount actor = loadActor(
+                organizationId,
+                actorEmail
+        );
+
         boolean changed =
                 assignment.changeDriver(
                         newDriver,
-                        reason
+                        reason,
+                        actor
                 );
 
         if (!changed) {
@@ -325,9 +347,63 @@ public class DriverAssignmentService {
     }
 
     @Transactional
+    public void confirmAssignmentsAgainstLatestImport(
+            Long organizationId,
+            LocalDate assignmentDate,
+            String actorEmail) {
+
+        ScheduleImport latestImport =
+                uploadedShiftRepository
+                        .findLatestScheduleImportForDate(
+                                organizationId,
+                                assignmentDate
+                        )
+                        .orElseThrow(() ->
+                                new IllegalStateException(
+                                        "No current schedule import was found for this date."
+                                )
+                        );
+
+        UserAccount actor = loadActor(
+                organizationId,
+                actorEmail
+        );
+
+        LocalDateTime reviewedAt =
+                currentOperationsDateTime();
+
+        List<DriverAssignment> assignments =
+                assignmentRepository
+                        .findAllByOrganization_IdAndAssignmentDate(
+                                organizationId,
+                                assignmentDate
+                        );
+
+        if (assignments.isEmpty()) {
+            throw new IllegalStateException(
+                    "No driver assignments were found for this date."
+            );
+        }
+
+        assignments.stream()
+                .filter(assignment ->
+                        assignment.getAssignmentSource()
+                                != AssignmentSource.MANUAL
+                )
+                .forEach(assignment ->
+                        assignment.confirmScheduleReview(
+                                latestImport,
+                                actor,
+                                reviewedAt
+                        )
+                );
+    }
+
+    @Transactional
     public DriverAssignment startDriving(
             Long organizationId,
-            Long assignmentId) {
+            Long assignmentId,
+            String actorEmail) {
 
         DriverAssignment assignment =
                 loadAssignment(
@@ -347,7 +423,13 @@ public class DriverAssignmentService {
             );
         }
 
-        assignment.startDriving(now);
+        assignment.startDriving(
+                now,
+                loadActor(
+                        organizationId,
+                        actorEmail
+                )
+        );
 
         return assignment;
     }
@@ -355,7 +437,8 @@ public class DriverAssignmentService {
     @Transactional
     public DriverAssignment endDriving(
             Long organizationId,
-            Long assignmentId) {
+            Long assignmentId,
+            String actorEmail) {
 
         DriverAssignment assignment =
                 loadAssignment(
@@ -364,7 +447,11 @@ public class DriverAssignmentService {
                 );
 
         assignment.endDriving(
-                currentOperationsDateTime()
+                currentOperationsDateTime(),
+                loadActor(
+                        organizationId,
+                        actorEmail
+                )
         );
 
         return assignment;
@@ -396,6 +483,17 @@ public class DriverAssignmentService {
             throw new IllegalArgumentException(
                     "Scheduled end time must be after "
                             + "the start time."
+            );
+        }
+    }
+
+    private void validateReason(String reason) {
+
+        if (reason != null
+                && reason.strip().length() > 500) {
+
+            throw new IllegalArgumentException(
+                    "Change reason cannot exceed 500 characters."
             );
         }
     }
@@ -449,6 +547,38 @@ public class DriverAssignmentService {
         }
 
         return driver;
+    }
+
+    private UserAccount loadActor(
+            Long organizationId,
+            String actorEmail) {
+
+        if (actorEmail == null || actorEmail.isBlank()) {
+            throw new IllegalStateException(
+                    "The signed-in user is required for this action."
+            );
+        }
+
+        UserAccount actor = userAccountRepository
+                .findByEmailIgnoreCase(actorEmail.trim())
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "The signed-in user could not be found."
+                        )
+                );
+
+        if (!organizationMembershipRepository
+                .existsByOrganization_IdAndUser_Id(
+                        organizationId,
+                        actor.getId()
+                )) {
+
+            throw new IllegalStateException(
+                    "The signed-in user does not belong to this organization."
+            );
+        }
+
+        return actor;
     }
 
     private List<DriverAssignment> orderByPeriod(

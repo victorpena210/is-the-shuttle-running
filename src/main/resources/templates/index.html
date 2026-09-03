@@ -41,7 +41,7 @@
 <main id="main-content" class="app-main">
     <header class="page-header">
         <div>
-            <p class="eyebrow">Daily command center</p>
+            <p class="eyebrow" th:text="${organizationName}">Organization</p>
             <h1>Shuttle operations dashboard</h1>
             <p>
                 Upload the weekly schedule, review pickup pressure, confirm driver coverage,
@@ -101,12 +101,14 @@
             </div>
 
             <div th:if="${scheduleUploaded}" class="date-chip-list" aria-label="Available schedule dates">
-                <span
+                <a
                     class="date-chip"
                     th:each="availableDate : ${availableDates}"
+                    th:href="@{/(date=${availableDate})}"
+                    th:attr="aria-current=${availableDate.equals(selectedDate)} ? 'date' : null"
                     th:text="${#temporals.format(availableDate, 'MMM d')}">
                     Aug 28
-                </span>
+                </a>
             </div>
         </article>
     </section>
@@ -188,6 +190,22 @@
                 </span>
             </div>
 
+            <div
+                class="alert alert--warning"
+                th:if="${operatingDay != null and operatingDay.status.name() == 'UNKNOWN' and !calendarOverrideActive}">
+                <div>
+                    <strong>The live calendar is unavailable.</strong>
+                    Continue only after confirming that the park is operating on this date.
+                </div>
+                <form th:action="@{/}" method="get">
+                    <input type="hidden" name="date" th:value="${selectedDate}">
+                    <input type="hidden" name="allowUnverifiedCalendar" value="true">
+                    <button class="button button--secondary" type="submit">
+                        Continue with uploaded schedule
+                    </button>
+                </form>
+            </div>
+
             <div th:if="${showSchedule}">
                 <section aria-labelledby="pickup-windows-heading">
                     <div class="section-heading">
@@ -241,6 +259,29 @@
                         role="alert"
                         th:text="${assignmentMessage}">
                         Manual coverage required.
+                    </div>
+
+                    <div
+                        th:if="${assignmentReviewRequired}"
+                        class="alert alert--warning"
+                        role="alert">
+                        <span>
+                            <strong>Schedule changed after coverage was generated.</strong>
+                            Pickup demand uses import
+                            <span
+                                class="mono"
+                                th:if="${latestScheduleImport != null}"
+                                th:text="${latestScheduleImport.shortVersionId}">
+                                abc12345
+                            </span>.
+                            Review the final drivers before operations begin.
+                        </span>
+                        <form th:action="@{/assignments/confirm-schedule}" method="post">
+                            <input type="hidden" name="assignmentDate" th:value="${selectedDate}">
+                            <button class="button button--secondary" type="submit">
+                                Confirm reviewed coverage
+                            </button>
+                        </form>
                     </div>
 
                     <div class="assignment-list" th:if="${!#lists.isEmpty(driverAssignments)}">
@@ -335,6 +376,12 @@
                                                 Aug 28, 8:15 AM
                                             </span>
                                         </span>
+                                        <span th:if="${assignment.changedBy != null}">
+                                            · by
+                                            <span th:text="|${assignment.changedBy.firstName} ${assignment.changedBy.lastName}|">
+                                                Manager
+                                            </span>
+                                        </span>
                                     </span>
                                 </div>
 
@@ -348,6 +395,10 @@
                                             <strong th:text="${#temporals.format(assignment.actualStartedAt, 'MMM d, h:mm a')}">
                                                 Aug 28, 9:03 AM
                                             </strong>
+                                            <p class="help-text" th:if="${assignment.actualStartedBy != null}"
+                                               th:text="|Recorded by ${assignment.actualStartedBy.firstName} ${assignment.actualStartedBy.lastName}|">
+                                                Recorded by Manager
+                                            </p>
                                         </div>
 
                                         <div th:if="${assignment.actualEndedAt != null}" class="form-group">
@@ -355,6 +406,10 @@
                                             <strong th:text="${#temporals.format(assignment.actualEndedAt, 'MMM d, h:mm a')}">
                                                 Aug 28, 11:58 AM
                                             </strong>
+                                            <p class="help-text" th:if="${assignment.actualEndedBy != null}"
+                                               th:text="|Recorded by ${assignment.actualEndedBy.firstName} ${assignment.actualEndedBy.lastName}|">
+                                                Recorded by Manager
+                                            </p>
                                         </div>
 
                                         <div th:if="${assignment.drivingCompleted}" class="form-group">

@@ -22,6 +22,7 @@ import technology.renatus.routepulse.model.DriverScheduleResult;
 import technology.renatus.routepulse.model.ParkOperatingDay;
 import technology.renatus.routepulse.model.ParkOperatingStatus;
 import technology.renatus.routepulse.model.PickupWindow;
+import technology.renatus.routepulse.model.Organization;
 import technology.renatus.routepulse.model.ScheduleImport;
 import technology.renatus.routepulse.model.ShuttlePeriod;
 import technology.renatus.routepulse.provider.CsvScheduleProvider;
@@ -95,13 +96,22 @@ public class PickupPlanningController {
                     iso = DateTimeFormat.ISO.DATE
             )
             LocalDate date,
+            @RequestParam(defaultValue = "false")
+            boolean allowUnverifiedCalendar,
             Model model) {
 
-        Long organizationId =
+        Organization organization =
                 currentOrganizationService
-                        .requireOrganizationId(
+                        .requireOrganization(
                                 authentication
                         );
+
+        Long organizationId = organization.getId();
+
+        model.addAttribute(
+                "organizationName",
+                organization.getDisplayName()
+        );
 
         boolean isOwner =
                 authentication
@@ -173,11 +183,20 @@ public class PickupPlanningController {
         String assignmentMessage =
                 null;
 
+        boolean assignmentReviewRequired =
+                false;
+
+        ScheduleImport latestScheduleImport =
+                null;
+
         ParkOperatingDay operatingDay =
                 null;
 
         String calendarMessage =
                 null;
+
+        boolean calendarOverrideActive =
+                false;
 
         if (date != null) {
 
@@ -196,16 +215,33 @@ public class PickupPlanningController {
             } else if (operatingDay.status()
                     == ParkOperatingStatus.UNKNOWN) {
 
-                calendarMessage =
-                        "Calendar could not be verified "
-                                + "— review required";
+                if (allowUnverifiedCalendar) {
+                    calendarOverrideActive = true;
 
-            } else {
+                    calendarMessage =
+                            "Calendar unverified — manager "
+                                    + "continued with uploaded schedule";
 
-                calendarMessage =
-                        operatingDay.buyout()
-                                ? "Open — Private Buyout"
-                                : "Open — Public Operating Day";
+                } else {
+                    calendarMessage =
+                            "Calendar could not be verified "
+                                    + "— review required";
+                }
+
+            }
+
+            if (operatingDay.status()
+                    == ParkOperatingStatus.OPEN
+                    || calendarOverrideActive) {
+
+                if (operatingDay.status()
+                        == ParkOperatingStatus.OPEN) {
+
+                    calendarMessage =
+                            operatingDay.buyout()
+                                    ? "Open — Private Buyout"
+                                    : "Open — Public Operating Day";
+                }
 
                 pickupWindows =
                         pickupPlanningService
@@ -232,6 +268,28 @@ public class PickupPlanningController {
                                 .getOrCreateAssignments(
                                         organizationId,
                                         date
+                                );
+
+                latestScheduleImport =
+                        csvScheduleProvider
+                                .getLatestImportForDate(
+                                        organizationId,
+                                        date
+                                )
+                                .orElse(null);
+
+                Long latestScheduleImportId =
+                        latestScheduleImport == null
+                                ? null
+                                : latestScheduleImport.getId();
+
+                assignmentReviewRequired =
+                        driverAssignments.stream()
+                                .anyMatch(assignment ->
+                                        assignment
+                                                .requiresReviewAgainst(
+                                                        latestScheduleImportId
+                                                )
                                 );
 
                 if (driverAssignments.isEmpty()) {
@@ -336,10 +394,16 @@ public class PickupPlanningController {
         );
 
         model.addAttribute(
+                "calendarOverrideActive",
+                calendarOverrideActive
+        );
+
+        model.addAttribute(
                 "showSchedule",
                 operatingDay != null
-                        && operatingDay
+                        && (operatingDay
                                 .shouldScheduleShuttle()
+                                || calendarOverrideActive)
         );
 
         model.addAttribute(
@@ -350,6 +414,16 @@ public class PickupPlanningController {
         model.addAttribute(
                 "assignmentMessage",
                 assignmentMessage
+        );
+
+        model.addAttribute(
+                "assignmentReviewRequired",
+                assignmentReviewRequired
+        );
+
+        model.addAttribute(
+                "latestScheduleImport",
+                latestScheduleImport
         );
 
         model.addAttribute(
@@ -478,7 +552,8 @@ public class PickupPlanningController {
                             organizationId,
                             assignmentId,
                             finalDriverId,
-                            changeReason
+                            changeReason,
+                            authentication.getName()
                     );
 
             redirectAttributes
@@ -578,6 +653,52 @@ public class PickupPlanningController {
         return "redirect:/";
     }
 
+    @PostMapping("/assignments/confirm-schedule")
+    public String confirmAssignmentsAgainstLatestImport(
+            Authentication authentication,
+            @RequestParam
+            @DateTimeFormat(
+                    iso = DateTimeFormat.ISO.DATE
+            )
+            LocalDate assignmentDate,
+            RedirectAttributes redirectAttributes) {
+
+        Long organizationId =
+                currentOrganizationService
+                        .requireOrganizationId(
+                                authentication
+                        );
+
+        try {
+            driverAssignmentService
+                    .confirmAssignmentsAgainstLatestImport(
+                            organizationId,
+                            assignmentDate,
+                            authentication.getName()
+                    );
+
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "Driver coverage was confirmed against the latest schedule import."
+            );
+
+        } catch (IllegalArgumentException
+                | IllegalStateException exception) {
+
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    exception.getMessage()
+            );
+        }
+
+        redirectAttributes.addAttribute(
+                "date",
+                assignmentDate.toString()
+        );
+
+        return "redirect:/";
+    }
+
     /*
      * Records the exact time that actual
      * shuttle driving begins.
@@ -610,7 +731,8 @@ public class PickupPlanningController {
             driverAssignmentService
                     .startDriving(
                             organizationId,
-                            assignmentId
+                            assignmentId,
+                            authentication.getName()
                     );
 
             redirectAttributes
@@ -671,7 +793,8 @@ public class PickupPlanningController {
             driverAssignmentService
                     .endDriving(
                             organizationId,
-                            assignmentId
+                            assignmentId,
+                            authentication.getName()
                     );
 
             redirectAttributes

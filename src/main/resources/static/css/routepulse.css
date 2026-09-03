@@ -617,6 +617,14 @@ input[type="file"]::file-selector-button {
     content: "i";
 }
 
+.alert > form {
+    margin-left: auto;
+}
+
+.alert > form .button {
+    white-space: nowrap;
+}
+
 .alert--success {
     border-color: #bbf7d0;
     color: #14532d;
@@ -1310,6 +1318,15 @@ tbody tr:hover {
 
     .page-date {
         width: 100%;
+    }
+
+    .alert {
+        flex-wrap: wrap;
+    }
+
+    .alert > form {
+        width: 100%;
+        margin-left: 2.08rem;
     }
 
     .assignment-card__header {
