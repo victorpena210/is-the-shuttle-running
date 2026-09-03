@@ -24,7 +24,6 @@ import technology.renatus.routepulse.model.ParkOperatingStatus;
 import technology.renatus.routepulse.model.PickupWindow;
 import technology.renatus.routepulse.model.Organization;
 import technology.renatus.routepulse.model.ScheduleImport;
-import technology.renatus.routepulse.model.ShiftRecord;
 import technology.renatus.routepulse.model.ShuttlePeriod;
 import technology.renatus.routepulse.provider.CsvScheduleProvider;
 import technology.renatus.routepulse.service.CurrentOrganizationService;
@@ -168,8 +167,6 @@ public class PickupPlanningController {
                                 selectedDate
                         );
 
-        List<ShiftRecord> scheduleRows =
-                List.of();
 
         List<PickupWindow> pickupWindows =
                 List.of();
@@ -214,12 +211,6 @@ public class PickupPlanningController {
          */
         if (selectedDateAvailable) {
 
-            scheduleRows =
-                    csvScheduleProvider
-                            .getSchedulesForDate(
-                                    organizationId,
-                                    selectedDate
-                            );
 
             latestScheduleImport =
                     csvScheduleProvider
@@ -384,15 +375,6 @@ public class PickupPlanningController {
                 selectedDateAvailable
         );
 
-        model.addAttribute(
-                "scheduleRows",
-                scheduleRows
-        );
-
-        model.addAttribute(
-                "scheduleRowCount",
-                scheduleRows.size()
-        );
 
         model.addAttribute(
                 "pickupWindows",
