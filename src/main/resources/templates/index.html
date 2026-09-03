@@ -104,7 +104,7 @@
                 <a
                     class="date-chip"
                     th:each="availableDate : ${availableDates}"
-                    th:href="@{/(date=${availableDate})}"
+                    th:href="@{/app(date=${availableDate})}"
                     th:attr="aria-current=${availableDate.equals(selectedDate)} ? 'date' : null"
                     th:text="${#temporals.format(availableDate, 'MMM d')}">
                     Aug 28
@@ -156,7 +156,100 @@
         </div>
     </section>
 
+    <div
+        th:if="${scheduleUploaded and !selectedDateAvailable}"
+        class="alert alert--warning"
+        role="alert">
+        The selected date is not included in the uploaded schedule. Choose one of the available dates above.
+    </div>
+
     <div th:if="${generated}">
+        <section class="section" aria-labelledby="uploaded-schedule-heading">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Imported data</p>
+                    <h2 id="uploaded-schedule-heading">Uploaded schedule</h2>
+                    <p>
+                        These are the shift rows RoutePulse is using for
+                        <span th:text="${#temporals.format(selectedDate, 'MMMM d, yyyy')}">
+                            August 10, 2026
+                        </span>.
+                    </p>
+                </div>
+
+                <span
+                    class="badge badge--manual"
+                    th:text="|${scheduleRowCount} shifts|">
+                    0 shifts
+                </span>
+            </div>
+
+            <div
+                th:if="${latestScheduleImport != null}"
+                class="alert alert--info">
+                <span>
+                    Using import
+                    <strong
+                        class="mono"
+                        th:text="${latestScheduleImport.shortVersionId}">
+                        abc12345
+                    </strong>
+                    · uploaded
+                    <span
+                        th:text="${#temporals.format(latestScheduleImport.uploadedAt, 'MMM d, yyyy h:mm a')}">
+                        Aug 10, 2026 8:00 AM
+                    </span>
+                    ·
+                    <span th:text="${latestScheduleImport.originalFilename}">schedule.csv</span>
+                </span>
+            </div>
+
+            <div
+                class="table-shell"
+                th:if="${!#lists.isEmpty(scheduleRows)}">
+                <table>
+                    <thead>
+                    <tr>
+                        <th scope="col">Employee</th>
+                        <th scope="col">Employee ID</th>
+                        <th scope="col">Department</th>
+                        <th scope="col">Job</th>
+                        <th scope="col">Shift start</th>
+                        <th scope="col">Shift end</th>
+                        <th scope="col">Pickup location</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:each="shift : ${scheduleRows}">
+                        <td>
+                            <strong th:text="${shift.employeeName}">Employee name</strong>
+                        </td>
+                        <td class="mono" th:text="${shift.employeeId}">12345</td>
+                        <td th:text="${shift.department}">Department</td>
+                        <td th:text="${shift.job}">Job</td>
+                        <td
+                            class="nowrap"
+                            th:text="${#temporals.format(shift.startTime, 'h:mm a')}">
+                            9:00 AM
+                        </td>
+                        <td
+                            class="nowrap"
+                            th:text="${#temporals.format(shift.endTime, 'h:mm a')}">
+                            5:00 PM
+                        </td>
+                        <td th:text="${shift.pickupLocation}">Pickup location</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div
+                th:if="${#lists.isEmpty(scheduleRows)}"
+                class="alert alert--warning">
+                No schedule rows were found for this date.
+            </div>
+        </section>
+
         <section class="section" aria-labelledby="plan-heading">
             <div class="section-heading">
                 <div>

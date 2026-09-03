@@ -24,6 +24,7 @@ import technology.renatus.routepulse.model.ParkOperatingStatus;
 import technology.renatus.routepulse.model.PickupWindow;
 import technology.renatus.routepulse.model.Organization;
 import technology.renatus.routepulse.model.ScheduleImport;
+import technology.renatus.routepulse.model.ShiftRecord;
 import technology.renatus.routepulse.model.ShuttlePeriod;
 import technology.renatus.routepulse.provider.CsvScheduleProvider;
 import technology.renatus.routepulse.service.CurrentOrganizationService;
@@ -134,8 +135,7 @@ public class PickupPlanningController {
                                 organizationId
                         );
 
-        LocalDate selectedDate =
-                date;
+        LocalDate selectedDate = date;
 
         /*
          * If no date was explicitly selected,
@@ -162,6 +162,15 @@ public class PickupPlanningController {
                             .getCurrentOperationsDate();
         }
 
+        boolean selectedDateAvailable =
+                !availableDates.isEmpty()
+                        && availableDates.contains(
+                                selectedDate
+                        );
+
+        List<ShiftRecord> scheduleRows =
+                List.of();
+
         List<PickupWindow> pickupWindows =
                 List.of();
 
@@ -180,8 +189,7 @@ public class PickupPlanningController {
                                 organizationId
                         );
 
-        String assignmentMessage =
-                null;
+        String assignmentMessage = null;
 
         boolean assignmentReviewRequired =
                 false;
@@ -198,12 +206,33 @@ public class PickupPlanningController {
         boolean calendarOverrideActive =
                 false;
 
-        if (date != null) {
+        /*
+         * Load the selected uploaded date even when the Six Flags
+         * operating calendar cannot be verified. This lets managers
+         * inspect exactly what RoutePulse imported before deciding
+         * whether to continue with shuttle planning.
+         */
+        if (selectedDateAvailable) {
+
+            scheduleRows =
+                    csvScheduleProvider
+                            .getSchedulesForDate(
+                                    organizationId,
+                                    selectedDate
+                            );
+
+            latestScheduleImport =
+                    csvScheduleProvider
+                            .getLatestImportForDate(
+                                    organizationId,
+                                    selectedDate
+                            )
+                            .orElse(null);
 
             operatingDay =
                     parkOperatingDayService
                             .getOperatingDay(
-                                    date
+                                    selectedDate
                             );
 
             if (operatingDay.status()
@@ -227,7 +256,6 @@ public class PickupPlanningController {
                             "Calendar could not be verified "
                                     + "— review required";
                 }
-
             }
 
             if (operatingDay.status()
@@ -247,14 +275,14 @@ public class PickupPlanningController {
                         pickupPlanningService
                                 .getPickupWindowsForDate(
                                         organizationId,
-                                        date
+                                        selectedDate
                                 );
 
                 DriverScheduleResult result =
                         driverScheduleService
                                 .getDriverSchedulesForDate(
                                         organizationId,
-                                        date
+                                        selectedDate
                                 );
 
                 driverSchedules =
@@ -267,16 +295,8 @@ public class PickupPlanningController {
                         driverAssignmentService
                                 .getOrCreateAssignments(
                                         organizationId,
-                                        date
+                                        selectedDate
                                 );
-
-                latestScheduleImport =
-                        csvScheduleProvider
-                                .getLatestImportForDate(
-                                        organizationId,
-                                        date
-                                )
-                                .orElse(null);
 
                 Long latestScheduleImportId =
                         latestScheduleImport == null
@@ -327,10 +347,6 @@ public class PickupPlanningController {
                 selectedDate
         );
 
-        /*
-         * Used by the dashboard to determine whether
-         * Start Driving should be available.
-         */
         model.addAttribute(
                 "currentOperationsDate",
                 driverAssignmentService
@@ -360,7 +376,17 @@ public class PickupPlanningController {
 
         model.addAttribute(
                 "generated",
-                date != null
+                selectedDateAvailable
+        );
+
+        model.addAttribute(
+                "scheduleRows",
+                scheduleRows
+        );
+
+        model.addAttribute(
+                "scheduleRowCount",
+                scheduleRows.size()
         );
 
         model.addAttribute(
@@ -400,7 +426,8 @@ public class PickupPlanningController {
 
         model.addAttribute(
                 "showSchedule",
-                operatingDay != null
+                selectedDateAvailable
+                        && operatingDay != null
                         && (operatingDay
                                 .shouldScheduleShuttle()
                                 || calendarOverrideActive)
@@ -438,7 +465,6 @@ public class PickupPlanningController {
 
         return "index";
     }
-
     @PostMapping("/assignments/manual")
     public String createManualAssignment(
             Authentication authentication,
