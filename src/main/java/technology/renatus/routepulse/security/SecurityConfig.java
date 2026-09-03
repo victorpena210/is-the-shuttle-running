@@ -33,8 +33,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize -> authorize
 
                         .requestMatchers(
+                                "/",
+                                "/demo-request",
                                 "/login",
                                 "/register",
+                                "/organization/register",
                                 "/verify-email",
                                 "/resend-verification",
                                 "/invitations/accept",
@@ -58,7 +61,7 @@ public class SecurityConfig {
                         // Owners and invited managers
                         // can operate the organization.
                         .requestMatchers(
-                                "/",
+                                "/app",
                                 "/upload",
                                 "/drivers/**",
                                 "/assignments/**"
@@ -74,7 +77,7 @@ public class SecurityConfig {
                 .formLogin(form -> form
                         .loginPage("/login")
                         .usernameParameter("email")
-                        .defaultSuccessUrl("/", true)
+                        .defaultSuccessUrl("/app", true)
                         .failureUrl("/login?error")
                         .permitAll()
                 )
