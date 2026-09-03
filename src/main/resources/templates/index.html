@@ -167,50 +167,13 @@
         <section class="section" aria-labelledby="plan-heading">
             <div class="section-heading">
                 <div>
-                    <p class="eyebrow">Operating plan</p>
+                    <p class="eyebrow">Pickup planning</p>
                     <h2
                         id="plan-heading"
                         th:text="|Pickup plan for ${#temporals.format(selectedDate, 'MMMM d, yyyy')}|">
                         Pickup plan
                     </h2>
                 </div>
-            </div>
-
-            <div class="status-strip" th:if="${operatingDay != null}">
-                <div class="status-strip__copy">
-                    <span
-                        class="status-strip__dot"
-                        th:classappend="${operatingDay.status.name() == 'OPEN'} ? 'status-strip__dot--open' : (${operatingDay.status.name() == 'CLOSED'} ? 'status-strip__dot--closed' : 'status-strip__dot--unknown')"
-                        aria-hidden="true">
-                    </span>
-                    <div>
-                        <strong th:text="${calendarMessage}">Park operating status</strong>
-                        <small>Six Flags operating calendar</small>
-                    </div>
-                </div>
-
-                <span
-                    class="badge"
-                    th:classappend="${operatingDay.status.name() == 'OPEN'} ? 'badge--open' : (${operatingDay.status.name() == 'CLOSED'} ? 'badge--closed' : 'badge--unknown')"
-                    th:text="${operatingDay.status}">
-                    OPEN
-                </span>
-            </div>
-
-            <div
-                class="alert alert--warning"
-                th:if="${operatingDay != null and operatingDay.status.name() == 'UNKNOWN' and !calendarOverrideActive}">
-                <div>
-                    <strong>The live calendar is unavailable.</strong>
-                    Continue only after confirming that the park is operating on this date.
-                </div>
-                <form th:action="@{/app}" method="get">
-                    <input type="hidden" name="date" th:value="${selectedDate}">
-                    <input type="hidden" name="allowUnverifiedCalendar" value="true">
-                    <button class="button button--secondary" type="submit">
-                        Continue with uploaded schedule
-                    </button>
-                </form>
             </div>
 
             <div th:if="${showSchedule}">
@@ -233,12 +196,6 @@
                                 <span>
                                     <strong th:text="${window.teamMemberCount}">2</strong>
                                     team members
-                                </span>
-                                <span
-                                    class="badge"
-                                    th:classappend="${window.priority.name() == 'HIGH'} ? 'badge--closed' : (${window.priority.name() == 'MEDIUM'} ? 'badge--pending' : 'badge--active')"
-                                    th:text="${window.priority}">
-                                    LOW
                                 </span>
                             </div>
                         </article>
