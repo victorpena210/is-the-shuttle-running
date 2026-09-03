@@ -88,7 +88,7 @@ public class PickupPlanningController {
                 currentOrganizationService;
     }
 
-    @GetMapping("/")
+    @GetMapping("/app")
     public String showDashboard(
             Authentication authentication,
             @RequestParam(required = false)
@@ -513,7 +513,7 @@ public class PickupPlanningController {
                 assignmentDate.toString()
         );
 
-        return "redirect:/";
+        return "redirect:/app";
     }
 
     @PostMapping(
@@ -579,7 +579,7 @@ public class PickupPlanningController {
                 assignmentDate.toString()
         );
 
-        return "redirect:/";
+        return "redirect:/app";
     }
 
     @PostMapping(
@@ -650,7 +650,7 @@ public class PickupPlanningController {
                 assignmentDate.toString()
         );
 
-        return "redirect:/";
+        return "redirect:/app";
     }
 
     @PostMapping("/assignments/confirm-schedule")
@@ -696,7 +696,7 @@ public class PickupPlanningController {
                 assignmentDate.toString()
         );
 
-        return "redirect:/";
+        return "redirect:/app";
     }
 
     /*
@@ -758,7 +758,7 @@ public class PickupPlanningController {
                 assignmentDate.toString()
         );
 
-        return "redirect:/";
+        return "redirect:/app";
     }
 
     /*
@@ -820,7 +820,7 @@ public class PickupPlanningController {
                 assignmentDate.toString()
         );
 
-        return "redirect:/";
+        return "redirect:/app";
     }
 
     @PostMapping("/upload")
@@ -872,6 +872,6 @@ public class PickupPlanningController {
             );
         }
 
-        return "redirect:/";
+        return "redirect:/app";
     }
 }

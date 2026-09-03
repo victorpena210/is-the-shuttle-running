@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#07111f">
-    <title>Create an Account | RoutePulse</title>
+    <title>Organization Setup | RoutePulse</title>
     <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
     <link rel="stylesheet" th:href="@{/css/routepulse.css}">
 </head>
@@ -12,7 +12,7 @@
 <body class="public-page">
 <main class="public-shell">
     <section class="public-story" aria-labelledby="product-heading">
-        <a class="brand" th:href="@{/login}" aria-label="RoutePulse sign in">
+        <a class="brand" th:href="@{/}" aria-label="RoutePulse home">
             <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
             <span class="brand-copy">
                 <span class="brand-name">RoutePulse</span>
@@ -20,11 +20,11 @@
             </span>
         </a>
 
-        <p class="public-kicker">Start organized</p>
-        <h1 id="product-heading">Build a clearer transportation day.</h1>
+        <p class="public-kicker">Approved demo organization</p>
+        <h1 id="product-heading">Set up your RoutePulse workspace.</h1>
         <p>
-            Create your organization workspace, invite managers, register drivers,
-            and turn weekly schedules into a shared operating plan.
+            This setup page is for organizations approved to participate in the RoutePulse demo.
+            The first manager creates the organization workspace and becomes its owner.
         </p>
 
         <div class="route-visual" aria-hidden="true">
@@ -37,14 +37,14 @@
     </section>
 
     <section class="auth-panel auth-panel--wide" aria-labelledby="register-heading">
-        <p class="eyebrow">New workspace</p>
-        <h1 id="register-heading">Create your organization</h1>
+        <p class="eyebrow">Organization setup</p>
+        <h1 id="register-heading">Register your organization</h1>
         <p class="auth-panel__intro">
-            The first manager becomes the organization owner and can invite additional managers.
+            Use the organization and work-email information you want associated with this RoutePulse demo workspace. The first manager becomes the organization owner and can invite additional managers.
         </p>
 
         <form
-            th:action="@{/register}"
+            th:action="@{/organization/register}"
             th:object="${registrationForm}"
             method="post">
 
