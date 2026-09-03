@@ -14,7 +14,7 @@
 
 <header class="app-topbar">
     <div class="app-topbar__inner">
-        <a class="brand" th:href="@{/}" aria-label="RoutePulse dashboard">
+        <a class="brand" th:href="@{/app}" aria-label="RoutePulse dashboard">
             <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
             <span class="brand-copy">
                 <span class="brand-name">RoutePulse</span>
@@ -23,7 +23,7 @@
         </a>
 
         <nav class="app-nav" aria-label="Primary navigation">
-            <a class="app-nav__link" th:href="@{/}" aria-current="page">Dashboard</a>
+            <a class="app-nav__link" th:href="@{/app}" aria-current="page">Dashboard</a>
             <a class="app-nav__link" th:href="@{/drivers}">Drivers</a>
             <a
                 class="app-nav__link"
@@ -83,7 +83,7 @@
             <h2>Open a pickup plan</h2>
             <p>Select one of the dates represented in an uploaded schedule.</p>
 
-            <form th:if="${scheduleUploaded}" th:action="@{/}" method="get">
+            <form th:if="${scheduleUploaded}" th:action="@{/app}" method="get">
                 <div class="form-group">
                     <label for="date">Schedule date</label>
                     <input
@@ -197,7 +197,7 @@
                     <strong>The live calendar is unavailable.</strong>
                     Continue only after confirming that the park is operating on this date.
                 </div>
-                <form th:action="@{/}" method="get">
+                <form th:action="@{/app}" method="get">
                     <input type="hidden" name="date" th:value="${selectedDate}">
                     <input type="hidden" name="allowUnverifiedCalendar" value="true">
                     <button class="button button--secondary" type="submit">

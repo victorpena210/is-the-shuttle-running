@@ -1,7 +1,7 @@
 package technology.renatus.routepulse.controller;
 
-import java.util.Objects;
 import java.time.Duration;
+import java.util.Objects;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -15,17 +15,14 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 
 import technology.renatus.routepulse.dataTransferObject.RegistrationForm;
-import technology.renatus.routepulse.service.RegistrationService;
 import technology.renatus.routepulse.security.PublicRequestThrottle;
+import technology.renatus.routepulse.service.RegistrationService;
 
 @Controller
 public class RegistrationController {
 
-    private final RegistrationService
-            registrationService;
-
+    private final RegistrationService registrationService;
     private final boolean registrationEnabled;
-
     private final PublicRequestThrottle throttle;
 
     public RegistrationController(
@@ -34,18 +31,18 @@ public class RegistrationController {
             @Value("${app.registration.enabled:true}")
             boolean registrationEnabled) {
 
-        this.registrationService =
-                registrationService;
-
-        this.registrationEnabled =
-                registrationEnabled;
-
+        this.registrationService = registrationService;
+        this.registrationEnabled = registrationEnabled;
         this.throttle = throttle;
     }
 
     @GetMapping("/register")
-    public String showRegistrationPage(
-            Model model) {
+    public String redirectLegacyRegistrationUrl() {
+        return "redirect:/organization/register";
+    }
+
+    @GetMapping("/organization/register")
+    public String showRegistrationPage(Model model) {
 
         if (!registrationEnabled) {
             return "redirect:/login?registrationClosed";
@@ -59,7 +56,7 @@ public class RegistrationController {
         return "register";
     }
 
-    @PostMapping("/register")
+    @PostMapping({"/register", "/organization/register"})
     public String registerOrganizationOwner(
             @Valid
             @ModelAttribute("registrationForm")
@@ -87,7 +84,6 @@ public class RegistrationController {
                 registrationForm.getPassword(),
                 registrationForm.getConfirmPassword()
         )) {
-
             bindingResult.rejectValue(
                     "confirmPassword",
                     "password.mismatch",
@@ -100,19 +96,14 @@ public class RegistrationController {
         }
 
         try {
-
-            registrationService
-                    .registerOrganizationOwner(
-                            registrationForm
-                    );
-
+            registrationService.registerOrganizationOwner(
+                    registrationForm
+            );
         } catch (IllegalArgumentException exception) {
-
             bindingResult.reject(
                     "registration.failed",
                     exception.getMessage()
             );
-
             return "register";
         }
 
