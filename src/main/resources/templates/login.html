@@ -12,7 +12,7 @@
 <body class="public-page">
 <main class="public-shell">
     <section class="public-story" aria-labelledby="product-heading">
-        <a class="brand" th:href="@{/login}" aria-label="RoutePulse sign in">
+        <a class="brand" th:href="@{/}" aria-label="RoutePulse home">
             <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
             <span class="brand-copy">
                 <span class="brand-name">RoutePulse</span>
@@ -121,13 +121,8 @@
         </form>
 
         <p class="auth-panel__footer">
-            <span th:if="${registrationEnabled}">
-                Need an account?
-                <a th:href="@{/register}">Create an organization</a>
-            </span>
-            <span th:unless="${registrationEnabled}">
-                Need access? Ask your organization owner for an invitation.
-            </span>
+            Interested in RoutePulse?
+            <a href="/#demo-request">Request demo access</a>.
             <br>
             <a th:href="@{/resend-verification}">Resend verification email</a>
         </p>
