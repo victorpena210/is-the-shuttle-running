@@ -25,6 +25,12 @@
         <nav class="app-nav" aria-label="Primary navigation">
             <a class="app-nav__link" th:href="@{/}">Dashboard</a>
             <a class="app-nav__link" th:href="@{/drivers}" aria-current="page">Drivers</a>
+            <a
+                class="app-nav__link"
+                th:if="${isOwner}"
+                th:href="@{/organization/invitations}">
+                Managers
+            </a>
             <form class="app-nav__form" th:action="@{/logout}" method="post">
                 <button class="app-nav__button" type="submit">Sign out</button>
             </form>
@@ -35,7 +41,7 @@
 <main id="main-content" class="app-main">
     <header class="page-header">
         <div>
-            <p class="eyebrow">Driver directory</p>
+            <p class="eyebrow" th:text="${organizationName}">Organization</p>
             <h1>Manage shuttle drivers</h1>
             <p>
                 Register drivers using the employee ID found in the uploaded schedule.

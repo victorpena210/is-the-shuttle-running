@@ -1,5 +1,7 @@
 package technology.renatus.routepulse.controller;
 
+import java.util.Objects;
+
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
@@ -16,6 +18,7 @@ import technology.renatus.routepulse.dataTransferObject.InvitationAcceptanceForm
 import technology.renatus.routepulse.dataTransferObject.ManagerInvitationForm;
 import technology.renatus.routepulse.model.OrganizationInvitation;
 import technology.renatus.routepulse.service.OrganizationInvitationService;
+import technology.renatus.routepulse.service.CurrentOrganizationService;
 
 @Controller
 public class OrganizationInvitationController {
@@ -23,12 +26,20 @@ public class OrganizationInvitationController {
     private final OrganizationInvitationService
             organizationInvitationService;
 
+    private final CurrentOrganizationService
+            currentOrganizationService;
+
     public OrganizationInvitationController(
             OrganizationInvitationService
-                    organizationInvitationService) {
+                    organizationInvitationService,
+            CurrentOrganizationService
+                    currentOrganizationService) {
 
         this.organizationInvitationService =
                 organizationInvitationService;
+
+        this.currentOrganizationService =
+                currentOrganizationService;
     }
 
     /*
@@ -41,6 +52,13 @@ public class OrganizationInvitationController {
     public String showInvitationsPage(
             Authentication authentication,
             Model model) {
+
+        model.addAttribute(
+                "organizationName",
+                currentOrganizationService
+                        .requireOrganization(authentication)
+                        .getDisplayName()
+        );
 
         model.addAttribute(
                 "managerInvitationForm",
@@ -193,10 +211,10 @@ public class OrganizationInvitationController {
                 "no-referrer"
         );
 
-        if (!form.getPassword()
-                .equals(
-                        form.getConfirmPassword()
-                )) {
+        if (!Objects.equals(
+                form.getPassword(),
+                form.getConfirmPassword()
+        )) {
 
             bindingResult.rejectValue(
                     "confirmPassword",

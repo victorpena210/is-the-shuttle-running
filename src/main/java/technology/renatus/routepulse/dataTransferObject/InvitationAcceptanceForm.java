@@ -39,6 +39,11 @@ public class InvitationAcceptanceForm {
     @NotBlank(
             message = "Please confirm your password."
     )
+    @Size(
+            min = 12,
+            max = 72,
+            message = "Password confirmation must contain between 12 and 72 characters."
+    )
     private String confirmPassword;
 
     public String getToken() {

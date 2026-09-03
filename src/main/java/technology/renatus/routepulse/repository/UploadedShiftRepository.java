@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import technology.renatus.routepulse.model.ScheduleImport;
 import technology.renatus.routepulse.model.UploadedShift;
 
 public interface UploadedShiftRepository
@@ -72,5 +73,25 @@ public interface UploadedShiftRepository
     Optional<LocalDate> findFirstDateOfLatestImport(
             @Param("organizationId")
             Long organizationId
+    );
+
+    @Query("""
+            select distinct uploadedShift.scheduleImport
+            from UploadedShift uploadedShift
+            where uploadedShift.organization.id = :organizationId
+              and uploadedShift.shiftDate = :shiftDate
+              and uploadedShift.scheduleImport is not null
+              and uploadedShift.importedAt = (
+                    select max(latestShift.importedAt)
+                    from UploadedShift latestShift
+                    where latestShift.organization.id = :organizationId
+                      and latestShift.shiftDate = :shiftDate
+              )
+            """)
+    Optional<ScheduleImport> findLatestScheduleImportForDate(
+            @Param("organizationId")
+            Long organizationId,
+            @Param("shiftDate")
+            LocalDate shiftDate
     );
 }

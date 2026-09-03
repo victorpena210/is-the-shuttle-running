@@ -1,9 +1,12 @@
 package technology.renatus.routepulse.calendar;
 
+import java.net.http.HttpClient;
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
@@ -22,6 +25,7 @@ public class SixFlagsCalendarClient {
             @Value("${sixflags.calendar.park-id}") int parkId) {
 
         this.restClient = restClientBuilder
+                .requestFactory(createRequestFactory())
                 .baseUrl(baseUrl)
                 .build();
 
@@ -45,6 +49,22 @@ public class SixFlagsCalendarClient {
                 .retrieve()
                 .body(SixFlagsCalendarResponse.class);
     }
-	
 
+    private JdkClientHttpRequestFactory
+            createRequestFactory() {
+
+        HttpClient httpClient = HttpClient
+                .newBuilder()
+                .connectTimeout(Duration.ofSeconds(3))
+                .build();
+
+        JdkClientHttpRequestFactory requestFactory =
+                new JdkClientHttpRequestFactory(httpClient);
+
+        requestFactory.setReadTimeout(
+                Duration.ofSeconds(5)
+        );
+
+        return requestFactory;
+    }
 }

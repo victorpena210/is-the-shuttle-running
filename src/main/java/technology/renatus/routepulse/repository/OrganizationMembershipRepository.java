@@ -22,6 +22,11 @@ public interface OrganizationMembershipRepository
                     Long userId
             );
 
+    boolean existsByOrganization_IdAndUser_Id(
+            Long organizationId,
+            Long userId
+    );
+
     @Query("""
             SELECT membership.organization.id
             FROM OrganizationMembership membership
