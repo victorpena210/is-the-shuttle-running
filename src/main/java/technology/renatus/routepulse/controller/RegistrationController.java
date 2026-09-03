@@ -1,7 +1,12 @@
 package technology.renatus.routepulse.controller;
 
+import java.util.Objects;
+import java.time.Duration;
+
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -11,6 +16,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 
 import technology.renatus.routepulse.dataTransferObject.RegistrationForm;
 import technology.renatus.routepulse.service.RegistrationService;
+import technology.renatus.routepulse.security.PublicRequestThrottle;
 
 @Controller
 public class RegistrationController {
@@ -18,16 +24,32 @@ public class RegistrationController {
     private final RegistrationService
             registrationService;
 
+    private final boolean registrationEnabled;
+
+    private final PublicRequestThrottle throttle;
+
     public RegistrationController(
-            RegistrationService registrationService) {
+            RegistrationService registrationService,
+            PublicRequestThrottle throttle,
+            @Value("${app.registration.enabled:true}")
+            boolean registrationEnabled) {
 
         this.registrationService =
                 registrationService;
+
+        this.registrationEnabled =
+                registrationEnabled;
+
+        this.throttle = throttle;
     }
 
     @GetMapping("/register")
     public String showRegistrationPage(
             Model model) {
+
+        if (!registrationEnabled) {
+            return "redirect:/login?registrationClosed";
+        }
 
         model.addAttribute(
                 "registrationForm",
@@ -42,14 +64,29 @@ public class RegistrationController {
             @Valid
             @ModelAttribute("registrationForm")
             RegistrationForm registrationForm,
-            BindingResult bindingResult) {
+            BindingResult bindingResult,
+            HttpServletRequest request) {
 
-        if (!registrationForm
-                .getPassword()
-                .equals(
-                        registrationForm
-                                .getConfirmPassword()
-                )) {
+        if (!registrationEnabled) {
+            return "redirect:/login?registrationClosed";
+        }
+
+        if (!throttle.tryAcquire(
+                "registration",
+                request.getRemoteAddr(),
+                5,
+                Duration.ofHours(1)
+        )) {
+            bindingResult.reject(
+                    "registration.rateLimited",
+                    "Too many registration attempts were received. Try again later."
+            );
+        }
+
+        if (!Objects.equals(
+                registrationForm.getPassword(),
+                registrationForm.getConfirmPassword()
+        )) {
 
             bindingResult.rejectValue(
                     "confirmPassword",

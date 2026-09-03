@@ -38,6 +38,14 @@ public class CurrentOrganizationService {
     public Long requireOrganizationId(
             Authentication authentication) {
 
+        return requireOrganization(
+                authentication
+        ).getId();
+    }
+
+    public Organization requireOrganization(
+            Authentication authentication) {
+
         if (authentication == null
                 || !authentication.isAuthenticated()) {
 
@@ -85,7 +93,7 @@ public class CurrentOrganizationService {
                 organization
         );
 
-        return organizationId;
+        return organization;
     }
 
     private void requireApplicationAccess(

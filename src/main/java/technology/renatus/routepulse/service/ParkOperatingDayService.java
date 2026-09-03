@@ -1,9 +1,14 @@
 package technology.renatus.routepulse.service;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.time.YearMonth;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
@@ -33,7 +38,16 @@ public class ParkOperatingDayService {
     private static final DateTimeFormatter OPERATING_TIME_FORMAT =
             DateTimeFormatter.ofPattern("H:mm");
 
+    private static final Duration CACHE_TTL =
+            Duration.ofMinutes(15);
+
+    private static final Duration STALE_CACHE_LIMIT =
+            Duration.ofHours(6);
+
     private final SixFlagsCalendarClient calendarClient;
+
+    private final Map<YearMonth, CachedCalendar>
+            calendarCache = new ConcurrentHashMap<>();
 
     public ParkOperatingDayService(
             SixFlagsCalendarClient calendarClient) {
@@ -50,7 +64,7 @@ public class ParkOperatingDayService {
              * the requested date.
              */
             SixFlagsCalendarResponse response =
-                    calendarClient.getCalendarForMonth(
+                    getCalendarForMonth(
                             requestedDate
                     );
 
@@ -182,6 +196,61 @@ public class ParkOperatingDayService {
         }
     }
 
+    private SixFlagsCalendarResponse getCalendarForMonth(
+            LocalDate requestedDate) {
+
+        YearMonth month = YearMonth.from(requestedDate);
+        Instant now = Instant.now();
+        CachedCalendar cached = calendarCache.get(month);
+
+        if (cached != null
+                && cached.isYoungerThan(
+                        now,
+                        CACHE_TTL
+                )) {
+            return cached.response();
+        }
+
+        try {
+            SixFlagsCalendarResponse liveResponse =
+                    calendarClient.getCalendarForMonth(
+                            requestedDate
+                    );
+
+            if (liveResponse != null) {
+                calendarCache.put(
+                        month,
+                        new CachedCalendar(
+                                liveResponse,
+                                now
+                        )
+                );
+
+                return liveResponse;
+            }
+
+        } catch (RestClientException exception) {
+
+            if (cached == null
+                    || !cached.isYoungerThan(
+                            now,
+                            STALE_CACHE_LIMIT
+                    )) {
+                throw exception;
+            }
+        }
+
+        if (cached != null
+                && cached.isYoungerThan(
+                        now,
+                        STALE_CACHE_LIMIT
+                )) {
+            return cached.response();
+        }
+
+        return null;
+    }
+
     private LocalDate parseDate(String calendarDate) {
         return LocalDate.parse(
                 calendarDate,
@@ -199,5 +268,19 @@ public class ParkOperatingDayService {
                 null,
                 false
         );
+    }
+
+    private record CachedCalendar(
+            SixFlagsCalendarResponse response,
+            Instant fetchedAt) {
+
+        boolean isYoungerThan(
+                Instant now,
+                Duration maximumAge) {
+
+            return fetchedAt
+                    .plus(maximumAge)
+                    .isAfter(now);
+        }
     }
 }
