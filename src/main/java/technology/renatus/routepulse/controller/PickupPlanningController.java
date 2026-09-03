@@ -357,6 +357,11 @@ public class PickupPlanningController {
                 "availableDates",
                 availableDates
         );
+        
+        model.addAttribute(
+                "selectedDateAvailable",
+                selectedDateAvailable
+        );
 
         model.addAttribute(
                 "scheduleUploaded",
