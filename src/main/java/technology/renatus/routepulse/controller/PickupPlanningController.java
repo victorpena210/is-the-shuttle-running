@@ -220,11 +220,31 @@ public class PickupPlanningController {
                             )
                             .orElse(null);
 
+            /*
+             * TEMPORARILY DISABLED FOR ROUTEPULSE DEMO
+             *
+             * This is the live Six Flags operating-calendar check.
+             * Leave this code here so it can be re-enabled later.
+             *
+             * operatingDay =
+             *         parkOperatingDayService
+             *                 .getOperatingDay(
+             *                         selectedDate
+             *                 );
+             */
+
+            /*
+             * Temporary fallback while the live calendar check is disabled:
+             * treat any date that exists in the uploaded schedule as OPEN.
+             */
             operatingDay =
-                    parkOperatingDayService
-                            .getOperatingDay(
-                                    selectedDate
-                            );
+                    new ParkOperatingDay(
+                            selectedDate,
+                            ParkOperatingStatus.OPEN,
+                            null,
+                            null,
+                            false
+                    );
 
             if (operatingDay.status()
                     == ParkOperatingStatus.CLOSED) {
