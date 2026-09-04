@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import technology.renatus.routepulse.service.CurrentOrganizationService;
@@ -73,7 +74,6 @@ public class DriverController {
     public String registerDriver(
             Authentication authentication,
             @RequestParam String employeeId,
-            @RequestParam String name,
             @RequestParam(defaultValue = "false")
             boolean active,
             RedirectAttributes redirectAttributes) {
@@ -88,7 +88,6 @@ public class DriverController {
             driverService.registerDriver(
                     organizationId,
                     employeeId,
-                    name,
                     active
             );
 
@@ -107,7 +106,51 @@ public class DriverController {
 
         return "redirect:/drivers";
     }
+    
+    @GetMapping("/drivers/lookup")
+    @ResponseBody
+    public DriverLookupResponse lookupDriver(
+            Authentication authentication,
+            @RequestParam String employeeId) {
 
+        Long organizationId =
+                currentOrganizationService
+                        .requireOrganizationId(authentication);
+
+        try {
+            String name = driverService.findEmployeeName(
+                    organizationId,
+                    employeeId
+            );
+
+            return new DriverLookupResponse(
+                    true,
+                    employeeId.trim(),
+                    name,
+                    "Employee found."
+            );
+
+        } catch (IllegalArgumentException exception) {
+
+            return new DriverLookupResponse(
+                    false,
+                    employeeId == null
+                            ? ""
+                            : employeeId.trim(),
+                    null,
+                    exception.getMessage()
+            );
+        }
+    }
+
+    public record DriverLookupResponse(
+            boolean found,
+            String employeeId,
+            String name,
+            String message) {
+    }
+    
+    
     @PostMapping("/drivers/{id}/status")
     public String updateDriverStatus(
             Authentication authentication,

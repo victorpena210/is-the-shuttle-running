@@ -13,6 +13,12 @@ import technology.renatus.routepulse.model.UploadedShift;
 
 public interface UploadedShiftRepository
         extends JpaRepository<UploadedShift, Long> {
+	
+	Optional<UploadedShift>
+    findFirstByOrganization_IdAndEmployeeIdOrderByImportedAtDescIdDesc(
+            Long organizationId,
+            String employeeId
+    );
 
     /*
      * Return only the newest stored version for this organization/date.

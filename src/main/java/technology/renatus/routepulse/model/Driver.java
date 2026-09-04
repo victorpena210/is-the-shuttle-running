@@ -50,7 +50,7 @@ public class Driver {
 
     @Column(
             nullable = false,
-            length = 100
+            length = 200
     )
     private String name;
 

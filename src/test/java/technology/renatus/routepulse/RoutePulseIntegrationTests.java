@@ -59,6 +59,7 @@ import technology.renatus.routepulse.model.OrganizationStatus;
 import technology.renatus.routepulse.model.ScheduleImport;
 import technology.renatus.routepulse.model.ShiftRecord;
 import technology.renatus.routepulse.model.ShuttlePeriod;
+import technology.renatus.routepulse.model.UploadedShift;
 import technology.renatus.routepulse.model.UserAccount;
 import technology.renatus.routepulse.provider.CsvScheduleProvider;
 import technology.renatus.routepulse.repository.DriverAssignmentRepository;
@@ -183,31 +184,51 @@ class RoutePulseIntegrationTests {
     @Test
     void allMigrationsRunAgainstABlankMySqlDatabase() {
         assertNotNull(flyway.info().current());
+
         assertEquals(
-                "22",
+                "23",
                 flyway.info().current().getVersion().getVersion()
         );
 
         Integer successfulMigrations = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM flyway_schema_history WHERE success = 1",
+                """
+                SELECT COUNT(*)
+                FROM flyway_schema_history
+                WHERE success = 1
+                """,
                 Integer.class
         );
 
         Integer failedMigrations = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM flyway_schema_history WHERE success = 0",
+                """
+                SELECT COUNT(*)
+                FROM flyway_schema_history
+                WHERE success = 0
+                """,
                 Integer.class
         );
 
-        assertEquals(22, successfulMigrations);
+        assertEquals(23, successfulMigrations);
         assertEquals(0, failedMigrations);
     }
 
     @Test
     void organizationACannotAccessOrganizationBsRecords() {
-        Organization organizationA = createOrganization("Organization A", "organization-a");
-        Organization organizationB = createOrganization("Organization B", "organization-b");
+        Organization organizationA = createOrganization(
+                "Organization A",
+                "organization-a"
+        );
 
-        UserAccount ownerA = createUser("owner-a@example.com", true);
+        Organization organizationB = createOrganization(
+                "Organization B",
+                "organization-b"
+        );
+
+        UserAccount ownerA = createUser(
+                "owner-a@example.com",
+                true
+        );
+
         membershipRepository.save(
                 new OrganizationMembership(
                         organizationA,
@@ -217,11 +238,21 @@ class RoutePulseIntegrationTests {
         );
 
         Driver driverA = driverRepository.save(
-                new Driver(organizationA, "100", "Driver A", true)
+                new Driver(
+                        organizationA,
+                        "100",
+                        "Driver A",
+                        true
+                )
         );
 
         Driver driverB = driverRepository.save(
-                new Driver(organizationB, "100", "Driver B", true)
+                new Driver(
+                        organizationB,
+                        "100",
+                        "Driver B",
+                        true
+                )
         );
 
         Authentication authenticationA = authenticationFor(
@@ -230,12 +261,18 @@ class RoutePulseIntegrationTests {
         );
 
         Long currentOrganizationId =
-                currentOrganizationService.requireOrganizationId(authenticationA);
+                currentOrganizationService
+                        .requireOrganizationId(authenticationA);
 
-        assertEquals(organizationA.getId(), currentOrganizationId);
+        assertEquals(
+                organizationA.getId(),
+                currentOrganizationId
+        );
+
         assertEquals(
                 List.of(driverA.getId()),
-                driverService.getAllDrivers(currentOrganizationId)
+                driverService
+                        .getAllDrivers(currentOrganizationId)
                         .stream()
                         .map(Driver::getId)
                         .toList()
@@ -275,8 +312,15 @@ class RoutePulseIntegrationTests {
     @Test
     void registrationCreatesAnOwnerAndEmailVerificationEnablesLogin() {
         RegistrationForm form = new RegistrationForm();
-        form.setOrganizationLegalName("Acme Operations LLC");
-        form.setOrganizationDisplayName("Acme Operations");
+
+        form.setOrganizationLegalName(
+                "Acme Operations LLC"
+        );
+
+        form.setOrganizationDisplayName(
+                "Acme Operations"
+        );
+
         form.setFirstName("Victor");
         form.setLastName("Pena");
         form.setEmail("  OWNER@EXAMPLE.COM  ");
@@ -291,6 +335,7 @@ class RoutePulseIntegrationTests {
 
         assertFalse(owner.isEmailVerified());
         assertTrue(owner.isEnabled());
+
         assertTrue(
                 passwordEncoder.matches(
                         "a-strong-password",
@@ -298,18 +343,25 @@ class RoutePulseIntegrationTests {
                 )
         );
 
-        OrganizationMembership membership = membershipRepository
-                .findAllByUser_Id(owner.getId())
-                .get(0);
+        OrganizationMembership membership =
+                membershipRepository
+                        .findAllByUser_Id(owner.getId())
+                        .get(0);
 
-        assertEquals(OrganizationRole.OWNER, membership.getRole());
+        assertEquals(
+                OrganizationRole.OWNER,
+                membership.getRole()
+        );
+
         assertEquals(
                 "acme-operations",
                 membership.getOrganization().getSlug()
         );
 
         UserDetails beforeVerification =
-                userDetailsService.loadUserByUsername("owner@example.com");
+                userDetailsService.loadUserByUsername(
+                        "owner@example.com"
+                );
 
         assertFalse(beforeVerification.isEnabled());
 
@@ -330,24 +382,32 @@ class RoutePulseIntegrationTests {
         );
 
         assertEquals(
-                EmailVerificationService.VerificationResult.ALREADY_USED,
+                EmailVerificationService
+                        .VerificationResult
+                        .ALREADY_USED,
                 verificationService.verifyEmail(originalToken)
         );
 
         assertEquals(
-                EmailVerificationService.VerificationResult.VERIFIED,
+                EmailVerificationService
+                        .VerificationResult
+                        .VERIFIED,
                 verificationService.verifyEmail(replacementToken)
         );
 
         assertTrue(owner.isEmailVerified());
 
         UserDetails afterVerification =
-                userDetailsService.loadUserByUsername("owner@example.com");
+                userDetailsService.loadUserByUsername(
+                        "owner@example.com"
+                );
 
         assertTrue(afterVerification.isEnabled());
 
         assertEquals(
-                EmailVerificationService.VerificationResult.ALREADY_USED,
+                EmailVerificationService
+                        .VerificationResult
+                        .ALREADY_USED,
                 verificationService.verifyEmail(replacementToken)
         );
     }
@@ -359,7 +419,10 @@ class RoutePulseIntegrationTests {
                 "invitation-organization"
         );
 
-        UserAccount owner = createUser("owner@example.com", true);
+        UserAccount owner = createUser(
+                "owner@example.com",
+                true
+        );
 
         membershipRepository.save(
                 new OrganizationMembership(
@@ -369,10 +432,11 @@ class RoutePulseIntegrationTests {
                 )
         );
 
-        Authentication ownerAuthentication = authenticationFor(
-                owner,
-                OrganizationRole.OWNER
-        );
+        Authentication ownerAuthentication =
+                authenticationFor(
+                        owner,
+                        OrganizationRole.OWNER
+                );
 
         invitationService.createAndSendManagerInvitation(
                 ownerAuthentication,
@@ -385,13 +449,24 @@ class RoutePulseIntegrationTests {
         );
 
         OrganizationInvitation invitation =
-                invitationService.getInvitationForAcceptance(rawToken);
+                invitationService
+                        .getInvitationForAcceptance(rawToken);
 
-        assertEquals("manager@example.com", invitation.getInvitedEmail());
-        assertEquals(OrganizationRole.ADMIN, invitation.getRole());
+        assertEquals(
+                "manager@example.com",
+                invitation.getInvitedEmail()
+        );
+
+        assertEquals(
+                OrganizationRole.ADMIN,
+                invitation.getRole()
+        );
+
         assertFalse(invitation.isAccepted());
 
-        InvitationAcceptanceForm form = new InvitationAcceptanceForm();
+        InvitationAcceptanceForm form =
+                new InvitationAcceptanceForm();
+
         form.setToken(rawToken);
         form.setFirstName("New");
         form.setLastName("Manager");
@@ -404,28 +479,36 @@ class RoutePulseIntegrationTests {
                 .findByEmailIgnoreCase("manager@example.com")
                 .orElseThrow();
 
-        OrganizationMembership managerMembership = membershipRepository
-                .findByOrganization_IdAndUser_Id(
-                        organization.getId(),
-                        manager.getId()
-                )
-                .orElseThrow();
+        OrganizationMembership managerMembership =
+                membershipRepository
+                        .findByOrganization_IdAndUser_Id(
+                                organization.getId(),
+                                manager.getId()
+                        )
+                        .orElseThrow();
 
         assertTrue(manager.isEnabled());
         assertTrue(manager.isEmailVerified());
+
         assertTrue(
                 passwordEncoder.matches(
                         "manager-password",
                         manager.getPasswordHash()
                 )
         );
-        assertEquals(OrganizationRole.ADMIN, managerMembership.getRole());
+
+        assertEquals(
+                OrganizationRole.ADMIN,
+                managerMembership.getRole()
+        );
+
         assertTrue(invitation.isAccepted());
         assertNotNull(invitation.getAcceptedAt());
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> invitationService.getInvitationForAcceptance(rawToken)
+                () -> invitationService
+                        .getInvitationForAcceptance(rawToken)
         );
     }
 
@@ -435,45 +518,67 @@ class RoutePulseIntegrationTests {
                 "CSV Organization",
                 "csv-organization"
         );
-        UserAccount uploader = createUser("uploader@example.com", true);
 
-        LocalDate shiftDate = LocalDate.of(2026, 9, 15);
-
-        ScheduleImport firstImport = csvScheduleProvider.loadSchedule(
-                organization.getId(),
-                uploader.getEmail(),
-                csvFile(
-                        "first.csv",
-                        "100,Old Driver,9/15/2026 8:00 AM,9/15/2026 4:00 PM,Park/Ops/Transportation/Shuttle/101 North Gate,Driver"
-                )
+        UserAccount uploader = createUser(
+                "uploader@example.com",
+                true
         );
+
+        LocalDate shiftDate =
+                LocalDate.of(2026, 9, 15);
+
+        ScheduleImport firstImport =
+                csvScheduleProvider.loadSchedule(
+                        organization.getId(),
+                        uploader.getEmail(),
+                        csvFile(
+                                "first.csv",
+                                "100,Old Driver,9/15/2026 8:00 AM,9/15/2026 4:00 PM,Park/Ops/Transportation/Shuttle/101 North Gate,Driver"
+                        )
+                );
 
         entityManager.flush();
 
-        LocalDateTime oldImportTime = LocalDateTime.of(2026, 1, 1, 0, 0);
+        LocalDateTime oldImportTime =
+                LocalDateTime.of(
+                        2026,
+                        1,
+                        1,
+                        0,
+                        0
+                );
 
         jdbcTemplate.update(
-                "UPDATE schedule_imports SET uploaded_at = ? WHERE id = ?",
+                """
+                UPDATE schedule_imports
+                SET uploaded_at = ?
+                WHERE id = ?
+                """,
                 Timestamp.valueOf(oldImportTime),
                 firstImport.getId()
         );
 
         jdbcTemplate.update(
-                "UPDATE uploaded_shifts SET imported_at = ? WHERE schedule_import_id = ?",
+                """
+                UPDATE uploaded_shifts
+                SET imported_at = ?
+                WHERE schedule_import_id = ?
+                """,
                 Timestamp.valueOf(oldImportTime),
                 firstImport.getId()
         );
 
         entityManager.clear();
 
-        ScheduleImport newestImport = csvScheduleProvider.loadSchedule(
-                organization.getId(),
-                uploader.getEmail(),
-                csvFile(
-                        "newest.csv",
-                        "200,Current Driver,9/15/2026 9:00 AM,9/15/2026 5:00 PM,Park/Ops/Transportation/Shuttle/202 South Gate,Driver"
-                )
-        );
+        ScheduleImport newestImport =
+                csvScheduleProvider.loadSchedule(
+                        organization.getId(),
+                        uploader.getEmail(),
+                        csvFile(
+                                "newest.csv",
+                                "200,Current Driver,9/15/2026 9:00 AM,9/15/2026 5:00 PM,Park/Ops/Transportation/Shuttle/202 South Gate,Driver"
+                        )
+                );
 
         List<ShiftRecord> currentSchedule =
                 csvScheduleProvider.getSchedulesForDate(
@@ -481,23 +586,60 @@ class RoutePulseIntegrationTests {
                         shiftDate
                 );
 
-        assertEquals(2, scheduleImportRepository.count());
-        assertEquals(2, uploadedShiftRepository.count());
+        assertEquals(
+                2,
+                scheduleImportRepository.count()
+        );
+
+        assertEquals(
+                2,
+                uploadedShiftRepository.count()
+        );
+
         assertEquals(1, currentSchedule.size());
-        assertEquals("200", currentSchedule.get(0).getEmployeeId());
-        assertEquals("Current Driver", currentSchedule.get(0).getEmployeeName());
-        assertEquals("South Gate", currentSchedule.get(0).getPickupLocation());
-        assertEquals(1, newestImport.getRowCount());
-        assertEquals("newest.csv", newestImport.getOriginalFilename());
+
+        assertEquals(
+                "200",
+                currentSchedule.get(0).getEmployeeId()
+        );
+
+        assertEquals(
+                "Current Driver",
+                currentSchedule.get(0).getEmployeeName()
+        );
+
+        assertEquals(
+                "South Gate",
+                currentSchedule.get(0).getPickupLocation()
+        );
+
+        assertEquals(
+                1,
+                newestImport.getRowCount()
+        );
+
+        assertEquals(
+                "newest.csv",
+                newestImport.getOriginalFilename()
+        );
+
         assertEquals(
                 shiftDate,
-                csvScheduleProvider.getFirstDateOfLatestImport(
-                        organization.getId()
-                )
+                csvScheduleProvider
+                        .getFirstDateOfLatestImport(
+                                organization.getId()
+                        )
         );
+
         assertEquals(
-                List.of("newest.csv", "first.csv"),
-                csvScheduleProvider.getRecentImports(organization.getId())
+                List.of(
+                        "newest.csv",
+                        "first.csv"
+                ),
+                csvScheduleProvider
+                        .getRecentImports(
+                                organization.getId()
+                        )
                         .stream()
                         .map(ScheduleImport::getOriginalFilename)
                         .toList()
@@ -528,8 +670,15 @@ class RoutePulseIntegrationTests {
                 )
         );
 
-        assertEquals(0, scheduleImportRepository.count());
-        assertEquals(0, uploadedShiftRepository.count());
+        assertEquals(
+                0,
+                scheduleImportRepository.count()
+        );
+
+        assertEquals(
+                0,
+                uploadedShiftRepository.count()
+        );
     }
 
     @Test
@@ -538,7 +687,11 @@ class RoutePulseIntegrationTests {
                 "Assignment Organization",
                 "assignment-organization"
         );
-        UserAccount uploader = createUser("assignments@example.com", true);
+
+        UserAccount uploader = createUser(
+                "assignments@example.com",
+                true
+        );
 
         membershipRepository.save(
                 new OrganizationMembership(
@@ -549,26 +702,44 @@ class RoutePulseIntegrationTests {
         );
 
         Driver alice = driverRepository.save(
-                new Driver(organization, "100", "Alice", true)
-        );
-        Driver bob = driverRepository.save(
-                new Driver(organization, "200", "Bob", true)
-        );
-        Driver charlie = driverRepository.save(
-                new Driver(organization, "300", "Charlie", true)
+                new Driver(
+                        organization,
+                        "100",
+                        "Alice",
+                        true
+                )
         );
 
-        LocalDate assignmentDate = LocalDate.of(2026, 9, 16);
+        Driver bob = driverRepository.save(
+                new Driver(
+                        organization,
+                        "200",
+                        "Bob",
+                        true
+                )
+        );
+
+        Driver charlie = driverRepository.save(
+                new Driver(
+                        organization,
+                        "300",
+                        "Charlie",
+                        true
+                )
+        );
+
+        LocalDate assignmentDate =
+                LocalDate.of(2026, 9, 16);
 
         ScheduleImport sourceImport =
                 csvScheduleProvider.loadSchedule(
-                organization.getId(),
-                uploader.getEmail(),
-                csvFile(
-                        "drivers.csv",
-                        "100,Alice,9/16/2026 8:00 AM,9/16/2026 4:00 PM,Park/Ops/Transportation/Shuttle/101 North Gate,Driver",
-                        "200,Bob,9/16/2026 8:30 AM,9/16/2026 4:30 PM,Park/Ops/Transportation/Shuttle/202 South Gate,Driver"
-                )
+                        organization.getId(),
+                        uploader.getEmail(),
+                        csvFile(
+                                "drivers.csv",
+                                "100,Alice,9/16/2026 8:00 AM,9/16/2026 4:00 PM,Park/Ops/Transportation/Shuttle/101 North Gate,Driver",
+                                "200,Bob,9/16/2026 8:30 AM,9/16/2026 4:30 PM,Park/Ops/Transportation/Shuttle/202 South Gate,Driver"
+                        )
                 );
 
         List<DriverAssignment> automaticAssignments =
@@ -577,60 +748,108 @@ class RoutePulseIntegrationTests {
                         assignmentDate
                 );
 
-        assertEquals(2, automaticAssignments.size());
+        assertEquals(
+                2,
+                automaticAssignments.size()
+        );
 
         DriverAssignment morning = assignmentFor(
                 automaticAssignments,
                 ShuttlePeriod.MORNING
         );
 
-        assertEquals(AssignmentSource.AUTO, morning.getAssignmentSource());
-        assertEquals(alice.getId(), morning.getDriver().getId());
+        assertEquals(
+                AssignmentSource.AUTO,
+                morning.getAssignmentSource()
+        );
+
+        assertEquals(
+                alice.getId(),
+                morning.getDriver().getId()
+        );
+
         assertEquals(
                 alice.getId(),
                 morning.getOriginallySuggestedDriver().getId()
         );
+
         assertEquals(
                 sourceImport.getId(),
                 morning.getSourceScheduleImport().getId()
         );
 
-        DriverAssignment overridden = assignmentService.changeAssignedDriver(
-                organization.getId(),
-                morning.getId(),
-                charlie.getId(),
-                "Manager coverage change",
-                uploader.getEmail()
+        DriverAssignment overridden =
+                assignmentService.changeAssignedDriver(
+                        organization.getId(),
+                        morning.getId(),
+                        charlie.getId(),
+                        "Manager coverage change",
+                        uploader.getEmail()
+                );
+
+        assertEquals(
+                AssignmentSource.OVERRIDE,
+                overridden.getAssignmentSource()
         );
 
-        assertEquals(AssignmentSource.OVERRIDE, overridden.getAssignmentSource());
-        assertEquals(charlie.getId(), overridden.getFinalDriver().getId());
+        assertEquals(
+                charlie.getId(),
+                overridden.getFinalDriver().getId()
+        );
+
         assertEquals(
                 alice.getId(),
-                overridden.getOriginallySuggestedDriver().getId()
+                overridden
+                        .getOriginallySuggestedDriver()
+                        .getId()
         );
-        assertEquals("Manager coverage change", overridden.getChangeReason());
+
+        assertEquals(
+                "Manager coverage change",
+                overridden.getChangeReason()
+        );
+
         assertNotNull(overridden.getChangedAt());
+
         assertEquals(
                 uploader.getId(),
                 overridden.getChangedBy().getId()
         );
 
-        DriverAssignment manual = assignmentService.createManualAssignment(
-                organization.getId(),
-                assignmentDate.plusDays(1),
-                ShuttlePeriod.AFTERNOON,
-                bob.getId(),
-                LocalTime.of(15, 0),
-                LocalTime.of(17, 0),
-                "No uploaded schedule"
+        DriverAssignment manual =
+                assignmentService.createManualAssignment(
+                        organization.getId(),
+                        assignmentDate.plusDays(1),
+                        ShuttlePeriod.AFTERNOON,
+                        bob.getId(),
+                        LocalTime.of(15, 0),
+                        LocalTime.of(17, 0),
+                        "No uploaded schedule"
+                );
+
+        assertEquals(
+                AssignmentSource.MANUAL,
+                manual.getAssignmentSource()
         );
 
-        assertEquals(AssignmentSource.MANUAL, manual.getAssignmentSource());
-        assertEquals(bob.getId(), manual.getFinalDriver().getId());
-        assertNull(manual.getOriginallySuggestedDriver());
-        assertEquals(120, manual.getScheduledMinutes());
-        assertEquals("No uploaded schedule", manual.getChangeReason());
+        assertEquals(
+                bob.getId(),
+                manual.getFinalDriver().getId()
+        );
+
+        assertNull(
+                manual.getOriginallySuggestedDriver()
+        );
+
+        assertEquals(
+                120,
+                manual.getScheduledMinutes()
+        );
+
+        assertEquals(
+                "No uploaded schedule",
+                manual.getChangeReason()
+        );
 
         ScheduleImport correctedImport =
                 csvScheduleProvider.loadSchedule(
@@ -695,23 +914,36 @@ class RoutePulseIntegrationTests {
         );
 
         Driver firstDriver = driverRepository.save(
-                new Driver(organization, "100", "First Driver", true)
+                new Driver(
+                        organization,
+                        "100",
+                        "First Driver",
+                        true
+                )
         );
+
         Driver secondDriver = driverRepository.save(
-                new Driver(organization, "200", "Second Driver", true)
+                new Driver(
+                        organization,
+                        "200",
+                        "Second Driver",
+                        true
+                )
         );
 
-        LocalDate today = assignmentService.getCurrentOperationsDate();
+        LocalDate today =
+                assignmentService.getCurrentOperationsDate();
 
-        DriverAssignment assignment = assignmentService.createManualAssignment(
-                organization.getId(),
-                today,
-                ShuttlePeriod.MORNING,
-                firstDriver.getId(),
-                LocalTime.of(8, 0),
-                LocalTime.of(10, 0),
-                "Daily coverage"
-        );
+        DriverAssignment assignment =
+                assignmentService.createManualAssignment(
+                        organization.getId(),
+                        today,
+                        ShuttlePeriod.MORNING,
+                        firstDriver.getId(),
+                        LocalTime.of(8, 0),
+                        LocalTime.of(10, 0),
+                        "Daily coverage"
+                );
 
         assertThrows(
                 IllegalStateException.class,
@@ -730,6 +962,7 @@ class RoutePulseIntegrationTests {
 
         assertTrue(assignment.isDriving());
         assertNotNull(assignment.getActualStartedAt());
+
         assertEquals(
                 operator.getId(),
                 assignment.getActualStartedBy().getId()
@@ -773,6 +1006,7 @@ class RoutePulseIntegrationTests {
 
         assertTrue(assignment.isDrivingCompleted());
         assertNotNull(assignment.getActualEndedAt());
+
         assertEquals(
                 operator.getId(),
                 assignment.getActualEndedBy().getId()
@@ -787,13 +1021,14 @@ class RoutePulseIntegrationTests {
                 )
         );
 
-        DriverAssignment missingSchedule = assignmentRepository.save(
-                DriverAssignment.automatic(
-                        today,
-                        ShuttlePeriod.AFTERNOON,
-                        secondDriver
-                )
-        );
+        DriverAssignment missingSchedule =
+                assignmentRepository.save(
+                        DriverAssignment.automatic(
+                                today,
+                                ShuttlePeriod.AFTERNOON,
+                                secondDriver
+                        )
+                );
 
         assertThrows(
                 IllegalStateException.class,
@@ -887,27 +1122,51 @@ class RoutePulseIntegrationTests {
                 )
         );
 
+        uploadedShiftRepository.save(
+                new UploadedShift(
+                        organization,
+                        null,
+                        "100",
+                        "Protected Driver",
+                        "Transportation",
+                        "Shuttle Driver",
+                        LocalDate.of(2026, 9, 4),
+                        LocalTime.of(8, 0),
+                        LocalTime.of(17, 0),
+                        "Employee entrance",
+                        LocalDateTime.now()
+                )
+        );
+
         mockMvc.perform(get("/"))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(
+                        status().is3xxRedirection()
+                );
 
         mockMvc.perform(
                 post("/drivers")
-                        .with(user(owner.getEmail())
-                                .roles("OWNER"))
+                        .with(
+                                user(owner.getEmail())
+                                        .roles("OWNER")
+                        )
                         .param("employeeId", "100")
-                        .param("name", "Protected Driver")
                         .param("active", "true")
-        ).andExpect(status().isForbidden());
+        ).andExpect(
+                status().isForbidden()
+        );
 
         mockMvc.perform(
                 post("/drivers")
-                        .with(user(owner.getEmail())
-                                .roles("OWNER"))
+                        .with(
+                                user(owner.getEmail())
+                                        .roles("OWNER")
+                        )
                         .with(csrf())
                         .param("employeeId", "100")
-                        .param("name", "Protected Driver")
                         .param("active", "true")
-        ).andExpect(status().is3xxRedirection());
+        ).andExpect(
+                status().is3xxRedirection()
+        );
 
         assertTrue(
                 driverRepository
@@ -917,17 +1176,39 @@ class RoutePulseIntegrationTests {
                         )
         );
 
+        Driver registeredDriver =
+                driverRepository
+                        .findAllByOrganization_IdOrderByNameAsc(
+                                organization.getId()
+                        )
+                        .get(0);
+
+        assertEquals(
+                "Protected Driver",
+                registeredDriver.getName()
+        );
+
         mockMvc.perform(
                 get("/organization/invitations")
-                        .with(user(admin.getEmail())
-                                .roles("ADMIN"))
-        ).andExpect(status().isForbidden());
+                        .with(
+                                user(admin.getEmail())
+                                        .roles("ADMIN")
+                        )
+        ).andExpect(
+                status().isForbidden()
+        );
 
-        mockMvc.perform(get("/forgot-password"))
-                .andExpect(status().isOk());
+        mockMvc.perform(
+                get("/forgot-password")
+        ).andExpect(
+                status().isOk()
+        );
 
-        mockMvc.perform(get("/resend-verification"))
-                .andExpect(status().isOk());
+        mockMvc.perform(
+                get("/resend-verification")
+        ).andExpect(
+                status().isOk()
+        );
     }
 
     @Test
@@ -1015,7 +1296,9 @@ class RoutePulseIntegrationTests {
         return userAccountRepository.save(
                 new UserAccount(
                         email,
-                        passwordEncoder.encode("test-password"),
+                        passwordEncoder.encode(
+                                "test-password"
+                        ),
                         "Test",
                         "User",
                         emailVerified,
@@ -1043,7 +1326,8 @@ class RoutePulseIntegrationTests {
             String filename,
             String... rows) {
 
-        String csv = "Report generated by Dayforce\n"
+        String csv =
+                "Report generated by Dayforce\n"
                 + "Employee ID,Employee Name,Shift Start,Shift End,Location Path,Primary Job\n"
                 + String.join("\n", rows)
                 + "\n";
@@ -1061,7 +1345,9 @@ class RoutePulseIntegrationTests {
             ShuttlePeriod period) {
 
         return assignments.stream()
-                .filter(assignment -> assignment.getPeriod() == period)
+                .filter(assignment ->
+                        assignment.getPeriod() == period
+                )
                 .findFirst()
                 .orElseThrow();
     }
@@ -1079,6 +1365,7 @@ class RoutePulseIntegrationTests {
                 .getFirst(parameterName);
 
         assertNotNull(value);
+
         return value;
     }
 
@@ -1087,19 +1374,25 @@ class RoutePulseIntegrationTests {
 
         @Bean
         @Primary
-        RecordingVerificationEmailSender recordingVerificationEmailSender() {
+        RecordingVerificationEmailSender
+                recordingVerificationEmailSender() {
+
             return new RecordingVerificationEmailSender();
         }
 
         @Bean
         @Primary
-        RecordingInvitationEmailSender recordingInvitationEmailSender() {
+        RecordingInvitationEmailSender
+                recordingInvitationEmailSender() {
+
             return new RecordingInvitationEmailSender();
         }
 
         @Bean
         @Primary
-        RecordingPasswordResetEmailSender recordingPasswordResetEmailSender() {
+        RecordingPasswordResetEmailSender
+                recordingPasswordResetEmailSender() {
+
             return new RecordingPasswordResetEmailSender();
         }
     }
