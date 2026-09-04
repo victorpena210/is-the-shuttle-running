@@ -4,10 +4,16 @@ import java.time.LocalTime;
 
 public class PickupWindow {
 
-    private LocalTime windowStart;
-    private LocalTime windowEnd;
-    private int teamMemberCount;
-    private PickupPriority priority;
+    private final LocalTime windowStart;
+    private final LocalTime windowEnd;
+    private final int teamMemberCount;
+    private final PickupPriority priority;
+
+    /*
+     * True when this window belongs to a sustained
+     * demand cluster of 3+ consecutive busy windows.
+     */
+    private boolean sustainedDemand;
 
     public PickupWindow(
             LocalTime windowStart,
@@ -19,6 +25,7 @@ public class PickupWindow {
         this.windowEnd = windowEnd;
         this.teamMemberCount = teamMemberCount;
         this.priority = priority;
+        this.sustainedDemand = false;
     }
 
     public LocalTime getWindowStart() {
@@ -35,5 +42,15 @@ public class PickupWindow {
 
     public PickupPriority getPriority() {
         return priority;
+    }
+
+    public boolean isSustainedDemand() {
+        return sustainedDemand;
+    }
+
+    public void setSustainedDemand(
+            boolean sustainedDemand) {
+
+        this.sustainedDemand = sustainedDemand;
     }
 }
