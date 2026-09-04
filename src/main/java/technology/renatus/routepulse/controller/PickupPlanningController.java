@@ -21,6 +21,7 @@ import technology.renatus.routepulse.model.DriverSchedule;
 import technology.renatus.routepulse.model.DriverScheduleResult;
 import technology.renatus.routepulse.model.ParkOperatingDay;
 import technology.renatus.routepulse.model.ParkOperatingStatus;
+import technology.renatus.routepulse.model.PickupDemandAnalysis;
 import technology.renatus.routepulse.model.PickupWindow;
 import technology.renatus.routepulse.model.Organization;
 import technology.renatus.routepulse.model.ScheduleImport;
@@ -168,6 +169,9 @@ public class PickupPlanningController {
                         );
 
 
+        PickupDemandAnalysis pickupDemand =
+                PickupDemandAnalysis.empty();
+
         List<PickupWindow> pickupWindows =
                 List.of();
 
@@ -282,12 +286,15 @@ public class PickupPlanningController {
                                     : "Open — Public Operating Day";
                 }
 
-                pickupWindows =
+                pickupDemand =
                         pickupPlanningService
-                                .getPickupWindowsForDate(
+                                .getPickupDemandForDate(
                                         organizationId,
                                         selectedDate
                                 );
+
+                pickupWindows =
+                        pickupDemand.getWindows();
 
                 DriverScheduleResult result =
                         driverScheduleService
@@ -399,6 +406,11 @@ public class PickupPlanningController {
         model.addAttribute(
                 "pickupWindows",
                 pickupWindows
+        );
+        
+        model.addAttribute(
+                "pickupDemand",
+                pickupDemand
         );
 
         model.addAttribute(
