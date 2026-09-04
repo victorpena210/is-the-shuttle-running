@@ -9,6 +9,7 @@ import technology.renatus.routepulse.model.Driver;
 import technology.renatus.routepulse.model.Organization;
 import technology.renatus.routepulse.repository.DriverRepository;
 import technology.renatus.routepulse.repository.OrganizationRepository;
+import technology.renatus.routepulse.repository.UploadedShiftRepository;
 
 @Service
 @Transactional(readOnly = true)
@@ -16,13 +17,16 @@ public class DriverService {
 
     private final DriverRepository driverRepository;
     private final OrganizationRepository organizationRepository;
+    private final UploadedShiftRepository uploadedShiftRepository;
 
     public DriverService(
             DriverRepository driverRepository,
-            OrganizationRepository organizationRepository) {
+            OrganizationRepository organizationRepository,
+            UploadedShiftRepository uploadedShiftRepository) {
 
         this.driverRepository = driverRepository;
         this.organizationRepository = organizationRepository;
+        this.uploadedShiftRepository = uploadedShiftRepository;
     }
 
     public List<Driver> getAllDrivers(
@@ -43,30 +47,17 @@ public class DriverService {
                 );
     }
 
-    @Transactional
-    public Driver registerDriver(
+    public String findEmployeeName(
             Long organizationId,
-            String employeeId,
-            String name,
-            boolean active) {
+            String employeeId) {
 
         String cleanedEmployeeId = employeeId == null
                 ? ""
                 : employeeId.trim();
 
-        String cleanedName = name == null
-                ? ""
-                : name.trim();
-
         if (cleanedEmployeeId.isBlank()) {
             throw new IllegalArgumentException(
                     "Employee ID is required."
-            );
-        }
-
-        if (cleanedName.isBlank()) {
-            throw new IllegalArgumentException(
-                    "Driver name is required."
             );
         }
 
@@ -76,9 +67,41 @@ public class DriverService {
             );
         }
 
-        if (cleanedName.length() > 100) {
+        return uploadedShiftRepository
+                .findFirstByOrganization_IdAndEmployeeIdOrderByImportedAtDescIdDesc(
+                        organizationId,
+                        cleanedEmployeeId
+                )
+                .map(uploadedShift ->
+                        uploadedShift.getEmployeeName().trim()
+                )
+                .filter(name -> !name.isBlank())
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "No employee with that ID was found in this organization's uploaded schedules."
+                        )
+                );
+    }
+
+    @Transactional
+    public Driver registerDriver(
+            Long organizationId,
+            String employeeId,
+            boolean active) {
+
+        String cleanedEmployeeId = employeeId == null
+                ? ""
+                : employeeId.trim();
+
+        if (cleanedEmployeeId.isBlank()) {
             throw new IllegalArgumentException(
-                    "Driver name cannot exceed 100 characters."
+                    "Employee ID is required."
+            );
+        }
+
+        if (cleanedEmployeeId.length() > 50) {
+            throw new IllegalArgumentException(
+                    "Employee ID cannot exceed 50 characters."
             );
         }
 
@@ -94,6 +117,17 @@ public class DriverService {
             );
         }
 
+        String employeeName = findEmployeeName(
+                organizationId,
+                cleanedEmployeeId
+        );
+
+        if (employeeName.length() > 200) {
+            throw new IllegalArgumentException(
+                    "Driver name cannot exceed 200 characters."
+            );
+        }
+
         Organization organization =
                 organizationRepository.findById(organizationId)
                         .orElseThrow(() ->
@@ -105,7 +139,7 @@ public class DriverService {
         Driver driver = new Driver(
                 organization,
                 cleanedEmployeeId,
-                cleanedName,
+                employeeName,
                 active
         );
 
@@ -131,11 +165,6 @@ public class DriverService {
 
         driver.setActive(active);
 
-        /*
-         * No explicit save is required here.
-         * The driver is managed by JPA, so dirty checking
-         * writes the changed active status at commit time.
-         */
         return driver;
     }
 }
