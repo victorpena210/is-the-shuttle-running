@@ -63,14 +63,6 @@ public class DriverPortalController {
                         )
         );
 
-        model.addAttribute(
-                "recentAssignments",
-                driverPortalService
-                        .getRecentAssignments(
-                                authentication
-                        )
-        );
-
         return "driver-home";
     }
 

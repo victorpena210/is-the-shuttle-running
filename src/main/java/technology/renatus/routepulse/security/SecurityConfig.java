@@ -36,6 +36,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authorize ->
                         authorize
 
+                                /*
+                                 * Public pages and static assets.
+                                 */
                                 .requestMatchers(
                                         "/",
                                         "/demo-request",
@@ -56,6 +59,10 @@ public class SecurityConfig {
                                 )
                                 .permitAll()
 
+                                /*
+                                 * Organization invitations are
+                                 * owner-only management features.
+                                 */
                                 .requestMatchers(
                                         "/organization/invitations/**"
                                 )
@@ -64,20 +71,13 @@ public class SecurityConfig {
                                 )
 
                                 /*
-                                 * Only operational managers
-                                 * can display/print the shuttle QR.
-                                 */
-                                .requestMatchers(
-                                        "/driving-qr/**"
-                                )
-                                .hasAnyRole(
-                                        "OWNER",
-                                        "ADMIN",
-                                        "DISPATCHER"
-                                )
-
-                                /*
-                                 * Driver-only portal.
+                                 * The driver portal is the only
+                                 * application area available to a
+                                 * driver-only account.
+                                 *
+                                 * This includes viewing today's own
+                                 * assignment and recording start/end
+                                 * through the shuttle QR code.
                                  */
                                 .requestMatchers(
                                         "/driver/**"
@@ -87,28 +87,37 @@ public class SecurityConfig {
                                 )
 
                                 /*
-                                 * Existing manager workspace.
+                                 * Every signed-in account passes
+                                 * through this endpoint immediately
+                                 * after a normal login so RoutePulse
+                                 * can send drivers to /driver and
+                                 * managers to /app.
                                  */
-                                .requestMatchers(
-                                        "/app",
-                                        "/driving-records",
-                                        "/upload",
-                                        "/drivers/**",
-                                        "/assignments/**"
-                                )
-                                .hasAnyRole(
-                                        "OWNER",
-                                        "ADMIN",
-                                        "DISPATCHER"
-                                )
-
                                 .requestMatchers(
                                         "/post-login"
                                 )
                                 .authenticated()
 
+                                /*
+                                 * DEFAULT MANAGER RULE
+                                 *
+                                 * Any application route that is not
+                                 * public, driver-only, or owner-only
+                                 * automatically requires a manager
+                                 * role.
+                                 *
+                                 * This protects current manager pages
+                                 * such as /app, /drivers, /upload,
+                                 * /assignments, /driving-records and
+                                 * /driving-qr, and it also protects
+                                 * future manager routes by default.
+                                 */
                                 .anyRequest()
-                                .authenticated()
+                                .hasAnyRole(
+                                        "OWNER",
+                                        "ADMIN",
+                                        "DISPATCHER"
+                                )
                 )
 
                 .formLogin(form ->
