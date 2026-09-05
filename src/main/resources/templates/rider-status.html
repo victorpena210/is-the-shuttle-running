@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <meta http-equiv="refresh" content="20">
+
+    <title th:text="|Shuttle status | ${status.organizationName}|">
+        Shuttle status | RoutePulse
+    </title>
+
+    <link
+        rel="icon"
+        th:href="@{/images/routepulse-mark.svg}"
+        type="image/svg+xml">
+
+    <link
+        rel="stylesheet"
+        th:href="@{/css/routepulse.css}">
+</head>
+
+<body class="rider-status-page">
+
+<main class="rider-status-shell">
+
+    <section
+        class="rider-status-card"
+        th:classappend="${status.running} ? ' rider-status-card--running' : ' rider-status-card--stopped'"
+        aria-live="polite">
+
+        <div
+            class="rider-status-indicator"
+            aria-hidden="true">
+        </div>
+
+        <h1
+            th:text="${status.running}
+                ? 'The shuttle is running.'
+                : 'The shuttle is not running right now.'">
+            The shuttle is running.
+        </h1>
+
+        <p
+            class="rider-status-driver"
+            th:if="${status.running}"
+            th:text="|Driver: ${status.driverName}|">
+            Driver: Driver name
+        </p>
+
+    </section>
+
+</main>
+
+</body>
+</html>
