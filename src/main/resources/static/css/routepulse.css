@@ -634,7 +634,7 @@ input[type="file"]::file-selector-button {
 .alert--success::before {
     color: var(--white);
     background: var(--green-600);
-    content: "✓";
+    content: "âœ“";
 }
 
 .alert--error {
@@ -1413,7 +1413,7 @@ tbody tr:hover {
 }
 
 .locked-note::before {
-    content: "●";
+    content: "â—";
     color: var(--slate-400);
 }
 
@@ -1883,6 +1883,52 @@ body.app-page:not([data-dashboard-view]) [data-plan-container] {
 .dashboard-overview {
     display: grid;
     gap: 1.25rem;
+}
+
+/* Uploads live in Schedules; date selection lives in Pickup demand. */
+.workflow-grid--single {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.planning-date {
+    margin-bottom: 1.5rem;
+}
+
+.planning-date__form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 0.75rem;
+}
+
+.planning-date__form .form-group {
+    flex: 0 1 18rem;
+    min-width: 0;
+    margin: 0;
+}
+
+.planning-date__form input {
+    min-width: 0;
+}
+
+.planning-date > .alert a {
+    margin-left: 0.5rem;
+}
+
+body[data-dashboard-view="schedules"] .page-date {
+    display: none;
+}
+
+@media (max-width: 520px) {
+    .planning-date__form {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .planning-date__form .form-group {
+        flex-basis: auto;
+        width: 100%;
+    }
 }
 
 .overview-grid {
