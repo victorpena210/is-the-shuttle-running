@@ -15,17 +15,30 @@ public interface DriverRepository
             String employeeId
     );
 
-    List<Driver> findAllByOrganization_IdOrderByNameAsc(
-            Long organizationId
+    boolean existsByOrganization_IdAndEmailIgnoreCase(
+            Long organizationId,
+            String email
     );
+
+    List<Driver>
+            findAllByOrganization_IdOrderByNameAsc(
+                    Long organizationId
+            );
 
     List<Driver>
             findAllByOrganization_IdAndActiveTrueOrderByNameAsc(
                     Long organizationId
             );
 
-    Optional<Driver> findByIdAndOrganization_Id(
-            Long id,
-            Long organizationId
-    );
+    Optional<Driver>
+            findByIdAndOrganization_Id(
+                    Long id,
+                    Long organizationId
+            );
+
+    Optional<Driver>
+            findByOrganization_IdAndUser_Id(
+                    Long organizationId,
+                    Long userId
+            );
 }

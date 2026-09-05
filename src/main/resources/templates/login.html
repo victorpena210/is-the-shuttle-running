@@ -71,13 +71,13 @@
             That verification link is invalid.
         </div>
 
-        <div th:if="${param.invitationAccepted}" class="alert alert--success" role="status">
-            Your manager account was created. You can now sign in.
-        </div>
+		<div th:if="${param.invitationAccepted}" class="alert alert--success" role="status">
+		    Your RoutePulse account was created. You can now sign in.
+		</div>
 
-        <div th:if="${param.invitationError}" class="alert alert--error" role="alert">
-            That manager invitation is invalid, expired, or has already been used.
-        </div>
+		<div th:if="${param.invitationError}" class="alert alert--error" role="alert">
+		    That invitation is invalid, expired, or has already been used.
+		</div>
 
         <div th:if="${param.passwordReset}" class="alert alert--success" role="status">
             Your password has been reset. You can now sign in.

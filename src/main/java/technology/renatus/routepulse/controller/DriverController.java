@@ -10,24 +10,35 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import technology.renatus.routepulse.service.CurrentOrganizationService;
-import technology.renatus.routepulse.service.DriverService;
 import technology.renatus.routepulse.model.Organization;
+import technology.renatus.routepulse.service.CurrentOrganizationService;
+import technology.renatus.routepulse.service.DriverOnboardingService;
+import technology.renatus.routepulse.service.DriverService;
 
 @Controller
 public class DriverController {
 
-    private final DriverService driverService;
+    private final DriverService
+            driverService;
+
+    private final DriverOnboardingService
+            driverOnboardingService;
 
     private final CurrentOrganizationService
             currentOrganizationService;
 
     public DriverController(
             DriverService driverService,
+            DriverOnboardingService driverOnboardingService,
             CurrentOrganizationService
                     currentOrganizationService) {
 
-        this.driverService = driverService;
+        this.driverService =
+                driverService;
+
+        this.driverOnboardingService =
+                driverOnboardingService;
+
         this.currentOrganizationService =
                 currentOrganizationService;
     }
@@ -43,7 +54,8 @@ public class DriverController {
                                 authentication
                         );
 
-        Long organizationId = organization.getId();
+        Long organizationId =
+                organization.getId();
 
         model.addAttribute(
                 "organizationName",
@@ -52,19 +64,24 @@ public class DriverController {
 
         model.addAttribute(
                 "isOwner",
-                authentication.getAuthorities()
+                authentication
+                        .getAuthorities()
                         .stream()
                         .anyMatch(authority ->
-                                authority.getAuthority()
-                                        .equals("ROLE_OWNER")
+                                authority
+                                        .getAuthority()
+                                        .equals(
+                                                "ROLE_OWNER"
+                                        )
                         )
         );
 
         model.addAttribute(
                 "drivers",
-                driverService.getAllDrivers(
-                        organizationId
-                )
+                driverService
+                        .getAllDrivers(
+                                organizationId
+                        )
         );
 
         return "drivers";
@@ -73,10 +90,54 @@ public class DriverController {
     @PostMapping("/drivers")
     public String registerDriver(
             Authentication authentication,
-            @RequestParam String employeeId,
-            @RequestParam(defaultValue = "false")
+            @RequestParam
+            String employeeId,
+            @RequestParam
+            String email,
+            @RequestParam(
+                    defaultValue = "false"
+            )
             boolean active,
-            RedirectAttributes redirectAttributes) {
+            RedirectAttributes
+                    redirectAttributes) {
+
+        try {
+
+            driverOnboardingService
+                    .registerAndInviteDriver(
+                            authentication,
+                            employeeId,
+                            email,
+                            active
+                    );
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "successMessage",
+                            "Driver was registered and an invitation email was sent."
+                    );
+
+        } catch (
+                IllegalArgumentException
+                | IllegalStateException exception) {
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "errorMessage",
+                            exception.getMessage()
+                    );
+        }
+
+        return "redirect:/drivers";
+    }
+
+    @GetMapping("/drivers/lookup")
+    @ResponseBody
+    public DriverLookupResponse
+            lookupDriver(
+                    Authentication authentication,
+                    @RequestParam
+                    String employeeId) {
 
         Long organizationId =
                 currentOrganizationService
@@ -85,43 +146,13 @@ public class DriverController {
                         );
 
         try {
-            driverService.registerDriver(
-                    organizationId,
-                    employeeId,
-                    active
-            );
 
-            redirectAttributes.addFlashAttribute(
-                    "successMessage",
-                    "Driver was successfully registered."
-            );
-
-        } catch (IllegalArgumentException exception) {
-
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage",
-                    exception.getMessage()
-            );
-        }
-
-        return "redirect:/drivers";
-    }
-    
-    @GetMapping("/drivers/lookup")
-    @ResponseBody
-    public DriverLookupResponse lookupDriver(
-            Authentication authentication,
-            @RequestParam String employeeId) {
-
-        Long organizationId =
-                currentOrganizationService
-                        .requireOrganizationId(authentication);
-
-        try {
-            String name = driverService.findEmployeeName(
-                    organizationId,
-                    employeeId
-            );
+            String name =
+                    driverService
+                            .findEmployeeName(
+                                    organizationId,
+                                    employeeId
+                            );
 
             return new DriverLookupResponse(
                     true,
@@ -130,7 +161,8 @@ public class DriverController {
                     "Employee found."
             );
 
-        } catch (IllegalArgumentException exception) {
+        } catch (
+                IllegalArgumentException exception) {
 
             return new DriverLookupResponse(
                     false,
@@ -143,20 +175,55 @@ public class DriverController {
         }
     }
 
-    public record DriverLookupResponse(
-            boolean found,
-            String employeeId,
-            String name,
-            String message) {
+    @PostMapping(
+            "/drivers/{id}/resend-invitation"
+    )
+    public String resendDriverInvitation(
+            Authentication authentication,
+            @PathVariable
+            Long id,
+            RedirectAttributes
+                    redirectAttributes) {
+
+        try {
+
+            driverOnboardingService
+                    .resendDriverInvitation(
+                            authentication,
+                            id
+                    );
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "successMessage",
+                            "A new driver invitation email was sent."
+                    );
+
+        } catch (
+                IllegalArgumentException
+                | IllegalStateException exception) {
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "errorMessage",
+                            exception.getMessage()
+                    );
+        }
+
+        return "redirect:/drivers";
     }
-    
-    
-    @PostMapping("/drivers/{id}/status")
+
+    @PostMapping(
+            "/drivers/{id}/status"
+    )
     public String updateDriverStatus(
             Authentication authentication,
-            @PathVariable Long id,
-            @RequestParam boolean active,
-            RedirectAttributes redirectAttributes) {
+            @PathVariable
+            Long id,
+            @RequestParam
+            boolean active,
+            RedirectAttributes
+                    redirectAttributes) {
 
         Long organizationId =
                 currentOrganizationService
@@ -165,25 +232,37 @@ public class DriverController {
                         );
 
         try {
-            driverService.updateActiveStatus(
-                    organizationId,
-                    id,
-                    active
-            );
 
-            redirectAttributes.addFlashAttribute(
-                    "successMessage",
-                    "Driver status was updated."
-            );
+            driverService
+                    .updateActiveStatus(
+                            organizationId,
+                            id,
+                            active
+                    );
 
-        } catch (IllegalArgumentException exception) {
+            redirectAttributes
+                    .addFlashAttribute(
+                            "successMessage",
+                            "Driver status was updated."
+                    );
 
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage",
-                    exception.getMessage()
-            );
+        } catch (
+                IllegalArgumentException exception) {
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "errorMessage",
+                            exception.getMessage()
+                    );
         }
 
         return "redirect:/drivers";
+    }
+
+    public record DriverLookupResponse(
+            boolean found,
+            String employeeId,
+            String name,
+            String message) {
     }
 }

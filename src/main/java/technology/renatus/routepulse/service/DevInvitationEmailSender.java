@@ -22,14 +22,39 @@ public class DevInvitationEmailSender
             OrganizationInvitation invitation,
             String invitationUrl) {
 
+        logInvitation(
+                "MANAGER",
+                invitation,
+                invitationUrl
+        );
+    }
+
+    @Override
+    public void sendDriverInvitation(
+            OrganizationInvitation invitation,
+            String invitationUrl) {
+
+        logInvitation(
+                "DRIVER",
+                invitation,
+                invitationUrl
+        );
+    }
+
+    private void logInvitation(
+            String invitationType,
+            OrganizationInvitation invitation,
+            String invitationUrl) {
+
         logger.info(
                 "\n\n"
                 + "========================================\n"
-                + "DEVELOPMENT MANAGER INVITATION\n"
+                + "DEVELOPMENT {} INVITATION\n"
                 + "Organization: {}\n"
                 + "Email: {}\n"
                 + "Invitation URL: {}\n"
                 + "========================================\n",
+                invitationType,
                 invitation
                         .getOrganization()
                         .getDisplayName(),

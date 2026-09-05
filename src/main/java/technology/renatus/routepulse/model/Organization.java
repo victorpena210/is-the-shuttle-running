@@ -1,6 +1,7 @@
 package technology.renatus.routepulse.model;
 
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -56,6 +57,14 @@ public class Organization {
     private LocalDateTime trialEndsAt;
 
     @Column(
+            name = "driving_qr_code",
+            nullable = false,
+            unique = true,
+            length = 64
+    )
+    private String drivingQrCode;
+
+    @Column(
             name = "created_at",
             nullable = false,
             updatable = false
@@ -92,13 +101,21 @@ public class Organization {
 
         LocalDateTime now = LocalDateTime.now();
 
+        if (drivingQrCode == null
+                || drivingQrCode.isBlank()) {
+
+            drivingQrCode = UUID.randomUUID()
+                    .toString()
+                    .replace("-", "")
+                    .toLowerCase();
+        }
+
         createdAt = now;
         updatedAt = now;
     }
 
     @PreUpdate
     void onUpdate() {
-
         updatedAt = LocalDateTime.now();
     }
 
@@ -130,6 +147,10 @@ public class Organization {
         return trialEndsAt;
     }
 
+    public String getDrivingQrCode() {
+        return drivingQrCode;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -137,7 +158,7 @@ public class Organization {
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
     }
-    
+
     public boolean hasApplicationAccess(
             LocalDateTime now) {
 

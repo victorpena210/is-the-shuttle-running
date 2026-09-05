@@ -1,6 +1,10 @@
 package technology.renatus.routepulse.service;
 
 import java.util.List;
+import java.util.Locale;
+
+import jakarta.mail.internet.AddressException;
+import jakarta.mail.internet.InternetAddress;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,9 +28,14 @@ public class DriverService {
             OrganizationRepository organizationRepository,
             UploadedShiftRepository uploadedShiftRepository) {
 
-        this.driverRepository = driverRepository;
-        this.organizationRepository = organizationRepository;
-        this.uploadedShiftRepository = uploadedShiftRepository;
+        this.driverRepository =
+                driverRepository;
+
+        this.organizationRepository =
+                organizationRepository;
+
+        this.uploadedShiftRepository =
+                uploadedShiftRepository;
     }
 
     public List<Driver> getAllDrivers(
@@ -47,13 +56,30 @@ public class DriverService {
                 );
     }
 
+    public Driver getDriver(
+            Long organizationId,
+            Long driverId) {
+
+        return driverRepository
+                .findByIdAndOrganization_Id(
+                        driverId,
+                        organizationId
+                )
+                .orElseThrow(() ->
+                        new IllegalArgumentException(
+                                "Driver was not found."
+                        )
+                );
+    }
+
     public String findEmployeeName(
             Long organizationId,
             String employeeId) {
 
-        String cleanedEmployeeId = employeeId == null
-                ? ""
-                : employeeId.trim();
+        String cleanedEmployeeId =
+                employeeId == null
+                        ? ""
+                        : employeeId.trim();
 
         if (cleanedEmployeeId.isBlank()) {
             throw new IllegalArgumentException(
@@ -73,9 +99,13 @@ public class DriverService {
                         cleanedEmployeeId
                 )
                 .map(uploadedShift ->
-                        uploadedShift.getEmployeeName().trim()
+                        uploadedShift
+                                .getEmployeeName()
+                                .trim()
                 )
-                .filter(name -> !name.isBlank())
+                .filter(name ->
+                        !name.isBlank()
+                )
                 .orElseThrow(() ->
                         new IllegalArgumentException(
                                 "No employee with that ID was found in this organization's uploaded schedules."
@@ -87,11 +117,13 @@ public class DriverService {
     public Driver registerDriver(
             Long organizationId,
             String employeeId,
+            String email,
             boolean active) {
 
-        String cleanedEmployeeId = employeeId == null
-                ? ""
-                : employeeId.trim();
+        String cleanedEmployeeId =
+                employeeId == null
+                        ? ""
+                        : employeeId.trim();
 
         if (cleanedEmployeeId.isBlank()) {
             throw new IllegalArgumentException(
@@ -105,6 +137,9 @@ public class DriverService {
             );
         }
 
+        String cleanedEmail =
+                normalizeEmail(email);
+
         if (driverRepository
                 .existsByOrganization_IdAndEmployeeId(
                         organizationId,
@@ -112,15 +147,26 @@ public class DriverService {
                 )) {
 
             throw new IllegalArgumentException(
-                    "A driver with that employee ID already exists "
-                            + "in this organization."
+                    "A driver with that employee ID already exists in this organization."
             );
         }
 
-        String employeeName = findEmployeeName(
-                organizationId,
-                cleanedEmployeeId
-        );
+        if (driverRepository
+                .existsByOrganization_IdAndEmailIgnoreCase(
+                        organizationId,
+                        cleanedEmail
+                )) {
+
+            throw new IllegalArgumentException(
+                    "A driver with that email address already exists in this organization."
+            );
+        }
+
+        String employeeName =
+                findEmployeeName(
+                        organizationId,
+                        cleanedEmployeeId
+                );
 
         if (employeeName.length() > 200) {
             throw new IllegalArgumentException(
@@ -129,21 +175,28 @@ public class DriverService {
         }
 
         Organization organization =
-                organizationRepository.findById(organizationId)
+                organizationRepository
+                        .findById(
+                                organizationId
+                        )
                         .orElseThrow(() ->
                                 new IllegalStateException(
                                         "Organization was not found."
                                 )
                         );
 
-        Driver driver = new Driver(
-                organization,
-                cleanedEmployeeId,
-                employeeName,
-                active
-        );
+        Driver driver =
+                new Driver(
+                        organization,
+                        cleanedEmployeeId,
+                        employeeName,
+                        cleanedEmail,
+                        active
+                );
 
-        return driverRepository.save(driver);
+        return driverRepository.save(
+                driver
+        );
     }
 
     @Transactional
@@ -152,19 +205,62 @@ public class DriverService {
             Long id,
             boolean active) {
 
-        Driver driver = driverRepository
-                .findByIdAndOrganization_Id(
-                        id,
-                        organizationId
-                )
-                .orElseThrow(() ->
-                        new IllegalArgumentException(
-                                "Driver was not found."
-                        )
+        Driver driver =
+                getDriver(
+                        organizationId,
+                        id
                 );
 
         driver.setActive(active);
 
         return driver;
+    }
+
+    private String normalizeEmail(
+            String email) {
+
+        if (email == null
+                || email.isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Driver email address is required."
+            );
+        }
+
+        String cleanedEmail =
+                email.trim()
+                        .toLowerCase(
+                                Locale.ROOT
+                        );
+
+        if (cleanedEmail.length() > 254) {
+            throw new IllegalArgumentException(
+                    "Email address cannot exceed 254 characters."
+            );
+        }
+
+        try {
+
+            InternetAddress address =
+                    new InternetAddress(
+                            cleanedEmail,
+                            true
+                    );
+
+            if (!cleanedEmail.equalsIgnoreCase(
+                    address.getAddress()
+            )) {
+
+                throw new AddressException();
+            }
+
+        } catch (AddressException exception) {
+
+            throw new IllegalArgumentException(
+                    "Enter a valid driver email address."
+            );
+        }
+
+        return cleanedEmail;
     }
 }

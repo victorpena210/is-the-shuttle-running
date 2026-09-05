@@ -13,15 +13,18 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
+
         return PasswordEncoderFactories
                 .createDelegatingPasswordEncoder();
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(
-            HttpSecurity http,
-            PublicRequestThrottle publicRequestThrottle)
-            throws Exception {
+    public SecurityFilterChain
+            securityFilterChain(
+                    HttpSecurity http,
+                    PublicRequestThrottle
+                            publicRequestThrottle)
+                    throws Exception {
 
         LoginAttemptThrottleFilter
                 loginAttemptThrottleFilter =
@@ -30,64 +33,123 @@ public class SecurityConfig {
                 );
 
         http
-                .authorizeHttpRequests(authorize -> authorize
+                .authorizeHttpRequests(authorize ->
+                        authorize
 
-                        .requestMatchers(
-                                "/",
-                                "/demo-request",
-                                "/login",
-                                "/register",
-                                "/organization/register",
-                                "/verify-email",
-                                "/resend-verification",
-                                "/invitations/accept",
-                                "/forgot-password",
-                                "/reset-password",
-                                "/css/**",
-                                "/js/**",
-                                "/images/**",
-                                "/actuator/health",
-                                "/actuator/health/**",
-                                "/error"
-                        ).permitAll()
+                                .requestMatchers(
+                                        "/",
+                                        "/demo-request",
+                                        "/login",
+                                        "/register",
+                                        "/organization/register",
+                                        "/verify-email",
+                                        "/resend-verification",
+                                        "/invitations/accept",
+                                        "/forgot-password",
+                                        "/reset-password",
+                                        "/css/**",
+                                        "/js/**",
+                                        "/images/**",
+                                        "/actuator/health",
+                                        "/actuator/health/**",
+                                        "/error"
+                                )
+                                .permitAll()
 
-                        // Only the person who originally
-                        // registered the organization
-                        // can manage manager invitations.
-                        .requestMatchers(
-                                "/organization/invitations/**"
-                        ).hasRole("OWNER")
+                                .requestMatchers(
+                                        "/organization/invitations/**"
+                                )
+                                .hasRole(
+                                        "OWNER"
+                                )
 
-                        // Owners and invited managers
-                        // can operate the organization.
-                        .requestMatchers(
-                                "/app",
-                                "/driving-records",
-                                "/upload",
-                                "/drivers/**",
-                                "/assignments/**"
-                        ).hasAnyRole(
-                                "OWNER",
-                                "ADMIN",
-                                "DISPATCHER"
-                        )
+                                /*
+                                 * Only operational managers
+                                 * can display/print the shuttle QR.
+                                 */
+                                .requestMatchers(
+                                        "/driving-qr/**"
+                                )
+                                .hasAnyRole(
+                                        "OWNER",
+                                        "ADMIN",
+                                        "DISPATCHER"
+                                )
 
-                        .anyRequest().authenticated()
+                                /*
+                                 * Driver-only portal.
+                                 */
+                                .requestMatchers(
+                                        "/driver/**"
+                                )
+                                .hasRole(
+                                        "DRIVER"
+                                )
+
+                                /*
+                                 * Existing manager workspace.
+                                 */
+                                .requestMatchers(
+                                        "/app",
+                                        "/driving-records",
+                                        "/upload",
+                                        "/drivers/**",
+                                        "/assignments/**"
+                                )
+                                .hasAnyRole(
+                                        "OWNER",
+                                        "ADMIN",
+                                        "DISPATCHER"
+                                )
+
+                                .requestMatchers(
+                                        "/post-login"
+                                )
+                                .authenticated()
+
+                                .anyRequest()
+                                .authenticated()
                 )
 
-                .formLogin(form -> form
-                        .loginPage("/login")
-                        .usernameParameter("email")
-                        .defaultSuccessUrl("/app", true)
-                        .failureUrl("/login?error")
-                        .permitAll()
+                .formLogin(form ->
+                        form
+                                .loginPage(
+                                        "/login"
+                                )
+                                .usernameParameter(
+                                        "email"
+                                )
+
+                                /*
+                                 * false matters here.
+                                 *
+                                 * If a driver scanned the QR
+                                 * while signed out, Spring keeps
+                                 * the original /driver/scan URL
+                                 * and returns them there after login.
+                                 */
+                                .defaultSuccessUrl(
+                                        "/post-login",
+                                        false
+                                )
+                                .failureUrl(
+                                        "/login?error"
+                                )
+                                .permitAll()
                 )
 
-                .logout(logout -> logout
-                        .logoutSuccessUrl("/login?logout")
-                        .invalidateHttpSession(true)
-                        .clearAuthentication(true)
-                        .permitAll()
+                .logout(logout ->
+                        logout
+                                .logoutSuccessUrl(
+                                        "/login?logout"
+                                )
+                                .invalidateHttpSession(
+                                        true
+                                )
+                                .clearAuthentication(
+                                        true
+                                )
+                                .permitAll()
                 )
 
                 .addFilterBefore(

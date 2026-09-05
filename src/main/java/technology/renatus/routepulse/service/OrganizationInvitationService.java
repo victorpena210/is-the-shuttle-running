@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import technology.renatus.routepulse.dataTransferObject.InvitationAcceptanceForm;
+import technology.renatus.routepulse.model.Driver;
 import technology.renatus.routepulse.model.Organization;
 import technology.renatus.routepulse.model.OrganizationInvitation;
 import technology.renatus.routepulse.model.OrganizationMembership;
@@ -19,7 +20,6 @@ import technology.renatus.routepulse.model.OrganizationRole;
 import technology.renatus.routepulse.model.UserAccount;
 import technology.renatus.routepulse.repository.OrganizationInvitationRepository;
 import technology.renatus.routepulse.repository.OrganizationMembershipRepository;
-import technology.renatus.routepulse.repository.OrganizationRepository;
 import technology.renatus.routepulse.repository.UserAccountRepository;
 
 @Service
@@ -32,7 +32,6 @@ public class OrganizationInvitationService {
 
     private final OrganizationMembershipRepository
             organizationMembershipRepository;
-
 
     private final UserAccountRepository
             userAccountRepository;
@@ -56,12 +55,16 @@ public class OrganizationInvitationService {
                     organizationInvitationRepository,
             OrganizationMembershipRepository
                     organizationMembershipRepository,
-            UserAccountRepository userAccountRepository,
+            UserAccountRepository
+                    userAccountRepository,
             CurrentOrganizationService
                     currentOrganizationService,
-            SecureTokenService secureTokenService,
-            PasswordEncoder passwordEncoder,
-            InvitationEmailSender invitationEmailSender,
+            SecureTokenService
+                    secureTokenService,
+            PasswordEncoder
+                    passwordEncoder,
+            InvitationEmailSender
+                    invitationEmailSender,
             @Value("${app.base-url}")
             String applicationBaseUrl) {
 
@@ -70,7 +73,6 @@ public class OrganizationInvitationService {
 
         this.organizationMembershipRepository =
                 organizationMembershipRepository;
-
 
         this.userAccountRepository =
                 userAccountRepository;
@@ -105,10 +107,11 @@ public class OrganizationInvitationService {
                 );
 
         return organizationInvitationRepository
-                .findAllByOrganization_IdOrderByCreatedAtDesc(
+                .findAllByOrganization_IdAndRoleOrderByCreatedAtDesc(
                         ownerMembership
                                 .getOrganization()
-                                .getId()
+                                .getId(),
+                        OrganizationRole.ADMIN
                 );
     }
 
@@ -122,98 +125,90 @@ public class OrganizationInvitationService {
                         authentication
                 );
 
-        String normalizedEmail =
-                normalizeEmail(email);
-
-        if (userAccountRepository
-                .existsByEmailIgnoreCase(
-                        normalizedEmail
-                )) {
-
-            throw new IllegalArgumentException(
-                    "That email address already has a RoutePulse account."
-            );
-        }
-
-        Organization organization =
-                ownerMembership.getOrganization();
-
-        UserAccount owner =
-                ownerMembership.getUser();
-
-        String rawToken =
-                secureTokenService.generateToken();
-
-        String tokenHash =
-                secureTokenService.hashToken(
-                        rawToken
+        PreparedInvitation preparedInvitation =
+                createOrRefreshInvitation(
+                        ownerMembership
+                                .getOrganization(),
+                        ownerMembership
+                                .getUser(),
+                        null,
+                        email,
+                        OrganizationRole.ADMIN
                 );
-
-        LocalDateTime expiresAt =
-                LocalDateTime.now()
-                        .plusHours(
-                                INVITATION_HOURS
-                        );
-
-        OrganizationInvitation invitation =
-                organizationInvitationRepository
-                        .findByOrganization_IdAndInvitedEmailIgnoreCase(
-                                organization.getId(),
-                                normalizedEmail
-                        )
-                        .map(existingInvitation -> {
-
-                            if (existingInvitation
-                                    .isAccepted()) {
-
-                                throw new IllegalArgumentException(
-                                        "That invitation has already been accepted."
-                                );
-                            }
-
-                            existingInvitation.refresh(
-                                    owner,
-                                    tokenHash,
-                                    expiresAt
-                            );
-
-                            return existingInvitation;
-                        })
-                        .orElseGet(() ->
-                                new OrganizationInvitation(
-                                        organization,
-                                        owner,
-                                        normalizedEmail,
-                                        OrganizationRole.ADMIN,
-                                        tokenHash,
-                                        expiresAt
-                                )
-                        );
-
-        organizationInvitationRepository.save(
-                invitation
-        );
-
-        String invitationUrl =
-                UriComponentsBuilder
-                        .fromUriString(
-                                applicationBaseUrl
-                        )
-                        .path(
-                                "/invitations/accept"
-                        )
-                        .queryParam(
-                                "token",
-                                rawToken
-                        )
-                        .build()
-                        .encode()
-                        .toUriString();
 
         invitationEmailSender
                 .sendManagerInvitation(
-                        invitation,
-                        invitationUrl
+                        preparedInvitation
+                                .invitation(),
+                        buildInvitationUrl(
+                                preparedInvitation
+                                        .rawToken()
+                        )
+                );
+    }
+
+    @Transactional
+    public void createAndSendDriverInvitation(
+            Authentication authentication,
+            Driver driver) {
+
+        OrganizationMembership actorMembership =
+                requireOperationsMembership(
+                        authentication
+                );
+
+        if (driver == null
+                || driver.getOrganization() == null
+                || !driver
+                        .getOrganization()
+                        .getId()
+                        .equals(
+                                actorMembership
+                                        .getOrganization()
+                                        .getId()
+                        )) {
+
+            throw new IllegalArgumentException(
+                    "That driver does not belong to this organization."
+            );
+        }
+
+        if (driver.hasAccount()) {
+
+            throw new IllegalArgumentException(
+                    "That driver already has a RoutePulse account."
+            );
+        }
+
+        if (driver.getEmail() == null
+                || driver
+                        .getEmail()
+                        .isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "The driver needs an email address before an invitation can be sent."
+            );
+        }
+
+        PreparedInvitation preparedInvitation =
+                createOrRefreshInvitation(
+                        actorMembership
+                                .getOrganization(),
+                        actorMembership
+                                .getUser(),
+                        driver,
+                        driver.getEmail(),
+                        OrganizationRole.DRIVER
+                );
+
+        invitationEmailSender
+                .sendDriverInvitation(
+                        preparedInvitation
+                                .invitation(),
+                        buildInvitationUrl(
+                                preparedInvitation
+                                        .rawToken()
+                        )
                 );
     }
 
@@ -250,8 +245,11 @@ public class OrganizationInvitationService {
             InvitationAcceptanceForm form) {
 
         if (form.getPassword() == null
-                || !form.getPassword()
-                        .equals(form.getConfirmPassword())) {
+                || !form
+                        .getPassword()
+                        .equals(
+                                form.getConfirmPassword()
+                        )) {
 
             throw new IllegalArgumentException(
                     "The passwords do not match."
@@ -293,43 +291,248 @@ public class OrganizationInvitationService {
             );
         }
 
+        if (invitation.getRole()
+                == OrganizationRole.DRIVER) {
+
+            requireValidDriverInvitation(
+                    invitation
+            );
+        }
+
         String passwordHash =
                 passwordEncoder.encode(
                         form.getPassword()
                 );
 
-        UserAccount manager =
+        UserAccount user =
                 new UserAccount(
                         email,
                         passwordHash,
-                        form.getFirstName().trim(),
-                        form.getLastName().trim(),
+                        form.getFirstName()
+                                .trim(),
+                        form.getLastName()
+                                .trim(),
                         true,
                         true
                 );
 
         userAccountRepository.save(
-                manager
+                user
         );
 
         OrganizationMembership membership =
                 new OrganizationMembership(
-                        invitation.getOrganization(),
-                        manager,
-                        OrganizationRole.ADMIN
+                        invitation
+                                .getOrganization(),
+                        user,
+                        invitation
+                                .getRole()
                 );
 
         organizationMembershipRepository.save(
                 membership
         );
 
+        if (invitation.getRole()
+                == OrganizationRole.DRIVER) {
+
+            invitation
+                    .getDriver()
+                    .linkUser(
+                            user
+                    );
+        }
+
         invitation.markAccepted(
                 LocalDateTime.now()
         );
     }
 
+    private PreparedInvitation
+            createOrRefreshInvitation(
+                    Organization organization,
+                    UserAccount invitedBy,
+                    Driver driver,
+                    String email,
+                    OrganizationRole role) {
+
+        String normalizedEmail =
+                normalizeEmail(
+                        email
+                );
+
+        if (userAccountRepository
+                .existsByEmailIgnoreCase(
+                        normalizedEmail
+                )) {
+
+            throw new IllegalArgumentException(
+                    "That email address already has a RoutePulse account."
+            );
+        }
+
+        String rawToken =
+                secureTokenService
+                        .generateToken();
+
+        String tokenHash =
+                secureTokenService
+                        .hashToken(
+                                rawToken
+                        );
+
+        LocalDateTime expiresAt =
+                LocalDateTime.now()
+                        .plusHours(
+                                INVITATION_HOURS
+                        );
+
+        OrganizationInvitation invitation =
+                organizationInvitationRepository
+                        .findByOrganization_IdAndInvitedEmailIgnoreCase(
+                                organization.getId(),
+                                normalizedEmail
+                        )
+                        .map(existingInvitation -> {
+
+                            if (existingInvitation
+                                    .isAccepted()) {
+
+                                throw new IllegalArgumentException(
+                                        "That invitation has already been accepted."
+                                );
+                            }
+
+                            if (existingInvitation
+                                    .getRole()
+                                    != role) {
+
+                                throw new IllegalArgumentException(
+                                        "That email already has a different pending RoutePulse invitation."
+                                );
+                            }
+
+                            if (role
+                                    == OrganizationRole.DRIVER) {
+
+                                if (existingInvitation
+                                        .getDriver()
+                                        == null
+                                        || !existingInvitation
+                                                .getDriver()
+                                                .getId()
+                                                .equals(
+                                                        driver.getId()
+                                                )) {
+
+                                    throw new IllegalArgumentException(
+                                            "That email is already assigned to another pending driver invitation."
+                                    );
+                                }
+                            }
+
+                            existingInvitation.refresh(
+                                    invitedBy,
+                                    driver,
+                                    role,
+                                    tokenHash,
+                                    expiresAt
+                            );
+
+                            return existingInvitation;
+                        })
+                        .orElseGet(() ->
+                                new OrganizationInvitation(
+                                        organization,
+                                        invitedBy,
+                                        driver,
+                                        normalizedEmail,
+                                        role,
+                                        tokenHash,
+                                        expiresAt
+                                )
+                        );
+
+        organizationInvitationRepository.save(
+                invitation
+        );
+
+        return new PreparedInvitation(
+                invitation,
+                rawToken
+        );
+    }
+
+    private String buildInvitationUrl(
+            String rawToken) {
+
+        return UriComponentsBuilder
+                .fromUriString(
+                        applicationBaseUrl
+                )
+                .path(
+                        "/invitations/accept"
+                )
+                .queryParam(
+                        "token",
+                        rawToken
+                )
+                .build()
+                .encode()
+                .toUriString();
+    }
+
+    private record PreparedInvitation(
+            OrganizationInvitation invitation,
+            String rawToken) {
+    }
+
     private OrganizationMembership
             requireOwnerMembership(
+                    Authentication authentication) {
+
+        OrganizationMembership membership =
+                requireMembership(
+                        authentication
+                );
+
+        if (membership.getRole()
+                != OrganizationRole.OWNER) {
+
+            throw new IllegalArgumentException(
+                    "Only the organization owner can invite managers."
+            );
+        }
+
+        return membership;
+    }
+
+    private OrganizationMembership
+            requireOperationsMembership(
+                    Authentication authentication) {
+
+        OrganizationMembership membership =
+                requireMembership(
+                        authentication
+                );
+
+        OrganizationRole role =
+                membership.getRole();
+
+        if (role != OrganizationRole.OWNER
+                && role != OrganizationRole.ADMIN
+                && role != OrganizationRole.DISPATCHER) {
+
+            throw new IllegalArgumentException(
+                    "Only an owner, admin, or dispatcher can invite drivers."
+            );
+        }
+
+        return membership;
+    }
+
+    private OrganizationMembership
+            requireMembership(
                     Authentication authentication) {
 
         Long organizationId =
@@ -341,7 +544,8 @@ public class OrganizationInvitationService {
         UserAccount user =
                 userAccountRepository
                         .findByEmailIgnoreCase(
-                                authentication.getName()
+                                authentication
+                                        .getName()
                         )
                         .orElseThrow(() ->
                                 new IllegalStateException(
@@ -349,27 +553,64 @@ public class OrganizationInvitationService {
                                 )
                         );
 
-        OrganizationMembership membership =
-                organizationMembershipRepository
-                        .findByOrganization_IdAndUser_Id(
-                                organizationId,
-                                user.getId()
+        return organizationMembershipRepository
+                .findByOrganization_IdAndUser_Id(
+                        organizationId,
+                        user.getId()
+                )
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "The signed-in account does not belong to this organization."
                         )
-                        .orElseThrow(() ->
-                                new IllegalStateException(
-                                        "The signed-in account does not belong to this organization."
-                                )
-                        );
+                );
+    }
 
-        if (membership.getRole()
-                != OrganizationRole.OWNER) {
+    private void requireValidDriverInvitation(
+            OrganizationInvitation invitation) {
+
+        Driver driver =
+                invitation.getDriver();
+
+        if (driver == null) {
 
             throw new IllegalArgumentException(
-                    "Only the organization owner can invite managers."
+                    "This driver invitation is not linked to a driver record."
             );
         }
 
-        return membership;
+        if (!driver
+                .getOrganization()
+                .getId()
+                .equals(
+                        invitation
+                                .getOrganization()
+                                .getId()
+                )) {
+
+            throw new IllegalArgumentException(
+                    "This driver invitation does not match the organization."
+            );
+        }
+
+        if (driver.hasAccount()) {
+
+            throw new IllegalArgumentException(
+                    "This driver already has a RoutePulse account."
+            );
+        }
+
+        if (driver.getEmail() == null
+                || !driver
+                        .getEmail()
+                        .equalsIgnoreCase(
+                                invitation
+                                        .getInvitedEmail()
+                        )) {
+
+            throw new IllegalArgumentException(
+                    "This driver invitation no longer matches the driver's email address."
+            );
+        }
     }
 
     private void requireUsableInvitation(
