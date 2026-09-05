@@ -31,39 +31,58 @@
             </span>
         </a>
 
-        <nav class="app-nav" aria-label="Primary navigation">
+        <nav
+            class="app-nav"
+            aria-label="Primary navigation">
 
-            <a class="app-nav__link" th:href="@{/app#overview}">
+            <a
+                class="app-nav__link"
+                th:href="@{/app#overview}">
                 Overview
             </a>
 
-            <a class="app-nav__link" th:href="@{/app#schedules}">
+            <a
+                class="app-nav__link"
+                th:href="@{/app#schedules}">
                 Schedules
             </a>
 
-            <a class="app-nav__link" th:href="@{/app#demand}">
+            <a
+                class="app-nav__link"
+                th:href="@{/app#demand}">
                 Pickup demand
             </a>
 
-            <a class="app-nav__link" th:href="@{/app#coverage}">
+            <a
+                class="app-nav__link"
+                th:href="@{/app#coverage}">
                 Driver coverage
             </a>
 
-            <a class="app-nav__link" th:href="@{/driving-records}">
+            <a
+                class="app-nav__link"
+                th:href="@{/driving-records}">
                 Driving records
             </a>
 
-            <a class="app-nav__link" th:href="@{/drivers}">
+            <a
+                class="app-nav__link"
+                th:href="@{/drivers}">
                 Drivers
+            </a>
+
+            <a
+                class="app-nav__link"
+                th:if="${canManageDrivingQr}"
+                th:href="@{/driving-qr}">
+                Driving QR
             </a>
 
             <a
                 class="app-nav__link"
                 th:href="@{/organization/invitations}"
                 aria-current="page">
-
                 Managers
-
             </a>
 
             <form
@@ -74,9 +93,7 @@
                 <button
                     class="app-nav__button"
                     type="submit">
-
                     Sign out
-
                 </button>
 
             </form>

@@ -38,11 +38,33 @@
             </span>
         </a>
 
-        <nav class="app-nav" aria-label="Primary navigation">
-            <a class="app-nav__link" th:href="@{/app#overview}">Overview</a>
-            <a class="app-nav__link" th:href="@{/app#schedules}">Schedules</a>
-            <a class="app-nav__link" th:href="@{/app#demand}">Pickup demand</a>
-            <a class="app-nav__link" th:href="@{/app#coverage}">Driver coverage</a>
+        <nav
+            class="app-nav"
+            aria-label="Primary navigation">
+
+            <a
+                class="app-nav__link"
+                th:href="@{/app#overview}">
+                Overview
+            </a>
+
+            <a
+                class="app-nav__link"
+                th:href="@{/app#schedules}">
+                Schedules
+            </a>
+
+            <a
+                class="app-nav__link"
+                th:href="@{/app#demand}">
+                Pickup demand
+            </a>
+
+            <a
+                class="app-nav__link"
+                th:href="@{/app#coverage}">
+                Driver coverage
+            </a>
 
             <a
                 class="app-nav__link"
@@ -51,8 +73,17 @@
                 Driving records
             </a>
 
-            <a class="app-nav__link" th:href="@{/drivers}">
+            <a
+                class="app-nav__link"
+                th:href="@{/drivers}">
                 Drivers
+            </a>
+
+            <a
+                class="app-nav__link"
+                th:if="${canManageDrivingQr}"
+                th:href="@{/driving-qr}">
+                Driving QR
             </a>
 
             <a
@@ -67,10 +98,14 @@
                 th:action="@{/logout}"
                 method="post">
 
-                <button class="app-nav__button" type="submit">
+                <button
+                    class="app-nav__button"
+                    type="submit">
                     Sign out
                 </button>
+
             </form>
+
         </nav>
     </div>
 </header>
