@@ -15,7 +15,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import com.google.zxing.BarcodeFormat;
@@ -26,6 +28,7 @@ import com.google.zxing.common.BitMatrix;
 
 import technology.renatus.routepulse.model.Organization;
 import technology.renatus.routepulse.service.CurrentOrganizationService;
+import technology.renatus.routepulse.service.DrivingQrService;
 
 @Controller
 public class DrivingQrController {
@@ -33,16 +36,24 @@ public class DrivingQrController {
     private final CurrentOrganizationService
             currentOrganizationService;
 
+    private final DrivingQrService
+            drivingQrService;
+
     private final String applicationBaseUrl;
 
     public DrivingQrController(
             CurrentOrganizationService
                     currentOrganizationService,
+            DrivingQrService
+                    drivingQrService,
             @Value("${app.base-url}")
             String applicationBaseUrl) {
 
         this.currentOrganizationService =
                 currentOrganizationService;
+
+        this.drivingQrService =
+                drivingQrService;
 
         this.applicationBaseUrl =
                 applicationBaseUrl
@@ -69,6 +80,27 @@ public class DrivingQrController {
         );
 
         return "driving-qr";
+    }
+
+    @PostMapping("/driving-qr/regenerate")
+    public String regenerateDrivingQr(
+            Authentication authentication,
+            RedirectAttributes
+                    redirectAttributes) {
+
+        drivingQrService
+                .regenerateDrivingQrCode(
+                        authentication
+                );
+
+        redirectAttributes.addFlashAttribute(
+                "successMessage",
+                "A new shuttle QR code was generated. "
+                        + "The previous QR code is now invalid. "
+                        + "Print and replace the code posted in the shuttle."
+        );
+
+        return "redirect:/driving-qr";
     }
 
     @GetMapping(

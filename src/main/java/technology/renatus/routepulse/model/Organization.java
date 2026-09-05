@@ -104,10 +104,8 @@ public class Organization {
         if (drivingQrCode == null
                 || drivingQrCode.isBlank()) {
 
-            drivingQrCode = UUID.randomUUID()
-                    .toString()
-                    .replace("-", "")
-                    .toLowerCase();
+            drivingQrCode =
+                    generateDrivingQrCode();
         }
 
         createdAt = now;
@@ -117,6 +115,18 @@ public class Organization {
     @PreUpdate
     void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public void regenerateDrivingQrCode() {
+        drivingQrCode = generateDrivingQrCode();
+    }
+
+    private static String generateDrivingQrCode() {
+
+        return UUID.randomUUID()
+                .toString()
+                .replace("-", "")
+                .toLowerCase();
     }
 
     public Long getId() {

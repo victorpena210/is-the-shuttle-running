@@ -61,20 +61,27 @@ public class SecurityConfig {
                                 .permitAll()
 
                                 /*
-                                 * Owner-only setup features.
-                                 *
-                                 * The shuttle QR is not part of the
-                                 * day-to-day manager portal. It exists
-                                 * only so an owner can print/post the
-                                 * organization QR inside the shuttle.
+                                 * Owner-only organization management.
                                  */
                                 .requestMatchers(
-                                        "/organization/invitations/**",
-                                        "/driving-qr",
-                                        "/driving-qr/**"
+                                        "/organization/invitations/**"
                                 )
                                 .hasRole(
                                         "OWNER"
+                                )
+
+                                /*
+                                 * Owners and admins may view, print,
+                                 * and regenerate the organization's
+                                 * shuttle driving QR code.
+                                 */
+                                .requestMatchers(
+                                        "/driving-qr",
+                                        "/driving-qr/**"
+                                )
+                                .hasAnyRole(
+                                        "OWNER",
+                                        "ADMIN"
                                 )
 
                                 /*

@@ -1,11 +1,21 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#07111f">
 
-    <title>Drivers | RoutePulse</title>
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1">
+
+    <meta
+        name="theme-color"
+        content="#07111f">
+
+    <title>
+        Drivers | RoutePulse
+    </title>
 
     <link
         rel="icon"
@@ -15,6 +25,7 @@
     <link
         rel="stylesheet"
         th:href="@{/css/routepulse.css}">
+
 </head>
 
 <body class="app-page">
@@ -22,7 +33,9 @@
 <a
     class="skip-link"
     href="#main-content">
+
     Skip to main content
+
 </a>
 
 <header class="app-topbar">
@@ -96,6 +109,13 @@
 
             <a
                 class="app-nav__link"
+                th:if="${canManageDrivingQr}"
+                th:href="@{/driving-qr}">
+                Driving QR
+            </a>
+
+            <a
+                class="app-nav__link"
                 th:if="${isOwner}"
                 th:href="@{/organization/invitations}">
                 Managers
@@ -109,7 +129,9 @@
                 <button
                     class="app-nav__button"
                     type="submit">
+
                     Sign out
+
                 </button>
 
             </form>
@@ -131,7 +153,9 @@
             <p
                 class="eyebrow"
                 th:text="${organizationName}">
+
                 Organization
+
             </p>
 
             <h1>
@@ -162,6 +186,39 @@
         th:text="${errorMessage}">
     </div>
 
+    <section
+        th:if="${canManageDrivingQr}"
+        class="panel panel--raised"
+        aria-labelledby="driving-qr-setup-heading"
+        style="margin-bottom:1.5rem;">
+
+        <div class="panel__header">
+
+            <div>
+
+                <h2 id="driving-qr-setup-heading">
+                    Shuttle driving QR
+                </h2>
+
+                <p>
+                    View, print, or generate a new QR code for drivers
+                    to scan when they start and stop driving.
+                </p>
+
+            </div>
+
+            <a
+                class="button"
+                th:href="@{/driving-qr}">
+
+                Manage driving QR
+
+            </a>
+
+        </div>
+
+    </section>
+
     <div class="driver-layout">
 
         <section
@@ -177,7 +234,8 @@
                     </h2>
 
                     <p>
-                        The employee ID must exist in this organization’s uploaded schedules.
+                        The employee ID must exist in this
+                        organization’s uploaded schedules.
                     </p>
 
                 </div>
@@ -205,7 +263,8 @@
                             required>
 
                         <p class="help-text">
-                            RoutePulse will match this ID to an employee in your uploaded schedules.
+                            RoutePulse will match this ID to an
+                            employee in your uploaded schedules.
                         </p>
 
                     </div>
@@ -234,7 +293,8 @@
                             required>
 
                         <p class="help-text">
-                            RoutePulse sends the account invitation to this address.
+                            RoutePulse sends the account invitation
+                            to this address.
                         </p>
 
                     </div>
@@ -295,12 +355,29 @@
                     <thead>
 
                     <tr>
-                        <th scope="col">Employee ID</th>
-                        <th scope="col">Driver</th>
-                        <th scope="col">Email</th>
-                        <th scope="col">Account</th>
-                        <th scope="col">Status</th>
-                        <th scope="col">Actions</th>
+                        <th scope="col">
+                            Employee ID
+                        </th>
+
+                        <th scope="col">
+                            Driver
+                        </th>
+
+                        <th scope="col">
+                            Email
+                        </th>
+
+                        <th scope="col">
+                            Account
+                        </th>
+
+                        <th scope="col">
+                            Status
+                        </th>
+
+                        <th scope="col">
+                            Actions
+                        </th>
                     </tr>
 
                     </thead>
@@ -549,4 +626,5 @@
 </script>
 
 </body>
+
 </html>
