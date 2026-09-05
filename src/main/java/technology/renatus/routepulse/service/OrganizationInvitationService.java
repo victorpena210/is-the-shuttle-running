@@ -20,6 +20,7 @@ import technology.renatus.routepulse.model.OrganizationRole;
 import technology.renatus.routepulse.model.UserAccount;
 import technology.renatus.routepulse.repository.OrganizationInvitationRepository;
 import technology.renatus.routepulse.repository.OrganizationMembershipRepository;
+import technology.renatus.routepulse.repository.OrganizationRepository;
 import technology.renatus.routepulse.repository.UserAccountRepository;
 
 @Service
@@ -31,10 +32,13 @@ public class OrganizationInvitationService {
             organizationInvitationRepository;
 
     private final OrganizationMembershipRepository
-            organizationMembershipRepository;
+    organizationMembershipRepository;
 
-    private final UserAccountRepository
-            userAccountRepository;
+	private final OrganizationRepository
+	    organizationRepository;
+	
+	private final UserAccountRepository
+	    userAccountRepository;
 
     private final CurrentOrganizationService
             currentOrganizationService;
@@ -55,6 +59,8 @@ public class OrganizationInvitationService {
                     organizationInvitationRepository,
             OrganizationMembershipRepository
                     organizationMembershipRepository,
+            OrganizationRepository
+                    organizationRepository,
             UserAccountRepository
                     userAccountRepository,
             CurrentOrganizationService
@@ -73,6 +79,9 @@ public class OrganizationInvitationService {
 
         this.organizationMembershipRepository =
                 organizationMembershipRepository;
+
+        this.organizationRepository =
+                organizationRepository;
 
         this.userAccountRepository =
                 userAccountRepository;
@@ -349,18 +358,28 @@ public class OrganizationInvitationService {
     }
 
     private PreparedInvitation
-            createOrRefreshInvitation(
-                    Organization organization,
-                    UserAccount invitedBy,
-                    Driver driver,
-                    String email,
-                    OrganizationRole role) {
+    createOrRefreshInvitation(
+            Organization organization,
+            UserAccount invitedBy,
+            Driver driver,
+            String email,
+            OrganizationRole role) {
 
-        String normalizedEmail =
-                normalizeEmail(
-                        email
+Organization lockedOrganization =
+        organizationRepository
+                .findByIdForUpdate(
+                        organization.getId()
+                )
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "The organization could not be found."
+                        )
                 );
 
+String normalizedEmail =
+        normalizeEmail(
+                email
+        );
         if (userAccountRepository
                 .existsByEmailIgnoreCase(
                         normalizedEmail
@@ -389,10 +408,10 @@ public class OrganizationInvitationService {
 
         OrganizationInvitation invitation =
                 organizationInvitationRepository
-                        .findByOrganization_IdAndInvitedEmailIgnoreCase(
-                                organization.getId(),
-                                normalizedEmail
-                        )
+                .findByOrganization_IdAndInvitedEmailIgnoreCase(
+                        lockedOrganization.getId(),
+                        normalizedEmail
+                )
                         .map(existingInvitation -> {
 
                             if (existingInvitation
@@ -442,16 +461,16 @@ public class OrganizationInvitationService {
                             return existingInvitation;
                         })
                         .orElseGet(() ->
-                                new OrganizationInvitation(
-                                        organization,
-                                        invitedBy,
-                                        driver,
-                                        normalizedEmail,
-                                        role,
-                                        tokenHash,
-                                        expiresAt
-                                )
-                        );
+                        new OrganizationInvitation(
+                                lockedOrganization,
+                                invitedBy,
+                                driver,
+                                normalizedEmail,
+                                role,
+                                tokenHash,
+                                expiresAt
+                        )
+                );
 
         organizationInvitationRepository.save(
                 invitation

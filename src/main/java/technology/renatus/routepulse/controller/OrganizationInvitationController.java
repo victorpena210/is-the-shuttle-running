@@ -5,6 +5,7 @@ import java.util.Objects;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,8 +18,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import technology.renatus.routepulse.dataTransferObject.InvitationAcceptanceForm;
 import technology.renatus.routepulse.dataTransferObject.ManagerInvitationForm;
 import technology.renatus.routepulse.model.OrganizationInvitation;
-import technology.renatus.routepulse.service.OrganizationInvitationService;
 import technology.renatus.routepulse.service.CurrentOrganizationService;
+import technology.renatus.routepulse.service.OrganizationInvitationService;
 
 @Controller
 public class OrganizationInvitationController {
@@ -117,6 +118,23 @@ public class OrganizationInvitationController {
             bindingResult.reject(
                     "invitation.failed",
                     exception.getMessage()
+            );
+
+            model.addAttribute(
+                    "invitations",
+                    organizationInvitationService
+                            .getInvitationsForOwner(
+                                    authentication
+                            )
+            );
+
+            return "organization-invitations";
+
+        } catch (DataIntegrityViolationException exception) {
+
+            bindingResult.reject(
+                    "invitation.failed",
+                    "That manager invitation already exists. Refresh the page and try again."
             );
 
             model.addAttribute(
