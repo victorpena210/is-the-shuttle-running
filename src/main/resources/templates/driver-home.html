@@ -14,7 +14,7 @@
         content="#07111f">
 
     <title>
-        My Driver Profile | RoutePulse
+        My Driving Assignment | RoutePulse
     </title>
 
     <link
@@ -73,7 +73,7 @@
                 th:href="@{/driver}"
                 aria-current="page">
 
-                My profile
+                My assignment
 
             </a>
 
@@ -114,17 +114,19 @@
 
             </p>
 
-            <h1
-                th:text="${driver.name}">
-
-                Driver Name
-
+            <h1>
+                My driving assignment
             </h1>
 
             <p>
-                Your RoutePulse driver profile,
-                today’s shuttle assignments,
-                and recent driving records.
+                Welcome,
+                <strong th:text="${driver.name}">
+                    Driver Name
+                </strong>.
+                View today’s assigned driving period here.
+                Scan the RoutePulse QR code at the shuttle
+                when you start driving and scan it again
+                when you finish.
             </p>
 
         </div>
@@ -146,100 +148,6 @@
     </div>
 
     <section
-        class="panel panel--raised"
-        aria-labelledby="profile-heading">
-
-        <div class="panel__header">
-
-            <div>
-
-                <h2 id="profile-heading">
-                    My profile
-                </h2>
-
-                <p>
-                    Your driver identity is linked to the employee record your manager registered.
-                </p>
-
-            </div>
-
-        </div>
-
-        <div class="panel__body">
-
-            <div class="form-grid">
-
-                <div class="form-group">
-
-                    <span class="field-label">
-                        Employee ID
-                    </span>
-
-                    <div
-                        class="readonly-field mono"
-                        th:text="${driver.employeeId}">
-
-                        123456
-
-                    </div>
-
-                </div>
-
-                <div class="form-group">
-
-                    <span class="field-label">
-                        Email
-                    </span>
-
-                    <div
-                        class="readonly-field"
-                        th:text="${driver.email}">
-
-                        driver@example.com
-
-                    </div>
-
-                </div>
-
-                <div class="form-group">
-
-                    <span class="field-label">
-                        Driver status
-                    </span>
-
-                    <div
-                        class="readonly-field"
-                        th:text="${driver.active ? 'Active' : 'Inactive'}">
-
-                        Active
-
-                    </div>
-
-                </div>
-
-                <div class="form-group">
-
-                    <span class="field-label">
-                        Operations date
-                    </span>
-
-                    <div
-                        class="readonly-field"
-                        th:text="${#temporals.format(today, 'EEEE, MMMM d, yyyy')}">
-
-                        Friday, September 4, 2026
-
-                    </div>
-
-                </div>
-
-            </div>
-
-        </div>
-
-    </section>
-
-    <section
         aria-labelledby="today-heading">
 
         <div class="section-heading">
@@ -247,12 +155,14 @@
             <div>
 
                 <h2 id="today-heading">
-                    Today’s assignments
+                    Today’s assignment
                 </h2>
 
-                <p>
-                    Scan the QR code posted in the shuttle
-                    when you begin driving and again when you finish.
+                <p
+                    th:text="${#temporals.format(today, 'EEEE, MMMM d, yyyy')}">
+
+                    Friday, September 4, 2026
+
                 </p>
 
             </div>
@@ -372,119 +282,33 @@
     </section>
 
     <section
-        aria-labelledby="recent-heading">
+        class="panel panel--raised"
+        aria-labelledby="qr-heading">
 
-        <div class="section-heading">
+        <div class="panel__header">
 
             <div>
 
-                <h2 id="recent-heading">
-                    Recent driving records
+                <h2 id="qr-heading">
+                    Start and end driving
                 </h2>
 
                 <p>
-                    Your latest assignments and recorded actual driving times.
+                    Use the QR code posted at the shuttle.
+                    Your first valid scan starts your driving record.
+                    Your next valid scan ends it.
                 </p>
 
             </div>
 
         </div>
 
-        <div class="table-shell">
+        <div class="panel__body">
 
-            <table>
-
-                <thead>
-
-                <tr>
-                    <th scope="col">Date</th>
-                    <th scope="col">Period</th>
-                    <th scope="col">Scheduled hours</th>
-                    <th scope="col">Actual hours</th>
-                    <th scope="col">Status</th>
-                </tr>
-
-                </thead>
-
-                <tbody>
-
-                <tr
-                    th:each="assignment : ${recentAssignments}">
-
-                    <td
-                        th:text="${#temporals.format(assignment.assignmentDate, 'MMM d, yyyy')}">
-
-                        Sep 4, 2026
-
-                    </td>
-
-                    <td
-                        th:text="${assignment.period}">
-
-                        MORNING
-
-                    </td>
-
-                    <td
-                        th:text="${#numbers.formatDecimal(assignment.scheduledHours, 1, 2)}">
-
-                        3.00
-
-                    </td>
-
-                    <td
-                        th:text="${assignment.drivingCompleted ? #numbers.formatDecimal(assignment.actualHours, 1, 2) : '—'}">
-
-                        —
-
-                    </td>
-
-                    <td>
-
-                        <span
-                            class="badge badge--active"
-                            th:if="${assignment.driving}">
-
-                            Driving now
-
-                        </span>
-
-                        <span
-                            class="badge badge--inactive"
-                            th:if="${assignment.drivingCompleted}">
-
-                            Completed
-
-                        </span>
-
-                        <span
-                            class="badge"
-                            th:if="${!assignment.driving and !assignment.drivingCompleted}">
-
-                            Scheduled
-
-                        </span>
-
-                    </td>
-
-                </tr>
-
-                <tr
-                    th:if="${#lists.isEmpty(recentAssignments)}">
-
-                    <td
-                        class="empty-cell"
-                        colspan="5">
-
-                        No driving records are available yet.
-
-                    </td>
-
-                </tr>
-
-                </tbody>
-
-            </table>
+            <p>
+                RoutePulse will only record a scan for your own
+                active driver account and your own assignment for today.
+            </p>
 
         </div>
 
