@@ -7,6 +7,7 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -24,6 +25,9 @@ import technology.renatus.routepulse.repository.UserAccountRepository;
 @Service
 @Transactional(readOnly = true)
 public class DriverPortalService {
+
+    private static final String QR_OVERRIDE_REASON =
+            "Driver self-override recorded from shuttle QR scan.";
 
     private final CurrentOrganizationService
             currentOrganizationService;
@@ -98,9 +102,8 @@ public class DriverPortalService {
                         );
 
         /*
-         * Initialize this while the transaction
-         * is still open because the portal renders
-         * the organization name afterward.
+         * Initialize the organization while the transaction
+         * is still open because the driver portal displays it.
          */
         driver
                 .getOrganization()
@@ -193,9 +196,28 @@ public class DriverPortalService {
                 qrCode
         );
 
+        /*
+         * We deliberately look at ALL of today's assignments
+         * for the organization instead of only assignments
+         * already belonging to this driver.
+         *
+         * This is what allows an unscheduled fill-in driver
+         * to scan the shuttle QR and take over an unstarted
+         * shift.
+         */
+        List<DriverAssignment> assignments =
+                driverAssignmentRepository
+                        .findAllByOrganization_IdAndAssignmentDate(
+                                driver
+                                        .getOrganization()
+                                        .getId(),
+                                currentOperationsDate()
+                        );
+
         DriverAssignment assignment =
                 findActionableAssignment(
-                        driver
+                        driver,
+                        assignments
                 );
 
         ScanAction action =
@@ -203,25 +225,33 @@ public class DriverPortalService {
                         ? ScanAction.END
                         : ScanAction.START;
 
-        if (action == ScanAction.START
-                && (
-                        assignment
-                                .getScheduledStartTime()
-                                == null
-                        || assignment
-                                .getScheduledEndTime()
-                                == null
-                )) {
+        if (action == ScanAction.START) {
 
-            throw new IllegalStateException(
-                    "A manager must set the scheduled start and end time before this assignment can be started."
+            requireScheduledTimes(
+                    assignment
             );
         }
+
+        /*
+         * Capture the scheduled/current driver before
+         * an override actually takes place.
+         */
+        Driver scheduledDriver =
+                assignment.getDriver();
+
+        boolean overrideRequired =
+                action == ScanAction.START
+                        && !sameDriver(
+                                scheduledDriver,
+                                driver
+                        );
 
         return new ScanPreview(
                 driver,
                 assignment,
-                action
+                action,
+                overrideRequired,
+                scheduledDriver
         );
     }
 
@@ -244,11 +274,6 @@ public class DriverPortalService {
                 qrCode
         );
 
-        DriverAssignment assignment =
-                findActionableAssignment(
-                        driver
-                );
-
         UserAccount user =
                 requireCurrentUser(
                         authentication
@@ -258,8 +283,30 @@ public class DriverPortalService {
                 currentOperationsDateTime();
 
         /*
-         * An assignment that has already started
-         * but not ended means this scan is STOP.
+         * Lock today's assignments while processing the scan.
+         *
+         * This helps prevent two drivers from scanning at nearly
+         * the same time and both attempting to take over the same
+         * shift.
+         */
+        List<DriverAssignment> assignments =
+                driverAssignmentRepository
+                        .findAllForUpdateByOrganizationAndDate(
+                                driver
+                                        .getOrganization()
+                                        .getId(),
+                                now.toLocalDate()
+                        );
+
+        DriverAssignment assignment =
+                findActionableAssignment(
+                        driver,
+                        assignments
+                );
+
+        /*
+         * If this signed-in driver already has the active
+         * assignment, scanning the QR again means END DRIVING.
          */
         if (assignment.isDriving()) {
 
@@ -270,7 +317,9 @@ public class DriverPortalService {
 
             return new ScanResult(
                     ScanAction.END,
-                    assignment
+                    assignment,
+                    false,
+                    null
             );
         }
 
@@ -283,8 +332,45 @@ public class DriverPortalService {
         }
 
         /*
-         * Otherwise this is the first scan,
-         * so this scan is START.
+         * Do not create an override unless the assignment
+         * is actually ready to start.
+         */
+        requireScheduledTimes(
+                assignment
+        );
+
+        Driver previousDriver =
+                assignment.getDriver();
+
+        boolean overridePerformed =
+                false;
+
+        /*
+         * The signed-in driver is different from the person
+         * who was scheduled.
+         *
+         * Because the assignment has not started yet,
+         * RoutePulse allows the signed-in driver to take over.
+         */
+        if (!sameDriver(
+                previousDriver,
+                driver
+        )) {
+
+            overridePerformed =
+                    assignment
+                            .overrideDriverFromQr(
+                                    driver,
+                                    QR_OVERRIDE_REASON,
+                                    user,
+                                    now
+                            );
+        }
+
+        /*
+         * Whether this was the scheduled driver or a fill-in,
+         * the actual start is now recorded against the
+         * signed-in account.
          */
         assignment.startDriving(
                 now,
@@ -293,7 +379,11 @@ public class DriverPortalService {
 
         return new ScanResult(
                 ScanAction.START,
-                assignment
+                assignment,
+                overridePerformed,
+                overridePerformed
+                        ? previousDriver
+                        : null
         );
     }
 
@@ -342,7 +432,9 @@ public class DriverPortalService {
         if (!driver.isActive()) {
 
             throw new IllegalStateException(
-                    "Your driver profile is currently inactive. A manager must reactivate it before you can record driving."
+                    "Your driver profile is currently inactive. "
+                            + "A manager must reactivate it before "
+                            + "you can record driving."
             );
         }
     }
@@ -351,13 +443,16 @@ public class DriverPortalService {
             Organization organization,
             String qrCode) {
 
+        String activeQrCode =
+                organization.getDrivingQrCode();
+
         if (qrCode == null
                 || qrCode.isBlank()
-                || !organization
-                        .getDrivingQrCode()
-                        .equals(
-                                qrCode.trim()
-                        )) {
+                || activeQrCode == null
+                || activeQrCode.isBlank()
+                || !activeQrCode.equals(
+                        qrCode.trim()
+                )) {
 
             throw new IllegalArgumentException(
                     "This QR code is not valid for your organization."
@@ -365,31 +460,39 @@ public class DriverPortalService {
         }
     }
 
+    private void requireScheduledTimes(
+            DriverAssignment assignment) {
+
+        if (assignment
+                .getScheduledStartTime()
+                == null
+                || assignment
+                        .getScheduledEndTime()
+                        == null) {
+
+            throw new IllegalStateException(
+                    "A manager must set the scheduled start "
+                            + "and end time before this assignment "
+                            + "can be started."
+            );
+        }
+    }
+
     private DriverAssignment
             findActionableAssignment(
-                    Driver driver) {
-
-        List<DriverAssignment> assignments =
-                driverAssignmentRepository
-                        .findAllByOrganization_IdAndDriver_IdAndAssignmentDate(
-                                driver
-                                        .getOrganization()
-                                        .getId(),
-                                driver.getId(),
-                                currentOperationsDate()
-                        );
+                    Driver driver,
+                    List<DriverAssignment>
+                            assignments) {
 
         if (assignments.isEmpty()) {
 
             throw new IllegalStateException(
-                    "You do not have a driving assignment for today."
+                    "There are no driving assignments scheduled for today."
             );
         }
 
         /*
-         * If they are already driving,
-         * that assignment is unquestionably
-         * the one they are trying to stop.
+         * First determine whether somebody is already driving.
          */
         List<DriverAssignment> inProgress =
                 assignments
@@ -400,18 +503,56 @@ public class DriverPortalService {
                         )
                         .toList();
 
-        if (inProgress.size() == 1) {
-
-            return inProgress.get(0);
-        }
-
+        /*
+         * RoutePulse should not have multiple simultaneous
+         * active shuttle-driving assignments.
+         */
         if (inProgress.size() > 1) {
 
             throw new IllegalStateException(
-                    "More than one driving assignment is currently active. A manager must review today's coverage."
+                    "More than one driving assignment is currently "
+                            + "active. A manager must review today's coverage."
             );
         }
 
+        /*
+         * Exactly one assignment is active.
+         */
+        if (inProgress.size() == 1) {
+
+            DriverAssignment activeAssignment =
+                    inProgress.get(0);
+
+            /*
+             * If the active assignment belongs to the signed-in
+             * driver, this scan will stop their driving session.
+             */
+            if (sameDriver(
+                    activeAssignment
+                            .getDriver(),
+                    driver
+            )) {
+
+                return activeAssignment;
+            }
+
+            /*
+             * Never automatically replace somebody who has
+             * already started driving.
+             */
+            throw new IllegalStateException(
+                    "Another driver has already started driving. "
+                            + "RoutePulse will not automatically replace "
+                            + "an active driver. A manager must resolve "
+                            + "the active assignment first."
+            );
+        }
+
+        /*
+         * Nothing is currently active.
+         *
+         * Find assignments that have never been started.
+         */
         List<DriverAssignment> unstarted =
                 assignments
                         .stream()
@@ -428,8 +569,20 @@ public class DriverPortalService {
         if (unstarted.isEmpty()) {
 
             throw new IllegalStateException(
-                    "All of your driving assignments for today are already complete."
+                    "All driving assignments for today are already complete."
             );
+        }
+
+        /*
+         * If only one shift is left, that is clearly
+         * the shift the driver is scanning for.
+         *
+         * This is also what allows a driver who was not
+         * originally scheduled to fill in.
+         */
+        if (unstarted.size() == 1) {
+
+            return unstarted.get(0);
         }
 
         LocalTime now =
@@ -437,16 +590,46 @@ public class DriverPortalService {
                         .toLocalTime();
 
         /*
-         * A driver can cover both morning
-         * and afternoon. If both are still
-         * unstarted, choose whichever scheduled
-         * start is closest to the current time.
+         * If morning and afternoon are both still available,
+         * use their scheduled times to determine which shift
+         * the scan most likely belongs to.
          */
-        return unstarted
+        List<DriverAssignment> scheduledCandidates =
+                unstarted
+                        .stream()
+                        .filter(assignment ->
+                                assignment
+                                        .getScheduledStartTime()
+                                        != null
+                                && assignment
+                                        .getScheduledEndTime()
+                                        != null
+                        )
+                        .toList();
+
+        if (scheduledCandidates.isEmpty()) {
+
+            throw new IllegalStateException(
+                    "RoutePulse cannot determine which shift this scan "
+                            + "belongs to because today's remaining "
+                            + "assignments do not have scheduled times. "
+                            + "A manager must set the scheduled times first."
+            );
+        }
+
+        /*
+         * Choose whichever scheduled shift begins closest
+         * to the current time.
+         *
+         * If two shifts happen to be equally close,
+         * prefer the one already assigned to the
+         * signed-in driver.
+         */
+        return scheduledCandidates
                 .stream()
                 .min(
                         Comparator
-                                .comparingLong(
+                                .<DriverAssignment>comparingLong(
                                         assignment ->
                                                 distanceFromScheduledStart(
                                                         now,
@@ -454,12 +637,45 @@ public class DriverPortalService {
                                                                 .getScheduledStartTime()
                                                 )
                                 )
+                                .thenComparingInt(
+                                        assignment ->
+                                                sameDriver(
+                                                        assignment
+                                                                .getDriver(),
+                                                        driver
+                                                )
+                                                        ? 0
+                                                        : 1
+                                )
+                                .thenComparingInt(
+                                        assignment ->
+                                                assignment
+                                                        .getPeriod()
+                                                        .ordinal()
+                                )
                 )
                 .orElseThrow(() ->
                         new IllegalStateException(
-                                "RoutePulse could not determine which assignment to use."
+                                "RoutePulse could not determine "
+                                        + "which assignment to use."
                         )
                 );
+    }
+
+    private boolean sameDriver(
+            Driver first,
+            Driver second) {
+
+        if (first == null
+                || second == null) {
+
+            return false;
+        }
+
+        return Objects.equals(
+                first.getId(),
+                second.getId()
+        );
     }
 
     private long distanceFromScheduledStart(
@@ -484,14 +700,26 @@ public class DriverPortalService {
         END
     }
 
+    /*
+     * Used by DriverPortalController when the driver
+     * first opens the scanned QR URL.
+     */
     public record ScanPreview(
             Driver driver,
             DriverAssignment assignment,
-            ScanAction action) {
+            ScanAction action,
+            boolean overrideRequired,
+            Driver scheduledDriver) {
     }
 
+    /*
+     * Used by DriverPortalController after the driver
+     * confirms the scan.
+     */
     public record ScanResult(
             ScanAction action,
-            DriverAssignment assignment) {
+            DriverAssignment assignment,
+            boolean overridePerformed,
+            Driver previousDriver) {
     }
 }
