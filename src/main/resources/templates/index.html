@@ -159,8 +159,8 @@
 		         Planning for
 
 		         <span
-		             th:text="${#temporals.format(selectedDate, 'MMM d, yyyy')}">
-		             Aug 28, 2026
+		             th:text="${#temporals.format(selectedDate, 'EEEE, MMMM d, yyyy')}">
+		             Monday, August 10, 2026
 		         </span>
 
 		     </div>
@@ -445,73 +445,65 @@
         data-dashboard-section="demand"
         aria-labelledby="planning-date-heading">
 
-            <h2 id="planning-date-heading">
-                Choose a planning date
-            </h2>
+        <div class="planning-date__header">
 
-            <p>
-                Select one of the dates represented in
-                an uploaded schedule.
-            </p>
+            <div>
 
+                <h2 id="planning-date-heading">
+                    Planning date
+                </h2>
 
-            <form
-                class="planning-date__form"
-                th:if="${scheduleUploaded}"
-                th:action="@{/app#demand}"
-                method="get">
-
-                <div class="form-group">
-
-                    <label for="date">
-                        Schedule date
-                    </label>
-
-                    <input
-                        type="date"
-                        id="date"
-                        name="date"
-                        th:value="${selectedDate}"
-                        required>
-
-                </div>
-
-                <button
-                    class="button"
-                    type="submit">
-                    View pickup demand
-                </button>
-
-            </form>
-
-
-            <div
-                th:unless="${scheduleUploaded}"
-                class="alert alert--info">
-
-                Upload a schedule to make planning dates available.
-                <a href="#schedules">Go to Schedules</a>
+                <p>
+                    Choose an available date from the uploaded schedule.
+                </p>
 
             </div>
 
+        </div>
 
-            <div
-                th:if="${scheduleUploaded}"
-                class="date-chip-list"
-                aria-label="Available schedule dates">
 
-                <a
-                    class="date-chip"
-                    th:each="availableDate : ${availableDates}"
-                    th:href="@{/app(date=${availableDate})} + '#demand'"
-                    th:attr="aria-current=${availableDate.equals(selectedDate)} ? 'date' : null"
-                    th:text="${#temporals.format(availableDate, 'MMM d')}">
+        <div
+            th:unless="${scheduleUploaded}"
+            class="alert alert--info">
 
-                    Aug 28
+            Upload a schedule to make planning dates available.
+            <a href="#schedules">Go to Schedules</a>
 
-                </a>
+        </div>
 
-            </div>
+
+        <div
+            th:if="${scheduleUploaded}"
+            class="planning-calendar"
+            aria-label="Available planning dates">
+
+            <a
+                class="planning-calendar__date"
+                th:each="availableDate : ${availableDates}"
+                th:href="@{/app(date=${availableDate})} + '#demand'"
+                th:attr="aria-current=${availableDate.equals(selectedDate)} ? 'date' : null">
+
+                <span
+                    class="planning-calendar__weekday"
+                    th:text="${#temporals.format(availableDate, 'EEE')}">
+                    Mon
+                </span>
+
+                <strong
+                    class="planning-calendar__day"
+                    th:text="${#temporals.format(availableDate, 'd')}">
+                    10
+                </strong>
+
+                <span
+                    class="planning-calendar__month"
+                    th:text="${#temporals.format(availableDate, 'MMM')}">
+                    Aug
+                </span>
+
+            </a>
+
+        </div>
 
     </section>
 
@@ -684,44 +676,17 @@
 
     <div th:if="${generated}" data-plan-container>
 
-        <section
-            class="section"
-            data-plan-heading
-            aria-labelledby="plan-heading">
+        <div th:if="${showSchedule}">
 
 
-            <div class="section-heading">
+            <!-- =================================================
+                 PICKUP DEMAND
+                 ================================================= -->
 
-                <div>
-
-                    <p class="eyebrow">
-                        Pickup planning
-                    </p>
-
-                    <h2
-                        id="plan-heading"
-                        th:text="|Pickup plan for ${#temporals.format(selectedDate, 'MMMM d, yyyy')}|">
-
-                        Pickup plan
-
-                    </h2>
-
-                </div>
-
-            </div>
-
-
-
-            <div th:if="${showSchedule}">
-
-
-                <!-- =================================================
-                     PICKUP DEMAND
-                     ================================================= -->
-
-                <section
-                    data-dashboard-section="demand"
-                    aria-labelledby="pickup-windows-heading">
+            <section
+                class="section"
+                data-dashboard-section="demand"
+                aria-labelledby="pickup-windows-heading">
 
 
                     <div class="section-heading">
@@ -729,12 +694,12 @@
                         <div>
 
                             <h2 id="pickup-windows-heading">
-                                Pickup demand
+                                Pickup windows
                             </h2>
 
                             <p>
-                                Team-member shift endings grouped into
-                                15-minute pickup windows.
+                                Expected shuttle pickups based on team-member
+                                shift endings, grouped into 15-minute windows.
                             </p>
 
                         </div>
@@ -2275,9 +2240,7 @@
 
                 </section>
 
-            </div>
-
-        </section>
+        </div>
 
     </div>
 

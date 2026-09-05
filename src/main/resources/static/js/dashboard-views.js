@@ -37,7 +37,7 @@
         demand: {
             heading: 'Pickup demand',
             description:
-                'Select a schedule date and review when team members are expected to need shuttle pickup.',
+                'Review expected shuttle pickup volume throughout the selected planning day.',
             documentTitle: 'Pickup Demand | RoutePulse',
             showPlanningDate: true
         },
