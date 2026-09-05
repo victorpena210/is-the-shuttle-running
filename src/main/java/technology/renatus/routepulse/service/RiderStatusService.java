@@ -1,8 +1,8 @@
 package technology.renatus.routepulse.service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Locale;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -49,12 +49,9 @@ public class RiderStatusService {
             );
         }
 
-        LocalDate today = LocalDate.now(operationsZone);
-
         DriverAssignment activeAssignment = driverAssignmentRepository
-                .findFirstByOrganization_IdAndAssignmentDateAndActualStartedAtIsNotNullAndActualEndedAtIsNullOrderByActualStartedAtDesc(
-                        organization.getId(),
-                        today
+                .findFirstByOrganization_IdAndActualStartedAtIsNotNullAndActualEndedAtIsNullOrderByActualStartedAtDesc(
+                        organization.getId()
                 )
                 .orElse(null);
 
@@ -81,7 +78,7 @@ public class RiderStatusService {
             );
         }
 
-        return organizationSlug.trim().toLowerCase();
+        return organizationSlug.trim().toLowerCase(Locale.ROOT);
     }
 
     public record RiderStatus(
