@@ -96,12 +96,6 @@
 
             <a
                 class="app-nav__link"
-                th:href="@{/driving-qr}">
-                Driving QR
-            </a>
-
-            <a
-                class="app-nav__link"
                 th:if="${isOwner}"
                 th:href="@{/organization/invitations}">
                 Managers
@@ -149,16 +143,6 @@
                 RoutePulse will verify the employee from the uploaded schedule
                 and send the driver an account invitation.
             </p>
-
-        </div>
-
-        <div>
-
-            <a
-                class="button button--secondary"
-                th:href="@{/driving-qr}">
-                View driving QR
-            </a>
 
         </div>
 

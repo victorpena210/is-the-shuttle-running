@@ -60,11 +60,17 @@ public class SecurityConfig {
                                 .permitAll()
 
                                 /*
-                                 * Organization invitations are
-                                 * owner-only management features.
+                                 * Owner-only setup features.
+                                 *
+                                 * The shuttle QR is not part of the
+                                 * day-to-day manager portal. It exists
+                                 * only so an owner can print/post the
+                                 * organization QR inside the shuttle.
                                  */
                                 .requestMatchers(
-                                        "/organization/invitations/**"
+                                        "/organization/invitations/**",
+                                        "/driving-qr",
+                                        "/driving-qr/**"
                                 )
                                 .hasRole(
                                         "OWNER"
@@ -108,9 +114,9 @@ public class SecurityConfig {
                                  *
                                  * This protects current manager pages
                                  * such as /app, /drivers, /upload,
-                                 * /assignments, /driving-records and
-                                 * /driving-qr, and it also protects
-                                 * future manager routes by default.
+                                 * /assignments and /driving-records,
+                                 * and it also protects future manager
+                                 * routes by default.
                                  */
                                 .anyRequest()
                                 .hasAnyRole(
