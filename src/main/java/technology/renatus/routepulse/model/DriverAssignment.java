@@ -335,6 +335,67 @@ public class DriverAssignment {
         return true;
     }
 
+    public boolean overrideDriverFromQr(
+            Driver newDriver,
+            String reason,
+            UserAccount actor,
+            LocalDateTime changedAt) {
+
+        ensureDrivingHasNotStarted(
+                "The assigned driver cannot be changed after driving has started."
+        );
+
+        Objects.requireNonNull(
+                newDriver,
+                "New driver is required."
+        );
+
+        Objects.requireNonNull(
+                actor,
+                "The driver recording the override is required."
+        );
+
+        Objects.requireNonNull(
+                changedAt,
+                "Override time is required."
+        );
+
+        if (!Objects.equals(
+                organization.getId(),
+                newDriver.getOrganization().getId()
+        )) {
+            throw new IllegalArgumentException(
+                    "The replacement driver must belong "
+                            + "to the same organization."
+            );
+        }
+
+        if (Objects.equals(
+                driver.getId(),
+                newDriver.getId()
+        )) {
+            return false;
+        }
+
+        /*
+         * Automatic assignments already preserve the original
+         * recommendation. Manual assignments do not, so when a
+         * driver self-overrides a manual assignment we capture
+         * the driver who was scheduled before replacing them.
+         */
+        if (originallySuggestedDriver == null) {
+            originallySuggestedDriver = driver;
+        }
+
+        driver = newDriver;
+        assignmentSource = AssignmentSource.OVERRIDE;
+        this.changedAt = changedAt;
+        changedBy = actor;
+        changeReason = normalizeReason(reason);
+
+        return true;
+    }
+
     public void startDriving(
             LocalDateTime startedAt,
             UserAccount actor) {
@@ -367,7 +428,7 @@ public class DriverAssignment {
         actualStartedAt = startedAt;
         actualStartedBy = Objects.requireNonNull(
                 actor,
-                "The manager starting driving is required."
+                "The account starting driving is required."
         );
     }
 
@@ -401,7 +462,7 @@ public class DriverAssignment {
         actualEndedAt = endedAt;
         actualEndedBy = Objects.requireNonNull(
                 actor,
-                "The manager ending driving is required."
+                "The account ending driving is required."
         );
     }
 

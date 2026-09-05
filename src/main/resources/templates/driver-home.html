@@ -123,10 +123,10 @@
                 <strong th:text="${driver.name}">
                     Driver Name
                 </strong>.
-                View today’s assigned driving period here.
-                Scan the RoutePulse QR code at the shuttle
-                when you start driving and scan it again
-                when you finish.
+                Scan the RoutePulse QR posted in the shuttle
+                when you begin driving. Scan the same QR again
+                when you finish so RoutePulse can save your
+                actual start and end times.
             </p>
 
         </div>
@@ -267,7 +267,11 @@
                         class="empty-cell"
                         colspan="5">
 
-                        You do not have a driving assignment for today.
+                        You are not currently assigned to a shift today.
+                        If you are filling in for another registered driver,
+                        you can still scan the shuttle QR. RoutePulse will
+                        show the shift you are about to cover before it
+                        records your start time.
 
                     </td>
 
@@ -290,13 +294,13 @@
             <div>
 
                 <h2 id="qr-heading">
-                    Start and end driving
+                    Start, cover, and end driving
                 </h2>
 
                 <p>
-                    Use the QR code posted at the shuttle.
-                    Your first valid scan starts your driving record.
-                    Your next valid scan ends it.
+                    Use the permanent QR code posted at the shuttle.
+                    RoutePulse identifies you from your signed-in account,
+                    not from the QR code itself.
                 </p>
 
             </div>
@@ -306,9 +310,26 @@
         <div class="panel__body">
 
             <p>
-                RoutePulse will only record a scan for your own
-                active driver account and your own assignment for today.
+                <strong>Your first valid scan:</strong>
+                starts your assigned shift. If another driver was scheduled
+                but has not started, RoutePulse can automatically transfer
+                that shift to you and record the change as an override.
             </p>
+
+            <p>
+                <strong>Your next valid scan while driving:</strong>
+                ends your active driving session and saves your actual end time.
+            </p>
+
+            <div
+                class="alert alert--info"
+                role="status">
+
+                RoutePulse will never automatically replace a driver who
+                has already started driving. If another driver has an active
+                session, a manager must resolve it first.
+
+            </div>
 
         </div>
 
