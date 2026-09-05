@@ -69,13 +69,13 @@
             class="app-nav"
             aria-label="Primary navigation">
 
-            <a class="app-nav__link" th:href="@{/app#overview}" data-dashboard-link="overview">Overview</a>
+            <a class="app-nav__link" href="#overview" data-dashboard-link="overview">Overview</a>
 
-            <a class="app-nav__link" th:href="@{/app#schedules}" data-dashboard-link="schedules">Schedules</a>
+            <a class="app-nav__link" href="#schedules" data-dashboard-link="schedules">Schedules</a>
 
-            <a class="app-nav__link" th:href="@{/app#demand}" data-dashboard-link="demand">Pickup demand</a>
+            <a class="app-nav__link" href="#demand" data-dashboard-link="demand">Pickup demand</a>
 
-            <a class="app-nav__link" th:href="@{/app#coverage}" data-dashboard-link="coverage">Driver coverage</a>
+            <a class="app-nav__link" href="#coverage" data-dashboard-link="coverage">Driver coverage</a>
 
             <a
                 class="app-nav__link"
@@ -264,24 +264,18 @@
 
 
     <!-- =====================================================
-         WORKFLOW
+         SCHEDULE UPLOAD
          ===================================================== -->
 
     <section
-        class="workflow-grid"
+        class="workflow-grid workflow-grid--single"
         data-dashboard-section="schedules"
-        aria-label="Schedule planning workflow">
+        aria-label="Schedule upload">
 
 
         <!-- Upload schedule -->
 
         <article class="workflow-card">
-
-            <span
-                class="workflow-card__step"
-                aria-hidden="true">
-                1
-            </span>
 
             <h2>
                 Upload weekly schedule
@@ -323,20 +317,21 @@
 
         </article>
 
+    </section>
 
 
-        <!-- Open pickup plan -->
+    <!-- =====================================================
+         PICKUP DEMAND DATE SELECTION
+         Available even when no plan exists for the selected date.
+         ===================================================== -->
 
-        <article class="workflow-card">
+    <section
+        class="workflow-card planning-date"
+        data-dashboard-section="demand"
+        aria-labelledby="planning-date-heading">
 
-            <span
-                class="workflow-card__step"
-                aria-hidden="true">
-                2
-            </span>
-
-            <h2>
-                Open a pickup plan
+            <h2 id="planning-date-heading">
+                Choose a planning date
             </h2>
 
             <p>
@@ -346,8 +341,9 @@
 
 
             <form
+                class="planning-date__form"
                 th:if="${scheduleUploaded}"
-                th:action="@{/app}"
+                th:action="@{/app#demand}"
                 method="get">
 
                 <div class="form-group">
@@ -368,7 +364,7 @@
                 <button
                     class="button"
                     type="submit">
-                    Open pickup plan
+                    View pickup demand
                 </button>
 
             </form>
@@ -379,6 +375,7 @@
                 class="alert alert--info">
 
                 Upload a schedule to make planning dates available.
+                <a href="#schedules">Go to Schedules</a>
 
             </div>
 
@@ -391,7 +388,7 @@
                 <a
                     class="date-chip"
                     th:each="availableDate : ${availableDates}"
-                    th:href="@{/app(date=${availableDate})}"
+                    th:href="@{/app(date=${availableDate})} + '#demand'"
                     th:attr="aria-current=${availableDate.equals(selectedDate)} ? 'date' : null"
                     th:text="${#temporals.format(availableDate, 'MMM d')}">
 
@@ -400,8 +397,6 @@
                 </a>
 
             </div>
-
-        </article>
 
     </section>
 
@@ -557,7 +552,7 @@
 
     <div
         th:if="${scheduleUploaded and !selectedDateAvailable}"
-        data-dashboard-section="schedules"
+        data-dashboard-section="demand"
         class="alert alert--warning"
         role="alert">
 
