@@ -62,6 +62,7 @@ public class SecurityConfig {
                         // can operate the organization.
                         .requestMatchers(
                                 "/app",
+                                "/driving-records",
                                 "/upload",
                                 "/drivers/**",
                                 "/assignments/**"
