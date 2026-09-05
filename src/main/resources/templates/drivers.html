@@ -23,7 +23,10 @@
         </a>
 
         <nav class="app-nav" aria-label="Primary navigation">
-            <a class="app-nav__link" th:href="@{/app}">Dashboard</a>
+            <a class="app-nav__link" th:href="@{/app#overview}">Overview</a>
+            <a class="app-nav__link" th:href="@{/app#schedules}">Schedules</a>
+            <a class="app-nav__link" th:href="@{/app#demand}">Pickup demand</a>
+            <a class="app-nav__link" th:href="@{/app#coverage}">Driver coverage</a>
             <a class="app-nav__link" th:href="@{/drivers}" aria-current="page">Drivers</a>
             <a
                 class="app-nav__link"
