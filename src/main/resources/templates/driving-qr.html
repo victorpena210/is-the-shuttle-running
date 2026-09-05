@@ -72,35 +72,52 @@
 
             <a
                 class="app-nav__link"
+                th:href="@{/app#overview}">
+                Overview
+            </a>
+
+            <a
+                class="app-nav__link"
+                th:href="@{/app#schedules}">
+                Schedules
+            </a>
+
+            <a
+                class="app-nav__link"
+                th:href="@{/app#demand}">
+                Pickup demand
+            </a>
+
+            <a
+                class="app-nav__link"
                 th:href="@{/app#coverage}">
-
                 Driver coverage
-
             </a>
 
             <a
                 class="app-nav__link"
                 th:href="@{/driving-records}">
-
                 Driving records
-
             </a>
 
             <a
                 class="app-nav__link"
                 th:href="@{/drivers}">
-
                 Drivers
-
             </a>
 
             <a
                 class="app-nav__link"
                 th:href="@{/driving-qr}"
                 aria-current="page">
-
                 Driving QR
+            </a>
 
+            <a
+                class="app-nav__link"
+                th:if="${isOwner}"
+                th:href="@{/organization/invitations}">
+                Managers
             </a>
 
             <form
@@ -146,13 +163,20 @@
 
             <p>
                 Print this QR code and place it inside the shuttle.
-                Assigned drivers scan the same code when they start
-                and when they stop driving.
+                Drivers scan this same code when they begin driving
+                and again when they finish.
             </p>
 
         </div>
 
     </header>
+
+    <div
+        th:if="${successMessage}"
+        class="alert alert--success"
+        role="status"
+        th:text="${successMessage}">
+    </div>
 
     <section
         class="panel panel--raised"
@@ -163,7 +187,7 @@
             <div>
 
                 <h2 id="qr-heading">
-                    Driver start / stop QR
+                    Current shuttle QR
                 </h2>
 
                 <p>
@@ -202,21 +226,95 @@
                 role="status"
                 style="margin-top:1rem;">
 
-                The QR code is specific to this organization.
-                It does not contain a driver ID or assignment ID.
-                RoutePulse determines the correct assignment from
-                the authenticated driver account and today’s schedule.
+                This QR belongs to this organization. It does not
+                identify a driver. RoutePulse identifies the driver
+                from the account that is signed in when the code is scanned.
 
             </div>
 
-            <button
-                class="button"
-                type="button"
-                onclick="window.print()">
+            <div class="button-row">
 
-                Print QR
+                <button
+                    class="button"
+                    type="button"
+                    onclick="window.print()">
 
-            </button>
+                    Print QR
+
+                </button>
+
+                <a
+                    class="button button--secondary"
+                    th:href="@{/drivers}">
+
+                    Back to drivers
+
+                </a>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <section
+        class="panel panel--raised"
+        aria-labelledby="regenerate-heading"
+        style="margin-top:1.5rem;">
+
+        <div class="panel__header">
+
+            <div>
+
+                <p class="eyebrow">
+                    Security control
+                </p>
+
+                <h2 id="regenerate-heading">
+                    Generate a new QR code
+                </h2>
+
+                <p>
+                    Use this if the current QR is lost, copied,
+                    damaged, or should no longer be accepted.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="panel__body">
+
+            <div
+                class="alert alert--warning"
+                role="alert">
+
+                <strong>
+                    The old QR will stop working immediately.
+                </strong>
+
+                After generating a new code, print it and replace
+                every old copy posted in the shuttle.
+
+            </div>
+
+            <form
+                th:action="@{/driving-qr/regenerate}"
+                method="post"
+                onsubmit="return window.confirm(
+                    'Generate a new shuttle QR code? '
+                    + 'The current QR will stop working immediately.'
+                );">
+
+                <button
+                    class="button button--secondary"
+                    type="submit">
+
+                    Generate new QR
+
+                </button>
+
+            </form>
 
         </div>
 
