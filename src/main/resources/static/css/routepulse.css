@@ -394,25 +394,6 @@ h3 {
     font-size: 0.9rem;
 }
 
-.date-chip-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.42rem;
-    margin-top: 1rem;
-}
-
-.date-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    padding: 0.36rem 0.62rem;
-    border: 1px solid var(--slate-200);
-    border-radius: 999px;
-    color: var(--slate-600);
-    background: var(--slate-50);
-    font-size: 0.76rem;
-    font-weight: 700;
-}
 
 /* Forms */
 .form-grid {
@@ -1894,21 +1875,103 @@ body.app-page:not([data-dashboard-view]) [data-plan-container] {
     margin-bottom: 1.5rem;
 }
 
-.planning-date__form {
+.planning-date__header {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-end;
-    gap: 0.75rem;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 1.15rem;
 }
 
-.planning-date__form .form-group {
-    flex: 0 1 18rem;
-    min-width: 0;
-    margin: 0;
+.planning-date__header h2 {
+    margin-bottom: 0.3rem;
 }
 
-.planning-date__form input {
-    min-width: 0;
+.planning-date__header p {
+    margin-bottom: 0;
+    color: var(--slate-500);
+    font-size: 0.9rem;
+}
+
+.planning-calendar {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+.planning-calendar__date {
+    position: relative;
+    display: grid;
+    min-height: 5.7rem;
+    place-items: center;
+    align-content: center;
+    gap: 0.06rem;
+    padding: 0.72rem 0.45rem;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    color: var(--slate-700);
+    background: var(--white);
+    text-align: center;
+    text-decoration: none;
+    box-shadow: var(--shadow-sm);
+    transition:
+        border-color 160ms ease,
+        box-shadow 160ms ease,
+        transform 160ms ease,
+        background 160ms ease;
+}
+
+.planning-calendar__date:hover {
+    border-color: var(--blue-500);
+    color: var(--ink-950);
+    background: var(--slate-50);
+    box-shadow: 0 8px 20px rgba(7, 17, 31, 0.08);
+    transform: translateY(-1px);
+}
+
+.planning-calendar__weekday {
+    color: var(--slate-500);
+    font-size: 0.67rem;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+
+.planning-calendar__day {
+    color: var(--ink-950);
+    font-size: 1.45rem;
+    line-height: 1.05;
+}
+
+.planning-calendar__month {
+    color: var(--slate-500);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.planning-calendar__date[aria-current="date"] {
+    border-color: var(--blue-600);
+    color: var(--white);
+    background: linear-gradient(145deg, var(--blue-600), #0ea5e9);
+    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.2);
+}
+
+.planning-calendar__date[aria-current="date"] .planning-calendar__weekday,
+.planning-calendar__date[aria-current="date"] .planning-calendar__day,
+.planning-calendar__date[aria-current="date"] .planning-calendar__month {
+    color: var(--white);
+}
+
+.planning-calendar__date[aria-current="date"]::after {
+    position: absolute;
+    width: 0.44rem;
+    height: 0.44rem;
+    top: 0.5rem;
+    right: 0.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.9);
+    border-radius: 50%;
+    background: var(--white);
+    content: "";
 }
 
 .planning-date > .alert a {
@@ -1919,15 +1982,18 @@ body[data-dashboard-view="schedules"] .page-date {
     display: none;
 }
 
-@media (max-width: 520px) {
-    .planning-date__form {
-        align-items: stretch;
+@media (max-width: 980px) {
+    .planning-calendar {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 620px) {
+    .planning-date__header {
         flex-direction: column;
     }
-
-    .planning-date__form .form-group {
-        flex-basis: auto;
-        width: 100%;
+    .planning-calendar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
