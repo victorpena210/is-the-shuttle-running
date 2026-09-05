@@ -75,14 +75,20 @@
 
             <a class="app-nav__link" href="#demand" data-dashboard-link="demand">Pickup demand</a>
 
-            <a class="app-nav__link" href="#coverage" data-dashboard-link="coverage">Driver coverage</a>
+			<a class="app-nav__link" href="#coverage" data-dashboard-link="coverage">Driver coverage</a>
 
-            <a
-                class="app-nav__link"
-                th:href="@{/drivers}">
-                Drivers
-            </a>
+			<a
+			    class="app-nav__link"
+			    th:href="@{/driving-records}">
+			    Driving records
+			</a>
 
+			<a
+			    class="app-nav__link"
+			    th:href="@{/drivers}">
+			    Drivers
+			</a>
+			
             <a
                 class="app-nav__link"
                 th:if="${isOwner}"
@@ -1092,14 +1098,84 @@
 
                     <!-- Driver assignments -->
 
-                    <div
-                        class="assignment-list"
-                        th:if="${!#lists.isEmpty(driverAssignments)}">
+					<div
+					    class="assignment-list"
+					    th:if="${!#lists.isEmpty(driverAssignments)}">
 
 
-                        <article
-                            class="assignment-card"
-                            th:each="assignment : ${driverAssignments}">
+					    <!-- Completed assignments stay compact here.
+					         Full details live in Driving records. -->
+
+					    <article
+					        class="assignment-card"
+					        th:each="assignment : ${driverAssignments}"
+					        th:if="${assignment.drivingCompleted}">
+
+					        <header class="assignment-card__header">
+
+					            <div class="assignment-card__title">
+
+					                <span
+					                    class="period-icon"
+					                    th:text="${assignment.period.name() == 'MORNING'} ? 'AM' : 'PM'">
+
+					                    AM
+
+					                </span>
+
+					                <div>
+
+					                    <h3
+					                        th:text="|Completed · ${assignment.finalDriver.name}|">
+
+					                        Completed · Driver
+
+					                    </h3>
+
+					                    <p>
+
+					                        <span
+					                            th:text="${#temporals.format(assignment.assignmentDate, 'MMM d, yyyy')}">
+
+					                            Aug 28, 2026
+
+					                        </span>
+
+					                        ·
+
+					                        <span
+					                            th:text="|${#temporals.format(assignment.actualStartedAt, 'h:mm a')}–${#temporals.format(assignment.actualEndedAt, 'h:mm a')}|">
+
+					                            9:03 AM–12:02 PM
+
+					                        </span>
+
+					                    </p>
+
+					                </div>
+
+					            </div>
+
+					            <a
+					                class="button button--secondary button--small"
+					                th:href="@{/driving-records(from=${assignment.assignmentDate},to=${assignment.assignmentDate})} + '#record-' + ${assignment.id}">
+
+					                View record
+
+					            </a>
+
+					        </header>
+
+					    </article>
+
+
+					    <!-- Not-started and in-progress assignments retain
+					         all operating controls on Driver coverage. -->
+
+					    <article
+					        class="assignment-card"
+					        th:each="assignment : ${driverAssignments}"
+					        th:unless="${assignment.drivingCompleted}">
 
 
                             <header class="assignment-card__header">
