@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1">
+
+    <meta
+        name="theme-color"
+        content="#07111f">
+
+    <title>
+        Driving QR | RoutePulse
+    </title>
+
+    <link
+        rel="icon"
+        th:href="@{/images/routepulse-mark.svg}"
+        type="image/svg+xml">
+
+    <link
+        rel="stylesheet"
+        th:href="@{/css/routepulse.css}">
+
+</head>
+
+<body class="public-page">
+
+<main class="public-shell">
+
+    <section
+        class="public-story"
+        aria-labelledby="scan-story-heading">
+
+        <a
+            class="brand"
+            th:href="@{/driver}"
+            aria-label="RoutePulse driver home">
+
+            <img
+                class="brand-mark"
+                th:src="@{/images/routepulse-mark.svg}"
+                alt="">
+
+            <span class="brand-copy">
+
+                <span class="brand-name">
+                    RoutePulse
+                </span>
+
+                <span class="brand-tagline">
+                    Driver check-in
+                </span>
+
+            </span>
+
+        </a>
+
+        <p class="public-kicker">
+            Shuttle QR
+        </p>
+
+        <h1 id="scan-story-heading">
+            Record the drive at the shuttle.
+        </h1>
+
+        <p>
+            RoutePulse uses your signed-in driver account
+            and today’s assignment to determine whether
+            this scan starts or ends your drive.
+        </p>
+
+    </section>
+
+    <section
+        class="auth-panel"
+        aria-labelledby="scan-heading">
+
+        <p class="eyebrow">
+            Driving record
+        </p>
+
+        <h1 id="scan-heading">
+            Confirm QR scan
+        </h1>
+
+        <div
+            th:if="${scanError}"
+            class="alert alert--error"
+            role="alert"
+            th:text="${scanError}">
+        </div>
+
+        <div
+            th:if="${scanError == null}">
+
+            <p class="auth-panel__intro">
+
+                <strong
+                    th:text="${driver.name}">
+                    Driver Name
+                </strong>,
+
+                RoutePulse matched this scan to your
+
+                <strong
+                    th:text="${assignment.period}">
+                    MORNING
+                </strong>
+
+                assignment for
+
+                <strong
+                    th:text="${#temporals.format(assignment.assignmentDate, 'MMMM d, yyyy')}">
+                    September 4, 2026
+                </strong>.
+
+            </p>
+
+            <div class="form-group">
+
+                <span class="field-label">
+                    Scheduled time
+                </span>
+
+                <div
+                    class="readonly-field"
+                    th:text="${#temporals.format(assignment.scheduledStartTime, 'h:mm a') + ' – ' + #temporals.format(assignment.scheduledEndTime, 'h:mm a')}">
+
+                    9:00 AM – 12:00 PM
+
+                </div>
+
+            </div>
+
+            <div class="form-group">
+
+                <span class="field-label">
+                    Action
+                </span>
+
+                <div
+                    class="readonly-field"
+                    th:text="${scanAction.name() == 'START'} ? 'Start driving' : 'End driving'">
+
+                    Start driving
+
+                </div>
+
+            </div>
+
+            <form
+                th:action="@{/driver/scan}"
+                method="post">
+
+                <input
+                    type="hidden"
+                    name="code"
+                    th:value="${qrCode}">
+
+                <button
+                    class="button button--block"
+                    type="submit"
+                    th:text="${scanAction.name() == 'START'} ? 'Confirm start driving' : 'Confirm end driving'">
+
+                    Confirm
+
+                </button>
+
+            </form>
+
+        </div>
+
+        <p class="auth-panel__footer">
+
+            <a th:href="@{/driver}">
+                Back to my driver profile
+            </a>
+
+        </p>
+
+    </section>
+
+</main>
+
+<footer
+    th:replace="~{fragments/footer :: footer('public')}">
+</footer>
+
+</body>
+
+</html>

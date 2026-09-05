@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1">
+
+    <meta
+        name="theme-color"
+        content="#07111f">
+
+    <title>
+        My Driver Profile | RoutePulse
+    </title>
+
+    <link
+        rel="icon"
+        th:href="@{/images/routepulse-mark.svg}"
+        type="image/svg+xml">
+
+    <link
+        rel="stylesheet"
+        th:href="@{/css/routepulse.css}">
+
+</head>
+
+<body class="app-page">
+
+<a
+    class="skip-link"
+    href="#main-content">
+    Skip to main content
+</a>
+
+<header class="app-topbar">
+
+    <div class="app-topbar__inner">
+
+        <a
+            class="brand"
+            th:href="@{/driver}"
+            aria-label="RoutePulse driver home">
+
+            <img
+                class="brand-mark"
+                th:src="@{/images/routepulse-mark.svg}"
+                alt="">
+
+            <span class="brand-copy">
+
+                <span class="brand-name">
+                    RoutePulse
+                </span>
+
+                <span class="brand-tagline">
+                    Driver account
+                </span>
+
+            </span>
+
+        </a>
+
+        <nav
+            class="app-nav"
+            aria-label="Driver navigation">
+
+            <a
+                class="app-nav__link"
+                th:href="@{/driver}"
+                aria-current="page">
+
+                My profile
+
+            </a>
+
+            <form
+                class="app-nav__form"
+                th:action="@{/logout}"
+                method="post">
+
+                <button
+                    class="app-nav__button"
+                    type="submit">
+
+                    Sign out
+
+                </button>
+
+            </form>
+
+        </nav>
+
+    </div>
+
+</header>
+
+<main
+    id="main-content"
+    class="app-main">
+
+    <header class="page-header">
+
+        <div>
+
+            <p
+                class="eyebrow"
+                th:text="${organizationName}">
+
+                Organization
+
+            </p>
+
+            <h1
+                th:text="${driver.name}">
+
+                Driver Name
+
+            </h1>
+
+            <p>
+                Your RoutePulse driver profile,
+                today’s shuttle assignments,
+                and recent driving records.
+            </p>
+
+        </div>
+
+    </header>
+
+    <div
+        th:if="${successMessage}"
+        class="alert alert--success"
+        role="status"
+        th:text="${successMessage}">
+    </div>
+
+    <div
+        th:if="${errorMessage}"
+        class="alert alert--error"
+        role="alert"
+        th:text="${errorMessage}">
+    </div>
+
+    <section
+        class="panel panel--raised"
+        aria-labelledby="profile-heading">
+
+        <div class="panel__header">
+
+            <div>
+
+                <h2 id="profile-heading">
+                    My profile
+                </h2>
+
+                <p>
+                    Your driver identity is linked to the employee record your manager registered.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="panel__body">
+
+            <div class="form-grid">
+
+                <div class="form-group">
+
+                    <span class="field-label">
+                        Employee ID
+                    </span>
+
+                    <div
+                        class="readonly-field mono"
+                        th:text="${driver.employeeId}">
+
+                        123456
+
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+
+                    <span class="field-label">
+                        Email
+                    </span>
+
+                    <div
+                        class="readonly-field"
+                        th:text="${driver.email}">
+
+                        driver@example.com
+
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+
+                    <span class="field-label">
+                        Driver status
+                    </span>
+
+                    <div
+                        class="readonly-field"
+                        th:text="${driver.active ? 'Active' : 'Inactive'}">
+
+                        Active
+
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+
+                    <span class="field-label">
+                        Operations date
+                    </span>
+
+                    <div
+                        class="readonly-field"
+                        th:text="${#temporals.format(today, 'EEEE, MMMM d, yyyy')}">
+
+                        Friday, September 4, 2026
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+    <section
+        aria-labelledby="today-heading">
+
+        <div class="section-heading">
+
+            <div>
+
+                <h2 id="today-heading">
+                    Today’s assignments
+                </h2>
+
+                <p>
+                    Scan the QR code posted in the shuttle
+                    when you begin driving and again when you finish.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="table-shell">
+
+            <table>
+
+                <thead>
+
+                <tr>
+                    <th scope="col">Period</th>
+                    <th scope="col">Scheduled</th>
+                    <th scope="col">Actual start</th>
+                    <th scope="col">Actual end</th>
+                    <th scope="col">Status</th>
+                </tr>
+
+                </thead>
+
+                <tbody>
+
+                <tr
+                    th:each="assignment : ${todayAssignments}">
+
+                    <td
+                        th:text="${assignment.period}">
+
+                        MORNING
+
+                    </td>
+
+                    <td>
+
+                        <span
+                            th:if="${assignment.scheduledStartTime != null and assignment.scheduledEndTime != null}"
+                            th:text="${#temporals.format(assignment.scheduledStartTime, 'h:mm a') + ' – ' + #temporals.format(assignment.scheduledEndTime, 'h:mm a')}">
+
+                            9:00 AM – 12:00 PM
+
+                        </span>
+
+                        <span
+                            th:unless="${assignment.scheduledStartTime != null and assignment.scheduledEndTime != null}">
+
+                            Not set
+
+                        </span>
+
+                    </td>
+
+                    <td
+                        th:text="${assignment.actualStartedAt != null ? #temporals.format(assignment.actualStartedAt, 'h:mm a') : '—'}">
+
+                        —
+
+                    </td>
+
+                    <td
+                        th:text="${assignment.actualEndedAt != null ? #temporals.format(assignment.actualEndedAt, 'h:mm a') : '—'}">
+
+                        —
+
+                    </td>
+
+                    <td>
+
+                        <span
+                            class="badge badge--active"
+                            th:if="${assignment.driving}">
+
+                            Driving now
+
+                        </span>
+
+                        <span
+                            class="badge badge--inactive"
+                            th:if="${assignment.drivingCompleted}">
+
+                            Completed
+
+                        </span>
+
+                        <span
+                            class="badge"
+                            th:if="${!assignment.driving and !assignment.drivingCompleted}">
+
+                            Not started
+
+                        </span>
+
+                    </td>
+
+                </tr>
+
+                <tr
+                    th:if="${#lists.isEmpty(todayAssignments)}">
+
+                    <td
+                        class="empty-cell"
+                        colspan="5">
+
+                        You do not have a driving assignment for today.
+
+                    </td>
+
+                </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+    <section
+        aria-labelledby="recent-heading">
+
+        <div class="section-heading">
+
+            <div>
+
+                <h2 id="recent-heading">
+                    Recent driving records
+                </h2>
+
+                <p>
+                    Your latest assignments and recorded actual driving times.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="table-shell">
+
+            <table>
+
+                <thead>
+
+                <tr>
+                    <th scope="col">Date</th>
+                    <th scope="col">Period</th>
+                    <th scope="col">Scheduled hours</th>
+                    <th scope="col">Actual hours</th>
+                    <th scope="col">Status</th>
+                </tr>
+
+                </thead>
+
+                <tbody>
+
+                <tr
+                    th:each="assignment : ${recentAssignments}">
+
+                    <td
+                        th:text="${#temporals.format(assignment.assignmentDate, 'MMM d, yyyy')}">
+
+                        Sep 4, 2026
+
+                    </td>
+
+                    <td
+                        th:text="${assignment.period}">
+
+                        MORNING
+
+                    </td>
+
+                    <td
+                        th:text="${#numbers.formatDecimal(assignment.scheduledHours, 1, 2)}">
+
+                        3.00
+
+                    </td>
+
+                    <td
+                        th:text="${assignment.drivingCompleted ? #numbers.formatDecimal(assignment.actualHours, 1, 2) : '—'}">
+
+                        —
+
+                    </td>
+
+                    <td>
+
+                        <span
+                            class="badge badge--active"
+                            th:if="${assignment.driving}">
+
+                            Driving now
+
+                        </span>
+
+                        <span
+                            class="badge badge--inactive"
+                            th:if="${assignment.drivingCompleted}">
+
+                            Completed
+
+                        </span>
+
+                        <span
+                            class="badge"
+                            th:if="${!assignment.driving and !assignment.drivingCompleted}">
+
+                            Scheduled
+
+                        </span>
+
+                    </td>
+
+                </tr>
+
+                <tr
+                    th:if="${#lists.isEmpty(recentAssignments)}">
+
+                    <td
+                        class="empty-cell"
+                        colspan="5">
+
+                        No driving records are available yet.
+
+                    </td>
+
+                </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+</main>
+
+<footer
+    th:replace="~{fragments/footer :: footer('app')}">
+</footer>
+
+</body>
+
+</html>

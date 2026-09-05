@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import technology.renatus.routepulse.model.OrganizationInvitation;
+import technology.renatus.routepulse.model.OrganizationRole;
 
 public interface OrganizationInvitationRepository
         extends JpaRepository<
@@ -24,14 +25,16 @@ public interface OrganizationInvitationRepository
             );
 
     List<OrganizationInvitation>
-            findAllByOrganization_IdOrderByCreatedAtDesc(
-                    Long organizationId
+            findAllByOrganization_IdAndRoleOrderByCreatedAtDesc(
+                    Long organizationId,
+                    OrganizationRole role
             );
 
     @Query("""
             SELECT invitation
             FROM OrganizationInvitation invitation
             JOIN FETCH invitation.organization
+            LEFT JOIN FETCH invitation.driver
             WHERE invitation.tokenHash = :tokenHash
             """)
     Optional<OrganizationInvitation>
@@ -45,6 +48,7 @@ public interface OrganizationInvitationRepository
             SELECT invitation
             FROM OrganizationInvitation invitation
             JOIN FETCH invitation.organization
+            LEFT JOIN FETCH invitation.driver
             WHERE invitation.tokenHash = :tokenHash
             """)
     Optional<OrganizationInvitation>

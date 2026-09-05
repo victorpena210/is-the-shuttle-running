@@ -21,7 +21,8 @@ import jakarta.persistence.UniqueConstraint;
         name = "organization_invitations",
         uniqueConstraints = {
                 @UniqueConstraint(
-                        name = "uk_organization_invitations_org_email",
+                        name =
+                                "uk_organization_invitations_org_email",
                         columnNames = {
                                 "organization_id",
                                 "invited_email"
@@ -54,6 +55,10 @@ public class OrganizationInvitation {
             nullable = false
     )
     private UserAccount invitedBy;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "driver_id")
+    private Driver driver;
 
     @Column(
             name = "invited_email",
@@ -99,6 +104,7 @@ public class OrganizationInvitation {
     public OrganizationInvitation(
             Organization organization,
             UserAccount invitedBy,
+            Driver driver,
             String invitedEmail,
             OrganizationRole role,
             String tokenHash,
@@ -106,6 +112,7 @@ public class OrganizationInvitation {
 
         this.organization = organization;
         this.invitedBy = invitedBy;
+        this.driver = driver;
         this.invitedEmail = invitedEmail;
         this.role = role;
         this.tokenHash = tokenHash;
@@ -127,6 +134,10 @@ public class OrganizationInvitation {
 
     public UserAccount getInvitedBy() {
         return invitedBy;
+    }
+
+    public Driver getDriver() {
+        return driver;
     }
 
     public String getInvitedEmail() {
@@ -165,10 +176,14 @@ public class OrganizationInvitation {
 
     public void refresh(
             UserAccount invitedBy,
+            Driver driver,
+            OrganizationRole role,
             String tokenHash,
             LocalDateTime expiresAt) {
 
         this.invitedBy = invitedBy;
+        this.driver = driver;
+        this.role = role;
         this.tokenHash = tokenHash;
         this.expiresAt = expiresAt;
         this.acceptedAt = null;
