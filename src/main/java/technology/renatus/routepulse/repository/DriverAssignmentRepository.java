@@ -37,6 +37,37 @@ public interface DriverAssignmentRepository
                     LocalDate assignmentDate
             );
 
+    @Query("""
+            SELECT assignment
+            FROM DriverAssignment assignment
+            WHERE assignment.organization.id = :organizationId
+              AND (assignment.assignmentDate = :assignmentDate
+                   OR (assignment.actualStartedAt IS NOT NULL
+                       AND assignment.actualEndedAt IS NULL))
+            ORDER BY assignment.id
+            """)
+    List<DriverAssignment> findTodayOrActiveByOrganization(
+            @Param("organizationId") Long organizationId,
+            @Param("assignmentDate") LocalDate assignmentDate);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT assignment
+            FROM DriverAssignment assignment
+            WHERE assignment.organization.id = :organizationId
+              AND (assignment.assignmentDate = :assignmentDate
+                   OR (assignment.actualStartedAt IS NOT NULL
+                       AND assignment.actualEndedAt IS NULL))
+            ORDER BY assignment.id
+            """)
+    List<DriverAssignment> findTodayOrActiveForUpdateByOrganization(
+            @Param("organizationId") Long organizationId,
+            @Param("assignmentDate") LocalDate assignmentDate);
+
+    Optional<DriverAssignment>
+            findFirstByOrganization_IdAndActualStartedAtIsNotNullAndActualEndedAtIsNullOrderByActualStartedAtDesc(
+                    Long organizationId);
+
     Optional<DriverAssignment>
             findByIdAndOrganization_Id(
                     Long assignmentId,
