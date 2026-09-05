@@ -106,6 +106,16 @@ public class DriverPortalController {
             );
 
             model.addAttribute(
+                    "overrideRequired",
+                    preview.overrideRequired()
+            );
+
+            model.addAttribute(
+                    "scheduledDriver",
+                    preview.scheduledDriver()
+            );
+
+            model.addAttribute(
                     "organizationName",
                     preview
                             .driver()
@@ -148,11 +158,30 @@ public class DriverPortalController {
                             .ScanAction
                             .START) {
 
-                redirectAttributes
-                        .addFlashAttribute(
-                                "successMessage",
-                                "Driving started. RoutePulse recorded your actual start time."
-                        );
+                if (result.overridePerformed()
+                        && result.previousDriver()
+                        != null) {
+
+                    redirectAttributes
+                            .addFlashAttribute(
+                                    "successMessage",
+                                    "Driving started. You automatically took over the "
+                                            + result.assignment()
+                                                    .getPeriod()
+                                            + " shift from "
+                                            + result.previousDriver()
+                                                    .getName()
+                                            + ". RoutePulse recorded you as the actual driver and saved your actual start time."
+                            );
+
+                } else {
+
+                    redirectAttributes
+                            .addFlashAttribute(
+                                    "successMessage",
+                                    "Driving started. RoutePulse recorded your actual start time."
+                            );
+                }
 
             } else {
 
