@@ -31,6 +31,12 @@ public interface DriverAssignmentRepository
                     ShuttlePeriod period
             );
 
+    Optional<DriverAssignment>
+            findFirstByOrganization_IdAndAssignmentDateAndActualStartedAtIsNotNullAndActualEndedAtIsNullOrderByActualStartedAtDesc(
+                    Long organizationId,
+                    LocalDate assignmentDate
+            );
+
     List<DriverAssignment>
             findAllByOrganization_IdAndDriver_IdAndAssignmentDate(
                     Long organizationId,

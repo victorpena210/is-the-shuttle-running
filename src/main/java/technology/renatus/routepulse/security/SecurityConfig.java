@@ -50,6 +50,7 @@ public class SecurityConfig {
                                         "/invitations/accept",
                                         "/forgot-password",
                                         "/reset-password",
+                                        "/ride/**",
                                         "/css/**",
                                         "/js/**",
                                         "/images/**",

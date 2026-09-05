@@ -114,6 +114,11 @@ public class PickupPlanningController {
                 organization.getDisplayName()
         );
 
+        model.addAttribute(
+                "organizationSlug",
+                organization.getSlug()
+        );
+
         boolean isOwner =
                 authentication
                         .getAuthorities()
