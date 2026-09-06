@@ -4,185 +4,538 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#07111f">
-    <meta name="description" content="RoutePulse is an employee shuttle operations platform that turns workforce schedules into pickup demand, driver coverage, live shuttle status, and verified driving records. Currently available through a limited demo program.">
+    <meta
+        name="description"
+        content="RoutePulse is an employee shuttle operations platform that turns workforce schedules into pickup demand, driver coverage, live shuttle status, and verified driving records. Currently available through a limited demo program.">
+
     <title>RoutePulse | Employee Shuttle Operations Demo</title>
-    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
-    <link rel="stylesheet" th:href="@{/css/routepulse.css}">
+
+    <link
+        rel="icon"
+        th:href="@{/images/routepulse-mark.svg}"
+        type="image/svg+xml">
+
+    <link
+        rel="stylesheet"
+        th:href="@{/css/routepulse.css}">
 </head>
 
 <body class="landing-page">
-<a class="skip-link" href="#main-content">Skip to main content</a>
+
+<a
+    class="skip-link"
+    href="#main-content">
+    Skip to main content
+</a>
+
 
 <header class="landing-nav">
+
     <div class="landing-nav__inner">
-        <a class="brand" th:href="@{/}" aria-label="RoutePulse home">
-            <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+
+        <a
+            class="brand"
+            th:href="@{/}"
+            aria-label="RoutePulse home">
+
+            <img
+                class="brand-mark"
+                th:src="@{/images/routepulse-mark.svg}"
+                alt="">
+
             <span class="brand-copy">
-                <span class="brand-name">RoutePulse</span>
-                <span class="brand-tagline">Shuttle operations</span>
+
+                <span class="brand-name">
+                    RoutePulse
+                </span>
+
+                <span class="brand-tagline">
+                    Shuttle operations
+                </span>
+
             </span>
+
         </a>
 
-        <nav class="landing-nav__links" aria-label="Primary navigation">
-            <a href="#how-it-works">How it works</a>
-            <a href="#demo-request">Demo program</a>
+
+        <nav
+            class="landing-nav__links"
+            aria-label="Primary navigation">
+
+            <a href="#how-it-works">
+                How it works
+            </a>
+
+            <a href="#demo-request">
+                Demo program
+            </a>
+
+
             <a
                 class="button button--small"
                 th:if="${signedIn}"
                 th:href="@{/app}">
                 Open dashboard
             </a>
+
+
             <a
                 class="button button--small"
                 th:unless="${signedIn}"
                 th:href="@{/login}">
                 Sign in
             </a>
+
         </nav>
+
     </div>
+
 </header>
 
+
 <main id="main-content">
+
+
+    <!-- =====================================================
+         HERO
+         ===================================================== -->
+
     <section class="landing-hero">
+
         <div class="landing-hero__inner">
+
             <div class="landing-hero__copy">
+
                 <div class="landing-status">
-                    <span class="landing-status__dot" aria-hidden="true"></span>
+
+                    <span
+                        class="landing-status__dot"
+                        aria-hidden="true">
+                    </span>
+
                     Limited demo phase
+
                 </div>
 
-                <p class="public-kicker">Transportation operations, made clearer</p>
-                <h1>Turn employee schedules into a shuttle operation your team can actually run.</h1>
-                <p class="landing-hero__lead">
-                    RoutePulse turns workforce schedules into pickup demand, driver coverage, live shuttle status,
-                    and verified driving records — all in one operating workspace. Managers can plan coverage,
-                    drivers can record when they actually start and stop with the shuttle QR, and employees can
-                    check whether the shuttle is running without contacting a manager.
+
+                <p class="public-kicker">
+                    Transportation operations, made clearer
                 </p>
+
+
+                <h1>
+                    Turn employee schedules into a shuttle operation
+                    your team can actually run.
+                </h1>
+
+
+                <p class="landing-hero__lead">
+
+                    RoutePulse turns workforce schedules into pickup
+                    demand, driver coverage, live shuttle status,
+                    and verified driving records — all in one
+                    operating workspace.
+
+                    Managers can plan coverage, drivers can record
+                    when they actually start and stop with the
+                    shuttle QR, and employees can check whether
+                    the shuttle is running without contacting a
+                    manager.
+
+                </p>
+
 
                 <div class="landing-hero__actions">
-                    <a class="button" href="#demo-request">Request demo access</a>
-                    <a class="button button--ghost" th:href="@{/login}">Existing user sign in</a>
+
+                    <a
+                        class="button"
+                        href="#demo-request">
+                        Request demo access
+                    </a>
+
+
+                    <a
+                        class="button button--ghost"
+                        th:href="@{/login}">
+                        Existing user sign in
+                    </a>
+
                 </div>
+
 
                 <p class="landing-hero__note">
-                    RoutePulse is currently being tested with a limited number of organizations before a wider release.
+
+                    RoutePulse is currently being tested with a
+                    limited number of organizations before a
+                    wider release.
+
                 </p>
+
             </div>
 
-            <div class="landing-product-card" aria-label="RoutePulse workflow preview">
+
+            <div
+                class="landing-product-card"
+                aria-label="RoutePulse workflow preview">
+
                 <div class="landing-product-card__topline">
-                    <span>Operations day</span>
-                    <span class="badge badge--active">Ready</span>
+
+                    <span>
+                        Operations day
+                    </span>
+
+                    <span class="badge badge--active">
+                        Ready
+                    </span>
+
                 </div>
+
 
                 <div class="landing-metric">
-                    <span>Schedule import</span>
-                    <strong>Employee shifts</strong>
-                    <small>Newest upload becomes the operating source.</small>
+
+                    <span>
+                        Schedule import
+                    </span>
+
+                    <strong>
+                        Employee shifts
+                    </strong>
+
+                    <small>
+                        Newest upload becomes the operating source.
+                    </small>
+
                 </div>
 
-                <div class="landing-route-flow" aria-hidden="true">
-                    <span class="landing-route-node">1</span>
-                    <span class="landing-route-bar"></span>
-                    <span class="landing-route-node">2</span>
-                    <span class="landing-route-bar"></span>
-                    <span class="landing-route-node landing-route-node--final">3</span>
+
+                <div
+                    class="landing-route-flow"
+                    aria-hidden="true">
+
+                    <span class="landing-route-node">
+                        1
+                    </span>
+
+                    <span class="landing-route-bar">
+                    </span>
+
+                    <span class="landing-route-node">
+                        2
+                    </span>
+
+                    <span class="landing-route-bar">
+                    </span>
+
+                    <span
+                        class="landing-route-node
+                               landing-route-node--final">
+                        3
+                    </span>
+
                 </div>
+
 
                 <div class="landing-mini-grid">
+
                     <div>
-                        <span>Plan</span>
-                        <strong>Demand + coverage</strong>
+
+                        <span>
+                            Plan
+                        </span>
+
+                        <strong>
+                            Demand + coverage
+                        </strong>
+
                     </div>
+
+
                     <div>
-                        <span>Live</span>
-                        <strong>QR + rider status</strong>
+
+                        <span>
+                            Live
+                        </span>
+
+                        <strong>
+                            QR + rider status
+                        </strong>
+
                     </div>
+
+
                     <div>
-                        <span>Record</span>
-                        <strong>Actual drive times</strong>
+
+                        <span>
+                            Record
+                        </span>
+
+                        <strong>
+                            Actual drive times
+                        </strong>
+
                     </div>
+
                 </div>
+
             </div>
+
         </div>
+
     </section>
 
-    <section class="landing-section" id="how-it-works" aria-labelledby="how-heading">
+
+    <!-- =====================================================
+         HOW IT WORKS
+         ===================================================== -->
+
+    <section
+        class="landing-section"
+        id="how-it-works"
+        aria-labelledby="how-heading">
+
         <div class="landing-section__inner">
+
             <div class="landing-section__heading">
-                <p class="eyebrow">One operating workflow</p>
-                <h2 id="how-heading">From workforce schedule to live shuttle operation and completed record.</h2>
-                <p>
-                    RoutePulse connects planning, live driver activity, rider communication, and operating records
-                    so managers can see what should happen, what is happening now, and what actually happened.
+
+                <p class="eyebrow">
+                    One operating workflow
                 </p>
+
+
+                <h2 id="how-heading">
+
+                    From workforce schedule to live shuttle
+                    operation and completed record.
+
+                </h2>
+
+
+                <p>
+
+                    RoutePulse connects planning, live driver
+                    activity, rider communication, and operating
+                    records so managers can see what should happen,
+                    what is happening now, and what actually happened.
+
+                </p>
+
             </div>
+
 
             <div class="landing-feature-grid">
-                <article class="landing-feature-card">
-                    <span class="landing-feature-card__number">01</span>
-                    <h3>Understand demand</h3>
-                    <p>Upload workforce schedules and turn end-of-shift activity into pickup windows.</p>
-                </article>
+
 
                 <article class="landing-feature-card">
-                    <span class="landing-feature-card__number">02</span>
-                    <h3>Plan driver coverage</h3>
-                    <p>See which registered drivers are working, assign coverage, set driving times, and record changes or overrides.</p>
+
+                    <span class="landing-feature-card__number">
+                        01
+                    </span>
+
+                    <h3>
+                        Understand demand
+                    </h3>
+
+                    <p>
+                        Upload workforce schedules and turn
+                        end-of-shift activity into pickup windows.
+                    </p>
+
                 </article>
 
-                <article class="landing-feature-card">
-                    <span class="landing-feature-card__number">03</span>
-                    <h3>Run the shuttle</h3>
-                    <p>Drivers scan the shuttle QR when they begin and finish. RoutePulse records who actually drove and when, including fill-in drivers.</p>
-                </article>
 
                 <article class="landing-feature-card">
-                    <span class="landing-feature-card__number">04</span>
-                    <h3>Keep everyone informed</h3>
-                    <p>Employees can check whether the shuttle is running and who is driving, while managers retain a scheduled-versus-actual operating record.</p>
+
+                    <span class="landing-feature-card__number">
+                        02
+                    </span>
+
+                    <h3>
+                        Plan driver coverage
+                    </h3>
+
+                    <p>
+                        See which registered drivers are working,
+                        assign coverage, set driving times, and
+                        record changes or overrides.
+                    </p>
+
                 </article>
+
+
+                <article class="landing-feature-card">
+
+                    <span class="landing-feature-card__number">
+                        03
+                    </span>
+
+                    <h3>
+                        Run the shuttle
+                    </h3>
+
+                    <p>
+                        Drivers scan the shuttle QR when they begin
+                        and finish. RoutePulse records who actually
+                        drove and when, including fill-in drivers.
+                    </p>
+
+                </article>
+
+
+                <article class="landing-feature-card">
+
+                    <span class="landing-feature-card__number">
+                        04
+                    </span>
+
+                    <h3>
+                        Keep everyone informed
+                    </h3>
+
+                    <p>
+                        Employees can check whether the shuttle is
+                        running and who is driving, while managers
+                        retain a scheduled-versus-actual operating
+                        record.
+                    </p>
+
+                </article>
+
             </div>
+
         </div>
+
     </section>
 
-    <section class="landing-section landing-section--dark" aria-labelledby="demo-heading">
+
+    <!-- =====================================================
+         DEMO PROGRAM
+         ===================================================== -->
+
+    <section
+        class="landing-section landing-section--dark"
+        aria-labelledby="demo-heading">
+
         <div class="landing-section__inner landing-demo-layout">
+
+
             <div class="landing-demo-copy">
-                <p class="public-kicker">Demo program</p>
-                <h2 id="demo-heading">Help shape RoutePulse before the broader launch.</h2>
-                <p>
-                    We are currently working with a limited group of organizations to test RoutePulse in real operating environments.
-                    Demo participants can evaluate the workflow, provide feedback, and help identify the features that matter most in day-to-day transportation operations.
+
+                <p class="public-kicker">
+                    Demo program
                 </p>
+
+
+                <h2 id="demo-heading">
+                    Help shape RoutePulse before the broader launch.
+                </h2>
+
+
+                <p>
+
+                    We are currently working with a limited group
+                    of organizations to test RoutePulse in real
+                    operating environments.
+
+                    Demo participants can evaluate the workflow,
+                    provide feedback, and help identify the
+                    features that matter most in day-to-day
+                    transportation operations.
+
+                </p>
+
 
                 <div class="landing-demo-points">
+
+
                     <div>
-                        <strong>Real operating use</strong>
-                        <span>Test the workflow against your team’s transportation process.</span>
+
+                        <strong>
+                            Real operating use
+                        </strong>
+
+                        <span>
+                            Test the workflow against your team’s
+                            transportation process.
+                        </span>
+
                     </div>
+
+
                     <div>
-                        <strong>Direct feedback</strong>
-                        <span>Tell us where the product helps and where the workflow needs improvement.</span>
+
+                        <strong>
+                            Direct feedback
+                        </strong>
+
+                        <span>
+                            Tell us where the product helps and
+                            where the workflow needs improvement.
+                        </span>
+
                     </div>
+
+
                     <div>
-                        <strong>Limited availability</strong>
-                        <span>Demo access is reviewed individually while the platform is still in active testing.</span>
+
+                        <strong>
+                            Limited availability
+                        </strong>
+
+                        <span>
+                            Demo access is reviewed individually
+                            while the platform is still in active
+                            testing.
+                        </span>
+
                     </div>
+
+
                 </div>
+
             </div>
 
-            <section class="demo-request-card" id="demo-request" aria-labelledby="request-heading">
-                <p class="eyebrow">Request access</p>
-                <h2 id="request-heading">Tell us about your operation.</h2>
-                <p class="demo-request-card__intro">
-                    Submit your information and we’ll follow up about whether RoutePulse is a fit for the current demo phase.
+
+            <!-- =================================================
+                 DEMO REQUEST FORM
+                 ================================================= -->
+
+            <section
+                class="demo-request-card"
+                id="demo-request"
+                aria-labelledby="request-heading">
+
+
+                <p class="eyebrow">
+                    Request access
                 </p>
 
-                <div th:if="${param.demoRequestSent}" class="alert alert--success" role="status">
-                    Your demo request was sent. We’ll follow up using the email address you provided.
+
+                <h2 id="request-heading">
+                    Tell us about your operation.
+                </h2>
+
+
+                <p class="demo-request-card__intro">
+
+                    Submit your information and we’ll follow up
+                    about whether RoutePulse is a fit for the
+                    current demo phase.
+
+                </p>
+
+
+                <!-- SUCCESS MESSAGE -->
+
+                <div
+                    th:if="${demoRequestSent}"
+                    class="alert alert--success"
+                    role="status">
+
+                    Your demo request was sent. We’ll follow up
+                    using the email address you provided.
+
                 </div>
+
 
                 <form
                     class="demo-request-form"
@@ -190,15 +543,34 @@
                     th:object="${demoRequestForm}"
                     method="post">
 
-                    <div th:if="${#fields.hasGlobalErrors()}" class="error-summary" role="alert">
-                        <p th:each="error : ${#fields.globalErrors()}" th:text="${error}">
+
+                    <!-- GLOBAL FORM ERROR -->
+
+                    <div
+                        th:if="${#fields.hasGlobalErrors()}"
+                        class="error-summary"
+                        role="alert">
+
+                        <p
+                            th:each="error : ${#fields.globalErrors()}"
+                            th:text="${error}">
                             Demo request error
                         </p>
+
                     </div>
 
+
                     <div class="form-grid">
+
+
+                        <!-- NAME -->
+
                         <div class="form-group">
-                            <label for="name">Your name</label>
+
+                            <label for="name">
+                                Your name
+                            </label>
+
                             <input
                                 type="text"
                                 id="name"
@@ -206,11 +578,24 @@
                                 autocomplete="name"
                                 maxlength="150"
                                 required>
-                            <p th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="field-error"></p>
+
+                            <p
+                                th:if="${#fields.hasErrors('name')}"
+                                th:errors="*{name}"
+                                class="field-error">
+                            </p>
+
                         </div>
 
+
+                        <!-- EMAIL -->
+
                         <div class="form-group">
-                            <label for="email">Work email</label>
+
+                            <label for="email">
+                                Work email
+                            </label>
+
                             <input
                                 type="email"
                                 id="email"
@@ -219,11 +604,24 @@
                                 inputmode="email"
                                 maxlength="254"
                                 required>
-                            <p th:if="${#fields.hasErrors('email')}" th:errors="*{email}" class="field-error"></p>
+
+                            <p
+                                th:if="${#fields.hasErrors('email')}"
+                                th:errors="*{email}"
+                                class="field-error">
+                            </p>
+
                         </div>
 
+
+                        <!-- ORGANIZATION -->
+
                         <div class="form-group">
-                            <label for="organizationName">Organization</label>
+
+                            <label for="organizationName">
+                                Organization
+                            </label>
+
                             <input
                                 type="text"
                                 id="organizationName"
@@ -231,40 +629,117 @@
                                 autocomplete="organization"
                                 maxlength="200"
                                 required>
-                            <p th:if="${#fields.hasErrors('organizationName')}" th:errors="*{organizationName}" class="field-error"></p>
+
+                            <p
+                                th:if="${#fields.hasErrors('organizationName')}"
+                                th:errors="*{organizationName}"
+                                class="field-error">
+                            </p>
+
                         </div>
 
+
+                        <!-- ROLE -->
+
                         <div class="form-group">
-                            <label for="role">Your role <span class="optional-label">Optional</span></label>
+
+                            <label for="role">
+
+                                Your role
+
+                                <span class="optional-label">
+                                    Optional
+                                </span>
+
+                            </label>
+
                             <input
                                 type="text"
                                 id="role"
                                 th:field="*{role}"
                                 maxlength="150"
                                 placeholder="Transportation manager">
-                            <p th:if="${#fields.hasErrors('role')}" th:errors="*{role}" class="field-error"></p>
+
+                            <p
+                                th:if="${#fields.hasErrors('role')}"
+                                th:errors="*{role}"
+                                class="field-error">
+                            </p>
+
                         </div>
 
-                        <div class="form-group form-group--full">
-                            <label for="message">What would you like RoutePulse to help with? <span class="optional-label">Optional</span></label>
+
+                        <!-- MESSAGE -->
+
+                        <div
+                            class="form-group
+                                   form-group--full">
+
+                            <label for="message">
+
+                                What would you like RoutePulse
+                                to help with?
+
+                                <span class="optional-label">
+                                    Optional
+                                </span>
+
+                            </label>
+
+
                             <textarea
                                 id="message"
                                 th:field="*{message}"
                                 rows="5"
                                 maxlength="1200"
                                 placeholder="Tell us a little about your shuttle operation, current planning process, or what you want to test."></textarea>
-                            <p th:if="${#fields.hasErrors('message')}" th:errors="*{message}" class="field-error"></p>
+
+
+                            <p
+                                th:if="${#fields.hasErrors('message')}"
+                                th:errors="*{message}"
+                                class="field-error">
+                            </p>
+
                         </div>
+
+
                     </div>
 
-                    <button class="button button--block" type="submit">Request RoutePulse demo access</button>
-                    <p class="demo-request-card__privacy">Submitting this form does not create a RoutePulse account or guarantee demo access.</p>
+
+                    <button
+                        class="button button--block"
+                        type="submit">
+
+                        Request RoutePulse demo access
+
+                    </button>
+
+
+                    <p class="demo-request-card__privacy">
+
+                        Submitting this form does not create a
+                        RoutePulse account or guarantee demo access.
+
+                    </p>
+
+
                 </form>
+
             </section>
+
         </div>
+
     </section>
+
+
 </main>
 
-<footer th:replace="~{fragments/footer :: footer('public')}"></footer>
+
+<footer
+    th:replace="~{fragments/footer :: footer('public')}">
+</footer>
+
+
 </body>
 </html>
