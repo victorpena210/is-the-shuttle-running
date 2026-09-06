@@ -88,7 +88,7 @@ public class PickupPlanningController {
         this.currentOrganizationService =
                 currentOrganizationService;
     }
-
+    
     @GetMapping("/app")
     public String showDashboard(
             Authentication authentication,
@@ -162,6 +162,7 @@ public class PickupPlanningController {
          * default the picker to today's date.
          */
         if (selectedDate == null) {
+
             selectedDate =
                     driverAssignmentService
                             .getCurrentOperationsDate();
@@ -172,7 +173,6 @@ public class PickupPlanningController {
                         && availableDates.contains(
                                 selectedDate
                         );
-
 
         PickupDemandAnalysis pickupDemand =
                 PickupDemandAnalysis.empty();
@@ -213,13 +213,11 @@ public class PickupPlanningController {
                 false;
 
         /*
-         * Load the selected uploaded date even when the Six Flags
-         * operating calendar cannot be verified. This lets managers
-         * inspect exactly what RoutePulse imported before deciding
-         * whether to continue with shuttle planning.
+         * Only begin planning when the selected
+         * date actually exists in the uploaded
+         * employee schedule.
          */
         if (selectedDateAvailable) {
-
 
             latestScheduleImport =
                     csvScheduleProvider
@@ -230,54 +228,105 @@ public class PickupPlanningController {
                             .orElse(null);
 
             /*
-             * TEMPORARILY DISABLED FOR ROUTEPULSE DEMO
+             * =====================================================
+             * PARK OPERATING CHECK
+             * =====================================================
              *
-             * This is the live Six Flags operating-calendar check.
-             * Leave this code here so it can be re-enabled later.
+             * RoutePulse checks the Six Flags operating calendar
+             * before creating shuttle assignments.
              *
-             * operatingDay =
-             *         parkOperatingDayService
-             *                 .getOperatingDay(
-             *                         selectedDate
-             *                 );
-             */
-
-            /*
-             * Temporary fallback while the live calendar check is disabled:
-             * treat any date that exists in the uploaded schedule as OPEN.
+             * OPEN:
+             *     Continue into driver scheduling.
+             *
+             * CLOSED:
+             *     Stop here. No shuttle driver is scheduled.
+             *
+             * UNKNOWN:
+             *     Do not automatically schedule anyone unless a
+             *     manager explicitly chooses to continue.
              */
             operatingDay =
-                    new ParkOperatingDay(
-                            selectedDate,
-                            ParkOperatingStatus.OPEN,
-                            null,
-                            null,
-                            false
-                    );
+                    parkOperatingDayService
+                            .getOperatingDay(
+                                    selectedDate
+                            );
 
+            /*
+             * =====================================================
+             * PARK CLOSED
+             * =====================================================
+             */
             if (operatingDay.status()
                     == ParkOperatingStatus.CLOSED) {
 
                 calendarMessage =
                         "Park closed — shuttle not scheduled";
+            }
 
-            } else if (operatingDay.status()
+            /*
+             * =====================================================
+             * CALENDAR COULD NOT BE VERIFIED
+             * =====================================================
+             *
+             * RoutePulse does not assume the park is open when
+             * the Six Flags calendar cannot be reached.
+             */
+            else if (operatingDay.status()
                     == ParkOperatingStatus.UNKNOWN) {
 
                 if (allowUnverifiedCalendar) {
-                    calendarOverrideActive = true;
+
+                    calendarOverrideActive =
+                            true;
 
                     calendarMessage =
                             "Calendar unverified — manager "
                                     + "continued with uploaded schedule";
 
                 } else {
+
                     calendarMessage =
                             "Calendar could not be verified "
                                     + "— review required";
                 }
             }
 
+            /*
+             * Show the park/calendar problem using the dashboard's
+             * existing error-message area.
+             */
+            if (!calendarOverrideActive
+                    && operatingDay.status()
+                            != ParkOperatingStatus.OPEN
+                    && calendarMessage != null
+                    && !model.containsAttribute(
+                            "errorMessage"
+                    )) {
+
+                model.addAttribute(
+                        "errorMessage",
+                        calendarMessage
+                );
+            }
+
+            /*
+             * =====================================================
+             * PARK OPEN
+             * =====================================================
+             *
+             * Driver scheduling only happens inside this block.
+             *
+             * This is the important gate:
+             *
+             * PARK OPEN
+             *     -> inspect employee schedule
+             *     -> find eligible drivers
+             *     -> assign coverage
+             *
+             * PARK CLOSED
+             *     -> never enters this block
+             *     -> no driver assignment is created
+             */
             if (operatingDay.status()
                     == ParkOperatingStatus.OPEN
                     || calendarOverrideActive) {
@@ -291,6 +340,10 @@ public class PickupPlanningController {
                                     : "Open — Public Operating Day";
                 }
 
+                /*
+                 * Build pickup demand only when the park
+                 * is operating.
+                 */
                 pickupDemand =
                         pickupPlanningService
                                 .getPickupDemandForDate(
@@ -301,6 +354,11 @@ public class PickupPlanningController {
                 pickupWindows =
                         pickupDemand.getWindows();
 
+                /*
+                 * =================================================
+                 * CHECK WHICH DRIVERS ARE ACTUALLY SCHEDULED
+                 * =================================================
+                 */
                 DriverScheduleResult result =
                         driverScheduleService
                                 .getDriverSchedulesForDate(
@@ -314,6 +372,23 @@ public class PickupPlanningController {
                 driversWithoutSchedules =
                         result.driversWithoutSchedules();
 
+                /*
+                 * =================================================
+                 * CREATE DRIVER ASSIGNMENTS
+                 * =================================================
+                 *
+                 * DriverAssignmentService already handles:
+                 *
+                 * - eligible scheduled drivers
+                 * - fair distribution
+                 * - morning assignment
+                 * - afternoon assignment
+                 * - assignment history
+                 * - source schedule import
+                 *
+                 * If no eligible driver is scheduled,
+                 * it returns an empty list.
+                 */
                 driverAssignments =
                         driverAssignmentService
                                 .getOrCreateAssignments(
@@ -335,14 +410,24 @@ public class PickupPlanningController {
                                                 )
                                 );
 
+                /*
+                 * =================================================
+                 * PARK OPEN BUT NO DRIVER AVAILABLE
+                 * =================================================
+                 */
                 if (driverAssignments.isEmpty()) {
 
                     assignmentMessage =
                             "Manual morning and afternoon "
                                     + "coverage required — no eligible "
                                     + "drivers are working this date.";
+                }
 
-                } else if (driverAssignments.size() == 1) {
+                /*
+                 * Only one eligible driver/assignment was created,
+                 * so the remaining shuttle period needs coverage.
+                 */
+                else if (driverAssignments.size() == 1) {
 
                     assignmentMessage =
                             "One shuttle period still needs "
@@ -380,7 +465,7 @@ public class PickupPlanningController {
                 "availableDates",
                 availableDates
         );
-        
+
         model.addAttribute(
                 "selectedDateAvailable",
                 selectedDateAvailable
@@ -407,12 +492,11 @@ public class PickupPlanningController {
                 selectedDateAvailable
         );
 
-
         model.addAttribute(
                 "pickupWindows",
                 pickupWindows
         );
-        
+
         model.addAttribute(
                 "pickupDemand",
                 pickupDemand
@@ -448,6 +532,17 @@ public class PickupPlanningController {
                 calendarOverrideActive
         );
 
+        /*
+         * The schedule/coverage UI is only displayed when:
+         *
+         * 1. The date exists in the uploaded schedule.
+         * 2. We successfully checked the operating day.
+         * 3. The park is open, or a manager explicitly
+         *    continued after an UNKNOWN calendar response.
+         *
+         * A CLOSED park therefore cannot display or create
+         * shuttle coverage.
+         */
         model.addAttribute(
                 "showSchedule",
                 selectedDateAvailable
@@ -489,6 +584,9 @@ public class PickupPlanningController {
 
         return "index";
     }
+
+    
+    
     @PostMapping("/assignments/manual")
     public String createManualAssignment(
             Authentication authentication,
