@@ -186,7 +186,7 @@ class RoutePulseIntegrationTests {
         assertNotNull(flyway.info().current());
 
         assertEquals(
-                "23",
+                "25",
                 flyway.info().current().getVersion().getVersion()
         );
 
@@ -208,7 +208,7 @@ class RoutePulseIntegrationTests {
                 Integer.class
         );
 
-        assertEquals(23, successfulMigrations);
+        assertEquals(25, successfulMigrations);
         assertEquals(0, failedMigrations);
     }
 

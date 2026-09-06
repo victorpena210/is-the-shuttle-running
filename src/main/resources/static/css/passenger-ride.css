@@ -1,0 +1,220 @@
+/* =========================================================
+   ROUTEPULSE PUBLIC PASSENGER RIDE CONFIRMATION
+   ========================================================= */
+
+.rider-status-shell--passenger {
+    width: min(calc(100% - 2rem), 50rem);
+}
+
+.passenger-ride-section {
+    scroll-margin-top: 1.5rem;
+    margin-top: 2.25rem;
+    padding-top: 2.25rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    text-align: left;
+}
+
+.passenger-ride-heading {
+    margin-bottom: 1.4rem;
+    text-align: center;
+}
+
+.passenger-ride-eyebrow {
+    margin: 0 0 0.4rem;
+    color: var(--cyan-400);
+    font-size: 0.77rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.passenger-ride-heading h2 {
+    margin: 0 0 0.55rem;
+    color: var(--white);
+    font-size: clamp(1.65rem, 5vw, 2.35rem);
+    letter-spacing: -0.025em;
+}
+
+.passenger-ride-heading p {
+    max-width: 34rem;
+    margin: 0 auto;
+    color: var(--slate-300);
+}
+
+.passenger-current-driver {
+    margin-bottom: 1.25rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-radius: var(--radius-md);
+    background: rgba(7, 17, 31, 0.42);
+}
+
+.passenger-current-driver span,
+.passenger-current-driver strong {
+    display: block;
+}
+
+.passenger-current-driver span {
+    margin-bottom: 0.25rem;
+    color: var(--slate-400);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+
+.passenger-current-driver strong {
+    color: var(--white);
+    font-size: 1.3rem;
+}
+
+.passenger-confirmation-form {
+    margin: 0;
+}
+
+.passenger-confirmation-button {
+    width: 100%;
+    min-height: 3.5rem;
+    padding: 0.9rem 1.25rem;
+    border: 0;
+    border-radius: var(--radius-md);
+    color: var(--white);
+    background: var(--green-600);
+    font: inherit;
+    font-weight: 800;
+    cursor: pointer;
+    transition:
+        background-color 160ms ease,
+        transform 160ms ease;
+}
+
+.passenger-confirmation-button:hover {
+    background: var(--green-700);
+}
+
+.passenger-confirmation-button:active {
+    transform: translateY(1px);
+}
+
+.passenger-confirmation-button:focus-visible {
+    outline: 3px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 3px;
+}
+
+.passenger-confirmation-help {
+    margin: 0.65rem 0 0;
+    color: var(--slate-400);
+    font-size: 0.88rem;
+    text-align: center;
+}
+
+.passenger-confirmation-cooldown {
+    padding: 1rem;
+    border: 1px solid rgba(59, 130, 246, 0.32);
+    border-radius: var(--radius-md);
+    color: var(--blue-100);
+    background: rgba(37, 99, 235, 0.12);
+}
+
+.passenger-confirmation-cooldown strong {
+    display: block;
+    margin-bottom: 0.3rem;
+}
+
+.passenger-confirmation-cooldown p {
+    margin: 0;
+    color: var(--slate-300);
+}
+
+.passenger-ride-message {
+    display: grid;
+    gap: 0.2rem;
+    margin-bottom: 1.3rem;
+    padding: 0.95rem 1rem;
+    border-radius: var(--radius-md);
+}
+
+.passenger-ride-message--success {
+    border: 1px solid rgba(22, 163, 74, 0.38);
+    color: var(--green-100);
+    background: rgba(22, 163, 74, 0.14);
+}
+
+.passenger-ride-message--info {
+    border: 1px solid rgba(59, 130, 246, 0.32);
+    color: var(--blue-100);
+    background: rgba(37, 99, 235, 0.12);
+}
+
+.passenger-qr-area {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 11rem;
+    align-items: center;
+    gap: 1.5rem;
+    margin-top: 1.75rem;
+    padding-top: 1.75rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.passenger-qr-copy {
+    min-width: 0;
+}
+
+.passenger-qr-copy h3 {
+    margin: 0 0 0.45rem;
+    color: var(--white);
+    font-size: 1.25rem;
+}
+
+.passenger-qr-copy p {
+    margin: 0.4rem 0;
+    color: var(--slate-400);
+    font-size: 0.9rem;
+}
+
+.passenger-qr-link {
+    display: block;
+    padding: 0.55rem;
+    border-radius: var(--radius-md);
+    background: var(--white);
+}
+
+.passenger-qr-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+}
+
+.passenger-privacy-note {
+    margin: 1.4rem 0 0;
+    color: var(--slate-400);
+    font-size: 0.8rem;
+    line-height: 1.55;
+    text-align: center;
+}
+
+.passenger-stopped-message {
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--slate-400);
+    font-size: 0.9rem;
+}
+
+@media (max-width: 640px) {
+
+    .rider-status-shell--passenger {
+        width: min(calc(100% - 1.25rem), 50rem);
+    }
+
+    .passenger-qr-area {
+        grid-template-columns: 1fr;
+        text-align: center;
+    }
+
+    .passenger-qr-link {
+        width: min(13rem, 100%);
+        margin: 0 auto;
+    }
+}
