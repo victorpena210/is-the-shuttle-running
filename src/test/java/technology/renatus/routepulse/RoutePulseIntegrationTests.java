@@ -1087,130 +1087,150 @@ class RoutePulseIntegrationTests {
         );
     }
 
-    @Test
-    void httpSecurityProtectsOrganizationRoutesAndPostRequests()
-            throws Exception {
+@Test
+void httpSecurityProtectsOrganizationRoutesAndPostRequests()
+        throws Exception {
 
-        Organization organization = createOrganization(
-                "HTTP Security Organization",
-                "http-security-organization"
-        );
+    Organization organization = createOrganization(
+            "HTTP Security Organization",
+            "http-security-organization"
+    );
 
-        UserAccount owner = createUser(
-                "http-owner@example.com",
-                true
-        );
+    UserAccount owner = createUser(
+            "http-owner@example.com",
+            true
+    );
 
-        UserAccount admin = createUser(
-                "http-admin@example.com",
-                true
-        );
+    UserAccount admin = createUser(
+            "http-admin@example.com",
+            true
+    );
 
-        membershipRepository.save(
-                new OrganizationMembership(
-                        organization,
-                        owner,
-                        OrganizationRole.OWNER
-                )
-        );
+    membershipRepository.save(
+            new OrganizationMembership(
+                    organization,
+                    owner,
+                    OrganizationRole.OWNER
+            )
+    );
 
-        membershipRepository.save(
-                new OrganizationMembership(
-                        organization,
-                        admin,
-                        OrganizationRole.ADMIN
-                )
-        );
+    membershipRepository.save(
+            new OrganizationMembership(
+                    organization,
+                    admin,
+                    OrganizationRole.ADMIN
+            )
+    );
 
-        uploadedShiftRepository.save(
-                new UploadedShift(
-                        organization,
-                        null,
-                        "100",
-                        "Protected Driver",
-                        "Transportation",
-                        "Shuttle Driver",
-                        LocalDate.of(2026, 9, 4),
-                        LocalTime.of(8, 0),
-                        LocalTime.of(17, 0),
-                        "Employee entrance",
-                        LocalDateTime.now()
-                )
-        );
+    uploadedShiftRepository.save(
+            new UploadedShift(
+                    organization,
+                    null,
+                    "100",
+                    "Protected Driver",
+                    "Transportation",
+                    "Shuttle Driver",
+                    LocalDate.of(2026, 9, 4),
+                    LocalTime.of(8, 0),
+                    LocalTime.of(17, 0),
+                    "Employee entrance",
+                    LocalDateTime.now()
+            )
+    );
 
-        mockMvc.perform(get("/"))
-                .andExpect(
-                        status().is3xxRedirection()
-                );
+    /*
+     * The RoutePulse landing page is intentionally public.
+     * Anonymous visitors should be able to view the homepage
+     * and submit a demo request.
+     */
+    mockMvc.perform(
+            get("/")
+    ).andExpect(
+            status().isOk()
+    );
 
-        mockMvc.perform(
-                post("/drivers")
-                        .with(
-                                user(owner.getEmail())
-                                        .roles("OWNER")
-                        )
-                        .param("employeeId", "100")
-                        .param("active", "true")
-        ).andExpect(
-                status().isForbidden()
-        );
+    /*
+     * Authenticated POST without CSRF must still be rejected.
+     */
+    mockMvc.perform(
+            post("/drivers")
+                    .with(
+                            user(owner.getEmail())
+                                    .roles("OWNER")
+                    )
+                    .param("employeeId", "100")
+                    .param("active", "true")
+    ).andExpect(
+            status().isForbidden()
+    );
 
-        mockMvc.perform(
-                post("/drivers")
-                        .with(
-                                user(owner.getEmail())
-                                        .roles("OWNER")
-                        )
-                        .with(csrf())
-                        .param("employeeId", "100")
-                        .param("active", "true")
-        ).andExpect(
-                status().is3xxRedirection()
-        );
+    /*
+     * Owner with a valid CSRF token is allowed to
+     * register the driver.
+     */
+    mockMvc.perform(
+            post("/drivers")
+                    .with(
+                            user(owner.getEmail())
+                                    .roles("OWNER")
+                    )
+                    .with(csrf())
+                    .param("employeeId", "100")
+                    .param("active", "true")
+    ).andExpect(
+            status().is3xxRedirection()
+    );
 
-        assertTrue(
-                driverRepository
-                        .existsByOrganization_IdAndEmployeeId(
-                                organization.getId(),
-                                "100"
-                        )
-        );
+    assertTrue(
+            driverRepository
+                    .existsByOrganization_IdAndEmployeeId(
+                            organization.getId(),
+                            "100"
+                    )
+    );
 
-        Driver registeredDriver =
-                driverRepository
-                        .findAllByOrganization_IdOrderByNameAsc(
-                                organization.getId()
-                        )
-                        .get(0);
+    Driver registeredDriver =
+            driverRepository
+                    .findAllByOrganization_IdOrderByNameAsc(
+                            organization.getId()
+                    )
+                    .get(0);
 
-        assertEquals(
-                "Protected Driver",
-                registeredDriver.getName()
-        );
+    assertEquals(
+            "Protected Driver",
+            registeredDriver.getName()
+    );
 
-        mockMvc.perform(
-                get("/organization/invitations")
-                        .with(
-                                user(admin.getEmail())
-                                        .roles("ADMIN")
-                        )
-        ).andExpect(
-                status().isForbidden()
-        );
+    /*
+     * ADMIN is still not allowed to use owner-only
+     * organization invitation management.
+     */
+    mockMvc.perform(
+            get("/organization/invitations")
+                    .with(
+                            user(admin.getEmail())
+                                    .roles("ADMIN")
+                    )
+    ).andExpect(
+            status().isForbidden()
+    );
 
-        mockMvc.perform(
-                get("/forgot-password")
-        ).andExpect(
-                status().isOk()
-        );
+    /*
+     * Password recovery and verification recovery
+     * pages remain public.
+     */
+    mockMvc.perform(
+            get("/forgot-password")
+    ).andExpect(
+            status().isOk()
+    );
 
-        mockMvc.perform(
-                get("/resend-verification")
-        ).andExpect(
-                status().isOk()
-        );
-    }
-
+    mockMvc.perform(
+            get("/resend-verification")
+    ).andExpect(
+            status().isOk()
+    );
+}
     @Test
     void passwordResetChangesThePasswordAndInvalidatesTheToken() {
         UserAccount user = createUser(
