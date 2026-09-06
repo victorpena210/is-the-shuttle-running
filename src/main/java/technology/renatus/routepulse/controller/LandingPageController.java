@@ -5,7 +5,8 @@ import java.time.Duration;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 
-import org.springframework.mail.MailException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -14,6 +15,7 @@ import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import technology.renatus.routepulse.dataTransferObject.DemoRequestForm;
 import technology.renatus.routepulse.security.PublicRequestThrottle;
@@ -21,6 +23,12 @@ import technology.renatus.routepulse.service.DemoRequestService;
 
 @Controller
 public class LandingPageController {
+
+    private static final Logger LOGGER =
+            LoggerFactory.getLogger(LandingPageController.class);
+
+    private static final String DEMO_FORM_ATTRIBUTE =
+            "demoRequestForm";
 
     private final DemoRequestService demoRequestService;
     private final PublicRequestThrottle throttle;
@@ -38,9 +46,16 @@ public class LandingPageController {
             Authentication authentication,
             Model model) {
 
-        if (!model.containsAttribute("demoRequestForm")) {
+        /*
+         * A redirected validation failure may already have
+         * placed the completed form back into the model.
+         *
+         * Only create a blank form when there is not already
+         * one waiting for us.
+         */
+        if (!model.containsAttribute(DEMO_FORM_ATTRIBUTE)) {
             model.addAttribute(
-                    "demoRequestForm",
+                    DEMO_FORM_ATTRIBUTE,
                     new DemoRequestForm()
             );
         }
@@ -56,54 +71,134 @@ public class LandingPageController {
     @PostMapping("/demo-request")
     public String submitDemoRequest(
             @Valid
-            @ModelAttribute("demoRequestForm")
+            @ModelAttribute(DEMO_FORM_ATTRIBUTE)
             DemoRequestForm demoRequestForm,
             BindingResult bindingResult,
-            Authentication authentication,
             HttpServletRequest request,
-            Model model) {
+            RedirectAttributes redirectAttributes) {
 
+        /*
+         * Protect the public form from repeated automated
+         * submissions from the same connection.
+         */
         if (!throttle.tryAcquire(
                 "demo-request",
                 request.getRemoteAddr(),
                 5,
                 Duration.ofHours(1)
         )) {
+
             bindingResult.reject(
                     "demoRequest.rateLimited",
                     "Too many demo requests were received from this connection. Try again later."
             );
         }
 
+        /*
+         * Do not render home.html directly from the POST.
+         *
+         * Instead, preserve the form and its validation errors
+         * and redirect back to the landing page.
+         *
+         * This gives us a proper Post/Redirect/Get flow and
+         * prevents form failures from interfering with the
+         * landing-page response.
+         */
         if (bindingResult.hasErrors()) {
-            model.addAttribute(
-                    "signedIn",
-                    isSignedIn(authentication)
+
+            preserveFormForRedirect(
+                    demoRequestForm,
+                    bindingResult,
+                    redirectAttributes
             );
-            return "home";
+
+            return "redirect:/#demo-request";
         }
 
         try {
-            demoRequestService.submit(demoRequestForm);
-        } catch (MailException | IllegalStateException exception) {
+
+            /*
+             * DemoRequestService performs the actual delivery.
+             */
+            demoRequestService.submit(
+                    demoRequestForm
+            );
+
+        } catch (Exception exception) {
+
+            /*
+             * A public contact form should never send a visitor
+             * to the application's generic error page because
+             * SMTP or another delivery component failed.
+             *
+             * Log the real exception for Railway/server
+             * diagnostics and give the visitor a useful message.
+             */
+            LOGGER.error(
+                    "RoutePulse demo request failed for email {} and organization {}.",
+                    demoRequestForm.getEmail(),
+                    demoRequestForm.getOrganizationName(),
+                    exception
+            );
+
             bindingResult.reject(
                     "demoRequest.failed",
                     "We could not send your request right now. Please email victor@renatus.technology."
             );
-            model.addAttribute(
-                    "signedIn",
-                    isSignedIn(authentication)
+
+            preserveFormForRedirect(
+                    demoRequestForm,
+                    bindingResult,
+                    redirectAttributes
             );
-            return "home";
+
+            return "redirect:/#demo-request";
         }
 
-        return "redirect:/?demoRequestSent#demo-request";
+        /*
+         * Use a flash attribute instead of a query-string flag.
+         *
+         * The message appears exactly once after the redirect.
+         */
+        redirectAttributes.addFlashAttribute(
+                "demoRequestSent",
+                true
+        );
+
+        return "redirect:/#demo-request";
     }
 
-    private boolean isSignedIn(Authentication authentication) {
+    private void preserveFormForRedirect(
+            DemoRequestForm demoRequestForm,
+            BindingResult bindingResult,
+            RedirectAttributes redirectAttributes) {
+
+        /*
+         * Preserve what the visitor entered.
+         */
+        redirectAttributes.addFlashAttribute(
+                DEMO_FORM_ATTRIBUTE,
+                demoRequestForm
+        );
+
+        /*
+         * Preserve Spring's validation result so Thymeleaf can
+         * continue using #fields.hasErrors(...) and th:errors
+         * after the redirect.
+         */
+        redirectAttributes.addFlashAttribute(
+                BindingResult.MODEL_KEY_PREFIX
+                        + DEMO_FORM_ATTRIBUTE,
+                bindingResult
+        );
+    }
+
+    private boolean isSignedIn(
+            Authentication authentication) {
+
         return authentication != null
                 && authentication.isAuthenticated()
-                && !(authentication instanceof AnonymousAuthenticationToken);
+                && !(authentication
+                        instanceof AnonymousAuthenticationToken);
     }
 }
-
