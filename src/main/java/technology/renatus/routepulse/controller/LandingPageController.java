@@ -9,6 +9,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -44,7 +45,18 @@ public class LandingPageController {
     @GetMapping("/")
     public String showLandingPage(
             Authentication authentication,
-            Model model) {
+            Model model,
+            HttpServletRequest request) {
+
+        /*
+         * Spring Security 7 defers creation of the CSRF token until
+         * something actually reads it. Because home.html is large,
+         * the HTTP response can already be committed by the time the
+         * demo form is rendered. Materialize the token here, before
+         * Thymeleaf starts writing the response, so Spring never tries
+         * to create the CSRF session too late.
+         */
+        ensureCsrfTokenReady(request);
 
         /*
          * A redirected validation failure may already have
@@ -191,6 +203,19 @@ public class LandingPageController {
                         + DEMO_FORM_ATTRIBUTE,
                 bindingResult
         );
+    }
+
+
+    private void ensureCsrfTokenReady(
+            HttpServletRequest request) {
+
+        Object csrfAttribute = request.getAttribute(
+                CsrfToken.class.getName()
+        );
+
+        if (csrfAttribute instanceof CsrfToken csrfToken) {
+            csrfToken.getToken();
+        }
     }
 
     private boolean isSignedIn(

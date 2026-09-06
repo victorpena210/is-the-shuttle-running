@@ -499,234 +499,141 @@
                  DEMO REQUEST FORM
                  ================================================= -->
 
-            <section
-                class="demo-request-card"
-                id="demo-request"
-                aria-labelledby="request-heading">
-
-
-                <p class="eyebrow">
-                    Request access
-                </p>
-
-
-                <h2 id="request-heading">
-                    Tell us about your operation.
-                </h2>
-
-
-                <p class="demo-request-card__intro">
-
-                    Submit your information and we’ll follow up
-                    about whether RoutePulse is a fit for the
-                    current demo phase.
-
-                </p>
-
-
-                <!-- SUCCESS MESSAGE -->
-
-                <div
-                    th:if="${demoRequestSent}"
-                    class="alert alert--success"
-                    role="status">
-
-                    Your demo request was sent. We’ll follow up
-                    using the email address you provided.
-
-                </div>
-
-
-                <form
-                    class="demo-request-form"
-                    th:action="@{/demo-request}"
-                    th:object="${demoRequestForm}"
-                    method="post">
-
-
-                    <!-- GLOBAL FORM ERROR -->
-
-                    <div
-                        th:if="${#fields.hasGlobalErrors()}"
-                        class="error-summary"
-                        role="alert">
-
-                        <p
-                            th:each="error : ${#fields.globalErrors()}"
-                            th:text="${error}">
-                            Demo request error
-                        </p>
-
-                    </div>
-
-
-                    <div class="form-grid">
-
-
-                        <!-- NAME -->
-
-                        <div class="form-group">
-
-                            <label for="name">
-                                Your name
-                            </label>
-
-                            <input
-                                type="text"
-                                id="name"
-                                th:field="*{name}"
-                                autocomplete="name"
-                                maxlength="150"
-                                required>
-
-                            <p
-                                th:if="${#fields.hasErrors('name')}"
-                                th:errors="*{name}"
-                                class="field-error">
-                            </p>
-
-                        </div>
-
-
-                        <!-- EMAIL -->
-
-                        <div class="form-group">
-
-                            <label for="email">
-                                Work email
-                            </label>
-
-                            <input
-                                type="email"
-                                id="email"
-                                th:field="*{email}"
-                                autocomplete="email"
-                                inputmode="email"
-                                maxlength="254"
-                                required>
-
-                            <p
-                                th:if="${#fields.hasErrors('email')}"
-                                th:errors="*{email}"
-                                class="field-error">
-                            </p>
-
-                        </div>
-
-
-                        <!-- ORGANIZATION -->
-
-                        <div class="form-group">
-
-                            <label for="organizationName">
-                                Organization
-                            </label>
-
-                            <input
-                                type="text"
-                                id="organizationName"
-                                th:field="*{organizationName}"
-                                autocomplete="organization"
-                                maxlength="200"
-                                required>
-
-                            <p
-                                th:if="${#fields.hasErrors('organizationName')}"
-                                th:errors="*{organizationName}"
-                                class="field-error">
-                            </p>
-
-                        </div>
-
-
-                        <!-- ROLE -->
-
-                        <div class="form-group">
-
-                            <label for="role">
-
-                                Your role
-
-                                <span class="optional-label">
-                                    Optional
-                                </span>
-
-                            </label>
-
-                            <input
-                                type="text"
-                                id="role"
-                                th:field="*{role}"
-                                maxlength="150"
-                                placeholder="Transportation manager">
-
-                            <p
-                                th:if="${#fields.hasErrors('role')}"
-                                th:errors="*{role}"
-                                class="field-error">
-                            </p>
-
-                        </div>
-
-
-                        <!-- MESSAGE -->
-
-                        <div
-                            class="form-group
-                                   form-group--full">
-
-                            <label for="message">
-
-                                What would you like RoutePulse
-                                to help with?
-
-                                <span class="optional-label">
-                                    Optional
-                                </span>
-
-                            </label>
-
-
-                            <textarea
-                                id="message"
-                                th:field="*{message}"
-                                rows="5"
-                                maxlength="1200"
-                                placeholder="Tell us a little about your shuttle operation, current planning process, or what you want to test."></textarea>
-
-
-                            <p
-                                th:if="${#fields.hasErrors('message')}"
-                                th:errors="*{message}"
-                                class="field-error">
-                            </p>
-
-                        </div>
-
-
-                    </div>
-
-
-                    <button
-                        class="button button--block"
-                        type="submit">
-
-                        Request RoutePulse demo access
-
-                    </button>
-
-
-                    <p class="demo-request-card__privacy">
-
-                        Submitting this form does not create a
-                        RoutePulse account or guarantee demo access.
-
-                    </p>
-
-
-                </form>
-
-            </section>
+				 <section
+				     class="demo-request-card"
+				     id="demo-request"
+				     aria-labelledby="request-heading">
+
+				     <p class="eyebrow">
+				         Request access
+				     </p>
+
+				     <h2 id="request-heading">
+				         Tell us about your operation.
+				     </h2>
+
+				     <p class="demo-request-card__intro">
+				         Submit your information and we’ll follow up about whether RoutePulse is a fit for the current demo phase.
+				     </p>
+
+				     <div
+				         th:if="${demoRequestSent}"
+				         class="alert alert--success"
+				         role="status">
+				         Your demo request was sent. We’ll follow up using the email address you provided.
+				     </div>
+
+				     <form
+				         class="demo-request-form"
+				         th:action="@{/demo-request}"
+				         method="post"
+				         th:object="${demoRequestForm}">
+
+				         <div
+				             th:if="${#fields.hasAnyErrors()}"
+				             class="error-summary"
+				             role="alert">
+				             <p>We could not submit the request:</p>
+				             <ul>
+				                 <li
+				                     th:each="error : ${#fields.allErrors()}"
+				                     th:text="${error}">
+				                 </li>
+				             </ul>
+				         </div>
+
+				         <div class="form-grid">
+
+				             <div class="form-group">
+				                 <label for="name">
+				                     Your name
+				                 </label>
+
+				                 <input
+				                     type="text"
+				                     id="name"
+				                     th:field="*{name}"
+				                     autocomplete="name"
+				                     maxlength="150"
+				                     required>
+				             </div>
+
+				             <div class="form-group">
+				                 <label for="email">
+				                     Work email
+				                 </label>
+
+				                 <input
+				                     type="email"
+				                     id="email"
+				                     th:field="*{email}"
+				                     autocomplete="email"
+				                     inputmode="email"
+				                     maxlength="254"
+				                     required>
+				             </div>
+
+				             <div class="form-group">
+				                 <label for="organizationName">
+				                     Organization
+				                 </label>
+
+				                 <input
+				                     type="text"
+				                     id="organizationName"
+				                     th:field="*{organizationName}"
+				                     autocomplete="organization"
+				                     maxlength="200"
+				                     required>
+				             </div>
+
+				             <div class="form-group">
+				                 <label for="role">
+				                     Your role
+				                     <span class="optional-label">
+				                         Optional
+				                     </span>
+				                 </label>
+
+				                 <input
+				                     type="text"
+				                     id="role"
+				                     th:field="*{role}"
+				                     maxlength="150"
+				                     placeholder="Transportation manager">
+				             </div>
+
+				             <div class="form-group form-group--full">
+				                 <label for="message">
+				                     What would you like RoutePulse to help with?
+				                     <span class="optional-label">
+				                         Optional
+				                     </span>
+				                 </label>
+
+				                 <textarea
+				                     id="message"
+				                     th:field="*{message}"
+				                     rows="5"
+				                     maxlength="1200"
+				                     placeholder="Tell us a little about your shuttle operation, current planning process, or what you want to test."></textarea>
+				             </div>
+
+				         </div>
+
+				         <button
+				             class="button button--block"
+				             type="submit">
+				             Request RoutePulse demo access
+				         </button>
+
+				         <p class="demo-request-card__privacy">
+				             Submitting this form does not create a RoutePulse account or guarantee demo access.
+				         </p>
+
+				     </form>
+
+				 </section>
 
         </div>
 
