@@ -21,24 +21,23 @@ import technology.renatus.routepulse.model.DriverSchedule;
 import technology.renatus.routepulse.model.DriverScheduleResult;
 import technology.renatus.routepulse.model.ParkOperatingDay;
 import technology.renatus.routepulse.model.ParkOperatingStatus;
-import technology.renatus.routepulse.model.PickupDemandAnalysis;
-import technology.renatus.routepulse.model.PickupWindow;
 import technology.renatus.routepulse.model.Organization;
 import technology.renatus.routepulse.model.ScheduleImport;
 import technology.renatus.routepulse.model.ShuttlePeriod;
+import technology.renatus.routepulse.model.TransportationDemandAnalysis;
 import technology.renatus.routepulse.provider.CsvScheduleProvider;
 import technology.renatus.routepulse.service.CurrentOrganizationService;
 import technology.renatus.routepulse.service.DriverAssignmentService;
 import technology.renatus.routepulse.service.DriverScheduleService;
 import technology.renatus.routepulse.service.DriverService;
 import technology.renatus.routepulse.service.ParkOperatingDayService;
-import technology.renatus.routepulse.service.PickupPlanningService;
+import technology.renatus.routepulse.service.TransportationDemandService;
 
 @Controller
 public class PickupPlanningController {
 
-    private final PickupPlanningService
-            pickupPlanningService;
+    private final TransportationDemandService
+            transportationDemandService;
 
     private final CsvScheduleProvider
             csvScheduleProvider;
@@ -58,7 +57,7 @@ public class PickupPlanningController {
             currentOrganizationService;
 
     public PickupPlanningController(
-            PickupPlanningService pickupPlanningService,
+            TransportationDemandService transportationDemandService,
             CsvScheduleProvider csvScheduleProvider,
             DriverScheduleService driverScheduleService,
             ParkOperatingDayService parkOperatingDayService,
@@ -67,8 +66,8 @@ public class PickupPlanningController {
             CurrentOrganizationService
                     currentOrganizationService) {
 
-        this.pickupPlanningService =
-                pickupPlanningService;
+        this.transportationDemandService =
+                transportationDemandService;
 
         this.csvScheduleProvider =
                 csvScheduleProvider;
@@ -174,11 +173,8 @@ public class PickupPlanningController {
                                 selectedDate
                         );
 
-        PickupDemandAnalysis pickupDemand =
-                PickupDemandAnalysis.empty();
-
-        List<PickupWindow> pickupWindows =
-                List.of();
+        TransportationDemandAnalysis transportationDemand =
+                TransportationDemandAnalysis.empty();
 
         List<DriverSchedule> driverSchedules =
                 List.of();
@@ -341,18 +337,16 @@ public class PickupPlanningController {
                 }
 
                 /*
-                 * Build pickup demand only when the park
-                 * is operating.
+                 * Build the manager-facing transportation story from the
+                 * uploaded schedule. This remains advisory demand data;
+                 * driver fairness still owns WHO receives an assignment.
                  */
-                pickupDemand =
-                        pickupPlanningService
-                                .getPickupDemandForDate(
+                transportationDemand =
+                        transportationDemandService
+                                .getDemandForDate(
                                         organizationId,
                                         selectedDate
                                 );
-
-                pickupWindows =
-                        pickupDemand.getWindows();
 
                 /*
                  * =================================================
@@ -493,13 +487,8 @@ public class PickupPlanningController {
         );
 
         model.addAttribute(
-                "pickupWindows",
-                pickupWindows
-        );
-
-        model.addAttribute(
-                "pickupDemand",
-                pickupDemand
+                "transportationDemand",
+                transportationDemand
         );
 
         model.addAttribute(

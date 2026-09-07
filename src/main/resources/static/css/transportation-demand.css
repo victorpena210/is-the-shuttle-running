@@ -1,0 +1,481 @@
+/* =========================================================
+   TRANSPORTATION DEMAND
+   Morning Arrivals / Midday Turnover / Evening Pickups
+   ========================================================= */
+
+.transportation-demand {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.transport-plan-summary {
+    overflow: hidden;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+    box-shadow: var(--shadow-sm);
+}
+
+.transport-plan-summary__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.2rem;
+    border-bottom: 1px solid var(--slate-200);
+    background: linear-gradient(90deg, #fbfdff, var(--white));
+}
+
+.transport-plan-summary__eyebrow {
+    display: block;
+    margin-bottom: 0.2rem;
+    color: var(--blue-600);
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.transport-plan-summary__header h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.transport-plan-summary__header p {
+    margin: 0.25rem 0 0;
+    color: var(--slate-500);
+    font-size: 0.78rem;
+}
+
+.transport-plan-summary__hours {
+    flex: 0 0 auto;
+    padding: 0.4rem 0.65rem;
+    border: 1px solid var(--slate-200);
+    border-radius: 999px;
+    color: var(--slate-600);
+    background: var(--slate-50);
+    font-size: 0.7rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.transport-plan-summary__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.transport-plan-metric {
+    min-width: 0;
+    padding: 1.05rem 1.2rem 1.15rem;
+}
+
+.transport-plan-metric + .transport-plan-metric {
+    border-left: 1px solid var(--slate-200);
+}
+
+.transport-plan-metric__label {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: var(--slate-500);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+}
+
+.transport-plan-metric__time {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: var(--ink-950);
+    font-size: clamp(1.15rem, 2vw, 1.45rem);
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+}
+
+.transport-plan-metric__total {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    color: var(--slate-500);
+    font-size: 0.76rem;
+}
+
+.transport-plan-metric__total strong {
+    color: var(--ink-950);
+    font-size: 1rem;
+}
+
+.transport-plan-metric__peak {
+    display: block;
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--slate-100);
+    color: var(--slate-500);
+    font-size: 0.7rem;
+}
+
+.transport-plan-metric__peak strong {
+    color: var(--slate-700);
+}
+
+.transportation-columns {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    align-items: start;
+    gap: 1rem;
+}
+
+.transportation-card {
+    overflow: hidden;
+    min-width: 0;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+    box-shadow: var(--shadow-sm);
+}
+
+.transportation-card__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.8rem;
+    padding: 1rem 1rem 0.9rem;
+    border-bottom: 1px solid var(--slate-200);
+    background: linear-gradient(180deg, #fbfdff, var(--white));
+}
+
+.transportation-card__icon {
+    display: grid;
+    width: 2.4rem;
+    height: 2.4rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 0.72rem;
+    color: var(--blue-600);
+    background: #eff6ff;
+    font-size: 1.1rem;
+    font-weight: 900;
+}
+
+.transportation-card--midday .transportation-card__icon {
+    color: var(--amber-800);
+    background: #fffbeb;
+}
+
+.transportation-card--evening .transportation-card__icon {
+    color: #9a3412;
+    background: #fff7ed;
+}
+
+.transportation-card__heading {
+    min-width: 0;
+}
+
+.transportation-card__heading h3 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.transportation-card__heading p {
+    margin: 0.22rem 0 0;
+    color: var(--slate-500);
+    font-size: 0.7rem;
+    line-height: 1.45;
+}
+
+.transportation-card__peak {
+    margin-left: auto;
+    flex: 0 0 auto;
+    text-align: right;
+}
+
+.transportation-card__peak span {
+    display: block;
+    color: var(--slate-400);
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.transportation-card__peak strong {
+    display: block;
+    margin-top: 0.08rem;
+    color: var(--ink-950);
+    font-size: 0.9rem;
+}
+
+.transportation-card__rows {
+    display: grid;
+    gap: 0;
+}
+
+.transportation-window {
+    display: grid;
+    grid-template-columns: minmax(7.2rem, 1fr) auto;
+    gap: 0.65rem;
+    align-items: center;
+    min-height: 3.65rem;
+    padding: 0.7rem 0.85rem;
+    border-bottom: 1px solid var(--slate-100);
+}
+
+.transportation-window:last-child {
+    border-bottom: 0;
+}
+
+.transportation-window--moderate {
+    background: #fffbeb;
+}
+
+.transportation-window--high {
+    background: #fff7ed;
+}
+
+.transportation-window--very-high {
+    background: #fef2f2;
+}
+
+.transportation-window__time {
+    display: block;
+    color: var(--ink-950);
+    font-size: 0.8rem;
+    letter-spacing: -0.015em;
+}
+
+.transportation-window__breakdown {
+    display: block;
+    margin-top: 0.18rem;
+    color: var(--slate-500);
+    font-size: 0.64rem;
+}
+
+.transportation-window__count {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.transportation-window__number {
+    text-align: right;
+}
+
+.transportation-window__number strong {
+    display: block;
+    color: var(--ink-950);
+    font-size: 0.98rem;
+    line-height: 1;
+}
+
+.transportation-window__number span {
+    display: block;
+    margin-top: 0.16rem;
+    color: var(--slate-500);
+    font-size: 0.6rem;
+}
+
+.transportation-card__empty {
+    padding: 1.2rem 1rem;
+    color: var(--slate-500);
+    font-size: 0.74rem;
+    line-height: 1.5;
+}
+
+.off-hours-demand {
+    overflow: hidden;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    background: var(--white);
+}
+
+.off-hours-demand summary {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.8rem 0.95rem;
+    cursor: pointer;
+    list-style: none;
+}
+
+.off-hours-demand summary::-webkit-details-marker {
+    display: none;
+}
+
+.off-hours-demand summary::before {
+    color: var(--slate-400);
+    content: "▸";
+    font-size: 0.78rem;
+    transition: transform 150ms ease;
+}
+
+.off-hours-demand[open] summary::before {
+    transform: rotate(90deg);
+}
+
+.off-hours-demand__label {
+    font-size: 0.78rem;
+    font-weight: 800;
+}
+
+.off-hours-demand__count {
+    margin-left: auto;
+    color: var(--slate-500);
+    font-size: 0.7rem;
+    white-space: nowrap;
+}
+
+.off-hours-demand__note {
+    color: var(--slate-400);
+    font-size: 0.65rem;
+}
+
+.off-hours-demand__rows {
+    display: grid;
+    border-top: 1px solid var(--slate-200);
+}
+
+.off-hours-row {
+    display: grid;
+    grid-template-columns: minmax(8rem, 1fr) auto auto;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.65rem 0.95rem;
+    border-bottom: 1px solid var(--slate-100);
+    font-size: 0.7rem;
+}
+
+.off-hours-row:last-child {
+    border-bottom: 0;
+}
+
+.off-hours-row__time {
+    color: var(--ink-950);
+    font-weight: 800;
+}
+
+.off-hours-row__breakdown {
+    color: var(--slate-500);
+}
+
+.off-hours-row__total {
+    color: var(--slate-700);
+    font-weight: 800;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.transportation-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.55rem 0.9rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    color: var(--slate-500);
+    background: var(--white);
+    font-size: 0.66rem;
+}
+
+.transportation-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.32rem;
+}
+
+.transportation-legend__dot {
+    display: inline-block;
+    width: 0.5rem;
+    height: 0.5rem;
+    border-radius: 50%;
+    background: var(--green-600);
+}
+
+.transportation-legend__dot--moderate {
+    background: var(--amber-500);
+}
+
+.transportation-legend__dot--high {
+    background: #f97316;
+}
+
+.transportation-legend__dot--very-high {
+    background: var(--red-600);
+}
+
+@media (max-width: 1050px) {
+    .transportation-columns {
+        grid-template-columns: 1fr;
+    }
+
+    .transportation-card__rows {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .transportation-window:nth-child(odd) {
+        border-right: 1px solid var(--slate-100);
+    }
+}
+
+@media (max-width: 760px) {
+    .transport-plan-summary__header {
+        flex-direction: column;
+    }
+
+    .transport-plan-summary__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .transport-plan-metric + .transport-plan-metric {
+        border-top: 1px solid var(--slate-200);
+        border-left: 0;
+    }
+
+    .transportation-card__rows {
+        grid-template-columns: 1fr;
+    }
+
+    .transportation-window:nth-child(odd) {
+        border-right: 0;
+    }
+}
+
+@media (max-width: 520px) {
+    .transportation-card__header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .transportation-card__peak {
+        width: 100%;
+        margin-left: 3.2rem;
+        text-align: left;
+    }
+
+    .transportation-window {
+        grid-template-columns: 1fr;
+    }
+
+    .transportation-window__count {
+        justify-content: space-between;
+    }
+
+    .transportation-window__number {
+        text-align: left;
+    }
+
+    .off-hours-row {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+    }
+
+    .off-hours-row__total {
+        text-align: left;
+    }
+
+    .off-hours-demand__note {
+        display: none;
+    }
+}

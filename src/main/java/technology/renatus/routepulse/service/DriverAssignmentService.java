@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Value;
@@ -162,29 +161,30 @@ public class DriverAssignmentService {
                         );
 
         /*
-         * A driver can theoretically have more than one uploaded shift row
-         * for the same date. Collapse those rows so fairness sees each driver
-         * only once.
+         * Keep every uploaded shift row for each driver. A driver may have a
+         * split shift, and the exact work window matters when we clip an
+         * automatically generated driving assignment to their availability.
          */
-        Map<Long, DriverSchedule> schedulesByDriverId =
+        Map<Long, List<DriverSchedule>> schedulesByDriverId =
                 scheduleResult
                         .scheduledDrivers()
                         .stream()
                         .collect(
-                                Collectors.toMap(
-                                        DriverSchedule::driverId,
-                                        Function.identity(),
-                                        (
-                                                first,
-                                                duplicate
-                                        ) -> first
+                                Collectors.groupingBy(
+                                        DriverSchedule::driverId
                                 )
                         );
 
+        /*
+         * Fairness only needs one representative row per driver. Use the
+         * earliest scheduled row for stable ordering while retaining all rows
+         * above for actual availability calculations.
+         */
         List<DriverSchedule> eligibleDrivers =
                 schedulesByDriverId
                         .values()
                         .stream()
+                        .map(this::earliestSchedule)
                         .toList();
 
         /*
@@ -210,13 +210,34 @@ public class DriverAssignmentService {
                                 eligibleDrivers
                         );
 
-        Driver morningDriver =
-                loadDriver(
-                        organizationId,
-                        fairestOrder
-                                .get(0)
-                                .driverId()
+        MorningDrivingPlan morningPlan =
+                morningDrivingPlanningService
+                        .getPlanForDate(
+                                organizationId,
+                                assignmentDate
+                        );
+
+        /*
+         * Fairness still decides who is next in line, but a driver must have
+         * at least some actual work-schedule overlap with the morning demand
+         * window. A 9:00 AM clock-in is allowed for an 8:45 AM demand start;
+         * the assignment will simply begin at 9:00 AM. A driver whose shift
+         * is entirely outside the demand window is skipped.
+         */
+        DriverSchedule morningDriverSchedule =
+                chooseMorningDriverSchedule(
+                        fairestOrder,
+                        schedulesByDriverId,
+                        morningPlan
                 );
+
+        Driver morningDriver =
+                morningDriverSchedule == null
+                        ? null
+                        : loadDriver(
+                                organizationId,
+                                morningDriverSchedule.driverId()
+                        );
 
         /*
          * Preserve which uploaded schedule version produced
@@ -243,23 +264,27 @@ public class DriverAssignmentService {
          * Morning clock-in demand calculates the scheduled
          * driving start/end time.
          */
-        DriverAssignment morningAssignment =
-                DriverAssignment.automatic(
-                        assignmentDate,
-                        ShuttlePeriod.MORNING,
-                        morningDriver,
-                        sourceScheduleImport
-                );
+        DriverAssignment morningAssignment = null;
 
-        applyMorningScheduleIfAvailable(
-                organizationId,
-                assignmentDate,
-                morningAssignment
-        );
+        if (morningDriver != null) {
+            morningAssignment =
+                    DriverAssignment.automatic(
+                            assignmentDate,
+                            ShuttlePeriod.MORNING,
+                            morningDriver,
+                            sourceScheduleImport
+                    );
 
-        newAssignments.add(
-                morningAssignment
-        );
+            applyMorningScheduleIfAvailable(
+                    morningPlan,
+                    morningDriverSchedule,
+                    morningAssignment
+            );
+
+            newAssignments.add(
+                    morningAssignment
+            );
+        }
 
         /*
          * =============================================================
@@ -271,14 +296,18 @@ public class DriverAssignmentService {
          * This feature does not change your pickup-demand calculations
          * or automatically alter manager-approved afternoon scheduling.
          */
-        if (fairestOrder.size() >= 2) {
+        DriverSchedule afternoonDriverSchedule =
+                chooseAfternoonDriverSchedule(
+                        fairestOrder,
+                        morningDriverSchedule
+                );
+
+        if (afternoonDriverSchedule != null) {
 
             Driver afternoonDriver =
                     loadDriver(
                             organizationId,
-                            fairestOrder
-                                    .get(1)
-                                    .driverId()
+                            afternoonDriverSchedule.driverId()
                     );
 
             newAssignments.add(
@@ -299,11 +328,11 @@ public class DriverAssignmentService {
     }
 
     /**
-     * Fills an older morning assignment only when both generated
-     * schedule fields are still blank.
+     * Fills an older morning assignment only when both generated schedule
+     * fields are still blank.
      *
-     * This lets the feature work with assignments that were created
-     * before morning clock-in planning existed.
+     * The generated demand window is clipped to the scheduled driver's actual
+     * uploaded work shift before it is saved.
      */
     private void applyMorningScheduleIfMissing(
             Long organizationId,
@@ -321,9 +350,8 @@ public class DriverAssignmentService {
                         .orElse(null);
 
         /*
-         * Do not overwrite an existing schedule.
-         *
-         * Also do not change historical/active actual-driving data.
+         * Do not overwrite an existing schedule and do not change an
+         * assignment after actual driving has started.
          */
         if (morningAssignment == null
                 || morningAssignment
@@ -336,22 +364,6 @@ public class DriverAssignmentService {
             return;
         }
 
-        applyMorningScheduleIfAvailable(
-                organizationId,
-                assignmentDate,
-                morningAssignment
-        );
-    }
-
-    /**
-     * Calculates and applies the morning driving schedule when
-     * qualifying employee clock-in demand exists.
-     */
-    private void applyMorningScheduleIfAvailable(
-            Long organizationId,
-            LocalDate assignmentDate,
-            DriverAssignment morningAssignment) {
-
         MorningDrivingPlan morningPlan =
                 morningDrivingPlanningService
                         .getPlanForDate(
@@ -359,22 +371,215 @@ public class DriverAssignmentService {
                                 assignmentDate
                         );
 
-        /*
-         * No qualifying 9 AM - 12 PM employee arrivals means we do not
-         * invent a driving window.
-         *
-         * The assignment remains available for manager review.
-         */
         if (!morningPlan.hasDemand()) {
             return;
         }
 
-        morningAssignment
-                .updateScheduledTimes(
-                        morningPlan
-                                .getScheduledStartTime(),
-                        morningPlan
-                                .getScheduledEndTime()
+        DriverScheduleResult scheduleResult =
+                driverScheduleService
+                        .getDriverSchedulesForDate(
+                                organizationId,
+                                assignmentDate
+                        );
+
+        DriverSchedule assignedDriverSchedule =
+                findBestOverlappingSchedule(
+                        scheduleResult.scheduledDrivers(),
+                        morningAssignment
+                                .getScheduledDriver()
+                                .getId(),
+                        morningPlan.getScheduledStartTime(),
+                        morningPlan.getScheduledEndTime()
+                );
+
+        if (assignedDriverSchedule == null) {
+            return;
+        }
+
+        applyMorningScheduleIfAvailable(
+                morningPlan,
+                assignedDriverSchedule,
+                morningAssignment
+        );
+    }
+
+    /**
+     * Applies the morning demand window after constraining it to the assigned
+     * driver's real uploaded work hours.
+     *
+     * Example:
+     * demand window = 8:45 AM - 12:15 PM
+     * driver shift  = 9:00 AM - 4:00 PM
+     * assignment    = 9:00 AM - 12:15 PM
+     */
+    private void applyMorningScheduleIfAvailable(
+            MorningDrivingPlan morningPlan,
+            DriverSchedule driverSchedule,
+            DriverAssignment morningAssignment) {
+
+        if (morningPlan == null
+                || !morningPlan.hasDemand()
+                || driverSchedule == null
+                || !driverSchedule.overlaps(
+                        morningPlan.getScheduledStartTime(),
+                        morningPlan.getScheduledEndTime()
+                )) {
+            return;
+        }
+
+        DriverSchedule.DrivingWindow clippedWindow =
+                driverSchedule.clipTo(
+                        morningPlan.getScheduledStartTime(),
+                        morningPlan.getScheduledEndTime()
+                );
+
+        if (clippedWindow == null) {
+            return;
+        }
+
+        morningAssignment.updateScheduledTimes(
+                clippedWindow.startTime(),
+                clippedWindow.endTime()
+        );
+    }
+
+    /**
+     * Walks the fairness queue in order and returns the first driver who is
+     * actually working during at least part of the morning demand window.
+     *
+     * We intentionally do not require the driver to cover the entire demand
+     * window. If demand begins at 8:45 AM and the fairest eligible driver
+     * clocks in at 9:00 AM, that driver remains eligible and their assignment
+     * begins at 9:00 AM.
+     */
+    private DriverSchedule chooseMorningDriverSchedule(
+            List<DriverSchedule> fairestOrder,
+            Map<Long, List<DriverSchedule>> schedulesByDriverId,
+            MorningDrivingPlan morningPlan) {
+
+        if (fairestOrder == null || fairestOrder.isEmpty()) {
+            return null;
+        }
+
+        /*
+         * Preserve the previous behavior when there is no generated morning
+         * demand window: keep the fairest scheduled driver attached to the
+         * morning assignment and leave its times blank for manager review.
+         */
+        if (morningPlan == null || !morningPlan.hasDemand()) {
+            return fairestOrder.get(0);
+        }
+
+        for (DriverSchedule rankedDriver : fairestOrder) {
+
+            DriverSchedule overlappingSchedule =
+                    findBestOverlappingSchedule(
+                            schedulesByDriverId.getOrDefault(
+                                    rankedDriver.driverId(),
+                                    List.of()
+                            ),
+                            rankedDriver.driverId(),
+                            morningPlan.getScheduledStartTime(),
+                            morningPlan.getScheduledEndTime()
+                    );
+
+            if (overlappingSchedule != null) {
+                return overlappingSchedule;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Keeps the existing two-driver AM/PM rotation behavior. If morning had to
+     * skip the first fairness-ranked driver because that person's work shift
+     * did not overlap morning demand, that first-ranked driver becomes the
+     * natural afternoon choice instead of assigning the same person twice.
+     */
+    private DriverSchedule chooseAfternoonDriverSchedule(
+            List<DriverSchedule> fairestOrder,
+            DriverSchedule morningDriverSchedule) {
+
+        if (fairestOrder == null || fairestOrder.size() < 2) {
+            return null;
+        }
+
+        if (morningDriverSchedule == null) {
+            return fairestOrder.get(1);
+        }
+
+        return fairestOrder
+                .stream()
+                .filter(schedule ->
+                        !schedule.driverId().equals(
+                                morningDriverSchedule.driverId()
+                        )
+                )
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * Finds the shift row for a driver that covers the greatest portion of the
+     * requested driving window. This also handles split-shift uploads without
+     * accidentally discarding later rows for the same driver.
+     */
+    private DriverSchedule findBestOverlappingSchedule(
+            List<DriverSchedule> schedules,
+            Long driverId,
+            LocalTime requestedStart,
+            LocalTime requestedEnd) {
+
+        if (schedules == null || schedules.isEmpty() || driverId == null) {
+            return null;
+        }
+
+        return schedules
+                .stream()
+                .filter(schedule ->
+                        driverId.equals(schedule.driverId())
+                                && schedule.overlaps(
+                                        requestedStart,
+                                        requestedEnd
+                                )
+                )
+                .sorted(
+                        Comparator
+                                .comparingLong(
+                                        (DriverSchedule schedule) ->
+                                                schedule.overlapMinutes(
+                                                        requestedStart,
+                                                        requestedEnd
+                                                )
+                                )
+                                .reversed()
+                                .thenComparing(
+                                        DriverSchedule::startTime
+                                )
+                )
+                .findFirst()
+                .orElse(null);
+    }
+
+    private DriverSchedule earliestSchedule(
+            List<DriverSchedule> schedules) {
+
+        return schedules
+                .stream()
+                .min(
+                        Comparator
+                                .comparing(
+                                        DriverSchedule::startTime
+                                )
+                                .thenComparing(
+                                        DriverSchedule::endTime
+                                )
+                )
+                .orElseThrow(() ->
+                        new IllegalStateException(
+                                "A scheduled driver must have at least one shift row."
+                        )
                 );
     }
 
