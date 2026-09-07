@@ -2312,10 +2312,10 @@ body[data-dashboard-view="schedules"] .page-date {
 }
 
 .landing-hero__copy h1 {
-    max-width: 13ch;
+    max-width: 17ch;
     margin-bottom: 1.25rem;
-    font-size: clamp(3rem, 6vw, 5.4rem);
-    letter-spacing: -0.045em;
+    font-size: clamp(2.6rem, 5vw, 4.5rem);
+    letter-spacing: -0.04em;
 }
 
 .landing-hero__lead {
@@ -2654,10 +2654,10 @@ body[data-dashboard-view="schedules"] .page-date {
     .landing-nav__inner {
         width: min(calc(100% - 1.25rem), var(--content-width));
     }
-
-    .landing-hero__copy h1 {
-        font-size: clamp(2.65rem, 13vw, 4.25rem);
-    }
+	
+	.landing-hero__copy h1 {
+	    font-size: clamp(2.25rem, 10vw, 3.5rem);
+	}
 
     .landing-mini-grid,
     .landing-feature-grid {
