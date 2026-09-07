@@ -181,41 +181,57 @@
             <span>Today's coverage</span>
         </div>
 
-<div class="coverage-shift-grid">
+		<div class="coverage-shift-grid">
 
-    <!-- =================================================
-         MORNING CARD
-         ================================================= -->
+		    <!-- =================================================
+		         MORNING CARD
+		         ================================================= -->
 
-    <div
-        th:replace="~{fragments/driver-coverage :: shiftCard(
-            assignment=${morningAssignment},
-            periodName='MORNING',
-            periodLabel='Morning',
-            periodIcon='☀',
-            assignedDriverSchedule=${morningAssignedDriverSchedule},
-            recommendedStart=${transportationDemand.morning.recommendedStartTime},
-            recommendedEnd=${transportationDemand.morning.recommendedEndTime}
-        )}">
-    </div>
+		    <div
+		        th:replace="~{fragments/driver-coverage :: shiftCard(
+		            assignment=${morningAssignment},
+		            periodName='MORNING',
+		            periodLabel='Morning',
+		            periodIcon='☀',
+		            assignedDriverSchedule=${morningAssignedDriverSchedule},
+		            recommendedStart=${transportationDemand.morning.recommendedStartTime},
+		            recommendedEnd=${transportationDemand.morning.recommendedEndTime}
+		        )}">
+		    </div>
 
-    <!-- =================================================
-         AFTERNOON CARD
-         ================================================= -->
+		    <!-- =================================================
+		         MIDDAY TURNOVER CARD
+		         ================================================= -->
 
-    <div
-        th:replace="~{fragments/driver-coverage :: shiftCard(
-            assignment=${afternoonAssignment},
-            periodName='AFTERNOON',
-            periodLabel='Afternoon',
-            periodIcon='🌆',
-            assignedDriverSchedule=${afternoonAssignedDriverSchedule},
-            recommendedStart=${transportationDemand.evening.recommendedStartTime},
-            recommendedEnd=${transportationDemand.evening.recommendedEndTime}
-        )}">
-    </div>
+		    <div
+		        th:replace="~{fragments/driver-coverage :: shiftCard(
+		            assignment=${middayAssignment},
+		            periodName='MIDDAY',
+		            periodLabel='Midday Turnover',
+		            periodIcon='↔',
+		            assignedDriverSchedule=${middayAssignedDriverSchedule},
+		            recommendedStart=${transportationDemand.midday.recommendedStartTime},
+		            recommendedEnd=${transportationDemand.midday.recommendedEndTime}
+		        )}">
+		    </div>
 
-</div>
+		    <!-- =================================================
+		         AFTERNOON CARD
+		         ================================================= -->
+
+		    <div
+		        th:replace="~{fragments/driver-coverage :: shiftCard(
+		            assignment=${afternoonAssignment},
+		            periodName='AFTERNOON',
+		            periodLabel='Afternoon',
+		            periodIcon='🌆',
+		            assignedDriverSchedule=${afternoonAssignedDriverSchedule},
+		            recommendedStart=${transportationDemand.evening.recommendedStartTime},
+		            recommendedEnd=${transportationDemand.evening.recommendedEndTime}
+		        )}">
+		    </div>
+
+		</div>
 
         <!-- =====================================================
              DRIVER AVAILABILITY
