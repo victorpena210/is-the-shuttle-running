@@ -595,7 +595,6 @@ input[type="file"]::file-selector-button {
     border-radius: 999px;
     font-size: 0.72rem;
     font-weight: 900;
-    content: "i";
 }
 
 .alert > form {
