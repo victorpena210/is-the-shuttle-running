@@ -225,6 +225,25 @@ public class PickupPlanningController {
 
             /*
              * =====================================================
+             * TRANSPORTATION DEMAND
+             * =====================================================
+             *
+             * Demand belongs to the uploaded employee schedule, not
+             * the Six Flags calendar. Always calculate it whenever
+             * this date exists in the uploaded schedule.
+             *
+             * The park calendar only controls whether RoutePulse may
+             * create driver coverage automatically.
+             */
+            transportationDemand =
+                    transportationDemandService
+                            .getDemandForDate(
+                                    organizationId,
+                                    selectedDate
+                            );
+
+            /*
+             * =====================================================
              * PARK OPERATING CHECK
              * =====================================================
              *
@@ -288,24 +307,6 @@ public class PickupPlanningController {
             }
 
             /*
-             * Show the park/calendar problem using the dashboard's
-             * existing error-message area.
-             */
-            if (!calendarOverrideActive
-                    && operatingDay.status()
-                            != ParkOperatingStatus.OPEN
-                    && calendarMessage != null
-                    && !model.containsAttribute(
-                            "errorMessage"
-                    )) {
-
-                model.addAttribute(
-                        "errorMessage",
-                        calendarMessage
-                );
-            }
-
-            /*
              * =====================================================
              * PARK OPEN
              * =====================================================
@@ -330,23 +331,23 @@ public class PickupPlanningController {
                 if (operatingDay.status()
                         == ParkOperatingStatus.OPEN) {
 
-                    calendarMessage =
-                            operatingDay.buyout()
-                                    ? "Open — Private Buyout"
-                                    : "Open — Public Operating Day";
-                }
+                    if (operatingDay.isManagerConfirmed()) {
+                        calendarMessage =
+                                "Open — manager confirmed after calendar verification failure";
 
-                /*
-                 * Build the manager-facing transportation story from the
-                 * uploaded schedule. This remains advisory demand data;
-                 * driver fairness still owns WHO receives an assignment.
-                 */
-                transportationDemand =
-                        transportationDemandService
-                                .getDemandForDate(
-                                        organizationId,
-                                        selectedDate
-                                );
+                    } else if (operatingDay.isPersistedSnapshot()) {
+                        calendarMessage =
+                                operatingDay.buyout()
+                                        ? "Open — saved Six Flags calendar · Private Buyout"
+                                        : "Open — saved Six Flags calendar";
+
+                    } else {
+                        calendarMessage =
+                                operatingDay.buyout()
+                                        ? "Open — Private Buyout"
+                                        : "Open — Public Operating Day";
+                    }
+                }
 
                 /*
                  * =================================================
@@ -550,6 +551,22 @@ public class PickupPlanningController {
                 calendarOverrideActive
         );
 
+        model.addAttribute(
+                "calendarDiagnosticCode",
+                operatingDay == null
+                        ? null
+                        : operatingDay.diagnosticCode()
+        );
+
+        model.addAttribute(
+                "calendarConfirmationRequired",
+                selectedDateAvailable
+                        && operatingDay != null
+                        && operatingDay.status()
+                                == ParkOperatingStatus.UNKNOWN
+                        && !calendarOverrideActive
+        );
+
         /*
          * The schedule/coverage UI is only displayed when:
          *
@@ -632,6 +649,48 @@ public class PickupPlanningController {
 
         return "index";
     }
+
+    @PostMapping("/park-calendar/confirm-open")
+    public String confirmParkOpen(
+            Authentication authentication,
+
+            @RequestParam
+            @DateTimeFormat(
+                    iso = DateTimeFormat.ISO.DATE
+            )
+            LocalDate operatingDate,
+
+            RedirectAttributes redirectAttributes) {
+
+        try {
+            parkOperatingDayService
+                    .confirmOpenForDate(
+                            operatingDate,
+                            authentication.getName()
+                    );
+
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "Park opening confirmed. RoutePulse can now generate "
+                            + "driver coverage from the uploaded schedule."
+            );
+
+        } catch (IllegalStateException exception) {
+
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    exception.getMessage()
+            );
+        }
+
+        redirectAttributes.addAttribute(
+                "date",
+                operatingDate.toString()
+        );
+
+        return "redirect:/app#coverage";
+    }
+
 
     private DriverSchedule findAssignedDriverSchedule(
             List<DriverSchedule> schedules,

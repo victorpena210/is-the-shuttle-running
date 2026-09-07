@@ -740,7 +740,7 @@
 
     <div th:if="${generated}" data-plan-container>
 
-        <div th:if="${showSchedule}">
+        <div>
 
 
             <!-- =================================================
@@ -1139,10 +1139,65 @@
 
 
                 <!-- =================================================
+                     PARK CALENDAR GATE
+                     Transportation demand remains visible even when the
+                     external calendar cannot be verified. Only coverage
+                     generation is blocked.
+                     ================================================= -->
+
+                <div
+                    class="alert alert--warning"
+                    th:if="${calendarConfirmationRequired}"
+                    role="alert">
+
+                    <div>
+                        <strong>Park calendar unverified.</strong>
+                        Transportation demand above still comes from the uploaded
+                        employee schedule. RoutePulse has not created driver
+                        coverage because the Six Flags calendar could not be verified.
+
+                        <span
+                            class="mono"
+                            th:if="${calendarDiagnosticCode != null}"
+                            th:text="| Calendar check: ${calendarDiagnosticCode}.|">
+                            Calendar check: DATE_MISSING_FROM_API.
+                        </span>
+                    </div>
+
+                    <form
+                        th:action="@{/park-calendar/confirm-open}"
+                        method="post">
+
+                        <input
+                            type="hidden"
+                            name="operatingDate"
+                            th:value="${selectedDate}">
+
+                        <button
+                            class="button"
+                            type="submit">
+                            Confirm park is open and continue
+                        </button>
+
+                    </form>
+
+                </div>
+
+                <div
+                    class="alert alert--info"
+                    th:if="${operatingDay != null and operatingDay.status.name() == 'CLOSED'}"
+                    role="status">
+                    <strong>Park closed — shuttle coverage is not scheduled.</strong>
+                    Transportation demand remains visible for schedule review, but
+                    RoutePulse will not create shuttle driver assignments for this date.
+                </div>
+
+                <!-- =================================================
                      DRIVER COVERAGE
                      ================================================= -->
 
                 <div
+                    th:if="${showSchedule}"
                     th:replace="~{fragments/driver-coverage :: coverage}">
                 </div>
 
