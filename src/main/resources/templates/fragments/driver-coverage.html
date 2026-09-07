@@ -28,21 +28,6 @@
 
         </header>
 
-        <!-- =====================================================
-             COVERAGE SUMMARY
-             ===================================================== -->
-
-        <div class="coverage-summary" aria-label="Coverage summary">
-
-            <article class="coverage-summary__item">
-                <strong>2</strong>
-                <span>Shuttle shifts</span>
-            </article>
-
-            <article class="coverage-summary__item coverage-summary__item--good">
-                <strong th:text="${coveredShiftCount}">1</strong>
-                <span>Covered</span>
-            </article>
 
 			<!-- =====================================================
 			     COVERAGE SUMMARY
@@ -51,7 +36,7 @@
 			<div class="coverage-summary" aria-label="Coverage summary">
 
 			    <article class="coverage-summary__item">
-			        <strong>2</strong>
+			        <strong>3</strong>
 			        <span>Shuttle shifts</span>
 			    </article>
 
@@ -87,61 +72,65 @@
 
         </div>
 
-        <!-- =====================================================
-             OPERATIONAL STATUS
-             ===================================================== -->
+		<!-- =====================================================
+		     OPERATIONAL STATUS
+		     ===================================================== -->
 
-        <div
-            class="coverage-action coverage-action--warning"
-            th:if="${needsAttentionShiftCount > 0}"
-            role="alert">
+		<div
+		    class="coverage-action coverage-action--warning"
+		    th:if="${needsAttentionShiftCount != null and needsAttentionShiftCount > 0}"
+		    role="alert">
 
-            <div>
-                <strong
-                    th:text="${!morningAssignmentExists and !afternoonAssignmentExists
-                        ? 'Morning and afternoon shuttles need drivers'
-                        : (!morningAssignmentExists
-                            ? 'Morning shuttle needs a driver'
-                            : 'Afternoon shuttle needs a driver')}">
-                    Afternoon shuttle needs a driver
-                </strong>
+		    <div>
 
-                <p
-                    th:text="${!morningAssignmentExists and !afternoonAssignmentExists
-                        ? 'No shuttle drivers have been assigned yet.'
-                        : (!morningAssignmentExists
-                            ? 'Afternoon is covered. Morning coverage has not been assigned.'
-                            : (morningAssignment.assignmentSource.name() == 'AUTO'
-                                ? 'Morning is covered automatically. Afternoon coverage has not been assigned.'
-                                : 'Morning is covered. Afternoon coverage has not been assigned.'))}">
-                    Morning is covered automatically. Afternoon coverage has not been assigned.
-                </p>
-            </div>
+		        <strong
+		            th:text="${needsAttentionShiftCount == 1
+		                ? '1 shuttle shift still needs a driver'
+		                : needsAttentionShiftCount + ' shuttle shifts still need drivers'}">
+		            1 shuttle shift still needs a driver
+		        </strong>
 
-            <button
-                class="button"
-                type="button"
-                th:attr="data-open-coverage-details=${!morningAssignmentExists ? '#assign-morning' : '#assign-afternoon'}">
-                Assign driver
-            </button>
+		        <p>
+		            Review the Morning, Midday Turnover, and Afternoon
+		            coverage below and assign the remaining driver coverage.
+		        </p>
 
-        </div>
+		    </div>
 
-        <div
-            class="coverage-action coverage-action--success"
-            th:if="${needsAttentionShiftCount == 0}">
+		    <button
+		        class="button"
+		        type="button"
+		        th:attr="data-open-coverage-details=${
+		            !morningAssignmentExists
+		                ? '#assign-morning'
+		                : (!middayAssignmentExists
+		                    ? '#assign-midday'
+		                    : '#assign-afternoon')
+		        }">
+		        Assign driver
+		    </button>
 
-            <div>
-                <strong>
-                    Both shuttle shifts are covered
-                </strong>
+		</div>
 
-                <p>
-                    Morning and afternoon have assigned drivers.
-                </p>
-            </div>
 
-        </div>
+		<div
+		    class="coverage-action coverage-action--success"
+		    th:if="${needsAttentionShiftCount != null and needsAttentionShiftCount == 0}">
+
+		    <div>
+
+		        <strong>
+		            All shuttle shifts are covered
+		        </strong>
+
+		        <p>
+		            Morning, Midday Turnover, and Afternoon
+		            have assigned drivers.
+		        </p>
+
+		    </div>
+
+		</div>
 
         <!-- =====================================================
              SCHEDULE REVIEW WARNING
