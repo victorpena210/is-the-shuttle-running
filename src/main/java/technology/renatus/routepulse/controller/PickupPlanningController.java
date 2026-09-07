@@ -430,19 +430,48 @@ public class PickupPlanningController {
             }
         }
 
-        boolean morningAssignmentExists =
+        DriverAssignment morningAssignment =
                 driverAssignments.stream()
-                        .anyMatch(assignment ->
+                        .filter(assignment ->
                                 assignment.getPeriod()
                                         == ShuttlePeriod.MORNING
-                        );
+                        )
+                        .findFirst()
+                        .orElse(null);
 
-        boolean afternoonAssignmentExists =
+        DriverAssignment afternoonAssignment =
                 driverAssignments.stream()
-                        .anyMatch(assignment ->
+                        .filter(assignment ->
                                 assignment.getPeriod()
                                         == ShuttlePeriod.AFTERNOON
-                        );
+                        )
+                        .findFirst()
+                        .orElse(null);
+
+        boolean morningAssignmentExists =
+                morningAssignment != null;
+
+        boolean afternoonAssignmentExists =
+                afternoonAssignment != null;
+
+        int coveredShiftCount =
+                (morningAssignmentExists ? 1 : 0)
+                        + (afternoonAssignmentExists ? 1 : 0);
+
+        int needsAttentionShiftCount =
+                2 - coveredShiftCount;
+
+        DriverSchedule morningAssignedDriverSchedule =
+                findAssignedDriverSchedule(
+                        driverSchedules,
+                        morningAssignment
+                );
+
+        DriverSchedule afternoonAssignedDriverSchedule =
+                findAssignedDriverSchedule(
+                        driverSchedules,
+                        afternoonAssignment
+                );
 
         model.addAttribute(
                 "selectedDate",
@@ -571,7 +600,93 @@ public class PickupPlanningController {
                 afternoonAssignmentExists
         );
 
+        model.addAttribute(
+                "morningAssignment",
+                morningAssignment
+        );
+
+        model.addAttribute(
+                "afternoonAssignment",
+                afternoonAssignment
+        );
+
+        model.addAttribute(
+                "coveredShiftCount",
+                coveredShiftCount
+        );
+
+        model.addAttribute(
+                "needsAttentionShiftCount",
+                needsAttentionShiftCount
+        );
+
+        model.addAttribute(
+                "morningAssignedDriverSchedule",
+                morningAssignedDriverSchedule
+        );
+
+        model.addAttribute(
+                "afternoonAssignedDriverSchedule",
+                afternoonAssignedDriverSchedule
+        );
+
         return "index";
+    }
+
+    private DriverSchedule findAssignedDriverSchedule(
+            List<DriverSchedule> schedules,
+            DriverAssignment assignment) {
+
+        if (assignment == null
+                || assignment.getScheduledDriver() == null
+                || schedules == null
+                || schedules.isEmpty()) {
+
+            return null;
+        }
+
+        Long driverId =
+                assignment
+                        .getScheduledDriver()
+                        .getId();
+
+        List<DriverSchedule> matchingSchedules =
+                schedules.stream()
+                        .filter(schedule ->
+                                schedule.driverId().equals(driverId)
+                        )
+                        .toList();
+
+        if (matchingSchedules.isEmpty()) {
+            return null;
+        }
+
+        if (assignment.getScheduledStartTime() == null
+                || assignment.getScheduledEndTime() == null) {
+
+            return matchingSchedules.get(0);
+        }
+
+        return matchingSchedules.stream()
+                .filter(schedule ->
+                        schedule.overlaps(
+                                assignment.getScheduledStartTime(),
+                                assignment.getScheduledEndTime()
+                        )
+                )
+                .max((left, right) ->
+                        Long.compare(
+                                left.overlapMinutes(
+                                        assignment.getScheduledStartTime(),
+                                        assignment.getScheduledEndTime()
+                                ),
+                                right.overlapMinutes(
+                                        assignment.getScheduledStartTime(),
+                                        assignment.getScheduledEndTime()
+                                )
+                        )
+                )
+                .orElse(matchingSchedules.get(0));
     }
 
     
