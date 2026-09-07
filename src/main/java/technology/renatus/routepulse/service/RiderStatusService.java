@@ -8,9 +8,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import technology.renatus.routepulse.model.DriverAssignment;
+import technology.renatus.routepulse.model.DrivingSession;
 import technology.renatus.routepulse.model.Organization;
-import technology.renatus.routepulse.repository.DriverAssignmentRepository;
+import technology.renatus.routepulse.repository.DrivingSessionRepository;
 import technology.renatus.routepulse.repository.OrganizationRepository;
 
 @Service
@@ -18,22 +18,21 @@ import technology.renatus.routepulse.repository.OrganizationRepository;
 public class RiderStatusService {
 
     private final OrganizationRepository organizationRepository;
-    private final DriverAssignmentRepository driverAssignmentRepository;
+    private final DrivingSessionRepository drivingSessionRepository;
     private final ZoneId operationsZone;
 
     public RiderStatusService(
             OrganizationRepository organizationRepository,
-            DriverAssignmentRepository driverAssignmentRepository,
+            DrivingSessionRepository drivingSessionRepository,
             @Value("${app.operations-zone:America/Chicago}")
             String operationsZone) {
 
         this.organizationRepository = organizationRepository;
-        this.driverAssignmentRepository = driverAssignmentRepository;
+        this.drivingSessionRepository = drivingSessionRepository;
         this.operationsZone = ZoneId.of(operationsZone);
     }
 
     public RiderStatus getStatus(String organizationSlug) {
-
         String slug = normalizeSlug(organizationSlug);
 
         Organization organization = organizationRepository
@@ -49,13 +48,13 @@ public class RiderStatusService {
             );
         }
 
-        DriverAssignment activeAssignment = driverAssignmentRepository
-                .findFirstByOrganization_IdAndActualStartedAtIsNotNullAndActualEndedAtIsNullOrderByActualStartedAtDesc(
+        DrivingSession activeSession = drivingSessionRepository
+                .findFirstByOrganization_IdAndEndedAtIsNullOrderByStartedAtDesc(
                         organization.getId()
                 )
                 .orElse(null);
 
-        if (activeAssignment == null) {
+        if (activeSession == null) {
             return new RiderStatus(
                     organization.getDisplayName(),
                     false,
@@ -66,12 +65,11 @@ public class RiderStatusService {
         return new RiderStatus(
                 organization.getDisplayName(),
                 true,
-                activeAssignment.getDriver().getName()
+                activeSession.getDriver().getName()
         );
     }
 
     private String normalizeSlug(String organizationSlug) {
-
         if (organizationSlug == null || organizationSlug.isBlank()) {
             throw new RiderStatusNotFoundException(
                     "Rider status page was not found."

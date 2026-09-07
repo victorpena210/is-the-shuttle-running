@@ -122,7 +122,32 @@
             </p>
 
             <div
-                th:if="${overrideRequired}"
+                th:if="${takeoverRequired}"
+                class="alert alert--info"
+                role="status">
+
+                <strong>
+                    Active-driver handoff detected.
+                </strong>
+
+                <span th:text="${currentActualDriver.name}">
+                    Current Driver
+                </span>
+
+                is currently recorded as driving. Continuing will end that
+                actual driving session at this scan time and immediately start
+                a new actual driving session for
+
+                <strong th:text="${driver.name}">
+                    New Driver
+                </strong>.
+
+                The scheduled assignment itself will not be rewritten.
+
+            </div>
+
+            <div
+                th:if="${coverageRequired}"
                 class="alert alert--info"
                 role="status">
 
@@ -134,15 +159,14 @@
                     Scheduled Driver
                 </span>
 
-                is currently assigned to this shift, but the shift
-                has not started. Continuing will automatically
-                override the assignment to
+                is scheduled for this shift. Continuing will keep that
+                original schedule intact and record
 
                 <strong th:text="${driver.name}">
                     Fill-in Driver
                 </strong>
 
-                and record you as the actual driver.
+                separately as the actual driver.
 
             </div>
 
@@ -210,7 +234,15 @@
 
                 <div
                     class="readonly-field"
-                    th:if="${scanAction.name() == 'START' and !overrideRequired}">
+                    th:if="${scanAction.name() == 'START' and takeoverRequired}">
+
+                    Take over active driving
+
+                </div>
+
+                <div
+                    class="readonly-field"
+                    th:if="${scanAction.name() == 'START' and !takeoverRequired and !coverageRequired}">
 
                     Start driving
 
@@ -218,9 +250,9 @@
 
                 <div
                     class="readonly-field"
-                    th:if="${scanAction.name() == 'START' and overrideRequired}">
+                    th:if="${scanAction.name() == 'START' and !takeoverRequired and coverageRequired}">
 
-                    Take over shift and start driving
+                    Cover shift and start driving
 
                 </div>
 
@@ -247,7 +279,16 @@
                 <button
                     class="button button--block"
                     type="submit"
-                    th:if="${scanAction.name() == 'START' and !overrideRequired}">
+                    th:if="${scanAction.name() == 'START' and takeoverRequired}">
+
+                    Confirm driving handoff
+
+                </button>
+
+                <button
+                    class="button button--block"
+                    type="submit"
+                    th:if="${scanAction.name() == 'START' and !takeoverRequired and !coverageRequired}">
 
                     Confirm start driving
 
@@ -256,9 +297,9 @@
                 <button
                     class="button button--block"
                     type="submit"
-                    th:if="${scanAction.name() == 'START' and overrideRequired}">
+                    th:if="${scanAction.name() == 'START' and !takeoverRequired and coverageRequired}">
 
-                    Take over shift and start driving
+                    Cover shift and start driving
 
                 </button>
 

@@ -13,63 +13,42 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import technology.renatus.routepulse.model.DriverAssignment;
+import technology.renatus.routepulse.model.DrivingSession;
 import technology.renatus.routepulse.model.Organization;
 import technology.renatus.routepulse.model.PassengerRideConfirmation;
-import technology.renatus.routepulse.repository.DriverAssignmentRepository;
+import technology.renatus.routepulse.repository.DrivingSessionRepository;
 import technology.renatus.routepulse.repository.OrganizationRepository;
 import technology.renatus.routepulse.repository.PassengerRideConfirmationRepository;
 
 @Service
 public class PassengerRideService {
 
-    private final OrganizationRepository
-            organizationRepository;
-
-    private final DriverAssignmentRepository
-            driverAssignmentRepository;
-
-    private final PassengerRideConfirmationRepository
-            passengerRideConfirmationRepository;
-
+    private final OrganizationRepository organizationRepository;
+    private final DrivingSessionRepository drivingSessionRepository;
+    private final PassengerRideConfirmationRepository passengerRideConfirmationRepository;
     private final ZoneId operationsZone;
-
     private final int cooldownMinutes;
 
     public PassengerRideService(
             OrganizationRepository organizationRepository,
-            DriverAssignmentRepository driverAssignmentRepository,
-            PassengerRideConfirmationRepository
-                    passengerRideConfirmationRepository,
+            DrivingSessionRepository drivingSessionRepository,
+            PassengerRideConfirmationRepository passengerRideConfirmationRepository,
             @Value("${app.operations-zone:America/Chicago}")
             String operationsZone,
             @Value("${app.passenger-ride.cooldown-minutes:30}")
             int cooldownMinutes) {
 
-        if (cooldownMinutes < 1
-                || cooldownMinutes > 240) {
-
+        if (cooldownMinutes < 1 || cooldownMinutes > 240) {
             throw new IllegalArgumentException(
                     "Passenger ride cooldown must be between 1 and 240 minutes."
             );
         }
 
-        this.organizationRepository =
-                organizationRepository;
-
-        this.driverAssignmentRepository =
-                driverAssignmentRepository;
-
-        this.passengerRideConfirmationRepository =
-                passengerRideConfirmationRepository;
-
-        this.operationsZone =
-                ZoneId.of(
-                        operationsZone
-                );
-
-        this.cooldownMinutes =
-                cooldownMinutes;
+        this.organizationRepository = organizationRepository;
+        this.drivingSessionRepository = drivingSessionRepository;
+        this.passengerRideConfirmationRepository = passengerRideConfirmationRepository;
+        this.operationsZone = ZoneId.of(operationsZone);
+        this.cooldownMinutes = cooldownMinutes;
     }
 
     @Transactional(readOnly = true)
@@ -77,18 +56,15 @@ public class PassengerRideService {
             String organizationSlug,
             String deviceToken) {
 
-        Organization organization =
-                requireAccessibleOrganization(
-                        organizationSlug
-                );
+        Organization organization = requireAccessibleOrganization(
+                organizationSlug
+        );
 
-        DriverAssignment assignment =
-                findActiveAssignment(
-                        organization.getId()
-                );
+        DrivingSession activeSession = findActiveSession(
+                organization.getId()
+        );
 
-        if (assignment == null) {
-
+        if (activeSession == null) {
             return new PassengerRideState(
                     false,
                     null,
@@ -97,31 +73,19 @@ public class PassengerRideService {
             );
         }
 
-        LocalDateTime now =
-                LocalDateTime.now(
-                        operationsZone
-                );
+        LocalDateTime now = LocalDateTime.now(operationsZone);
+        String deviceTokenHash = hashDeviceToken(deviceToken);
 
-        String deviceTokenHash =
-                hashDeviceToken(
-                        deviceToken
+        boolean alreadyConfirmedRecently = passengerRideConfirmationRepository
+                .existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
+                        activeSession.getAssignment().getId(),
+                        deviceTokenHash,
+                        now.minusMinutes(cooldownMinutes)
                 );
-
-        boolean alreadyConfirmedRecently =
-                passengerRideConfirmationRepository
-                        .existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
-                                assignment.getId(),
-                                deviceTokenHash,
-                                now.minusMinutes(
-                                        cooldownMinutes
-                                )
-                        );
 
         return new PassengerRideState(
                 true,
-                assignment
-                        .getDriver()
-                        .getName(),
+                activeSession.getDriver().getName(),
                 alreadyConfirmedRecently,
                 cooldownMinutes
         );
@@ -132,107 +96,68 @@ public class PassengerRideService {
             String organizationSlug,
             String deviceToken) {
 
-        Organization organization =
-                requireAccessibleOrganization(
-                        organizationSlug
-                );
+        Organization organization = requireAccessibleOrganization(
+                organizationSlug
+        );
 
-        DriverAssignment assignment =
-                findActiveAssignment(
-                        organization.getId()
-                );
+        DrivingSession activeSession = findActiveSession(
+                organization.getId()
+        );
 
-        if (assignment == null) {
-            return ConfirmationResult
-                    .NO_ACTIVE_SHUTTLE;
+        if (activeSession == null) {
+            return ConfirmationResult.NO_ACTIVE_SHUTTLE;
         }
 
-        LocalDateTime now =
-                LocalDateTime.now(
-                        operationsZone
-                );
+        LocalDateTime now = LocalDateTime.now(operationsZone);
+        String deviceTokenHash = hashDeviceToken(deviceToken);
 
-        String deviceTokenHash =
-                hashDeviceToken(
-                        deviceToken
+        boolean alreadyConfirmedRecently = passengerRideConfirmationRepository
+                .existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
+                        activeSession.getAssignment().getId(),
+                        deviceTokenHash,
+                        now.minusMinutes(cooldownMinutes)
                 );
-
-        boolean alreadyConfirmedRecently =
-                passengerRideConfirmationRepository
-                        .existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
-                                assignment.getId(),
-                                deviceTokenHash,
-                                now.minusMinutes(
-                                        cooldownMinutes
-                                )
-                        );
 
         if (alreadyConfirmedRecently) {
-
-            return ConfirmationResult
-                    .ALREADY_CONFIRMED;
+            return ConfirmationResult.ALREADY_CONFIRMED;
         }
 
         PassengerRideConfirmation confirmation =
                 new PassengerRideConfirmation(
-                        assignment,
+                        activeSession.getAssignment(),
+                        activeSession.getDriver(),
                         deviceTokenHash,
-                        calculateWindowStart(
-                                now
-                        ),
+                        calculateWindowStart(now),
                         now
                 );
 
         try {
-
-            passengerRideConfirmationRepository
-                    .saveAndFlush(
-                            confirmation
-                    );
-
+            passengerRideConfirmationRepository.saveAndFlush(confirmation);
         } catch (DataIntegrityViolationException exception) {
-
-            return ConfirmationResult
-                    .ALREADY_CONFIRMED;
+            return ConfirmationResult.ALREADY_CONFIRMED;
         }
 
         return ConfirmationResult.RECORDED;
     }
 
     @Transactional(readOnly = true)
-    public void requirePublicRidePage(
-            String organizationSlug) {
-
-        requireAccessibleOrganization(
-                organizationSlug
-        );
+    public void requirePublicRidePage(String organizationSlug) {
+        requireAccessibleOrganization(organizationSlug);
     }
 
     private Organization requireAccessibleOrganization(
             String organizationSlug) {
 
-        String slug =
-                normalizeSlug(
-                        organizationSlug
-                );
+        String slug = normalizeSlug(organizationSlug);
 
-        Organization organization =
-                organizationRepository
-                        .findBySlug(
-                                slug
-                        )
-                        .orElseThrow(
-                                () ->
-                                        new PassengerRideNotFoundException(
-                                                "Passenger ride page was not found."
-                                        )
-                        );
+        Organization organization = organizationRepository
+                .findBySlug(slug)
+                .orElseThrow(() -> new PassengerRideNotFoundException(
+                        "Passenger ride page was not found."
+                ));
 
         if (!organization.hasApplicationAccess(
-                LocalDateTime.now(
-                        operationsZone
-                ))) {
-
+                LocalDateTime.now(operationsZone))) {
             throw new PassengerRideNotFoundException(
                     "Passenger ride page was not found."
             );
@@ -241,71 +166,55 @@ public class PassengerRideService {
         return organization;
     }
 
-    private DriverAssignment findActiveAssignment(
-            Long organizationId) {
-
-        return driverAssignmentRepository
-                .findFirstByOrganization_IdAndActualStartedAtIsNotNullAndActualEndedAtIsNullOrderByActualStartedAtDesc(
+    private DrivingSession findActiveSession(Long organizationId) {
+        return drivingSessionRepository
+                .findFirstByOrganization_IdAndEndedAtIsNullOrderByStartedAtDesc(
                         organizationId
                 )
                 .orElse(null);
     }
 
-    private LocalDateTime calculateWindowStart(
-            LocalDateTime submittedAt) {
+    private LocalDateTime calculateWindowStart(LocalDateTime submittedAt) {
+        long totalMinutes = submittedAt.getHour() * 60L
+                + submittedAt.getMinute();
 
-        long totalMinutes =
-                submittedAt.getHour()
-                        * 60L
-                        + submittedAt.getMinute();
+        long windowMinute = (totalMinutes / cooldownMinutes)
+                * cooldownMinutes;
 
-        long windowStartMinutes =
-                (totalMinutes
-                        / cooldownMinutes)
-                        * cooldownMinutes;
+        int hour = (int) (windowMinute / 60L);
+        int minute = (int) (windowMinute % 60L);
 
         return submittedAt
-                .toLocalDate()
-                .atStartOfDay()
-                .plusMinutes(
-                        windowStartMinutes
-                );
+                .withHour(hour)
+                .withMinute(minute)
+                .withSecond(0)
+                .withNano(0);
     }
 
-    private String hashDeviceToken(
-            String deviceToken) {
+    private String normalizeSlug(String organizationSlug) {
+        if (organizationSlug == null || organizationSlug.isBlank()) {
+            throw new PassengerRideNotFoundException(
+                    "Passenger ride page was not found."
+            );
+        }
 
-        if (deviceToken == null
-                || deviceToken.isBlank()
-                || deviceToken.length() > 200) {
+        return organizationSlug.trim().toLowerCase(Locale.ROOT);
+    }
 
+    private String hashDeviceToken(String deviceToken) {
+        if (deviceToken == null || deviceToken.isBlank()) {
             throw new IllegalArgumentException(
-                    "A valid passenger device token is required."
+                    "Passenger device token is required."
             );
         }
 
         try {
-
-            MessageDigest digest =
-                    MessageDigest.getInstance(
-                            "SHA-256"
-                    );
-
-            byte[] hash =
-                    digest.digest(
-                            deviceToken.getBytes(
-                                    StandardCharsets.UTF_8
-                            )
-                    );
-
-            return HexFormat
-                    .of()
-                    .formatHex(
-                            hash
-                    );
-
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(
+                    deviceToken.getBytes(StandardCharsets.UTF_8)
+            );
+            return HexFormat.of().formatHex(hash);
         } catch (NoSuchAlgorithmException exception) {
-
             throw new IllegalStateException(
                     "SHA-256 is not available.",
                     exception
@@ -313,49 +222,24 @@ public class PassengerRideService {
         }
     }
 
-    private String normalizeSlug(
-            String organizationSlug) {
-
-        if (organizationSlug == null
-                || organizationSlug.isBlank()) {
-
-            throw new PassengerRideNotFoundException(
-                    "Passenger ride page was not found."
-            );
-        }
-
-        return organizationSlug
-                .trim()
-                .toLowerCase(
-                        Locale.ROOT
-                );
-    }
-
     public record PassengerRideState(
-            boolean running,
+            boolean shuttleRunning,
             String driverName,
             boolean alreadyConfirmedRecently,
             int cooldownMinutes) {
     }
 
     public enum ConfirmationResult {
-
         RECORDED,
-
         ALREADY_CONFIRMED,
-
         NO_ACTIVE_SHUTTLE
     }
 
     public static class PassengerRideNotFoundException
             extends RuntimeException {
 
-        public PassengerRideNotFoundException(
-                String message) {
-
-            super(
-                    message
-            );
+        public PassengerRideNotFoundException(String message) {
+            super(message);
         }
     }
 }
