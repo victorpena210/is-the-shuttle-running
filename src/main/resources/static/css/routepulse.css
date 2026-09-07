@@ -1464,6 +1464,12 @@ tbody tr:hover {
     font-size: clamp(2.55rem, 5.5vw, 4.65rem);
 }
 
+#product-heading {
+    max-width: 20ch;
+    font-size: clamp(2.15rem, 3.5vw, 3.25rem);
+    line-height: 1.08;
+}
+
 .public-story > p {
     max-width: 34rem;
     color: var(--slate-300);
