@@ -16,14 +16,12 @@ import technology.renatus.routepulse.service.DriverPortalService.ScanResult;
 @Controller
 public class DriverPortalController {
 
-    private final DriverPortalService
-            driverPortalService;
+    private final DriverPortalService driverPortalService;
 
     public DriverPortalController(
             DriverPortalService driverPortalService) {
 
-        this.driverPortalService =
-                driverPortalService;
+        this.driverPortalService = driverPortalService;
     }
 
     @GetMapping("/driver")
@@ -31,36 +29,21 @@ public class DriverPortalController {
             Authentication authentication,
             Model model) {
 
-        Driver driver =
-                driverPortalService
-                        .requireCurrentDriver(
-                                authentication
-                        );
+        Driver driver = driverPortalService
+                .requireCurrentDriver(authentication);
 
-        model.addAttribute(
-                "driver",
-                driver
-        );
-
+        model.addAttribute("driver", driver);
         model.addAttribute(
                 "organizationName",
-                driver
-                        .getOrganization()
-                        .getDisplayName()
+                driver.getOrganization().getDisplayName()
         );
-
         model.addAttribute(
                 "today",
-                driverPortalService
-                        .currentOperationsDate()
+                driverPortalService.currentOperationsDate()
         );
-
         model.addAttribute(
                 "todayAssignments",
-                driverPortalService
-                        .getTodayAssignments(
-                                authentication
-                        )
+                driverPortalService.getTodayAssignments(authentication)
         );
 
         return "driver-home";
@@ -69,68 +52,43 @@ public class DriverPortalController {
     @GetMapping("/driver/scan")
     public String showQrScan(
             Authentication authentication,
-            @RequestParam(
-                    name = "code",
-                    required = false
-            )
+            @RequestParam(name = "code", required = false)
             String code,
             Model model) {
 
         try {
+            ScanPreview preview = driverPortalService
+                    .getScanPreview(authentication, code);
 
-            ScanPreview preview =
-                    driverPortalService
-                            .getScanPreview(
-                                    authentication,
-                                    code
-                            );
-
+            model.addAttribute("qrCode", code);
+            model.addAttribute("driver", preview.driver());
+            model.addAttribute("assignment", preview.assignment());
+            model.addAttribute("scanAction", preview.action());
             model.addAttribute(
-                    "qrCode",
-                    code
+                    "coverageRequired",
+                    preview.coverageRequired()
             );
-
             model.addAttribute(
-                    "driver",
-                    preview.driver()
+                    "takeoverRequired",
+                    preview.takeoverRequired()
             );
-
-            model.addAttribute(
-                    "assignment",
-                    preview.assignment()
-            );
-
-            model.addAttribute(
-                    "scanAction",
-                    preview.action()
-            );
-
-            model.addAttribute(
-                    "overrideRequired",
-                    preview.overrideRequired()
-            );
-
             model.addAttribute(
                     "scheduledDriver",
                     preview.scheduledDriver()
             );
-
+            model.addAttribute(
+                    "currentActualDriver",
+                    preview.currentActualDriver()
+            );
             model.addAttribute(
                     "organizationName",
-                    preview
-                            .driver()
+                    preview.driver()
                             .getOrganization()
                             .getDisplayName()
             );
 
-        } catch (
-                IllegalArgumentException
-                | IllegalStateException exception) {
-
-            model.addAttribute(
-                    "scanError",
-                    exception.getMessage()
-            );
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            model.addAttribute("scanError", exception.getMessage());
         }
 
         return "driver-scan";
@@ -139,68 +97,58 @@ public class DriverPortalController {
     @PostMapping("/driver/scan")
     public String recordQrScan(
             Authentication authentication,
-            @RequestParam
-            String code,
-            RedirectAttributes
-                    redirectAttributes) {
+            @RequestParam String code,
+            RedirectAttributes redirectAttributes) {
 
         try {
+            ScanResult result = driverPortalService
+                    .recordQrScan(authentication, code);
 
-            ScanResult result =
-                    driverPortalService
-                            .recordQrScan(
-                                    authentication,
-                                    code
-                            );
+            if (result.action() == DriverPortalService.ScanAction.START) {
+                if (result.takeoverPerformed()
+                        && result.previousActualDriver() != null) {
 
-            if (result.action()
-                    == DriverPortalService
-                            .ScanAction
-                            .START) {
+                    String coverageMessage = result.coveragePerformed()
+                            ? " " + result.scheduledDriver().getName()
+                                    + " remains the scheduled driver."
+                            : " You are also the scheduled driver for this shift.";
 
-                if (result.overridePerformed()
-                        && result.previousDriver()
-                        != null) {
+                    redirectAttributes.addFlashAttribute(
+                            "successMessage",
+                            "Driving handoff recorded. "
+                                    + result.previousActualDriver().getName()
+                                    + "'s actual driving session ended and yours started."
+                                    + coverageMessage
+                    );
+                } else if (result.coveragePerformed()
+                        && result.scheduledDriver() != null) {
 
-                    redirectAttributes
-                            .addFlashAttribute(
-                                    "successMessage",
-                                    "Driving started. You automatically took over the "
-                                            + result.assignment()
-                                                    .getPeriod()
-                                            + " shift from "
-                                            + result.previousDriver()
-                                                    .getName()
-                                            + ". RoutePulse recorded you as the actual driver and saved your actual start time."
-                            );
-
+                    redirectAttributes.addFlashAttribute(
+                            "successMessage",
+                            "Driving started. "
+                                    + result.scheduledDriver().getName()
+                                    + " remains the scheduled driver for the "
+                                    + result.assignment().getPeriod()
+                                    + " shift, and RoutePulse recorded you separately as the actual driver."
+                    );
                 } else {
-
-                    redirectAttributes
-                            .addFlashAttribute(
-                                    "successMessage",
-                                    "Driving started. RoutePulse recorded your actual start time."
-                            );
+                    redirectAttributes.addFlashAttribute(
+                            "successMessage",
+                            "Driving started. RoutePulse recorded your actual start time."
+                    );
                 }
-
             } else {
-
-                redirectAttributes
-                        .addFlashAttribute(
-                                "successMessage",
-                                "Driving ended. RoutePulse recorded your actual end time."
-                        );
+                redirectAttributes.addFlashAttribute(
+                        "successMessage",
+                        "Driving ended. RoutePulse recorded your actual end time."
+                );
             }
 
-        } catch (
-                IllegalArgumentException
-                | IllegalStateException exception) {
-
-            redirectAttributes
-                    .addFlashAttribute(
-                            "errorMessage",
-                            exception.getMessage()
-                    );
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    exception.getMessage()
+            );
         }
 
         return "redirect:/driver";

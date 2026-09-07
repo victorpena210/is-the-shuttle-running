@@ -28,45 +28,24 @@ public interface DriverAssignmentRepository
             FROM DriverAssignment assignment
             WHERE assignment.organization.id = :organizationId
               AND assignment.assignmentDate = :assignmentDate
-            """)
-    List<DriverAssignment>
-            findAllForUpdateByOrganizationAndDate(
-                    @Param("organizationId")
-                    Long organizationId,
-                    @Param("assignmentDate")
-                    LocalDate assignmentDate
-            );
-
-    @Query("""
-            SELECT assignment
-            FROM DriverAssignment assignment
-            WHERE assignment.organization.id = :organizationId
-              AND (assignment.assignmentDate = :assignmentDate
-                   OR (assignment.actualStartedAt IS NOT NULL
-                       AND assignment.actualEndedAt IS NULL))
             ORDER BY assignment.id
             """)
-    List<DriverAssignment> findTodayOrActiveByOrganization(
+    List<DriverAssignment> findAllForUpdateByOrganizationAndDate(
             @Param("organizationId") Long organizationId,
-            @Param("assignmentDate") LocalDate assignmentDate);
+            @Param("assignmentDate") LocalDate assignmentDate
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             SELECT assignment
             FROM DriverAssignment assignment
-            WHERE assignment.organization.id = :organizationId
-              AND (assignment.assignmentDate = :assignmentDate
-                   OR (assignment.actualStartedAt IS NOT NULL
-                       AND assignment.actualEndedAt IS NULL))
-            ORDER BY assignment.id
+            WHERE assignment.id = :assignmentId
+              AND assignment.organization.id = :organizationId
             """)
-    List<DriverAssignment> findTodayOrActiveForUpdateByOrganization(
-            @Param("organizationId") Long organizationId,
-            @Param("assignmentDate") LocalDate assignmentDate);
-
-    Optional<DriverAssignment>
-            findFirstByOrganization_IdAndActualStartedAtIsNotNullAndActualEndedAtIsNullOrderByActualStartedAtDesc(
-                    Long organizationId);
+    Optional<DriverAssignment> findByIdAndOrganizationForUpdate(
+            @Param("assignmentId") Long assignmentId,
+            @Param("organizationId") Long organizationId
+    );
 
     Optional<DriverAssignment>
             findByIdAndOrganization_Id(
@@ -81,28 +60,54 @@ public interface DriverAssignmentRepository
                     ShuttlePeriod period
             );
 
-    Optional<DriverAssignment>
-            findFirstByOrganization_IdAndAssignmentDateAndActualStartedAtIsNotNullAndActualEndedAtIsNullOrderByActualStartedAtDesc(
-                    Long organizationId,
-                    LocalDate assignmentDate
-            );
-
     List<DriverAssignment>
-            findAllByOrganization_IdAndDriver_IdAndAssignmentDate(
+            findAllByOrganization_IdAndScheduledDriver_IdAndAssignmentDate(
                     Long organizationId,
                     Long driverId,
                     LocalDate assignmentDate
             );
 
     List<DriverAssignment>
-            findAllByOrganization_IdAndDriver_IdOrderByAssignmentDateDesc(
+            findAllByOrganization_IdAndScheduledDriver_IdOrderByAssignmentDateDesc(
                     Long organizationId,
                     Long driverId
             );
 
-    long countByOrganization_IdAndDriver_IdAndAssignmentDateBefore(
+    long countByOrganization_IdAndScheduledDriver_IdAndAssignmentDateBefore(
             Long organizationId,
             Long driverId,
             LocalDate assignmentDate
+    );
+
+    @Query("""
+            SELECT DISTINCT assignment
+            FROM DriverAssignment assignment
+            LEFT JOIN assignment.drivingSessions session
+            WHERE assignment.organization.id = :organizationId
+              AND assignment.assignmentDate = :assignmentDate
+              AND (
+                    assignment.scheduledDriver.id = :driverId
+                    OR session.driver.id = :driverId
+                  )
+            """)
+    List<DriverAssignment> findAllVisibleToDriverOnDate(
+            @Param("organizationId") Long organizationId,
+            @Param("driverId") Long driverId,
+            @Param("assignmentDate") LocalDate assignmentDate
+    );
+
+    @Query("""
+            SELECT DISTINCT assignment
+            FROM DriverAssignment assignment
+            LEFT JOIN assignment.drivingSessions session
+            WHERE assignment.organization.id = :organizationId
+              AND (
+                    assignment.scheduledDriver.id = :driverId
+                    OR session.driver.id = :driverId
+                  )
+            """)
+    List<DriverAssignment> findAllVisibleToDriver(
+            @Param("organizationId") Long organizationId,
+            @Param("driverId") Long driverId
     );
 }

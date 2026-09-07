@@ -205,6 +205,26 @@
     </section>
 
     <div
+        th:if="${successMessage != null}"
+        class="alert alert--success"
+        role="status"
+        th:text="${successMessage}">
+
+        Saved.
+
+    </div>
+
+    <div
+        th:if="${errorMessage != null}"
+        class="alert alert--error"
+        role="alert"
+        th:text="${errorMessage}">
+
+        Error
+
+    </div>
+
+    <div
         th:if="${filterError != null}"
         class="alert alert--error"
         role="alert"
@@ -261,7 +281,7 @@
                         <div>
 
                             <h3
-                                th:text="|${record.finalDriver.name} · ${record.period} coverage|">
+                                th:text="|${record.scheduledDriver.name} scheduled · ${record.period} coverage|">
 
                                 Driver · MORNING coverage
 
@@ -320,12 +340,12 @@
                         <div class="stat">
 
                             <span class="stat__label">
-                                Final driver
+                                Scheduled driver
                             </span>
 
                             <span
                                 class="stat__value"
-                                th:text="${record.finalDriver.name}">
+                                th:text="${record.scheduledDriver.name}">
 
                                 Driver
 
@@ -361,30 +381,14 @@
                         <div class="stat">
 
                             <span class="stat__label">
-                                Record status
+                                Assignment outcome
                             </span>
 
                             <span
-                                class="badge badge--complete"
-                                th:if="${record.drivingCompleted}">
+                                class="badge"
+                                th:text="${record.assignmentOutcome}">
 
-                                Completed
-
-                            </span>
-
-                            <span
-                                class="badge badge--driving"
-                                th:if="${record.driving}">
-
-                                Driving
-
-                            </span>
-
-                            <span
-                                class="badge badge--pending"
-                                th:if="${record.actualStartedAt == null}">
-
-                                Not started
+                                PENDING
 
                             </span>
 
@@ -393,6 +397,22 @@
                     </div>
 
                     <div class="assignment-summary">
+
+                        <div class="stat">
+
+                            <span class="stat__label">
+                                Actual driver(s)
+                            </span>
+
+                            <span
+                                class="stat__value"
+                                th:text="${record.actualDriverNames}">
+
+                                —
+
+                            </span>
+
+                        </div>
 
                         <div class="stat">
 
@@ -593,53 +613,69 @@
                                 </tr>
 
                                 <tr
-                                    th:if="${record.actualStartedAt != null}">
+                                    th:if="${record.outcomeReviewedAt != null}">
 
-                                    <td>
-                                        Driving started
+                                    <td
+                                        th:text="|Outcome reviewed · ${record.assignmentOutcome}|">
+                                        Outcome reviewed · COMPLETED_AS_ASSIGNED
                                     </td>
 
                                     <td
-                                        th:text="${#temporals.format(record.actualStartedAt, 'MMM d, yyyy h:mm a')}">
-
-                                        Aug 28, 2026 9:03 AM
-
+                                        th:text="${#temporals.format(record.outcomeReviewedAt, 'MMM d, yyyy h:mm a')}">
+                                        Aug 28, 2026 12:10 PM
                                     </td>
 
                                     <td
-                                        th:text="${record.actualStartedBy != null ? record.actualStartedBy.firstName + ' ' + record.actualStartedBy.lastName : 'Not recorded'}">
-
+                                        th:text="${record.outcomeReviewedBy != null ? record.outcomeReviewedBy.firstName + ' ' + record.outcomeReviewedBy.lastName : 'Not recorded'}">
                                         Manager
-
                                     </td>
 
                                 </tr>
 
+                                <th:block th:each="session : ${record.drivingSessions}">
+
+                                    <tr>
+
+                                        <td
+                                            th:text="|Driving started · ${session.driver.name}|">
+                                            Driving started · Driver
+                                        </td>
+
+                                        <td
+                                            th:text="${#temporals.format(session.startedAt, 'MMM d, yyyy h:mm a')}">
+                                            Aug 28, 2026 9:03 AM
+                                        </td>
+
+                                        <td
+                                            th:text="${session.startedBy != null ? session.startedBy.firstName + ' ' + session.startedBy.lastName : 'Not recorded'}">
+                                            Driver
+                                        </td>
+
+                                    </tr>
+
+                                    <tr th:if="${session.endedAt != null}">
+
+                                        <td
+                                            th:text="|Driving ended · ${session.driver.name}|">
+                                            Driving ended · Driver
+                                        </td>
+
+                                        <td
+                                            th:text="${#temporals.format(session.endedAt, 'MMM d, yyyy h:mm a')}">
+                                            Aug 28, 2026 12:02 PM
+                                        </td>
+
+                                        <td
+                                            th:text="${session.endedBy != null ? session.endedBy.firstName + ' ' + session.endedBy.lastName : 'Not recorded'}">
+                                            Driver
+                                        </td>
+
+                                    </tr>
+
+                                </th:block>
+
                                 <tr
-                                    th:if="${record.actualEndedAt != null}">
-
-                                    <td>
-                                        Driving ended
-                                    </td>
-
-                                    <td
-                                        th:text="${#temporals.format(record.actualEndedAt, 'MMM d, yyyy h:mm a')}">
-
-                                        Aug 28, 2026 12:02 PM
-
-                                    </td>
-
-                                    <td
-                                        th:text="${record.actualEndedBy != null ? record.actualEndedBy.firstName + ' ' + record.actualEndedBy.lastName : 'Not recorded'}">
-
-                                        Manager
-
-                                    </td>
-
-                                </tr>
-
-                                <tr
-                                    th:if="${record.scheduleReviewedAt == null and record.changedAt == null and record.actualStartedAt == null and record.actualEndedAt == null}">
+                                    th:if="${record.scheduleReviewedAt == null and record.changedAt == null and record.outcomeReviewedAt == null and #lists.isEmpty(record.drivingSessions)}">
 
                                     <td
                                         class="empty-cell"
@@ -656,6 +692,86 @@
                             </table>
 
                         </div>
+
+                    </section>
+
+                    <section
+                        class="control-card"
+                        aria-label="Management outcome review">
+
+                        <h3>Management outcome review</h3>
+
+                        <p class="muted">
+                            RoutePulse records what happened. Management decides whether
+                            this assignment should create future make-up priority.
+                        </p>
+
+                        <form
+                            th:action="@{|/driving-records/${record.id}/outcome|}"
+                            method="post"
+                            class="form-grid">
+
+                            <input type="hidden" name="from" th:value="${fromDate}">
+                            <input type="hidden" name="to" th:value="${toDate}">
+                            <input
+                                type="hidden"
+                                name="driverId"
+                                th:if="${selectedDriverId != null}"
+                                th:value="${selectedDriverId}">
+
+                            <div class="form-group">
+                                <label th:for="|outcome-${record.id}|">Outcome</label>
+                                <select
+                                    th:id="|outcome-${record.id}|"
+                                    name="outcome"
+                                    required>
+                                    <option
+                                        th:each="outcome : ${outcomes}"
+                                        th:if="${outcome.name() != 'PENDING' and outcome.name() != 'IN_PROGRESS'}"
+                                        th:value="${outcome}"
+                                        th:text="${outcome}"
+                                        th:selected="${outcome == record.assignmentOutcome}">
+                                        COMPLETED_AS_ASSIGNED
+                                    </option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label th:for="|outcome-reason-${record.id}|">Reason / notes</label>
+                                <input
+                                    th:id="|outcome-reason-${record.id}|"
+                                    type="text"
+                                    name="reason"
+                                    maxlength="500"
+                                    th:value="${record.outcomeReason}"
+                                    placeholder="Optional management note">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Future scheduling</label>
+                                <label class="checkbox-row">
+                                    <input
+                                        type="checkbox"
+                                        name="requireMakeup"
+                                        value="true"
+                                        th:checked="${makeupStatus[record.id]}">
+                                    Give the scheduled driver make-up priority
+                                </label>
+                            </div>
+
+                            <div class="form-actions">
+                                <button class="button" type="submit">
+                                    Save management decision
+                                </button>
+                            </div>
+
+                        </form>
+
+                        <p
+                            class="alert alert--info"
+                            th:if="${makeupStatus[record.id]}">
+                            The scheduled driver currently has make-up priority from this assignment.
+                        </p>
 
                     </section>
 

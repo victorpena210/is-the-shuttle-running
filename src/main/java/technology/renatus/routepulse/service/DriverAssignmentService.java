@@ -15,19 +15,21 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import technology.renatus.routepulse.model.Driver;
 import technology.renatus.routepulse.model.AssignmentSource;
+import technology.renatus.routepulse.model.Driver;
 import technology.renatus.routepulse.model.DriverAssignment;
 import technology.renatus.routepulse.model.DriverSchedule;
 import technology.renatus.routepulse.model.DriverScheduleResult;
+import technology.renatus.routepulse.model.DrivingActionMethod;
+import technology.renatus.routepulse.model.MorningDrivingPlan;
 import technology.renatus.routepulse.model.ScheduleImport;
 import technology.renatus.routepulse.model.ShuttlePeriod;
 import technology.renatus.routepulse.model.UserAccount;
 import technology.renatus.routepulse.repository.DriverAssignmentRepository;
 import technology.renatus.routepulse.repository.DriverRepository;
+import technology.renatus.routepulse.repository.OrganizationMembershipRepository;
 import technology.renatus.routepulse.repository.UploadedShiftRepository;
 import technology.renatus.routepulse.repository.UserAccountRepository;
-import technology.renatus.routepulse.repository.OrganizationMembershipRepository;
 
 @Service
 public class DriverAssignmentService {
@@ -49,6 +51,15 @@ public class DriverAssignmentService {
     private final OrganizationMembershipRepository
             organizationMembershipRepository;
 
+    private final DriverWorkloadService
+            driverWorkloadService;
+
+    private final DrivingSessionService
+            drivingSessionService;
+
+    private final MorningDrivingPlanningService
+            morningDrivingPlanningService;
+
     private final ZoneId operationsZone;
 
     public DriverAssignmentService(
@@ -59,6 +70,9 @@ public class DriverAssignmentService {
             UserAccountRepository userAccountRepository,
             OrganizationMembershipRepository
                     organizationMembershipRepository,
+            DriverWorkloadService driverWorkloadService,
+            DrivingSessionService drivingSessionService,
+            MorningDrivingPlanningService morningDrivingPlanningService,
             @Value("${app.operations-zone:America/Chicago}")
             String operationsZone) {
 
@@ -80,8 +94,19 @@ public class DriverAssignmentService {
         this.organizationMembershipRepository =
                 organizationMembershipRepository;
 
+        this.driverWorkloadService =
+                driverWorkloadService;
+
+        this.drivingSessionService =
+                drivingSessionService;
+
+        this.morningDrivingPlanningService =
+                morningDrivingPlanningService;
+
         this.operationsZone =
-                ZoneId.of(operationsZone);
+                ZoneId.of(
+                        operationsZone
+                );
     }
 
     @Transactional
@@ -96,12 +121,39 @@ public class DriverAssignmentService {
                                 assignmentDate
                         );
 
+        /*
+         * Existing assignments are normally returned unchanged.
+         *
+         * The one exception is an older MORNING automatic assignment
+         * that has no scheduled times yet.
+         *
+         * That allows assignments created before this feature was
+         * introduced to receive a generated morning driving window
+         * without deleting data or recreating the assignment.
+         *
+         * We never overwrite:
+         *
+         * - manager-entered times
+         * - an assignment that already has times
+         * - an assignment where actual driving has started
+         */
         if (!existingAssignments.isEmpty()) {
+
+            applyMorningScheduleIfMissing(
+                    organizationId,
+                    assignmentDate,
+                    existingAssignments
+            );
+
             return orderByPeriod(
                     existingAssignments
             );
         }
 
+        /*
+         * Determine which registered RoutePulse drivers are actually
+         * scheduled to work on this date.
+         */
         DriverScheduleResult scheduleResult =
                 driverScheduleService
                         .getDriverSchedulesForDate(
@@ -109,63 +161,67 @@ public class DriverAssignmentService {
                                 assignmentDate
                         );
 
+        /*
+         * A driver can theoretically have more than one uploaded shift row
+         * for the same date. Collapse those rows so fairness sees each driver
+         * only once.
+         */
         Map<Long, DriverSchedule> schedulesByDriverId =
-                scheduleResult.scheduledDrivers()
+                scheduleResult
+                        .scheduledDrivers()
                         .stream()
-                        .collect(Collectors.toMap(
-                                DriverSchedule::driverId,
-                                Function.identity(),
-                                (first, duplicate) -> first
-                        ));
+                        .collect(
+                                Collectors.toMap(
+                                        DriverSchedule::driverId,
+                                        Function.identity(),
+                                        (
+                                                first,
+                                                duplicate
+                                        ) -> first
+                                )
+                        );
 
         List<DriverSchedule> eligibleDrivers =
-                schedulesByDriverId.values()
+                schedulesByDriverId
+                        .values()
                         .stream()
                         .toList();
 
+        /*
+         * If nobody registered as a driver is scheduled today,
+         * RoutePulse leaves coverage unassigned so a manager can
+         * handle it manually.
+         */
         if (eligibleDrivers.isEmpty()) {
             return List.of();
         }
 
-        Map<Long, Long> previousAssignmentCounts =
-                eligibleDrivers.stream()
-                        .collect(Collectors.toMap(
-                                DriverSchedule::driverId,
-                                schedule ->
-                                        assignmentRepository
-                                                .countByOrganization_IdAndDriver_IdAndAssignmentDateBefore(
-                                                        organizationId,
-                                                        schedule.driverId(),
-                                                        assignmentDate
-                                                )
-                        ));
-
+        /*
+         * Driver fairness decides WHO should drive.
+         *
+         * MorningDrivingPlanningService separately decides WHEN
+         * the morning shuttle should operate.
+         */
         List<DriverSchedule> fairestOrder =
-                eligibleDrivers.stream()
-                        .sorted(
-                                Comparator
-                                        .comparingLong(
-                                                (DriverSchedule schedule) ->
-                                                        previousAssignmentCounts
-                                                                .get(
-                                                                        schedule.driverId()
-                                                                )
-                                        )
-                                        .thenComparing(
-                                                DriverSchedule::driverName
-                                        )
-                                        .thenComparing(
-                                                DriverSchedule::employeeId
-                                        )
-                        )
-                        .toList();
+                driverWorkloadService
+                        .rankEligibleDrivers(
+                                organizationId,
+                                assignmentDate,
+                                eligibleDrivers
+                        );
 
         Driver morningDriver =
                 loadDriver(
                         organizationId,
-                        fairestOrder.get(0).driverId()
+                        fairestOrder
+                                .get(0)
+                                .driverId()
                 );
 
+        /*
+         * Preserve which uploaded schedule version produced
+         * this automatic assignment.
+         */
         ScheduleImport sourceScheduleImport =
                 uploadedShiftRepository
                         .findLatestScheduleImportForDate(
@@ -177,29 +233,60 @@ public class DriverAssignmentService {
         List<DriverAssignment> newAssignments =
                 new ArrayList<>();
 
-        newAssignments.add(
+        /*
+         * =============================================================
+         * MORNING ASSIGNMENT
+         * =============================================================
+         *
+         * Fairness selects the person.
+         *
+         * Morning clock-in demand calculates the scheduled
+         * driving start/end time.
+         */
+        DriverAssignment morningAssignment =
                 DriverAssignment.automatic(
                         assignmentDate,
                         ShuttlePeriod.MORNING,
                         morningDriver,
                         sourceScheduleImport
-                )
+                );
+
+        applyMorningScheduleIfAvailable(
+                organizationId,
+                assignmentDate,
+                morningAssignment
         );
 
+        newAssignments.add(
+                morningAssignment
+        );
+
+        /*
+         * =============================================================
+         * AFTERNOON ASSIGNMENT
+         * =============================================================
+         *
+         * Existing afternoon behavior is intentionally preserved.
+         *
+         * This feature does not change your pickup-demand calculations
+         * or automatically alter manager-approved afternoon scheduling.
+         */
         if (fairestOrder.size() >= 2) {
 
             Driver afternoonDriver =
                     loadDriver(
                             organizationId,
-                            fairestOrder.get(1).driverId()
+                            fairestOrder
+                                    .get(1)
+                                    .driverId()
                     );
 
             newAssignments.add(
                     DriverAssignment.automatic(
-                        assignmentDate,
-                        ShuttlePeriod.AFTERNOON,
-                        afternoonDriver,
-                        sourceScheduleImport
+                            assignmentDate,
+                            ShuttlePeriod.AFTERNOON,
+                            afternoonDriver,
+                            sourceScheduleImport
                     )
             );
         }
@@ -209,6 +296,86 @@ public class DriverAssignmentService {
                         newAssignments
                 )
         );
+    }
+
+    /**
+     * Fills an older morning assignment only when both generated
+     * schedule fields are still blank.
+     *
+     * This lets the feature work with assignments that were created
+     * before morning clock-in planning existed.
+     */
+    private void applyMorningScheduleIfMissing(
+            Long organizationId,
+            LocalDate assignmentDate,
+            List<DriverAssignment> assignments) {
+
+        DriverAssignment morningAssignment =
+                assignments
+                        .stream()
+                        .filter(assignment ->
+                                assignment.getPeriod()
+                                        == ShuttlePeriod.MORNING
+                        )
+                        .findFirst()
+                        .orElse(null);
+
+        /*
+         * Do not overwrite an existing schedule.
+         *
+         * Also do not change historical/active actual-driving data.
+         */
+        if (morningAssignment == null
+                || morningAssignment
+                        .getScheduledStartTime() != null
+                || morningAssignment
+                        .getScheduledEndTime() != null
+                || morningAssignment
+                        .hasDrivingSessions()) {
+
+            return;
+        }
+
+        applyMorningScheduleIfAvailable(
+                organizationId,
+                assignmentDate,
+                morningAssignment
+        );
+    }
+
+    /**
+     * Calculates and applies the morning driving schedule when
+     * qualifying employee clock-in demand exists.
+     */
+    private void applyMorningScheduleIfAvailable(
+            Long organizationId,
+            LocalDate assignmentDate,
+            DriverAssignment morningAssignment) {
+
+        MorningDrivingPlan morningPlan =
+                morningDrivingPlanningService
+                        .getPlanForDate(
+                                organizationId,
+                                assignmentDate
+                        );
+
+        /*
+         * No qualifying 9 AM - 12 PM employee arrivals means we do not
+         * invent a driving window.
+         *
+         * The assignment remains available for manager review.
+         */
+        if (!morningPlan.hasDemand()) {
+            return;
+        }
+
+        morningAssignment
+                .updateScheduledTimes(
+                        morningPlan
+                                .getScheduledStartTime(),
+                        morningPlan
+                                .getScheduledEndTime()
+                );
     }
 
     @Transactional
@@ -221,7 +388,9 @@ public class DriverAssignmentService {
             LocalTime scheduledEndTime,
             String reason) {
 
-        validateReason(reason);
+        validateReason(
+                reason
+        );
 
         if (assignmentDate == null) {
             throw new IllegalArgumentException(
@@ -285,7 +454,9 @@ public class DriverAssignmentService {
             String reason,
             String actorEmail) {
 
-        validateReason(reason);
+        validateReason(
+                reason
+        );
 
         DriverAssignment assignment =
                 loadAssignment(
@@ -299,10 +470,11 @@ public class DriverAssignmentService {
                         newDriverId
                 );
 
-        UserAccount actor = loadActor(
-                organizationId,
-                actorEmail
-        );
+        UserAccount actor =
+                loadActor(
+                        organizationId,
+                        actorEmail
+                );
 
         boolean changed =
                 assignment.changeDriver(
@@ -364,10 +536,11 @@ public class DriverAssignmentService {
                                 )
                         );
 
-        UserAccount actor = loadActor(
-                organizationId,
-                actorEmail
-        );
+        UserAccount actor =
+                loadActor(
+                        organizationId,
+                        actorEmail
+                );
 
         LocalDateTime reviewedAt =
                 currentOperationsDateTime();
@@ -380,22 +553,26 @@ public class DriverAssignmentService {
                         );
 
         if (assignments.isEmpty()) {
+
             throw new IllegalStateException(
                     "No driver assignments were found for this date."
             );
         }
 
-        assignments.stream()
+        assignments
+                .stream()
                 .filter(assignment ->
-                        assignment.getAssignmentSource()
+                        assignment
+                                .getAssignmentSource()
                                 != AssignmentSource.MANUAL
                 )
                 .forEach(assignment ->
-                        assignment.confirmScheduleReview(
-                                latestImport,
-                                actor,
-                                reviewedAt
-                        )
+                        assignment
+                                .confirmScheduleReview(
+                                        latestImport,
+                                        actor,
+                                        reviewedAt
+                                )
                 );
     }
 
@@ -416,20 +593,28 @@ public class DriverAssignmentService {
 
         if (!assignment
                 .getAssignmentDate()
-                .equals(now.toLocalDate())) {
+                .equals(
+                        now.toLocalDate()
+                )) {
 
             throw new IllegalStateException(
                     "Driving can only be started on the assignment date."
             );
         }
 
-        assignment.startDriving(
-                now,
-                loadActor(
+        drivingSessionService
+                .startSession(
                         organizationId,
-                        actorEmail
-                )
-        );
+                        assignmentId,
+                        assignment
+                                .getScheduledDriver(),
+                        loadActor(
+                                organizationId,
+                                actorEmail
+                        ),
+                        now,
+                        DrivingActionMethod.MANAGER
+                );
 
         return assignment;
     }
@@ -446,23 +631,33 @@ public class DriverAssignmentService {
                         assignmentId
                 );
 
-        assignment.endDriving(
-                currentOperationsDateTime(),
-                loadActor(
+        drivingSessionService
+                .endActiveSessionForAssignment(
                         organizationId,
-                        actorEmail
-                )
-        );
+                        assignmentId,
+                        loadActor(
+                                organizationId,
+                                actorEmail
+                        ),
+                        currentOperationsDateTime(),
+                        DrivingActionMethod.MANAGER
+                );
 
         return assignment;
     }
 
     public LocalDate getCurrentOperationsDate() {
-        return LocalDate.now(operationsZone);
+
+        return LocalDate.now(
+                operationsZone
+        );
     }
 
     private LocalDateTime currentOperationsDateTime() {
-        return LocalDateTime.now(operationsZone);
+
+        return LocalDateTime.now(
+                operationsZone
+        );
     }
 
     private void validateScheduledTimes(
@@ -478,7 +673,9 @@ public class DriverAssignmentService {
         }
 
         if (!scheduledEndTime
-                .isAfter(scheduledStartTime)) {
+                .isAfter(
+                        scheduledStartTime
+                )) {
 
             throw new IllegalArgumentException(
                     "Scheduled end time must be after "
@@ -487,10 +684,13 @@ public class DriverAssignmentService {
         }
     }
 
-    private void validateReason(String reason) {
+    private void validateReason(
+            String reason) {
 
         if (reason != null
-                && reason.strip().length() > 500) {
+                && reason
+                        .strip()
+                        .length() > 500) {
 
             throw new IllegalArgumentException(
                     "Change reason cannot exceed 500 characters."
@@ -541,6 +741,7 @@ public class DriverAssignmentService {
                 );
 
         if (!driver.isActive()) {
+
             throw new IllegalArgumentException(
                     "The selected driver is inactive."
             );
@@ -553,19 +754,24 @@ public class DriverAssignmentService {
             Long organizationId,
             String actorEmail) {
 
-        if (actorEmail == null || actorEmail.isBlank()) {
+        if (actorEmail == null
+                || actorEmail.isBlank()) {
+
             throw new IllegalStateException(
                     "The signed-in user is required for this action."
             );
         }
 
-        UserAccount actor = userAccountRepository
-                .findByEmailIgnoreCase(actorEmail.trim())
-                .orElseThrow(() ->
-                        new IllegalStateException(
-                                "The signed-in user could not be found."
+        UserAccount actor =
+                userAccountRepository
+                        .findByEmailIgnoreCase(
+                                actorEmail.trim()
                         )
-                );
+                        .orElseThrow(() ->
+                                new IllegalStateException(
+                                        "The signed-in user could not be found."
+                                )
+                        );
 
         if (!organizationMembershipRepository
                 .existsByOrganization_IdAndUser_Id(
@@ -584,7 +790,8 @@ public class DriverAssignmentService {
     private List<DriverAssignment> orderByPeriod(
             List<DriverAssignment> assignments) {
 
-        return assignments.stream()
+        return assignments
+                .stream()
                 .sorted(
                         Comparator.comparingInt(
                                 assignment ->

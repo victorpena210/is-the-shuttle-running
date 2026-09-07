@@ -104,6 +104,7 @@ public class PassengerRideConfirmation {
 
     public PassengerRideConfirmation(
             DriverAssignment assignment,
+            Driver actualDriver,
             String deviceTokenHash,
             LocalDateTime rideWindowStart,
             LocalDateTime submittedAt) {
@@ -122,9 +123,18 @@ public class PassengerRideConfirmation {
 
         this.driver =
                 Objects.requireNonNull(
-                        assignment.getDriver(),
-                        "Driving assignment driver is required."
+                        actualDriver,
+                        "Actual driving session driver is required."
                 );
+
+        if (!Objects.equals(
+                this.organization.getId(),
+                this.driver.getOrganization().getId()
+        )) {
+            throw new IllegalArgumentException(
+                    "Actual driver must belong to the assignment organization."
+            );
+        }
 
         this.driverNameSnapshot =
                 this.driver.getName();

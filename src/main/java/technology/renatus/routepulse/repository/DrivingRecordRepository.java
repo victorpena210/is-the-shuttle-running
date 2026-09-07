@@ -16,12 +16,4 @@ public interface DrivingRecordRepository
                     LocalDate fromDate,
                     LocalDate toDate
             );
-
-    List<DriverAssignment>
-            findAllByOrganization_IdAndAssignmentDateBetweenAndDriver_Id(
-                    Long organizationId,
-                    LocalDate fromDate,
-                    LocalDate toDate,
-                    Long driverId
-            );
 }
