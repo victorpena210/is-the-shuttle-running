@@ -538,7 +538,13 @@ public class CsvScheduleProvider
                     employeeName,
                     department,
                     job,
-                    shiftEnd.toLocalDate(),
+                    /*
+                     * The workday belongs to the date the employee clocks in.
+                     * This matters for shifts that end at or after midnight; a
+                     * 9:00 AM - 12:00 AM driver must still be available to
+                     * RoutePulse on the morning they started work.
+                     */
+                    shiftStart.toLocalDate(),
                     shiftStart.toLocalTime(),
                     shiftEnd.toLocalTime(),
                     pickupLocation

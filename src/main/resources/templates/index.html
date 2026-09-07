@@ -17,6 +17,10 @@
         rel="stylesheet"
         th:href="@{/css/routepulse.css}">
 
+    <link
+        rel="stylesheet"
+        th:href="@{/css/transportation-demand.css}">
+
     <script
         defer
         th:src="@{/js/dashboard-views.js}">
@@ -87,7 +91,7 @@
                 class="app-nav__link"
                 href="#demand"
                 data-dashboard-link="demand">
-                Pickup demand
+                Transportation demand
             </a>
 
             <a
@@ -172,7 +176,7 @@
 		         </h1>
 
 		         <p>
-		             Review today’s pickup demand, driver coverage,
+		             Review today’s transportation demand, driver coverage,
 		             and shuttle operations.
 		         </p>
 
@@ -249,26 +253,29 @@
 		         class="overview-grid"
 		         th:if="${generated and showSchedule}">
 
-
-		         <!-- Peak pickup window -->
+		         <!-- Peak transportation window -->
 		         <article class="overview-card">
 
 		             <span class="overview-card__label">
-		                 Peak pickup window
+		                 Peak transportation window
 		             </span>
 
 		             <strong
 		                 class="overview-card__value"
-		                 th:text="${pickupDemand.peakDemandStart != null
-		                     ? #temporals.format(pickupDemand.peakDemandStart, 'h:mm a')
-		                     : 'No rush'}">
-		                 6:45 PM
+		                 th:text="${transportationDemand.overallPeakWindowStart != null
+		                     ? #temporals.format(transportationDemand.overallPeakWindowStart, 'h:mm a')
+		                     : 'No demand'}">
+		                 6:00 PM
 		             </strong>
 
 		             <span
 		                 class="overview-card__detail"
-		                 th:text="|${pickupDemand.peakWindowTeamMemberCount} team members in the busiest window|">
-		                 80 team members in the busiest window
+		                 th:text="${transportationDemand.overallPeakWindowStart != null
+		                     ? transportationDemand.overallPeakWindowCount
+		                         + ' movements · '
+		                         + transportationDemand.overallPeakPeriodTitle
+		                     : 'No normal operating demand'}">
+		                 80 movements · Evening Pickups
 		             </span>
 
 		         </article>
@@ -389,7 +396,7 @@
 		         <a
 		             class="button button--secondary"
 		             th:href="@{/app(date=${selectedDate})} + '#demand'">
-		             View pickup demand
+		             View transportation demand
 		         </a>
 
 		         <a
@@ -474,7 +481,7 @@
 
 
     <!-- =====================================================
-         PICKUP DEMAND DATE SELECTION
+         TRANSPORTATION DEMAND DATE SELECTION
          Available even when no plan exists for the selected date.
          ===================================================== -->
 
@@ -718,397 +725,398 @@
 
 
             <!-- =================================================
-                 PICKUP DEMAND
+                 TRANSPORTATION DEMAND
                  ================================================= -->
 
             <section
                 class="section"
                 data-dashboard-section="demand"
-                aria-labelledby="pickup-windows-heading">
+                aria-labelledby="transportation-demand-heading">
 
+                <div class="section-heading">
 
-                    <div class="section-heading">
+                    <div>
 
-                        <div>
+                        <h2 id="transportation-demand-heading">
+                            Transportation demand
+                        </h2>
 
-                            <h2 id="pickup-windows-heading">
-                                Pickup windows
-                            </h2>
-
-                            <p>
-                                Expected shuttle pickups based on team-member
-                                shift endings, grouped into 15-minute windows.
-                            </p>
-
-                        </div>
+                        <p>
+                            See when team members are arriving, when midday
+                            turnover creates two-way movement, and when evening
+                            pickups require shuttle coverage.
+                        </p>
 
                     </div>
 
+                </div>
 
 
-                    <!-- =============================================
-                         PICKUP DEMAND CONTENT
-                         ============================================= -->
-
-                    <div
-                        class="pickup-demand"
-                        th:if="${!#lists.isEmpty(pickupWindows)}">
+                <div
+                    class="transportation-demand"
+                    th:if="${transportationDemand.hasAnyDemand}">
 
 
-                        <!-- =========================================
-                             PEAK DEMAND SUMMARY
-                             ========================================= -->
+                    <!-- =========================================
+                         TODAY'S TRANSPORTATION PLAN
+                         ========================================= -->
 
-                        <section
-                            class="demand-summary"
-                            th:if="${pickupDemand.sustainedDemandDetected}"
-                            aria-label="Peak pickup demand summary">
+                    <section
+                        class="transport-plan-summary"
+                        th:if="${transportationDemand.hasOperationalDemand}"
+                        aria-label="Today's transportation plan">
 
+                        <header class="transport-plan-summary__header">
 
-                            <div class="demand-summary__primary">
+                            <div>
 
-                                <div
-                                    class="demand-summary__icon"
-                                    aria-hidden="true">
-                                    ↗
-                                </div>
+                                <span class="transport-plan-summary__eyebrow">
+                                    Today’s transportation plan
+                                </span>
 
+                                <h3>
+                                    Normal operating demand
+                                </h3>
 
-                                <div>
-
-                                    <span class="demand-summary__label">
-                                        Peak demand
-                                    </span>
-
-
-                                    <strong
-                                        class="demand-summary__time"
-                                        th:text="|${#temporals.format(pickupDemand.peakDemandStart, 'h:mm')}–${#temporals.format(pickupDemand.peakDemandEnd, 'h:mm a')}|">
-
-                                        6:00–7:15 PM
-
-                                    </strong>
-
-
-                                    <p>
-
-                                        <strong
-                                            th:text="${pickupDemand.peakDemandTeamMemberCount}">
-                                            244
-                                        </strong>
-
-                                        team members across
-
-                                        <strong
-                                            th:text="${pickupDemand.sustainedWindowCount}">
-                                            5
-                                        </strong>
-
-                                        consecutive pickup windows.
-
-                                    </p>
-
-                                </div>
+                                <p>
+                                    Recommended windows are derived from the
+                                    uploaded team-member schedule.
+                                </p>
 
                             </div>
 
+                            <span class="transport-plan-summary__hours">
+                                Normal operations · 9:00 AM–9:00 PM
+                            </span>
+
+                        </header>
 
 
-                            <div class="demand-summary__metric">
+                        <div class="transport-plan-summary__grid">
 
-                                <div class="demand-summary__metric-value">
-
-                                    <span aria-hidden="true">
-                                        ◎
-                                    </span>
-
-                                    <strong
-                                        th:text="${pickupDemand.peakWindowTeamMemberCount}">
-                                        80
-                                    </strong>
-
-                                </div>
-
-
-                                <span class="demand-summary__metric-label">
-                                    Max team members in one window
-                                </span>
-
+                            <article
+                                class="transport-plan-metric"
+                                th:each="period : ${transportationDemand.periods}">
 
                                 <span
-                                    class="demand-pill demand-pill--very-high">
+                                    class="transport-plan-metric__label"
+                                    th:text="${period.summaryTitle}">
+                                    Morning driving
+                                </span>
 
-                                    Very high demand
+                                <strong
+                                    class="transport-plan-metric__time"
+                                    th:if="${period.hasRecommendedWindow}"
+                                    th:text="|${#temporals.format(period.recommendedStartTime, 'h:mm a')}–${#temporals.format(period.recommendedEndTime, 'h:mm a')}|">
+                                    8:45 AM–12:15 PM
+                                </strong>
+
+                                <strong
+                                    class="transport-plan-metric__time"
+                                    th:unless="${period.hasRecommendedWindow}">
+                                    No scheduled run
+                                </strong>
+
+                                <div class="transport-plan-metric__total">
+
+                                    <strong
+                                        th:text="${period.totalCount}">
+                                        494
+                                    </strong>
+
+                                    <span
+                                        th:text="${period.totalLabel}">
+                                        arrivals
+                                    </span>
+
+                                </div>
+
+                                <span
+                                    class="transport-plan-metric__peak"
+                                    th:if="${period.hasDemand}">
+
+                                    <strong
+                                        th:text="${period.peakLabel}">
+                                        Peak arrival
+                                    </strong>
+
+                                    <span
+                                        th:text="| · ${period.peakWindowCount} @ ${#temporals.format(period.peakWindowStart, 'h:mm a')}|">
+                                        · 82 @ 10:00 AM
+                                    </span>
 
                                 </span>
 
-                            </div>
+                                <span
+                                    class="transport-plan-metric__peak"
+                                    th:unless="${period.hasDemand}">
+                                    No demand in this period
+                                </span>
 
-                        </section>
+                            </article>
+
+                        </div>
+
+                    </section>
 
 
+                    <!-- =========================================
+                         THREE OPERATING BEHAVIORS
+                         ========================================= -->
 
-                        <!-- =========================================
-                             QUIET DAY SUMMARY
-                             ========================================= -->
+                    <div
+                        class="transportation-columns"
+                        th:if="${transportationDemand.hasOperationalDemand}">
 
                         <section
-                            class="demand-summary demand-summary--quiet"
-                            th:unless="${pickupDemand.sustainedDemandDetected}"
-                            aria-label="Pickup demand summary">
+                            class="transportation-card"
+                            th:each="period : ${transportationDemand.periods}"
+                            th:classappend="| transportation-card--${period.key}|">
 
-
-                            <div class="demand-summary__primary">
+                            <header class="transportation-card__header">
 
                                 <div
-                                    class="demand-summary__icon demand-summary__icon--quiet"
+                                    class="transportation-card__icon"
+                                    th:text="${period.icon}"
                                     aria-hidden="true">
-                                    ✓
+                                    ↑
                                 </div>
 
+                                <div class="transportation-card__heading">
 
-                                <div>
+                                    <h3
+                                        th:text="${period.title}">
+                                        Morning Arrivals
+                                    </h3>
 
-                                    <span class="demand-summary__label">
-                                        No sustained rush detected
-                                    </span>
-
-
-                                    <strong class="demand-summary__time">
-                                        Demand is spread out
-                                    </strong>
-
-
-                                    <p>
-
-                                        Highest single pickup window:
-
-                                        <strong
-                                            th:text="${pickupDemand.peakWindowTeamMemberCount}">
-                                            0
-                                        </strong>
-
-                                        team members.
-
+                                    <p
+                                        th:text="${period.description}">
+                                        Team members clocking in and moving toward the park.
                                     </p>
 
                                 </div>
 
-                            </div>
+                                <div
+                                    class="transportation-card__peak"
+                                    th:if="${period.hasDemand}">
 
-                        </section>
+                                    <span>
+                                        Peak
+                                    </span>
 
+                                    <strong
+                                        th:text="${period.peakWindowCount}">
+                                        82
+                                    </strong>
 
+                                </div>
 
-                        <!-- =========================================
-                             VERTICAL DEMAND TIMELINE
-                             ========================================= -->
-
-                        <div class="demand-timeline">
-
-
-                            <section
-                                class="demand-daypart"
-                                th:each="daypart : ${pickupDemand.sections}">
-
-
-                                <header class="demand-daypart__header">
+                            </header>
 
 
-                                    <div
-                                        class="demand-daypart__icon"
-                                        th:classappend="${daypart.sustainedDemand} ? ' demand-daypart__icon--rush' : ''"
-                                        th:text="${daypart.icon}"
-                                        aria-hidden="true">
+                            <div
+                                class="transportation-card__rows"
+                                th:if="${period.hasDemand}">
 
-                                        ☾
+                                <article
+                                    class="transportation-window"
+                                    th:each="window : ${period.windows}"
+                                    th:classappend="${' transportation-window--' + window.priority.cssClass}">
 
-                                    </div>
+                                    <div>
 
-
-
-                                    <div class="demand-daypart__heading">
-
-                                        <h3
-                                            th:text="${daypart.displayName}">
-
-                                            Evening rush
-
-                                        </h3>
-
+                                        <strong
+                                            class="transportation-window__time"
+                                            th:text="|${#temporals.format(window.windowStart, 'h:mm')}–${#temporals.format(window.windowEnd, 'h:mm a')}|">
+                                            10:00–10:15 AM
+                                        </strong>
 
                                         <span
-                                            th:text="${daypart.timeRange}">
+                                            class="transportation-window__breakdown"
+                                            th:if="${period.key == 'midday'}"
+                                            th:text="|${window.arrivals} in · ${window.departures} out|">
+                                            17 in · 24 out
+                                        </span>
 
-                                            6:00 PM – 11:59 PM
+                                        <span
+                                            class="transportation-window__breakdown"
+                                            th:if="${period.key == 'morning' and window.departures > 0}"
+                                            th:text="|${window.departures} clock-outs also scheduled|">
+                                            2 clock-outs also scheduled
+                                        </span>
 
+                                        <span
+                                            class="transportation-window__breakdown"
+                                            th:if="${period.key == 'evening' and window.arrivals > 0}"
+                                            th:text="|${window.arrivals} clock-ins also scheduled|">
+                                            3 clock-ins also scheduled
                                         </span>
 
                                     </div>
 
 
+                                    <div class="transportation-window__count">
 
-                                    <span
-                                        class="demand-cluster-label"
-                                        th:if="${daypart.sustainedDemand}">
-
-                                        Sustained demand
-
-                                    </span>
-
-                                </header>
-
-
-
-                                <div class="demand-daypart__rows">
-
-
-                                    <article
-                                        class="demand-row"
-                                        th:each="window : ${daypart.windows}"
-                                        th:classappend="${' demand-row--' + window.priority.cssClass + (window.sustainedDemand ? ' demand-row--cluster' : '')}">
-
-
-                                        <strong
-                                            class="demand-row__time"
-                                            th:text="|${#temporals.format(window.windowStart, 'h:mm')}–${#temporals.format(window.windowEnd, 'h:mm a')}|">
-
-                                            6:00–6:15 PM
-
-                                        </strong>
-
-
-
-                                        <div class="demand-row__count">
+                                        <div class="transportation-window__number">
 
                                             <strong
-                                                th:text="${window.teamMemberCount}">
-                                                62
+                                                th:text="${window.demandCount}">
+                                                82
                                             </strong>
 
-                                            <span>
-                                                team members
+                                            <span
+                                                th:text="${period.totalLabel}">
+                                                arrivals
                                             </span>
 
                                         </div>
 
-
-
                                         <span
                                             class="demand-pill"
                                             th:classappend="${' demand-pill--' + window.priority.cssClass}">
-
 
                                             <span
                                                 class="demand-pill__dot"
                                                 aria-hidden="true">
                                             </span>
 
-
                                             <span
                                                 th:text="${window.priority.label}">
-
                                                 Very high
-
                                             </span>
 
                                         </span>
 
-                                    </article>
+                                    </div>
 
-                                </div>
+                                </article>
 
-                            </section>
-
-                        </div>
+                            </div>
 
 
+                            <div
+                                class="transportation-card__empty"
+                                th:unless="${period.hasDemand}">
 
-                        <!-- =========================================
-                             DEMAND LEGEND
-                             ========================================= -->
+                                No meaningful
+                                <span
+                                    th:text="${period.totalLabel}">
+                                    arrivals
+                                </span>
+                                were found in this part of the operating day.
 
-                        <div
-                            class="demand-legend"
-                            aria-label="Pickup demand legend">
+                            </div>
+
+                        </section>
+
+                    </div>
 
 
-                            <span>
+                    <!-- =========================================
+                         OFF-HOURS DEMAND — COLLAPSED BY DEFAULT
+                         ========================================= -->
 
-                                <i
-                                    class="demand-legend__dot demand-legend__dot--low">
-                                </i>
+                    <details
+                        class="off-hours-demand"
+                        th:if="${transportationDemand.hasOffHoursDemand}">
 
-                                Low: 0–9
+                        <summary>
 
+                            <span class="off-hours-demand__label">
+                                Off-hours demand
                             </span>
 
-
-
-                            <span>
-
-                                <i
-                                    class="demand-legend__dot demand-legend__dot--moderate">
-                                </i>
-
-                                Moderate: 10–24
-
+                            <span
+                                class="off-hours-demand__count"
+                                th:text="|${transportationDemand.offHoursMovementCount} scheduled movements|">
+                                5 scheduled movements
                             </span>
 
-
-
-                            <span>
-
-                                <i
-                                    class="demand-legend__dot demand-legend__dot--high">
-                                </i>
-
-                                High: 25–49
-
+                            <span class="off-hours-demand__note">
+                                outside 9:00 AM–9:00 PM
                             </span>
 
+                        </summary>
 
 
-                            <span>
+                        <div class="off-hours-demand__rows">
 
-                                <i
-                                    class="demand-legend__dot demand-legend__dot--very-high">
-                                </i>
+                            <article
+                                class="off-hours-row"
+                                th:each="window : ${transportationDemand.offHoursWindows}">
 
-                                Very high: 50+
-
-                            </span>
-
-
-
-                            <span>
-
-                                <strong>
-                                    Cluster:
+                                <strong
+                                    class="off-hours-row__time"
+                                    th:text="|${#temporals.format(window.windowStart, 'h:mm')}–${#temporals.format(window.windowEnd, 'h:mm a')}|">
+                                    2:00–2:15 AM
                                 </strong>
 
-                                3+ consecutive windows at 10+
+                                <span
+                                    class="off-hours-row__breakdown"
+                                    th:text="|${window.arrivals} in · ${window.departures} out|">
+                                    0 in · 2 out
+                                </span>
 
-                            </span>
+                                <span
+                                    class="off-hours-row__total"
+                                    th:text="|${window.demandCount} total|">
+                                    2 total
+                                </span>
+
+                            </article>
 
                         </div>
 
-                    </div>
+                    </details>
 
 
-
-                    <!-- No pickup demand -->
+                    <!-- =========================================
+                         DEMAND LEVEL LEGEND
+                         ========================================= -->
 
                     <div
-                        th:if="${#lists.isEmpty(pickupWindows)}"
-                        class="alert alert--info">
+                        class="transportation-legend"
+                        th:if="${transportationDemand.hasOperationalDemand}"
+                        aria-label="Transportation demand legend">
 
-                        No pickup windows were found for this date.
+                        <span>
+                            <i class="transportation-legend__dot"></i>
+                            Low: 0–9
+                        </span>
+
+                        <span>
+                            <i class="transportation-legend__dot transportation-legend__dot--moderate"></i>
+                            Moderate: 10–24
+                        </span>
+
+                        <span>
+                            <i class="transportation-legend__dot transportation-legend__dot--high"></i>
+                            High: 25–49
+                        </span>
+
+                        <span>
+                            <i class="transportation-legend__dot transportation-legend__dot--very-high"></i>
+                            Very high: 50+
+                        </span>
+
+                        <span>
+                            Demand level is based on each period’s primary movement.
+                        </span>
 
                     </div>
 
-                </section>
+                </div>
 
+
+                <div
+                    th:unless="${transportationDemand.hasAnyDemand}"
+                    class="alert alert--info">
+
+                    No transportation demand was found for this date.
+
+                </div>
+
+            </section>
 
 
                 <!-- =================================================
@@ -1169,7 +1177,7 @@
                                 Schedule changed after coverage was generated.
                             </strong>
 
-                            Pickup demand uses import
+                            Transportation demand uses import
 
                             <span
                                 class="mono"

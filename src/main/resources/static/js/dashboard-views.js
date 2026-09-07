@@ -21,7 +21,7 @@
         overview: {
             heading: 'Overview',
             description:
-                'Review today’s pickup demand, driver coverage, and shuttle operations.',
+                'Review today’s transportation demand, driver coverage, and shuttle operations.',
             documentTitle: 'Overview | RoutePulse',
             showPlanningDate: true
         },
@@ -35,10 +35,10 @@
         },
 
         demand: {
-            heading: 'Pickup demand',
+            heading: 'Transportation demand',
             description:
-                'Review expected shuttle pickup volume throughout the selected planning day.',
-            documentTitle: 'Pickup Demand | RoutePulse',
+                'Review arrivals, midday turnover, evening pickups, and recommended shuttle windows for the selected planning day.',
+            documentTitle: 'Transportation Demand | RoutePulse',
             showPlanningDate: true
         },
 
@@ -119,7 +119,7 @@
          * planning date, so hiding "Planning for..." there
          * makes the page clearer.
          *
-         * Pickup demand, driver coverage, and overview
+         * Transportation demand, driver coverage, and overview
          * can continue showing the selected date.
          */
         if (planningDate) {
@@ -154,7 +154,7 @@
 
 
         /*
-         * Pickup demand and driver coverage both use
+         * Transportation demand and driver coverage both use
          * information inside the generated planning area.
          */
         const planContainer =
