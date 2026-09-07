@@ -1,7 +1,7 @@
 package technology.renatus.routepulse.model;
 
 public enum ShuttlePeriod {
-	MORNING,
-	AFTERNOON
-
+    MORNING,
+    MIDDAY,
+    AFTERNOON
 }

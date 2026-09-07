@@ -439,6 +439,15 @@ public class PickupPlanningController {
                         )
                         .findFirst()
                         .orElse(null);
+        
+        DriverAssignment middayAssignment =
+                driverAssignments.stream()
+                        .filter(assignment ->
+                                assignment.getPeriod()
+                                        == ShuttlePeriod.MIDDAY
+                        )
+                        .findFirst()
+                        .orElse(null);
 
         DriverAssignment afternoonAssignment =
                 driverAssignments.stream()
@@ -452,21 +461,34 @@ public class PickupPlanningController {
         boolean morningAssignmentExists =
                 morningAssignment != null;
 
+        boolean middayAssignmentExists =
+                middayAssignment != null;
+
         boolean afternoonAssignmentExists =
                 afternoonAssignment != null;
 
+        int totalShiftCount = 3;
+
         int coveredShiftCount =
                 (morningAssignmentExists ? 1 : 0)
+                        + (middayAssignmentExists ? 1 : 0)
                         + (afternoonAssignmentExists ? 1 : 0);
 
         int needsAttentionShiftCount =
-                2 - coveredShiftCount;
+                totalShiftCount - coveredShiftCount;
 
         DriverSchedule morningAssignedDriverSchedule =
                 findAssignedDriverSchedule(
                         driverSchedules,
                         morningAssignment
                 );
+        
+
+		DriverSchedule middayAssignedDriverSchedule =
+		        findAssignedDriverSchedule(
+		                driverSchedules,
+		                middayAssignment
+		        );
 
         DriverSchedule afternoonAssignedDriverSchedule =
                 findAssignedDriverSchedule(
@@ -645,6 +667,26 @@ public class PickupPlanningController {
         model.addAttribute(
                 "afternoonAssignedDriverSchedule",
                 afternoonAssignedDriverSchedule
+        );
+        
+        model.addAttribute(
+                "totalShiftCount",
+                totalShiftCount
+        );
+
+        model.addAttribute(
+                "middayAssignmentExists",
+                middayAssignmentExists
+        );
+
+        model.addAttribute(
+                "middayAssignment",
+                middayAssignment
+        );
+
+        model.addAttribute(
+                "middayAssignedDriverSchedule",
+                middayAssignedDriverSchedule
         );
 
         return "index";
