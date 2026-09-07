@@ -8,10 +8,24 @@ public record ParkOperatingDay(
         ParkOperatingStatus status,
         LocalTime openingTime,
         LocalTime closingTime,
-        boolean buyout
+        boolean buyout,
+        String verificationSource,
+        String diagnosticCode
 ) {
 
     public boolean shouldScheduleShuttle() {
         return status == ParkOperatingStatus.OPEN;
+    }
+
+    public boolean isPersistedSnapshot() {
+        return "PERSISTED_SNAPSHOT".equals(verificationSource);
+    }
+
+    public boolean isManagerConfirmed() {
+        return "MANAGER_CONFIRMATION".equals(verificationSource);
+    }
+
+    public boolean isVerified() {
+        return status != ParkOperatingStatus.UNKNOWN;
     }
 }
