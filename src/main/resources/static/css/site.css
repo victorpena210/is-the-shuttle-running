@@ -1,0 +1,35 @@
+/* =========================================================
+   ROUTEPULSE SHARED STYLES
+
+   Shared CSS entry point. Files are grouped by responsibility:
+   base, layout, components, and pages.
+   ========================================================= */
+
+/* Base */
+@import url("./base/variables.css");
+@import url("./base/reset.css");
+@import url("./base/typography.css");
+@import url("./base/accessibility.css");
+
+/* Base brand styles complete the former main.css bundle. */
+@import url("./components/brand.css");
+
+/* Layout */
+@import url("./layout/navigation.css");
+
+/* Shared components */
+@import url("./components/shared-components.css");
+@import url("./components/operations.css");
+
+/* Shared page families */
+@import url("./pages/auth.css");
+
+/* Responsive/layout rules intentionally remain in the same cascade order
+   as the previous stylesheet bundle. */
+@import url("./layout/responsive.css");
+@import url("./layout/app-layout.css");
+@import url("./layout/footer.css");
+@import url("./pages/landing.css");
+@import url("./layout/footer-branding.css");
+@import url("./pages/rider-status.css");
+@import url("./pages/demo-request.css");

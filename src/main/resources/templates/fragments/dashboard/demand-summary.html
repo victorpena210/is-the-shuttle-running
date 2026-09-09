@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="summary"
+        class="transport-plan-summary"
+        th:if="${transportationDemand.hasOperationalDemand}"
+        aria-label="Today's transportation plan">
+
+        <header class="transport-plan-summary__header">
+
+            <div>
+
+                <span class="transport-plan-summary__eyebrow">
+                    Today’s transportation plan
+                </span>
+
+                <h3>
+                    Normal operating demand
+                </h3>
+
+                <p>
+                    Recommended windows are derived from the
+                    uploaded team-member schedule.
+                </p>
+
+            </div>
+
+            <span class="transport-plan-summary__hours">
+                Normal operations · 9:00 AM–9:00 PM
+            </span>
+
+        </header>
+
+        <div class="transport-plan-summary__grid">
+
+            <article
+                class="transport-plan-metric"
+                th:each="period : ${transportationDemand.periods}">
+
+                <span
+                    class="transport-plan-metric__label"
+                    th:text="${period.summaryTitle}">
+                    Morning driving
+                </span>
+
+                <strong
+                    class="transport-plan-metric__time"
+                    th:if="${period.hasRecommendedWindow}"
+                    th:text="|${#temporals.format(period.recommendedStartTime, 'h:mm a')}–${#temporals.format(period.recommendedEndTime, 'h:mm a')}|">
+                    8:45 AM–12:15 PM
+                </strong>
+
+                <strong
+                    class="transport-plan-metric__time"
+                    th:unless="${period.hasRecommendedWindow}">
+                    No scheduled run
+                </strong>
+
+                <div class="transport-plan-metric__total">
+
+                    <strong
+                        th:text="${period.totalCount}">
+                        494
+                    </strong>
+
+                    <span
+                        th:text="${period.totalLabel}">
+                        arrivals
+                    </span>
+
+                </div>
+
+                <span
+                    class="transport-plan-metric__peak"
+                    th:if="${period.hasDemand}">
+
+                    <strong
+                        th:text="${period.peakLabel}">
+                        Peak arrival
+                    </strong>
+
+                    <span
+                        th:text="| · ${period.peakWindowCount} @ ${#temporals.format(period.peakWindowStart, 'h:mm a')}|">
+                        · 82 @ 10:00 AM
+                    </span>
+
+                </span>
+
+                <span
+                    class="transport-plan-metric__peak"
+                    th:unless="${period.hasDemand}">
+                    No demand in this period
+                </span>
+
+            </article>
+
+        </div>
+
+    </section>
+</body>
+</html>

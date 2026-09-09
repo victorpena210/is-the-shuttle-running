@@ -1,0 +1,14 @@
+/* Driving records page — ordered entry point */
+@import url("./driving-records/page.css");
+@import url("./driving-records/filters.css");
+@import url("./driving-records/tabs.css");
+@import url("./driving-records/headings.css");
+@import url("./driving-records/summary-metrics.css");
+@import url("./driving-records/driver-detail.css");
+@import url("./driving-records/workload-table.css");
+@import url("./driving-records/record-cards.css");
+@import url("./driving-records/record-details.css");
+@import url("./driving-records/management-review.css");
+@import url("./driving-records/responsive-tablet.css");
+@import url("./driving-records/responsive-small-tablet.css");
+@import url("./driving-records/responsive-mobile.css");

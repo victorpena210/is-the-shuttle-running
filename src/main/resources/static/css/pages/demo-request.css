@@ -1,0 +1,41 @@
+.demo-request-form {
+    display: block;
+    width: 100%;
+    margin-top: 1.5rem;
+}
+
+.demo-request-form .form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.demo-request-form .form-group {
+    display: block;
+    width: 100%;
+    margin: 0;
+}
+
+.demo-request-form .form-group--full {
+    grid-column: 1 / -1;
+}
+
+.demo-request-form label {
+    display: block;
+}
+
+.demo-request-form input,
+.demo-request-form textarea {
+    display: block;
+    width: 100%;
+}
+
+@media (max-width: 700px) {
+    .demo-request-form .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .demo-request-form .form-group--full {
+        grid-column: auto;
+    }
+}

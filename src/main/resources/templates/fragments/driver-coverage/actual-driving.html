@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="actualDriving(assignment)" class="coverage-actual-driving">
+
+        <div>
+            <span class="coverage-manager__eyebrow">
+                Actual driving
+            </span>
+
+            <strong th:if="${assignment.actualStartedAt == null}">
+                Not started
+            </strong>
+
+            <strong th:if="${assignment.driving}">
+                Driving now
+            </strong>
+
+            <strong th:if="${assignment.drivingCompleted}">
+                Completed
+            </strong>
+        </div>
+
+        <div class="coverage-actual-driving__actions">
+
+            <form
+                th:if="${assignment.actualStartedAt == null
+                    and assignment.scheduledStartTime != null
+                    and assignment.scheduledEndTime != null
+                    and assignment.assignmentDate.equals(currentOperationsDate)}"
+                th:action="@{/assignments/{assignmentId}/start(assignmentId=${assignment.id})}"
+                method="post">
+
+                <input
+                    type="hidden"
+                    name="assignmentDate"
+                    th:value="${selectedDate}">
+
+                <button
+                    class="button button--success"
+                    type="submit">
+                    Start driving
+                </button>
+            </form>
+
+            <form
+                th:if="${assignment.driving}"
+                th:action="@{/assignments/{assignmentId}/end(assignmentId=${assignment.id})}"
+                method="post">
+
+                <input
+                    type="hidden"
+                    name="assignmentDate"
+                    th:value="${selectedDate}">
+
+                <button
+                    class="button button--danger"
+                    type="submit">
+                    End driving
+                </button>
+            </form>
+
+            <a
+                class="button button--secondary"
+                th:if="${assignment.drivingCompleted}"
+                th:href="@{/driving-records(from=${assignment.assignmentDate},to=${assignment.assignmentDate})} + '#record-' + ${assignment.id}">
+                View driving record
+            </a>
+
+        </div>
+
+    </section>
+</body>
+</html>

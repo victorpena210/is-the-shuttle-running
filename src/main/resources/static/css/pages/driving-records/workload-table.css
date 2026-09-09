@@ -1,0 +1,145 @@
+/*
+ * ============================================================
+ * WORKLOAD TABLE
+ * ============================================================
+ */
+
+.workload-table-shell {
+    overflow-x: auto;
+
+    margin-top: 0.95rem;
+
+    border:
+        1px solid
+        var(--slate-200);
+
+    border-radius:
+        var(--radius-lg);
+
+    background:
+        var(--white);
+
+    box-shadow:
+        var(--shadow-sm);
+}
+
+.workload-table {
+    min-width: 760px;
+}
+
+.workload-table th,
+.workload-table td {
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.numeric-column {
+    text-align: right;
+}
+
+.workload-driver-link {
+    display: inline-grid;
+
+    gap: 0.06rem;
+
+    color: var(--ink-950);
+
+    text-decoration: none;
+}
+
+.workload-driver-link:hover span {
+    color: var(--blue-600);
+
+    text-decoration: underline;
+
+    text-underline-offset: 0.2em;
+}
+
+.workload-driver-link span {
+    font-weight: 820;
+}
+
+.workload-driver-link small {
+    color: var(--slate-500);
+
+    font-size: 0.7rem;
+}
+
+.workload-driver-status {
+    display: inline-flex;
+
+    margin-left: 0.45rem;
+
+    padding:
+        0.12rem
+        0.4rem;
+
+    border-radius: 999px;
+
+    color: var(--red-700);
+
+    background: var(--red-100);
+
+    font-size: 0.62rem;
+    font-weight: 850;
+
+    text-transform: uppercase;
+}
+
+.workload-number,
+.workload-count {
+    font-variant-numeric:
+        tabular-nums;
+
+    font-weight: 770;
+}
+
+.workload-difference {
+    display: inline-flex;
+
+    min-width: 5.5rem;
+
+    justify-content: flex-end;
+
+    padding:
+        0.3rem
+        0.5rem;
+
+    border-radius: 999px;
+
+    font-variant-numeric:
+        tabular-nums;
+
+    font-weight: 850;
+}
+
+.workload-difference--positive {
+    color: var(--green-700);
+
+    background: var(--green-100);
+}
+
+.workload-difference--negative {
+    color: var(--amber-800);
+
+    background: var(--amber-100);
+}
+
+.workload-difference--balanced {
+    color: var(--slate-600);
+
+    background: var(--slate-100);
+}
+
+.workload-footnote {
+    margin:
+        0.75rem
+        0
+        0;
+
+    color: var(--slate-500);
+
+    font-size: 0.75rem;
+}
+
+

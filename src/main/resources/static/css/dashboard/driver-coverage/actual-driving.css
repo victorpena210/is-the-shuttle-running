@@ -1,0 +1,23 @@
+/* Actual driving */
+.coverage-actual-driving {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-top: 0.8rem;
+    padding-top: 0.8rem;
+    border-top: 1px solid var(--slate-200);
+}
+
+.coverage-actual-driving strong {
+    display: block;
+    margin-top: 0.1rem;
+}
+
+.coverage-actual-driving__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+}
+

@@ -1,0 +1,113 @@
+/* Shift cards */
+.coverage-shift-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+}
+
+.coverage-shift-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-xl);
+    background: var(--white);
+    box-shadow: var(--shadow-sm);
+}
+
+.coverage-shift-card--covered {
+    border-color: #cbd5e1;
+}
+
+.coverage-shift-card--missing {
+    border-color: #fcd34d;
+    box-shadow: 0 14px 34px rgba(146, 64, 14, 0.08);
+}
+
+.coverage-shift-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.15rem;
+    border-bottom: 1px solid var(--slate-200);
+    background: linear-gradient(90deg, #fbfdff, var(--white));
+}
+
+.coverage-shift-card--missing .coverage-shift-card__header {
+    background: linear-gradient(90deg, #fffbeb, var(--white));
+}
+
+.coverage-shift-card__identity {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.coverage-shift-card__icon {
+    display: grid;
+    width: 2.65rem;
+    height: 2.65rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 0.85rem;
+    background: var(--slate-100);
+    font-size: 1.2rem;
+}
+
+.coverage-shift-card__label {
+    display: block;
+    margin-bottom: 0.15rem;
+    color: var(--ink-950);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.075em;
+    text-transform: uppercase;
+}
+
+.coverage-shift-card__time {
+    display: block;
+    overflow-wrap: anywhere;
+    font-size: 0.9rem;
+    font-weight: 720;
+}
+
+.coverage-shift-card__time--muted {
+    color: var(--slate-500);
+    font-weight: 650;
+}
+
+.coverage-state {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 0.38rem;
+    padding: 0.38rem 0.62rem;
+    border-radius: 999px;
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+}
+
+.coverage-state--covered {
+    color: #14532d;
+    background: var(--green-100);
+}
+
+.coverage-state--missing {
+    color: var(--amber-800);
+    background: var(--amber-100);
+}
+
+.coverage-shift-card__body {
+    display: grid;
+    gap: 1rem;
+    padding: 1.15rem;
+}
+
+.coverage-shift-card__body--missing {
+    gap: 1.1rem;
+}
+

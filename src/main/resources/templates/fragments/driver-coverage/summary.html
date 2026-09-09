@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div th:fragment="summary" class="coverage-summary" aria-label="Coverage summary">
+
+        <article class="coverage-summary__item">
+            <strong>3</strong>
+            <span>Shuttle shifts</span>
+        </article>
+
+        <article class="coverage-summary__item coverage-summary__item--good">
+            <strong th:text="${coveredShiftCount != null ? coveredShiftCount : 0}">
+                0
+            </strong>
+            <span>Covered</span>
+        </article>
+
+        <article
+            class="coverage-summary__item coverage-summary__item--warning"
+            th:if="${needsAttentionShiftCount != null and needsAttentionShiftCount != 0}">
+
+            <strong th:text="${needsAttentionShiftCount}">
+                0
+            </strong>
+
+            <span>Needs attention</span>
+
+        </article>
+
+        <article
+            class="coverage-summary__item coverage-summary__item--good"
+            th:if="${needsAttentionShiftCount == null or needsAttentionShiftCount == 0}">
+
+            <strong>0</strong>
+            <span>Needs attention</span>
+
+        </article>
+
+    </div>
+</body>
+</html>

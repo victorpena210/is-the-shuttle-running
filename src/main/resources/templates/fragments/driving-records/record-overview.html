@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div th:fragment="recordOverview(record)" class="record-overview-grid">
+
+        <!-- SCHEDULED -->
+
+        <section class="record-overview-block">
+
+            <span class="record-overview-block__label">
+                Scheduled
+            </span>
+
+            <strong
+                th:if="${record.scheduledStartTime != null
+                    and record.scheduledEndTime != null}"
+                th:text="|${#temporals.format(record.scheduledStartTime, 'h:mm a')} – ${#temporals.format(record.scheduledEndTime, 'h:mm a')}|">
+
+                9:00 AM – 12:00 PM
+
+            </strong>
+
+            <strong
+                class="muted"
+                th:unless="${record.scheduledStartTime != null
+                    and record.scheduledEndTime != null}">
+
+                Time not set
+
+            </strong>
+
+            <small
+                th:text="|${#numbers.formatDecimal(record.scheduledHours, 1, 2)} scheduled hours|">
+
+                3.00 scheduled hours
+
+            </small>
+
+        </section>
+
+        <!-- ACTUAL -->
+
+        <section class="record-overview-block">
+
+            <span class="record-overview-block__label">
+                Actual driver
+            </span>
+
+            <strong
+                th:text="${record.actualDriverNames}">
+
+                Alex Smith
+
+            </strong>
+
+            <small
+                th:if="${record.drivingCompleted}"
+                th:text="|${#numbers.formatDecimal(record.actualHours, 1, 2)} actual hours|">
+
+                2.92 actual hours
+
+            </small>
+
+            <small
+                th:if="${record.driving}">
+
+                Driving session in progress
+
+            </small>
+
+            <small
+                th:if="${!record.driving
+                    and !record.drivingCompleted}">
+
+                No completed driving session
+
+            </small>
+
+        </section>
+
+        <!-- OUTCOME -->
+
+        <section class="record-overview-block">
+
+            <span class="record-overview-block__label">
+                Outcome
+            </span>
+
+            <strong
+                class="record-outcome"
+                th:text="${record.assignmentOutcome}">
+
+                COVERED_BY_OTHER_DRIVER
+
+            </strong>
+
+            <small
+                th:if="${makeupStatus[record.id]}">
+
+                Make-up priority is active
+
+            </small>
+
+            <small
+                th:unless="${makeupStatus[record.id]}">
+
+                No make-up priority
+
+            </small>
+
+        </section>
+
+    </div>
+</body>
+</html>

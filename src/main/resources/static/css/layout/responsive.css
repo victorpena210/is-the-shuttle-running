@@ -1,0 +1,162 @@
+/* Responsive */
+@media (max-width: 960px) {
+    .assignment-summary {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .assignment-controls {
+        grid-template-columns: 1fr;
+    }
+
+    .driver-layout,
+    .invitations-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .public-shell {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        max-width: 44rem;
+    }
+
+    .public-story h1 {
+        max-width: 15ch;
+    }
+
+    .public-story .brand {
+        margin-bottom: 2rem;
+    }
+
+    .route-visual {
+        display: none;
+    }
+}
+
+@media (max-width: 760px) {
+    .app-topbar {
+        position: static;
+    }
+
+    .app-topbar__inner {
+        align-items: flex-start;
+        flex-direction: column;
+        padding: 0.9rem 0;
+    }
+
+    .app-nav {
+        width: 100%;
+        justify-content: flex-start;
+        overflow-x: auto;
+        padding-bottom: 0.1rem;
+    }
+
+    .app-nav__link,
+    .app-nav__button {
+        white-space: nowrap;
+    }
+
+    .app-nav__form {
+        margin-left: auto;
+    }
+
+    .app-main,
+    .content-wrap {
+        padding-top: 2rem;
+    }
+
+    .page-header,
+    .section-heading,
+    .panel__header,
+    .status-strip {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .workflow-grid,
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .form-group--full {
+        grid-column: auto;
+    }
+
+    .page-date {
+        width: 100%;
+    }
+
+    .alert {
+        flex-wrap: wrap;
+    }
+
+    .alert > form {
+        width: 100%;
+        margin-left: 2.08rem;
+    }
+
+    .assignment-card__header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .public-shell {
+        padding: 2rem 0;
+    }
+
+    .public-story > p {
+        font-size: 0.96rem;
+    }
+}
+
+@media (max-width: 520px) {
+    .app-topbar__inner,
+    .app-main,
+    .content-wrap,
+    .public-shell,
+    .blocked-shell {
+        width: min(calc(100% - 1.25rem), var(--content-width));
+    }
+
+    .app-main {
+        padding-bottom: 3rem;
+    }
+
+    .brand-tagline {
+        display: none;
+    }
+
+    .panel__header,
+    .panel__body,
+    .assignment-card__body {
+        padding: 1rem;
+    }
+
+    .assignment-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .button-row > .button,
+    .button-row > form,
+    .button-row > form .button {
+        width: 100%;
+    }
+
+    th,
+    td {
+        padding: 0.78rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+

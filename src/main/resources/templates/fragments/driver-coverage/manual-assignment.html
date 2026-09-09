@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <details th:fragment="manualAssignment(periodName, periodLabel, recommendedStart, recommendedEnd)"
+        class="coverage-manager coverage-manager--assign"
+        th:id="|assign-${#strings.toLowerCase(periodName)}|">
+
+        <summary class="button">
+            Assign a driver
+        </summary>
+
+        <div class="coverage-manager__panel">
+
+            <div class="coverage-manager__heading">
+                <div>
+                    <span class="coverage-manager__eyebrow">
+                        Assign driver
+                    </span>
+                    <h3 th:text="|${periodLabel} shift|">
+                        Afternoon shift
+                    </h3>
+                </div>
+
+                <button
+                    type="button"
+                    class="coverage-manager__close"
+                    data-close-coverage-details
+                    aria-label="Close assignment form">
+                    ×
+                </button>
+            </div>
+
+            <div
+                th:if="${#lists.isEmpty(driverSchedules) and #lists.isEmpty(driversWithoutSchedules)}"
+                class="alert alert--warning">
+                No active drivers are available. Add or reactivate a driver first.
+            </div>
+
+            <form
+                class="coverage-driver-form"
+                th:unless="${#lists.isEmpty(driverSchedules) and #lists.isEmpty(driversWithoutSchedules)}"
+                th:action="@{/assignments/manual}"
+                method="post">
+
+                <input
+                    type="hidden"
+                    name="assignmentDate"
+                    th:value="${selectedDate}">
+
+                <input
+                    type="hidden"
+                    name="period"
+                    th:value="${periodName}">
+
+                <div class="form-group">
+                    <label th:for="|manual-driver-${#strings.toLowerCase(periodName)}|">
+                        Driver
+                    </label>
+
+                    <select
+                        th:id="|manual-driver-${#strings.toLowerCase(periodName)}|"
+                        name="driverId"
+                        data-coverage-driver-select
+                        required>
+
+                        <option value="" selected disabled>
+                            Choose a driver
+                        </option>
+
+                        <optgroup
+                            label="Scheduled today"
+                            th:unless="${#lists.isEmpty(driverSchedules)}">
+
+                            <option
+                                th:each="driverSchedule : ${driverSchedules}"
+                                th:value="${driverSchedule.driverId}"
+                                data-scheduled="true"
+                                th:text="|${driverSchedule.driverName} — working ${#temporals.format(driverSchedule.startTime, 'h:mm a')}–${#temporals.format(driverSchedule.endTime, 'h:mm a')}|">
+                                Demo Driver 2 — working 9:00 AM–6:00 PM
+                            </option>
+
+                        </optgroup>
+
+                        <optgroup
+                            label="Not scheduled today"
+                            th:unless="${#lists.isEmpty(driversWithoutSchedules)}">
+
+                            <option
+                                th:each="driver : ${driversWithoutSchedules}"
+                                th:value="${driver.id}"
+                                data-scheduled="false"
+                                th:text="|${driver.name} — not on uploaded schedule|">
+                                Demo Driver 4 — not on uploaded schedule
+                            </option>
+
+                        </optgroup>
+
+                    </select>
+                </div>
+
+                <div
+                    class="coverage-driver-warning"
+                    data-unscheduled-warning
+                    hidden>
+
+                    <strong>
+                        This driver is not listed on today's uploaded work schedule.
+                    </strong>
+
+                    <span>
+                        You can still assign them if they are actually working.
+                    </span>
+                </div>
+
+                <div class="coverage-time-fields">
+
+                    <div class="form-group">
+                        <label th:for="|manual-start-${#strings.toLowerCase(periodName)}|">
+                            Scheduled start
+                        </label>
+
+                        <input
+                            type="time"
+                            th:id="|manual-start-${#strings.toLowerCase(periodName)}|"
+                            name="scheduledStartTime"
+                            th:value="${recommendedStart}"
+                            required>
+                    </div>
+
+                    <span class="coverage-time-arrow" aria-hidden="true">→</span>
+
+                    <div class="form-group">
+                        <label th:for="|manual-end-${#strings.toLowerCase(periodName)}|">
+                            Scheduled end
+                        </label>
+
+                        <input
+                            type="time"
+                            th:id="|manual-end-${#strings.toLowerCase(periodName)}|"
+                            name="scheduledEndTime"
+                            th:value="${recommendedEnd}"
+                            required>
+                    </div>
+
+                </div>
+
+                <div class="form-group">
+                    <label th:for="|manual-reason-${#strings.toLowerCase(periodName)}|">
+                        Reason
+                        <span class="muted">(optional manager note)</span>
+                    </label>
+
+                    <textarea
+                        th:id="|manual-reason-${#strings.toLowerCase(periodName)}|"
+                        name="changeReason"
+                        maxlength="500"
+                        placeholder="Example: covering because another driver is unavailable"></textarea>
+                </div>
+
+                <div class="coverage-form-actions">
+                    <button
+                        type="button"
+                        class="button button--secondary"
+                        data-close-coverage-details>
+                        Cancel
+                    </button>
+
+                    <button
+                        class="button"
+                        type="submit"
+                        data-driver-submit>
+                        Assign driver
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+
+    </details>
+</body>
+</html>

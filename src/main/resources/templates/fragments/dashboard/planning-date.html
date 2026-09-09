@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="planningDate"
+        class="workflow-card planning-date"
+        data-dashboard-section="demand"
+        aria-labelledby="planning-date-heading">
+
+        <div class="planning-date__header">
+
+            <div>
+
+                <h2 id="planning-date-heading">
+                    Planning date
+                </h2>
+
+                <p>
+                    Choose an available date from the uploaded schedule.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div
+            th:unless="${scheduleUploaded}"
+            class="alert alert--info">
+
+            Upload a schedule to make planning dates available.
+            <a href="#schedules">Go to Schedules</a>
+
+        </div>
+
+        <div
+            th:if="${scheduleUploaded}"
+            class="planning-calendar"
+            aria-label="Available planning dates">
+
+            <a
+                class="planning-calendar__date"
+                th:each="availableDate : ${availableDates}"
+                th:href="@{/app(date=${availableDate})} + '#demand'"
+                th:attr="aria-current=${availableDate.equals(selectedDate)} ? 'date' : null">
+
+                <span
+                    class="planning-calendar__weekday"
+                    th:text="${#temporals.format(availableDate, 'EEE')}">
+                    Mon
+                </span>
+
+                <strong
+                    class="planning-calendar__day"
+                    th:text="${#temporals.format(availableDate, 'd')}">
+                    10
+                </strong>
+
+                <span
+                    class="planning-calendar__month"
+                    th:text="${#temporals.format(availableDate, 'MMM')}">
+                    Aug
+                </span>
+
+            </a>
+
+        </div>
+
+    </section>
+</body>
+</html>

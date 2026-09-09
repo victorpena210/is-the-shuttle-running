@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <article
+        th:fragment="shiftCard(assignment, periodName, periodLabel, periodIcon, assignedDriverSchedule, recommendedStart, recommendedEnd)"
+        class="coverage-shift-card"
+        th:classappend="${assignment == null} ? ' coverage-shift-card--missing' : ' coverage-shift-card--covered'">
+
+        <header class="coverage-shift-card__header">
+
+            <div class="coverage-shift-card__identity">
+
+                <span
+                    class="coverage-shift-card__icon"
+                    aria-hidden="true"
+                    th:text="${periodIcon}">
+                    ☀
+                </span>
+
+                <div>
+                    <span
+                        class="coverage-shift-card__label"
+                        th:text="${periodLabel}">
+                        Morning
+                    </span>
+
+                    <strong
+                        class="coverage-shift-card__time"
+                        th:if="${assignment != null and assignment.scheduledStartTime != null and assignment.scheduledEndTime != null}"
+                        th:text="|${#temporals.format(assignment.scheduledStartTime, 'h:mm a')} – ${#temporals.format(assignment.scheduledEndTime, 'h:mm a')}|">
+                        9:00 AM – 12:15 PM
+                    </strong>
+
+                    <strong
+                        class="coverage-shift-card__time"
+                        th:if="${assignment == null and recommendedStart != null and recommendedEnd != null}"
+                        th:text="|${#temporals.format(recommendedStart, 'h:mm a')} – ${#temporals.format(recommendedEnd, 'h:mm a')}|">
+                        4:30 PM – 6:00 PM
+                    </strong>
+
+                    <strong
+                        class="coverage-shift-card__time coverage-shift-card__time--muted"
+                        th:if="${assignment != null and (assignment.scheduledStartTime == null or assignment.scheduledEndTime == null)}">
+                        Driving window not set
+                    </strong>
+
+                    <strong
+                        class="coverage-shift-card__time coverage-shift-card__time--muted"
+                        th:if="${assignment == null and (recommendedStart == null or recommendedEnd == null)}">
+                        Driving window not set
+                    </strong>
+                </div>
+
+            </div>
+
+            <span
+                class="coverage-state coverage-state--covered"
+                th:if="${assignment != null}">
+                <span aria-hidden="true">✓</span>
+                Covered
+            </span>
+
+            <span
+                class="coverage-state coverage-state--missing"
+                th:if="${assignment == null}">
+                <span aria-hidden="true">!</span>
+                Needs driver
+            </span>
+
+        </header>
+
+        <div
+            class="coverage-shift-card__body"
+            th:if="${assignment != null}">
+
+            <div class="coverage-driver-primary">
+
+                <span class="coverage-driver-primary__label">
+                    Driver
+                </span>
+
+                <strong
+                    class="coverage-driver-primary__name"
+                    th:text="${assignment.scheduledDriver.name}">
+                    Demo Driver 2
+                </strong>
+
+                <p th:if="${assignedDriverSchedule != null}">
+                    Working today ·
+                    <span
+                        th:text="|${#temporals.format(assignedDriverSchedule.startTime, 'h:mm a')}–${#temporals.format(assignedDriverSchedule.endTime, 'h:mm a')}|">
+                        9:00 AM–6:00 PM
+                    </span>
+                </p>
+
+                <p
+                    class="coverage-unscheduled-inline"
+                    th:if="${assignedDriverSchedule == null}">
+                    Not listed on today's uploaded work schedule
+                </p>
+
+            </div>
+
+            <!-- Work shift vs driving shift -->
+
+            <th:block th:replace="~{fragments/driver-coverage/timeline :: timeline(${assignment}, ${assignedDriverSchedule})}"></th:block>
+
+            <dl class="coverage-facts">
+
+                <div>
+                    <dt>Assignment</dt>
+                    <dd>
+                        <span
+                            th:text="${assignment.assignmentSource.name() == 'AUTO'
+                                ? 'Assigned automatically'
+                                : (assignment.assignmentSource.name() == 'OVERRIDE'
+                                    ? 'Manager override'
+                                    : 'Manual assignment')}">
+                            Assigned automatically
+                        </span>
+
+                        <span
+                            class="badge coverage-method-badge"
+                            th:classappend="${assignment.assignmentSource.name() == 'AUTO'}
+                                ? ' badge--auto'
+                                : (${assignment.assignmentSource.name() == 'OVERRIDE'}
+                                    ? ' badge--override'
+                                    : ' badge--manual')"
+                            th:text="${assignment.assignmentSource.name() == 'OVERRIDE' ? 'Manager override' : assignment.assignmentSource}"
+                            th:title="${assignment.assignmentSource.name() == 'AUTO'
+                                ? 'AUTO means RoutePulse created this assignment from the scheduling and fairness rules.'
+                                : (assignment.assignmentSource.name() == 'OVERRIDE'
+                                    ? 'Manager override means a manager changed the RoutePulse-selected driver.'
+                                    : 'MANUAL means a manager created this coverage directly.')} ">
+                            AUTO
+                        </span>
+                    </dd>
+                </div>
+
+                <div>
+                    <dt>Driving status</dt>
+                    <dd>
+                        <span th:if="${assignment.actualStartedAt == null}">
+                            Not started
+                        </span>
+
+                        <span th:if="${assignment.driving}">
+                            In progress
+                            <span
+                                th:if="${assignment.actualDriverNames != null and assignment.actualDriverNames != '—'}"
+                                th:text="| · ${assignment.actualDriverNames}|">
+                            </span>
+                        </span>
+
+                        <span th:if="${assignment.drivingCompleted}">
+                            Completed
+                        </span>
+                    </dd>
+                </div>
+
+                <div th:if="${assignment.originallySuggestedDriver != null}">
+                    <dt>RoutePulse recommendation</dt>
+                    <dd th:text="${assignment.originallySuggestedDriver.name}">
+                        Demo Driver 2
+                    </dd>
+                </div>
+
+                <div th:if="${assignment.changeReason != null}">
+                    <dt>Recorded reason</dt>
+                    <dd th:text="${assignment.changeReason}">
+                        Driver called out
+                    </dd>
+                </div>
+
+            </dl>
+
+            <div class="coverage-card-actions">
+
+                <th:block th:replace="~{fragments/driver-coverage/manager-controls :: managerControls(${assignment}, ${periodLabel})}"></th:block>
+
+            </div>
+
+        </div>
+
+        <div
+            class="coverage-shift-card__body coverage-shift-card__body--missing"
+            th:if="${assignment == null}">
+
+            <div class="coverage-empty-state">
+                <strong>
+                    No driver has been assigned.
+                </strong>
+
+                <p>
+                    Choose a driver for this shuttle shift before transportation begins.
+                </p>
+            </div>
+
+            <div class="coverage-candidate-preview">
+
+                <h4>Drivers scheduled today</h4>
+
+                <div
+                    class="coverage-candidate"
+                    th:each="driverSchedule : ${driverSchedules}">
+
+                    <div>
+                        <strong th:text="${driverSchedule.driverName}">
+                            Demo Driver 2
+                        </strong>
+                        <span th:text="|Employee ${driverSchedule.employeeId}|">
+                            Employee 9000002
+                        </span>
+                    </div>
+
+                    <span
+                        th:text="|${#temporals.format(driverSchedule.startTime, 'h:mm a')}–${#temporals.format(driverSchedule.endTime, 'h:mm a')}|">
+                        9:00 AM–6:00 PM
+                    </span>
+
+                </div>
+
+                <p
+                    class="muted"
+                    th:if="${#lists.isEmpty(driverSchedules)}">
+                    No registered drivers match today's uploaded schedule.
+                </p>
+
+                <h4
+                    class="coverage-candidate-preview__secondary"
+                    th:unless="${#lists.isEmpty(driversWithoutSchedules)}">
+                    Other registered drivers
+                </h4>
+
+                <div
+                    class="coverage-candidate coverage-candidate--muted"
+                    th:each="driver : ${driversWithoutSchedules}">
+
+                    <div>
+                        <strong th:text="${driver.name}">
+                            Demo Driver 4
+                        </strong>
+                        <span th:text="|Employee ${driver.employeeId}|">
+                            Employee 9000004
+                        </span>
+                    </div>
+
+                    <span>
+                        Not scheduled today
+                    </span>
+
+                </div>
+
+            </div>
+
+            <th:block th:replace="~{fragments/driver-coverage/manual-assignment :: manualAssignment(${periodName}, ${periodLabel}, ${recommendedStart}, ${recommendedEnd})}"></th:block>
+
+        </div>
+
+    </article>
+</body>
+</html>

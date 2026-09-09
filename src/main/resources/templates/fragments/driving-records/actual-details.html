@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="actualDetails(record)" class="record-detail-section">
+
+        <div class="record-detail-section__heading">
+
+            <div>
+
+                <span class="record-detail-kicker">
+                    Management history
+                </span>
+
+                <h4>
+                    Recorded actions
+                </h4>
+
+            </div>
+
+        </div>
+
+        <p
+            class="record-change-note"
+            th:if="${record.changeReason != null}"
+            th:text="|Saved change note: ${record.changeReason}|">
+
+            Saved change note
+
+        </p>
+
+        <div class="table-shell record-history-table-shell">
+
+            <table>
+
+                <thead>
+
+                <tr>
+
+                    <th scope="col">
+                        Action
+                    </th>
+
+                    <th scope="col">
+                        Recorded at
+                    </th>
+
+                    <th scope="col">
+                        Recorded by
+                    </th>
+
+                </tr>
+
+                </thead>
+
+                <tbody>
+
+                <tr
+                    th:if="${record.scheduleReviewedAt != null}">
+
+                    <td>
+                        Coverage reviewed
+                    </td>
+
+                    <td
+                        th:text="${#temporals.format(record.scheduleReviewedAt, 'MMM d, yyyy h:mm a')}">
+
+                        Sep 7, 2026 8:45 AM
+
+                    </td>
+
+                    <td
+                        th:text="${record.scheduleReviewedBy != null
+                            ? record.scheduleReviewedBy.firstName + ' ' + record.scheduleReviewedBy.lastName
+                            : 'Not recorded'}">
+
+                        Manager
+
+                    </td>
+
+                </tr>
+
+                <tr
+                    th:if="${record.changedAt != null}">
+
+                    <td>
+                        Driver changed
+                    </td>
+
+                    <td
+                        th:text="${#temporals.format(record.changedAt, 'MMM d, yyyy h:mm a')}">
+
+                        Sep 7, 2026 8:50 AM
+
+                    </td>
+
+                    <td
+                        th:text="${record.changedBy != null
+                            ? record.changedBy.firstName + ' ' + record.changedBy.lastName
+                            : 'Not recorded'}">
+
+                        Manager
+
+                    </td>
+
+                </tr>
+
+                <tr
+                    th:if="${record.outcomeReviewedAt != null}">
+
+                    <td
+                        th:text="|Outcome reviewed · ${record.assignmentOutcome}|">
+
+                        Outcome reviewed
+
+                    </td>
+
+                    <td
+                        th:text="${#temporals.format(record.outcomeReviewedAt, 'MMM d, yyyy h:mm a')}">
+
+                        Sep 7, 2026 12:10 PM
+
+                    </td>
+
+                    <td
+                        th:text="${record.outcomeReviewedBy != null
+                            ? record.outcomeReviewedBy.firstName + ' ' + record.outcomeReviewedBy.lastName
+                            : 'Not recorded'}">
+
+                        Manager
+
+                    </td>
+
+                </tr>
+
+                <th:block
+                    th:each="session : ${record.drivingSessions}">
+
+                    <tr>
+
+                        <td
+                            th:text="|Driving started · ${session.driver.name}|">
+
+                            Driving started · Driver
+
+                        </td>
+
+                        <td
+                            th:text="${#temporals.format(session.startedAt, 'MMM d, yyyy h:mm a')}">
+
+                            Sep 7, 2026 9:03 AM
+
+                        </td>
+
+                        <td
+                            th:text="${session.startedBy != null
+                                ? session.startedBy.firstName + ' ' + session.startedBy.lastName
+                                : 'Not recorded'}">
+
+                            Driver
+
+                        </td>
+
+                    </tr>
+
+                    <tr
+                        th:if="${session.endedAt != null}">
+
+                        <td
+                            th:text="|Driving ended · ${session.driver.name}|">
+
+                            Driving ended · Driver
+
+                        </td>
+
+                        <td
+                            th:text="${#temporals.format(session.endedAt, 'MMM d, yyyy h:mm a')}">
+
+                            Sep 7, 2026 12:02 PM
+
+                        </td>
+
+                        <td
+                            th:text="${session.endedBy != null
+                                ? session.endedBy.firstName + ' ' + session.endedBy.lastName
+                                : 'Not recorded'}">
+
+                            Driver
+
+                        </td>
+
+                    </tr>
+
+                </th:block>
+
+                <tr
+                    th:if="${record.scheduleReviewedAt == null
+                        and record.changedAt == null
+                        and record.outcomeReviewedAt == null
+                        and #lists.isEmpty(record.drivingSessions)}">
+
+                    <td
+                        class="empty-cell"
+                        colspan="3">
+
+                        No management or driving actions
+                        have been recorded yet.
+
+                    </td>
+
+                </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+</body>
+</html>

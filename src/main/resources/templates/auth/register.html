@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <title>Organization Setup | RoutePulse</title>
+    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+</head>
+
+<body class="public-page">
+<main class="public-shell">
+    <section class="public-story" aria-labelledby="product-heading">
+        <a class="brand" th:href="@{/}" aria-label="RoutePulse home">
+            <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+            <span class="brand-copy">
+                <span class="brand-name">RoutePulse</span>
+                <span class="brand-tagline">Shuttle operations</span>
+            </span>
+        </a>
+
+        <p class="public-kicker">Approved demo organization</p>
+        <h1 id="product-heading">Set up your RoutePulse workspace.</h1>
+        <p>
+            This setup page is for organizations approved to participate in the RoutePulse demo.
+            The first manager creates the organization workspace and becomes its owner.
+        </p>
+
+        <div class="route-visual" aria-hidden="true">
+            <span class="route-stop"></span>
+            <span class="route-line"></span>
+            <span class="route-stop"></span>
+            <span class="route-line"></span>
+            <span class="route-stop"></span>
+        </div>
+    </section>
+
+    <section class="auth-panel auth-panel--wide" aria-labelledby="register-heading">
+        <p class="eyebrow">Organization setup</p>
+        <h1 id="register-heading">Register your organization</h1>
+        <p class="auth-panel__intro">
+            Use the organization and work-email information you want associated with this RoutePulse demo workspace. The first manager becomes the organization owner and can invite additional managers.
+        </p>
+
+        <form
+            th:action="@{/organization/register}"
+            th:object="${registrationForm}"
+            method="post">
+
+            <div th:if="${#fields.hasGlobalErrors()}" class="error-summary" role="alert">
+                <p
+                    th:each="error : ${#fields.globalErrors()}"
+                    th:text="${error}">
+                    Registration error
+                </p>
+            </div>
+
+            <div class="form-grid">
+                <div class="form-group form-group--full">
+                    <label for="organizationLegalName">Organization legal name</label>
+                    <input
+                        type="text"
+                        id="organizationLegalName"
+                        th:field="*{organizationLegalName}"
+                        autocomplete="organization"
+                        maxlength="200"
+                        required>
+                    <p class="help-text">The organization’s formal or registered name.</p>
+                    <p
+                        th:if="${#fields.hasErrors('organizationLegalName')}"
+                        th:errors="*{organizationLegalName}"
+                        class="field-error">
+                    </p>
+                </div>
+
+                <div class="form-group form-group--full">
+                    <label for="organizationDisplayName">Organization display name</label>
+                    <input
+                        type="text"
+                        id="organizationDisplayName"
+                        th:field="*{organizationDisplayName}"
+                        maxlength="150"
+                        required>
+                    <p class="help-text">The shorter name managers will see inside RoutePulse.</p>
+                    <p
+                        th:if="${#fields.hasErrors('organizationDisplayName')}"
+                        th:errors="*{organizationDisplayName}"
+                        class="field-error">
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label for="firstName">First name</label>
+                    <input
+                        type="text"
+                        id="firstName"
+                        th:field="*{firstName}"
+                        autocomplete="given-name"
+                        maxlength="100"
+                        required>
+                    <p
+                        th:if="${#fields.hasErrors('firstName')}"
+                        th:errors="*{firstName}"
+                        class="field-error">
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label for="lastName">Last name</label>
+                    <input
+                        type="text"
+                        id="lastName"
+                        th:field="*{lastName}"
+                        autocomplete="family-name"
+                        maxlength="100"
+                        required>
+                    <p
+                        th:if="${#fields.hasErrors('lastName')}"
+                        th:errors="*{lastName}"
+                        class="field-error">
+                    </p>
+                </div>
+
+                <div class="form-group form-group--full">
+                    <label for="email">Work email address</label>
+                    <input
+                        type="email"
+                        id="email"
+                        th:field="*{email}"
+                        autocomplete="email"
+                        inputmode="email"
+                        maxlength="254"
+                        required>
+                    <p
+                        th:if="${#fields.hasErrors('email')}"
+                        th:errors="*{email}"
+                        class="field-error">
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input
+                        type="password"
+                        id="password"
+                        th:field="*{password}"
+                        autocomplete="new-password"
+                        minlength="12"
+                        maxlength="72"
+                        required>
+                    <p class="help-text">Use between 12 and 72 characters.</p>
+                    <p
+                        th:if="${#fields.hasErrors('password')}"
+                        th:errors="*{password}"
+                        class="field-error">
+                    </p>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm password</label>
+                    <input
+                        type="password"
+                        id="confirmPassword"
+                        th:field="*{confirmPassword}"
+                        autocomplete="new-password"
+                        minlength="12"
+                        maxlength="72"
+                        required>
+                    <p
+                        th:if="${#fields.hasErrors('confirmPassword')}"
+                        th:errors="*{confirmPassword}"
+                        class="field-error">
+                    </p>
+                </div>
+            </div>
+
+            <button class="button button--block" type="submit">
+                Create organization and account
+            </button>
+        </form>
+
+        <p class="auth-panel__footer">
+            Already have an account?
+            <a th:href="@{/login}">Sign in</a>
+        </p>
+    </section>
+</main>
+<footer th:replace="~{fragments/footer :: footer('public')}"></footer>
+</body>
+</html>

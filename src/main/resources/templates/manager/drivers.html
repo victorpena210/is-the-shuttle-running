@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1">
+
+    <meta
+        name="theme-color"
+        content="#07111f">
+
+    <title>
+        Drivers | RoutePulse
+    </title>
+
+    <link
+        rel="icon"
+        th:href="@{/images/routepulse-mark.svg}"
+        type="image/svg+xml">
+
+    <link
+        rel="stylesheet"
+        th:href="@{/css/site.css}">
+
+</head>
+
+<body class="app-page">
+
+<th:block th:replace="~{fragments/navigation :: managerNav('drivers')}"></th:block>
+
+<main
+    id="main-content"
+    class="app-main">
+
+    <header class="page-header">
+
+        <div>
+
+            <p
+                class="eyebrow"
+                th:text="${organizationName}">
+
+                Organization
+
+            </p>
+
+            <h1>
+                Manage shuttle drivers
+            </h1>
+
+            <p>
+                Register a driver with an employee ID and email address.
+                RoutePulse will verify the employee from the uploaded schedule
+                and send the driver an account invitation.
+            </p>
+
+        </div>
+
+    </header>
+
+    <div
+        th:if="${successMessage}"
+        class="alert alert--success"
+        role="status"
+        th:text="${successMessage}">
+    </div>
+
+    <div
+        th:if="${errorMessage}"
+        class="alert alert--error"
+        role="alert"
+        th:text="${errorMessage}">
+    </div>
+
+    <section
+        th:if="${canManageDrivingQr}"
+        class="panel panel--raised"
+        aria-labelledby="driving-qr-setup-heading"
+        style="margin-bottom:1.5rem;">
+
+        <div class="panel__header">
+
+            <div>
+
+                <h2 id="driving-qr-setup-heading">
+                    Shuttle driving QR
+                </h2>
+
+                <p>
+                    View, print, or generate a new QR code for drivers
+                    to scan when they start and stop driving.
+                </p>
+
+            </div>
+
+            <a
+                class="button"
+                th:href="@{/driving-qr}">
+
+                Manage driving QR
+
+            </a>
+
+        </div>
+
+    </section>
+
+    <div class="driver-layout">
+
+        <section
+            class="panel panel--raised"
+            aria-labelledby="register-driver-heading">
+
+            <div class="panel__header">
+
+                <div>
+
+                    <h2 id="register-driver-heading">
+                        Register and invite a driver
+                    </h2>
+
+                    <p>
+                        The employee ID must exist in this
+                        organization’s uploaded schedules.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="panel__body">
+
+                <form
+                    th:action="@{/drivers}"
+                    method="post">
+
+                    <div class="form-group">
+
+                        <label for="employeeId">
+                            Employee ID
+                        </label>
+
+                        <input
+                            type="text"
+                            id="employeeId"
+                            name="employeeId"
+                            maxlength="50"
+                            autocomplete="off"
+                            required>
+
+                        <p class="help-text">
+                            RoutePulse will match this ID to an
+                            employee in your uploaded schedules.
+                        </p>
+
+                    </div>
+
+                    <div
+                        id="employeeLookupResult"
+                        class="alert"
+                        role="status"
+                        aria-live="polite"
+                        hidden>
+                    </div>
+
+                    <div class="form-group">
+
+                        <label for="email">
+                            Driver email
+                        </label>
+
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            maxlength="254"
+                            autocomplete="email"
+                            inputmode="email"
+                            required>
+
+                        <p class="help-text">
+                            RoutePulse sends the account invitation
+                            to this address.
+                        </p>
+
+                    </div>
+
+                    <div class="form-group checkbox-row">
+
+                        <input
+                            type="checkbox"
+                            id="active"
+                            name="active"
+                            value="true"
+                            checked>
+
+                        <label for="active">
+                            Available for assignments
+                        </label>
+
+                    </div>
+
+                    <button
+                        class="button button--block"
+                        type="submit">
+
+                        Register driver and send invitation
+
+                    </button>
+
+                </form>
+
+            </div>
+
+        </section>
+
+        <section
+            aria-labelledby="registered-drivers-heading">
+
+            <div class="section-heading">
+
+                <div>
+
+                    <h2 id="registered-drivers-heading">
+                        Registered drivers
+                    </h2>
+
+                    <p>
+                        See account status, resend a pending invitation,
+                        and change assignment availability.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="table-shell">
+
+                <table>
+
+                    <thead>
+
+                    <tr>
+                        <th scope="col">
+                            Employee ID
+                        </th>
+
+                        <th scope="col">
+                            Driver
+                        </th>
+
+                        <th scope="col">
+                            Email
+                        </th>
+
+                        <th scope="col">
+                            Account
+                        </th>
+
+                        <th scope="col">
+                            Status
+                        </th>
+
+                        <th scope="col">
+                            Actions
+                        </th>
+                    </tr>
+
+                    </thead>
+
+                    <tbody>
+
+                    <tr
+                        th:each="driver : ${drivers}">
+
+                        <td
+                            class="mono"
+                            th:text="${driver.employeeId}">
+                        </td>
+
+                        <td>
+
+                            <strong
+                                th:text="${driver.name}">
+                            </strong>
+
+                        </td>
+
+                        <td
+                            th:text="${driver.email != null ? driver.email : '—'}">
+
+                            driver@example.com
+
+                        </td>
+
+                        <td>
+
+                            <span
+                                class="badge"
+                                th:classappend="${driver.hasAccount()} ? 'badge--active' : 'badge--inactive'"
+                                th:text="${driver.hasAccount()} ? 'Account active' : (${driver.email != null} ? 'Invitation pending' : 'No email')">
+
+                                Invitation pending
+
+                            </span>
+
+                        </td>
+
+                        <td>
+
+                            <span
+                                class="badge"
+                                th:classappend="${driver.active} ? 'badge--active' : 'badge--inactive'"
+                                th:text="${driver.active} ? 'Active' : 'Inactive'">
+
+                                Active
+
+                            </span>
+
+                        </td>
+
+                        <td>
+
+                            <div class="button-row">
+
+                                <form
+                                    th:if="${!driver.hasAccount() and driver.email != null}"
+                                    th:action="@{/drivers/{id}/resend-invitation(id=${driver.id})}"
+                                    method="post">
+
+                                    <button
+                                        class="button button--secondary button--small"
+                                        type="submit">
+
+                                        Resend invite
+
+                                    </button>
+
+                                </form>
+
+                                <form
+                                    th:action="@{/drivers/{id}/status(id=${driver.id})}"
+                                    method="post">
+
+                                    <input
+                                        type="hidden"
+                                        name="active"
+                                        th:value="${!driver.active}">
+
+                                    <button
+                                        class="button button--secondary button--small"
+                                        type="submit"
+                                        th:text="${driver.active} ? 'Set inactive' : 'Set active'">
+
+                                        Set inactive
+
+                                    </button>
+
+                                </form>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                    <tr
+                        th:if="${#lists.isEmpty(drivers)}">
+
+                        <td
+                            class="empty-cell"
+                            colspan="6">
+
+                            No drivers have been registered yet.
+
+                        </td>
+
+                    </tr>
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </section>
+
+    </div>
+
+</main>
+
+<footer
+    th:replace="~{fragments/footer :: footer('app')}">
+</footer>
+
+<script type="module" th:src="@{/js/pages/drivers.js}"></script>
+</body>
+
+</html>

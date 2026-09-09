@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="review(record)"
+        class="record-detail-section record-management-review">
+
+        <div class="record-detail-section__heading">
+
+            <div>
+
+                <span class="record-detail-kicker">
+                    Management review
+                </span>
+
+                <h4>
+                    Outcome and future scheduling
+                </h4>
+
+                <p>
+                    RoutePulse records what happened.
+                    Management decides whether this
+                    assignment should create future
+                    make-up priority.
+                </p>
+
+            </div>
+
+        </div>
+
+        <form
+            th:action="@{|/driving-records/${record.id}/outcome|}"
+            method="post"
+            class="record-review-form">
+
+            <input
+                type="hidden"
+                name="from"
+                th:value="${fromDate}">
+
+            <input
+                type="hidden"
+                name="to"
+                th:value="${toDate}">
+
+            <input
+                type="hidden"
+                name="driverId"
+                th:if="${selectedDriverId != null}"
+                th:value="${selectedDriverId}">
+
+            <div class="form-group">
+
+                <label
+                    th:for="|outcome-${record.id}|">
+
+                    Outcome
+
+                </label>
+
+                <select
+                    th:id="|outcome-${record.id}|"
+                    name="outcome"
+                    required>
+
+                    <option
+                        th:each="outcome : ${outcomes}"
+                        th:if="${outcome.name() != 'PENDING'
+                            and outcome.name() != 'IN_PROGRESS'}"
+                        th:value="${outcome}"
+                        th:text="${outcome}"
+                        th:selected="${outcome == record.assignmentOutcome}">
+
+                        COMPLETED_AS_ASSIGNED
+
+                    </option>
+
+                </select>
+
+            </div>
+
+            <div class="form-group">
+
+                <label
+                    th:for="|outcome-reason-${record.id}|">
+
+                    Reason / notes
+
+                </label>
+
+                <input
+                    th:id="|outcome-reason-${record.id}|"
+                    type="text"
+                    name="reason"
+                    maxlength="500"
+                    th:value="${record.outcomeReason}"
+                    placeholder="Optional management note">
+
+            </div>
+
+            <div class="record-review-form__makeup">
+
+                <span class="field-label">
+                    Future scheduling
+                </span>
+
+                <label class="checkbox-row">
+
+                    <input
+                        type="checkbox"
+                        name="requireMakeup"
+                        value="true"
+                        th:checked="${makeupStatus[record.id]}">
+
+                    Give the scheduled driver
+                    make-up priority
+
+                </label>
+
+            </div>
+
+            <div class="record-review-form__action">
+
+                <button
+                    class="button"
+                    type="submit">
+
+                    Save management decision
+
+                </button>
+
+            </div>
+
+        </form>
+
+        <p
+            class="alert alert--info record-makeup-alert"
+            th:if="${makeupStatus[record.id]}">
+
+            The scheduled driver currently has
+            make-up priority from this assignment.
+
+        </p>
+
+    </section>
+</body>
+</html>

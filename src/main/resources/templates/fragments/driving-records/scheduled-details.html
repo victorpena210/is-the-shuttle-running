@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="scheduledDetails(record)" class="record-detail-section">
+
+        <div class="record-detail-section__heading">
+
+            <div>
+
+                <span class="record-detail-kicker">
+                    Assignment detail
+                </span>
+
+                <h4>
+                    Scheduled versus actual
+                </h4>
+
+            </div>
+
+        </div>
+
+        <div class="record-detail-grid">
+
+            <div class="record-detail-item">
+
+                <span>
+                    Suggested driver
+                </span>
+
+                <strong
+                    th:text="${record.originallySuggestedDriver != null
+                        ? record.originallySuggestedDriver.name
+                        : 'No suggestion'}">
+
+                    Driver
+
+                </strong>
+
+            </div>
+
+            <div class="record-detail-item">
+
+                <span>
+                    Scheduled driver
+                </span>
+
+                <strong
+                    th:text="${record.scheduledDriver.name}">
+
+                    Driver
+
+                </strong>
+
+            </div>
+
+            <div class="record-detail-item">
+
+                <span>
+                    Actual start
+                </span>
+
+                <strong
+                    th:if="${record.actualStartedAt != null}"
+                    th:text="${#temporals.format(record.actualStartedAt, 'MMM d, yyyy h:mm a')}">
+
+                    Sep 7, 2026 9:03 AM
+
+                </strong>
+
+                <strong
+                    class="muted"
+                    th:unless="${record.actualStartedAt != null}">
+
+                    Not recorded
+
+                </strong>
+
+            </div>
+
+            <div class="record-detail-item">
+
+                <span>
+                    Actual end
+                </span>
+
+                <strong
+                    th:if="${record.actualEndedAt != null}"
+                    th:text="${#temporals.format(record.actualEndedAt, 'MMM d, yyyy h:mm a')}">
+
+                    Sep 7, 2026 12:02 PM
+
+                </strong>
+
+                <strong
+                    class="muted"
+                    th:unless="${record.actualEndedAt != null}">
+
+                    Not recorded
+
+                </strong>
+
+            </div>
+
+            <div class="record-detail-item">
+
+                <span>
+                    Actual hours
+                </span>
+
+                <strong
+                    th:if="${record.drivingCompleted}"
+                    th:text="|${#numbers.formatDecimal(record.actualHours, 1, 2)} hours|">
+
+                    2.92 hours
+
+                </strong>
+
+                <strong
+                    class="muted"
+                    th:unless="${record.drivingCompleted}">
+
+                    Not complete
+
+                </strong>
+
+            </div>
+
+            <div class="record-detail-item">
+
+                <span>
+                    Assignment variance
+                </span>
+
+                <strong
+                    th:if="${record.actualVsScheduledMinutes != null}"
+                    th:text="|${record.actualVsScheduledMinutes > 0 ? '+' : ''}${record.actualVsScheduledMinutes} minutes|">
+
+                    -5 minutes
+
+                </strong>
+
+                <strong
+                    class="muted"
+                    th:unless="${record.actualVsScheduledMinutes != null}">
+
+                    Not available
+
+                </strong>
+
+            </div>
+
+        </div>
+
+    </section>
+</body>
+</html>

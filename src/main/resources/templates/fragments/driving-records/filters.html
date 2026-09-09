@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="filters"
+        class="records-filter-panel"
+        aria-labelledby="record-filters-heading">
+
+        <div class="records-filter-panel__heading">
+
+            <div>
+
+                <span class="records-filter-panel__eyebrow">
+                    Date range
+                </span>
+
+                <h2 id="record-filters-heading">
+                    Review driving history
+                </h2>
+
+                <p>
+                    Review workload and driving activity by
+                    date range and driver.
+                </p>
+
+            </div>
+
+        </div>
+
+        <form
+            class="records-filter-form"
+            th:action="@{/driving-records}"
+            method="get">
+
+            <input
+                type="hidden"
+                name="view"
+                th:value="${selectedView}">
+
+            <div class="records-filter-grid">
+
+                <div class="form-group">
+
+                    <label for="from">
+                        From
+                    </label>
+
+                    <input
+                        type="date"
+                        id="from"
+                        name="from"
+                        th:value="${fromDate}"
+                        required>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="to">
+                        To
+                    </label>
+
+                    <input
+                        type="date"
+                        id="to"
+                        name="to"
+                        th:value="${toDate}"
+                        required>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="driverId">
+                        Driver
+                    </label>
+
+                    <select
+                        id="driverId"
+                        name="driverId">
+
+                        <option value="">
+                            All drivers
+                        </option>
+
+                        <option
+                            th:each="driver : ${drivers}"
+                            th:value="${driver.id}"
+                            th:selected="${selectedDriverId != null and selectedDriverId.equals(driver.id)}"
+                            th:text="|${driver.name} (${driver.employeeId})|">
+
+                            Driver
+
+                        </option>
+
+                    </select>
+
+                </div>
+
+                <div class="records-filter-actions">
+
+                    <button
+                        class="button"
+                        type="submit">
+
+                        Apply filters
+
+                    </button>
+
+                    <a
+                        class="button button--secondary"
+                        th:href="@{/driving-records}">
+
+                        Reset
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </form>
+
+    </section>
+</body>
+</html>

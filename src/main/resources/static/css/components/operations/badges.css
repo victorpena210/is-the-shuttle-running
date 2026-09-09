@@ -1,0 +1,55 @@
+/* Demand badges */
+.demand-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    min-width: 0;
+    padding: 0.28rem 0.5rem;
+    border: 1px solid var(--slate-200);
+    border-radius: 999px;
+    color: var(--slate-600);
+    background: var(--white);
+    font-size: 0.65rem;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.demand-pill__dot {
+    width: 0.42rem;
+    height: 0.42rem;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--green-600);
+}
+
+.demand-pill--moderate {
+    border-color: #fde68a;
+    color: var(--amber-800);
+    background: #fffbeb;
+}
+
+.demand-pill--moderate .demand-pill__dot {
+    background: var(--amber-500);
+}
+
+.demand-pill--high {
+    border-color: #fdba74;
+    color: #9a3412;
+    background: #fff7ed;
+}
+
+.demand-pill--high .demand-pill__dot {
+    background: #f97316;
+}
+
+.demand-pill--very-high {
+    border-color: #fecaca;
+    color: var(--red-700);
+    background: #fff1f2;
+}
+
+.demand-pill--very-high .demand-pill__dot {
+    background: var(--red-600);
+}
+

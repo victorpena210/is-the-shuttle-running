@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="driverDetail"
+        class="selected-driver-breakdown"
+        th:if="${selectedDriverSummary != null and filterError == null}"
+        aria-label="Selected driver workload details">
+
+        <div class="selected-driver-breakdown__heading">
+
+            <div>
+
+                <span
+                    class="selected-driver-breakdown__employee"
+                    th:text="|Employee ID ${selectedDriverSummary.driver.employeeId}|">
+
+                    Employee ID 12345
+
+                </span>
+
+                <h3>
+                    Workload details
+                </h3>
+
+            </div>
+
+            <span
+                class="badge badge--inactive"
+                th:if="${!selectedDriverSummary.driver.active}">
+
+                Inactive driver
+
+            </span>
+
+        </div>
+
+        <div class="selected-driver-stat-grid">
+
+            <div class="selected-driver-stat">
+
+                <span>
+                    Scheduled assignments
+                </span>
+
+                <strong
+                    th:text="${selectedDriverSummary.scheduledShifts}">
+
+                    4
+
+                </strong>
+
+            </div>
+
+            <div class="selected-driver-stat">
+
+                <span>
+                    Assignments actually driven
+                </span>
+
+                <strong
+                    th:text="${selectedDriverSummary.shiftsDriven}">
+
+                    4
+
+                </strong>
+
+            </div>
+
+            <div class="selected-driver-stat">
+
+                <span>
+                    Covered by another driver
+                </span>
+
+                <strong
+                    th:text="${selectedDriverSummary.coveredByAnotherDriver}">
+
+                    1
+
+                </strong>
+
+            </div>
+
+            <div class="selected-driver-stat">
+
+                <span>
+                    Covered for another driver
+                </span>
+
+                <strong
+                    th:text="${selectedDriverSummary.coveredForAnotherDriver}">
+
+                    1
+
+                </strong>
+
+            </div>
+
+        </div>
+
+    </section>
+</body>
+</html>

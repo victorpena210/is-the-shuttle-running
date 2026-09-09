@@ -1,0 +1,197 @@
+/*
+ * ============================================================
+ * EXPANDABLE RECORD DETAILS
+ * ============================================================
+ */
+
+.record-details {
+    margin-top: 0.75rem;
+
+    border:
+        1px solid
+        var(--slate-200);
+
+    border-radius:
+        var(--radius-md);
+
+    background:
+        var(--white);
+}
+
+.record-details > summary {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 1rem;
+
+    padding:
+        0.8rem
+        0.9rem;
+
+    color: var(--ink-900);
+
+    font-size: 0.78rem;
+    font-weight: 820;
+
+    cursor: pointer;
+
+    list-style: none;
+
+    user-select: none;
+}
+
+.record-details > summary::-webkit-details-marker {
+    display: none;
+}
+
+.record-details > summary:hover {
+    background:
+        var(--slate-50);
+}
+
+.record-details__chevron {
+    color: var(--slate-500);
+
+    font-size: 1rem;
+
+    transition:
+        transform
+        150ms
+        ease;
+}
+
+.record-details[open]
+.record-details__chevron {
+    transform: rotate(180deg);
+}
+
+.record-details__content {
+    display: grid;
+
+    gap: 0.85rem;
+
+    padding: 0.9rem;
+
+    border-top:
+        1px solid
+        var(--slate-200);
+
+    background: #fbfdff;
+}
+
+.record-detail-section {
+    padding: 1rem;
+
+    border:
+        1px solid
+        var(--slate-200);
+
+    border-radius:
+        var(--radius-md);
+
+    background:
+        var(--white);
+}
+
+.record-detail-section__heading {
+    display: flex;
+
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 1rem;
+
+    margin-bottom: 0.8rem;
+}
+
+.record-detail-section__heading h4 {
+    margin: 0;
+
+    font-size: 0.95rem;
+
+    letter-spacing: -0.02em;
+}
+
+.record-detail-section__heading p {
+    max-width: 70ch;
+
+    margin:
+        0.28rem
+        0
+        0;
+
+    color: var(--slate-500);
+
+    font-size: 0.78rem;
+}
+
+.record-detail-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 0.65rem;
+}
+
+.record-detail-item {
+    padding: 0.72rem;
+
+    border-radius:
+        var(--radius-sm);
+
+    background:
+        var(--slate-50);
+}
+
+.record-detail-item span {
+    display: block;
+
+    margin-bottom: 0.2rem;
+
+    color: var(--slate-500);
+
+    font-size: 0.65rem;
+    font-weight: 800;
+
+    text-transform: uppercase;
+}
+
+.record-detail-item strong {
+    display: block;
+
+    overflow-wrap: anywhere;
+
+    font-size: 0.8rem;
+}
+
+.record-change-note {
+    margin:
+        0
+        0
+        0.7rem;
+
+    padding:
+        0.7rem
+        0.8rem;
+
+    border-left:
+        3px solid
+        var(--blue-500);
+
+    color:
+        var(--slate-600);
+
+    background:
+        var(--blue-100);
+
+    font-size: 0.78rem;
+}
+
+.record-history-table-shell {
+    box-shadow: none;
+}
+
+

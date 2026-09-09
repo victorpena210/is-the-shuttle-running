@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1">
+
+    <meta
+        name="theme-color"
+        content="#07111f">
+
+    <title>
+        My Driving Assignment | RoutePulse
+    </title>
+
+    <link
+        rel="icon"
+        th:href="@{/images/routepulse-mark.svg}"
+        type="image/svg+xml">
+
+    <link
+        rel="stylesheet"
+        th:href="@{/css/site.css}">
+
+</head>
+
+<body class="app-page">
+
+<th:block th:replace="~{fragments/navigation :: driverNav}"></th:block>
+
+<main
+    id="main-content"
+    class="app-main">
+
+    <header class="page-header">
+
+        <div>
+
+            <p
+                class="eyebrow"
+                th:text="${organizationName}">
+
+                Organization
+
+            </p>
+
+            <h1>
+                My driving assignment
+            </h1>
+
+            <p>
+                Welcome,
+                <strong th:text="${driver.name}">
+                    Driver Name
+                </strong>.
+                Scan the RoutePulse QR posted in the shuttle
+                when you begin driving. Scan the same QR again
+                when you finish so RoutePulse can save your
+                actual start and end times.
+            </p>
+
+        </div>
+
+    </header>
+
+    <div
+        th:if="${successMessage}"
+        class="alert alert--success"
+        role="status"
+        th:text="${successMessage}">
+    </div>
+
+    <div
+        th:if="${errorMessage}"
+        class="alert alert--error"
+        role="alert"
+        th:text="${errorMessage}">
+    </div>
+
+    <section
+        aria-labelledby="today-heading">
+
+        <div class="section-heading">
+
+            <div>
+
+                <h2 id="today-heading">
+                    Today’s assignment
+                </h2>
+
+                <p
+                    th:text="${#temporals.format(today, 'EEEE, MMMM d, yyyy')}">
+
+                    Friday, September 4, 2026
+
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="table-shell">
+
+            <table>
+
+                <thead>
+
+                <tr>
+                    <th scope="col">Period</th>
+                    <th scope="col">Scheduled</th>
+                    <th scope="col">Actual start</th>
+                    <th scope="col">Actual end</th>
+                    <th scope="col">Status</th>
+                </tr>
+
+                </thead>
+
+                <tbody>
+
+                <tr
+                    th:each="assignment : ${todayAssignments}">
+
+                    <td
+                        th:text="${assignment.period}">
+
+                        MORNING
+
+                    </td>
+
+                    <td>
+
+                        <span
+                            th:if="${assignment.scheduledStartTime != null and assignment.scheduledEndTime != null}"
+                            th:text="${#temporals.format(assignment.scheduledStartTime, 'h:mm a') + ' – ' + #temporals.format(assignment.scheduledEndTime, 'h:mm a')}">
+
+                            9:00 AM – 12:00 PM
+
+                        </span>
+
+                        <span
+                            th:unless="${assignment.scheduledStartTime != null and assignment.scheduledEndTime != null}">
+
+                            Not set
+
+                        </span>
+
+                    </td>
+
+                    <td
+                        th:text="${assignment.actualStartedAt != null ? #temporals.format(assignment.actualStartedAt, 'h:mm a') : '—'}">
+
+                        —
+
+                    </td>
+
+                    <td
+                        th:text="${assignment.actualEndedAt != null ? #temporals.format(assignment.actualEndedAt, 'h:mm a') : '—'}">
+
+                        —
+
+                    </td>
+
+                    <td>
+
+                        <span
+                            class="badge badge--active"
+                            th:if="${assignment.driving}">
+
+                            Driving now
+
+                        </span>
+
+                        <span
+                            class="badge badge--inactive"
+                            th:if="${assignment.drivingCompleted}">
+
+                            Completed
+
+                        </span>
+
+                        <span
+                            class="badge"
+                            th:if="${!assignment.driving and !assignment.drivingCompleted}">
+
+                            Not started
+
+                        </span>
+
+                    </td>
+
+                </tr>
+
+                <tr
+                    th:if="${#lists.isEmpty(todayAssignments)}">
+
+                    <td
+                        class="empty-cell"
+                        colspan="5">
+
+                        You are not currently assigned to a shift today.
+                        If you are filling in for another registered driver,
+                        you can still scan the shuttle QR. RoutePulse will
+                        show the shift you are about to cover before it
+                        records your start time.
+
+                    </td>
+
+                </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+
+    <section
+        class="panel panel--raised"
+        aria-labelledby="qr-heading">
+
+        <div class="panel__header">
+
+            <div>
+
+                <h2 id="qr-heading">
+                    Start, cover, and end driving
+                </h2>
+
+                <p>
+                    Use the permanent QR code posted at the shuttle.
+                    RoutePulse identifies you from your signed-in account,
+                    not from the QR code itself.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="panel__body">
+
+            <p>
+                <strong>Your first valid scan:</strong>
+                starts your assigned shift. If another driver was scheduled
+                but has not started, RoutePulse keeps the original assignment
+                intact and records you separately as the actual fill-in driver.
+            </p>
+
+            <p>
+                <strong>Your next valid scan while driving:</strong>
+                ends your active driving session and saves your actual end time.
+            </p>
+
+            <div
+                class="alert alert--info"
+                role="status">
+
+                RoutePulse will never automatically replace a driver who
+                has already started driving. If another driver has an active
+                session, a manager must resolve it first.
+
+            </div>
+
+        </div>
+
+    </section>
+
+</main>
+
+<footer
+    th:replace="~{fragments/footer :: footer('app')}">
+</footer>
+
+</body>
+
+</html>

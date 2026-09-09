@@ -1,0 +1,30 @@
+/* =========================================================
+   DRIVER COVERAGE
+   Manager-first coverage view for Morning / Afternoon shifts.
+   ========================================================= */
+
+.coverage-dashboard {
+    display: grid;
+    gap: 1rem;
+}
+
+.coverage-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.coverage-heading .eyebrow {
+    margin-bottom: 0.35rem;
+}
+
+.coverage-heading h2 {
+    margin-bottom: 0.35rem;
+}
+
+.coverage-heading p:last-child {
+    margin-bottom: 0;
+    color: var(--slate-500);
+}
+

@@ -1,0 +1,52 @@
+/* Operating overview */
+.status-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin: 1.5rem 0;
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    background: var(--white);
+    box-shadow: var(--shadow-sm);
+}
+
+.status-strip__copy {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.status-strip__dot {
+    width: 0.7rem;
+    height: 0.7rem;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    background: var(--slate-400);
+    box-shadow: 0 0 0 5px var(--slate-100);
+}
+
+.status-strip__dot--open {
+    background: var(--green-600);
+    box-shadow: 0 0 0 5px var(--green-100);
+}
+
+.status-strip__dot--closed {
+    background: var(--red-600);
+    box-shadow: 0 0 0 5px var(--red-100);
+}
+
+.status-strip__dot--unknown {
+    background: var(--amber-500);
+    box-shadow: 0 0 0 5px var(--amber-100);
+}
+
+.status-strip strong {
+    display: block;
+}
+
+.status-strip small {
+    color: var(--slate-500);
+}
+

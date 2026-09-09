@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+
+    <title>Driving Records | RoutePulse</title>
+
+    <link
+        rel="icon"
+        th:href="@{/images/routepulse-mark.svg}"
+        type="image/svg+xml">
+
+    <link
+        rel="stylesheet"
+        th:href="@{/css/site.css}">
+
+    <link
+        rel="stylesheet"
+        th:href="@{/css/pages/driving-records.css}">
+</head>
+
+<body class="app-page driving-records-page">
+
+<th:block th:replace="~{fragments/navigation :: managerNav('driving-records')}"></th:block>
+
+<main
+    id="main-content"
+    class="app-main">
+
+    <header class="page-header records-page-header">
+
+        <div>
+
+            <p
+                class="eyebrow"
+                th:text="${organizationName}">
+                Organization
+            </p>
+
+            <h1>
+                Driving records
+            </h1>
+
+            <p>
+                Review scheduled coverage, actual driving activity,
+                driver workload, and management changes.
+            </p>
+
+        </div>
+
+    </header>
+
+    <!-- FILTERS                                                   -->
+
+    <th:block th:replace="~{fragments/driving-records/filters :: filters}"></th:block>
+
+    <!-- ALERTS                                                    -->
+
+    <div
+        th:if="${successMessage != null}"
+        class="alert alert--success records-alert"
+        role="status"
+        th:text="${successMessage}">
+
+        Saved.
+
+    </div>
+
+    <div
+        th:if="${errorMessage != null}"
+        class="alert alert--error records-alert"
+        role="alert"
+        th:text="${errorMessage}">
+
+        Error
+
+    </div>
+
+    <div
+        th:if="${filterError != null}"
+        class="alert alert--error records-alert"
+        role="alert"
+        th:text="${filterError}">
+
+        Filter error
+
+    </div>
+
+    <!-- TABS                                                      -->
+
+    <th:block th:replace="~{fragments/driving-records/tabs :: tabs}"></th:block>
+
+    <!-- DRIVER SUMMARY                                            -->
+
+    <th:block th:replace="~{fragments/driving-records/summary :: summary}"></th:block>
+
+    <!-- INDIVIDUAL RECORDS                                        -->
+
+    <th:block th:replace="~{fragments/driving-records/records :: records}"></th:block>
+
+</main>
+
+<footer
+    th:replace="~{fragments/footer :: footer('app')}">
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <th:block th:fragment="coverage">
+
+        <section
+            class="section coverage-dashboard"
+            data-dashboard-section="coverage"
+            aria-labelledby="driver-coverage-heading">
+
+            <header class="coverage-heading">
+
+                <div>
+                    <p class="eyebrow">
+                        Driver coverage
+                    </p>
+
+                    <h2 id="driver-coverage-heading"
+                        th:text="${#temporals.format(selectedDate, 'EEEE, MMMM d, yyyy')}">
+                        Monday, September 7, 2026
+                    </h2>
+
+                    <p>
+                        Manage who is responsible for shuttle transportation today.
+                    </p>
+                </div>
+
+            </header>
+
+                <th:block th:replace="~{fragments/driver-coverage/summary :: summary}"></th:block>
+
+            <div
+                class="coverage-action coverage-action--warning"
+                th:if="${needsAttentionShiftCount != null and needsAttentionShiftCount > 0}"
+                role="alert">
+
+                <div>
+
+                    <strong
+                        th:text="${needsAttentionShiftCount == 1
+                            ? '1 shuttle shift still needs a driver'
+                            : needsAttentionShiftCount + ' shuttle shifts still need drivers'}">
+                        1 shuttle shift still needs a driver
+                    </strong>
+
+                    <p>
+                        Review the Morning, Midday Turnover, and Afternoon
+                        coverage below and assign the remaining driver coverage.
+                    </p>
+
+                </div>
+
+                <button
+                    class="button"
+                    type="button"
+                    th:attr="data-open-coverage-details=${
+                        !morningAssignmentExists
+                            ? '#assign-morning'
+                            : (!middayAssignmentExists
+                                ? '#assign-midday'
+                                : '#assign-afternoon')
+                    }">
+                    Assign driver
+                </button>
+
+            </div>
+
+            <div
+                class="coverage-action coverage-action--success"
+                th:if="${needsAttentionShiftCount != null and needsAttentionShiftCount == 0}">
+
+                <div>
+
+                    <strong>
+                        All shuttle shifts are covered
+                    </strong>
+
+                    <p>
+                        Morning, Midday Turnover, and Afternoon
+                        have assigned drivers.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div
+                th:if="${assignmentReviewRequired}"
+                class="alert alert--warning coverage-review-alert"
+                role="alert">
+
+                <span>
+                    <strong>
+                        Schedule changed after coverage was generated.
+                    </strong>
+
+                    Transportation demand uses import
+
+                    <span
+                        class="mono"
+                        th:if="${latestScheduleImport != null}"
+                        th:text="${latestScheduleImport.shortVersionId}">
+                        abc12345
+                    </span>.
+
+                    Review the assigned drivers before operations begin.
+                </span>
+
+                <form
+                    th:action="@{/assignments/confirm-schedule}"
+                    method="post">
+
+                    <input
+                        type="hidden"
+                        name="assignmentDate"
+                        th:value="${selectedDate}">
+
+                    <button
+                        class="button button--secondary"
+                        type="submit">
+                        Confirm reviewed coverage
+                    </button>
+
+                </form>
+
+            </div>
+
+            <div class="coverage-section-label">
+                <span>Today's coverage</span>
+            </div>
+
+            <div class="coverage-shift-grid">
+
+                <div
+                    th:replace="~{fragments/driver-coverage/shift-card :: shiftCard(
+                        assignment=${morningAssignment},
+                        periodName='MORNING',
+                        periodLabel='Morning',
+                        periodIcon='☀',
+                        assignedDriverSchedule=${morningAssignedDriverSchedule},
+                        recommendedStart=${transportationDemand.morning.recommendedStartTime},
+                        recommendedEnd=${transportationDemand.morning.recommendedEndTime}
+                    )}">
+                </div>
+
+                <div
+                    th:replace="~{fragments/driver-coverage/shift-card :: shiftCard(
+                        assignment=${middayAssignment},
+                        periodName='MIDDAY',
+                        periodLabel='Midday Turnover',
+                        periodIcon='↔',
+                        assignedDriverSchedule=${middayAssignedDriverSchedule},
+                        recommendedStart=${transportationDemand.midday.recommendedStartTime},
+                        recommendedEnd=${transportationDemand.midday.recommendedEndTime}
+                    )}">
+                </div>
+
+                <div
+                    th:replace="~{fragments/driver-coverage/shift-card :: shiftCard(
+                        assignment=${afternoonAssignment},
+                        periodName='AFTERNOON',
+                        periodLabel='Afternoon',
+                        periodIcon='🌆',
+                        assignedDriverSchedule=${afternoonAssignedDriverSchedule},
+                        recommendedStart=${transportationDemand.evening.recommendedStartTime},
+                        recommendedEnd=${transportationDemand.evening.recommendedEndTime}
+                    )}">
+                </div>
+
+            </div>
+
+            <th:block th:replace="~{fragments/driver-coverage/availability :: availability}"></th:block>
+
+        </section>
+
+    </th:block>
+</body>
+</html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <details th:fragment="offHours"
+        class="off-hours-demand"
+        th:if="${transportationDemand.hasOffHoursDemand}">
+
+        <summary>
+
+            <span class="off-hours-demand__label">
+                Off-hours demand
+            </span>
+
+            <span
+                class="off-hours-demand__count"
+                th:text="|${transportationDemand.offHoursMovementCount} scheduled movements|">
+                5 scheduled movements
+            </span>
+
+            <span class="off-hours-demand__note">
+                outside 9:00 AM–9:00 PM
+            </span>
+
+        </summary>
+
+        <div class="off-hours-demand__rows">
+
+            <article
+                class="off-hours-row"
+                th:each="window : ${transportationDemand.offHoursWindows}">
+
+                <strong
+                    class="off-hours-row__time"
+                    th:text="|${#temporals.format(window.windowStart, 'h:mm')}–${#temporals.format(window.windowEnd, 'h:mm a')}|">
+                    2:00–2:15 AM
+                </strong>
+
+                <span
+                    class="off-hours-row__breakdown"
+                    th:text="|${window.arrivals} in · ${window.departures} out|">
+                    0 in · 2 out
+                </span>
+
+                <span
+                    class="off-hours-row__total"
+                    th:text="|${window.demandCount} total|">
+                    2 total
+                </span>
+
+            </article>
+
+        </div>
+
+    </details>
+</body>
+</html>
