@@ -23,6 +23,7 @@ public class DriverQrScanService {
 
     private final DriverPortalAccessService accessService;
     private final DriverScanAssignmentSelector assignmentSelector;
+    private final DriverQrStartPolicy startPolicy;
     private final DriverAssignmentRepository assignmentRepository;
     private final DrivingSessionService drivingSessionService;
     private final ZoneId operationsZone;
@@ -30,11 +31,13 @@ public class DriverQrScanService {
     public DriverQrScanService(
             DriverPortalAccessService accessService,
             DriverScanAssignmentSelector assignmentSelector,
+            DriverQrStartPolicy startPolicy,
             DriverAssignmentRepository assignmentRepository,
             DrivingSessionService drivingSessionService,
             @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
         this.accessService = accessService;
         this.assignmentSelector = assignmentSelector;
+        this.startPolicy = startPolicy;
         this.assignmentRepository = assignmentRepository;
         this.drivingSessionService = drivingSessionService;
         this.operationsZone = ZoneId.of(operationsZone);
@@ -55,6 +58,7 @@ public class DriverQrScanService {
         DriverAssignment assignment = assignmentSelector
                 .selectStartAssignment(driver, assignments, now);
         assignmentSelector.requireScheduledTimes(assignment);
+        startPolicy.requireStartAllowed(driver, assignment, now);
 
         Driver scheduledDriver = assignment.getScheduledDriver();
         return new ScanPreview(
@@ -87,6 +91,7 @@ public class DriverQrScanService {
         DriverAssignment assignment = assignmentSelector
                 .selectStartAssignment(driver, assignments, now);
         assignmentSelector.requireScheduledTimes(assignment);
+        startPolicy.requireStartAllowed(driver, assignment, now);
 
         Driver scheduledDriver = assignment.getScheduledDriver();
         drivingSessionService.startSession(
