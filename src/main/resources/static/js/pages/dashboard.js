@@ -1,6 +1,10 @@
 'use strict';
 
 import {
+    initializeAttentionCenter
+} from '../components/attention-center.js';
+
+import {
     initializeDashboardViews
 } from '../components/dashboard-views.js';
 
@@ -14,6 +18,7 @@ import {
 
 function initializeDashboard() {
     initializeDashboardViews();
+    initializeAttentionCenter();
     initializePlanningCalendar();
     initializeDriverCoverage();
 }

@@ -247,6 +247,24 @@ public class DriverAssignmentService {
                 );
     }
 
+    public List<DriverAssignment> getExistingAssignments(
+            Long organizationId,
+            LocalDate assignmentDate) {
+
+        if (organizationId == null) {
+            throw new IllegalArgumentException("Organization id is required.");
+        }
+        if (assignmentDate == null) {
+            throw new IllegalArgumentException("Assignment date is required.");
+        }
+
+        return assignmentRepository
+                .findAllByOrganization_IdAndAssignmentDate(
+                        organizationId,
+                        assignmentDate
+                );
+    }
+
     public LocalDate getCurrentOperationsDate() {
 
         return LocalDate.now(
