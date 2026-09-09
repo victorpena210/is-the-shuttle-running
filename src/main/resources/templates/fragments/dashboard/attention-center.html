@@ -25,10 +25,10 @@
                 </p>
             </div>
 
-            <div
-                class="attention-center__count"
-                th:classappend="${attentionCenter.hasItems()} ? ' attention-center__count--active' : ' attention-center__count--clear'"
-                aria-live="polite">
+			<div
+			    class="attention-center__count"
+			    th:classappend="${attentionCenter.hasItems()} ? ' attention-center_' + '_count--active' : ' attention-center_' + '_count--clear'"
+			    aria-live="polite">
 
                 <strong th:text="${attentionCenter.count}">
                     3
