@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.ui.Model;
 import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
+import technology.renatus.routepulse.assignments.model.ScheduleReconciliation;
 import technology.renatus.routepulse.calendar.domain.ParkOperatingDay;
 import technology.renatus.routepulse.calendar.domain.ParkOperatingStatus;
 import technology.renatus.routepulse.dashboard.model.DashboardPlan;
@@ -36,6 +37,13 @@ public class DashboardModelAssembler {
         model.addAttribute("showSchedule", plan.selectedDateAvailable() && day != null
                 && (day.shouldScheduleShuttle() || plan.calendarOverrideActive()));
         model.addAttribute("driverAssignments", plan.driverAssignments());
+        model.addAttribute("scheduleReconciliations", plan.scheduleReconciliations());
+        model.addAttribute(
+                "scheduleReconciliationActionCount",
+                plan.scheduleReconciliations().stream()
+                        .filter(ScheduleReconciliation::requiresAction)
+                        .count()
+        );
         model.addAttribute("assignmentMessage", plan.assignmentMessage());
         model.addAttribute("assignmentReviewRequired", plan.assignmentReviewRequired());
         model.addAttribute("latestScheduleImport", plan.latestScheduleImport());

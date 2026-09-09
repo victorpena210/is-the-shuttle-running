@@ -49,6 +49,14 @@ public interface UploadedShiftRepository
             LocalDate shiftDate
     );
 
+    List<UploadedShift>
+            findAllByOrganization_IdAndScheduleImport_IdAndShiftDateAndEmployeeIdOrderByStartTimeAsc(
+                    Long organizationId,
+                    Long scheduleImportId,
+                    LocalDate shiftDate,
+                    String employeeId
+            );
+
     boolean existsByOrganization_Id(
             Long organizationId
     );

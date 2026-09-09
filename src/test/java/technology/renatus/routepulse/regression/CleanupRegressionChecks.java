@@ -25,7 +25,10 @@ import org.thymeleaf.templateresolver.FileTemplateResolver;
 import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
 import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
+import technology.renatus.routepulse.assignments.model.ScheduleReconciliation;
+import technology.renatus.routepulse.assignments.model.ScheduleReconciliationStatus;
 import technology.renatus.routepulse.assignments.service.DriverAssignmentService;
+import technology.renatus.routepulse.assignments.service.ScheduleReconciliationService;
 import technology.renatus.routepulse.auth.model.UserAccount;
 import technology.renatus.routepulse.auth.repository.UserAccountRepository;
 import technology.renatus.routepulse.calendar.domain.ParkOperatingDay;
@@ -181,6 +184,17 @@ public final class CleanupRegressionChecks {
                 return demand();
             }
         };
+        ScheduleReconciliationService reconciliationService = new ScheduleReconciliationService(null, null) {
+            @Override
+            public List<ScheduleReconciliation> reconcile(
+                    Long organizationId,
+                    List<DriverAssignment> existingAssignments,
+                    List<DriverSchedule> currentDriverSchedules,
+                    TransportationDemandAnalysis transportationDemand,
+                    ScheduleImport latestScheduleImport) {
+                return List.of();
+            }
+        };
         for (ParkOperatingStatus status : ParkOperatingStatus.values()) {
             for (boolean override : List.of(false, true)) {
                 OperatingCalendarProvider provider = new OperatingCalendarProvider() {
@@ -192,7 +206,8 @@ public final class CleanupRegressionChecks {
                     }
                 };
                 DashboardPlanningService service = new DashboardPlanningService(demandService, schedules,
-                        driverSchedules, new ParkOperatingDayService(provider), assignments, drivers);
+                        driverSchedules, new ParkOperatingDayService(provider), assignments, drivers,
+                        reconciliationService);
                 assignmentCalls[0] = 0;
                 DashboardPlan plan = service.getPlan(10L, null, override);
                 equal(DATE, plan.selectedDate(), "latest import date remains the default, including historical dates");
@@ -216,9 +231,28 @@ public final class CleanupRegressionChecks {
                 boolean allowed = status == ParkOperatingStatus.OPEN || (status == ParkOperatingStatus.UNKNOWN && override);
                 ParkOperatingDay day = new ParkOperatingDay(DATE, status, LocalTime.of(10, 0),
                         LocalTime.of(21, 0), false, "LIVE_API", null);
+                List<ScheduleReconciliation> reconciliations = allowed
+                        ? List.of(new ScheduleReconciliation(
+                                1L,
+                                ShuttlePeriod.MORNING,
+                                "Morning",
+                                1L,
+                                "Scheduled Driver",
+                                1L,
+                                2L,
+                                "9:00 AM–5:00 PM",
+                                "12:00 PM–8:00 PM",
+                                "9:00 AM–12:00 PM",
+                                ScheduleReconciliationStatus.REPLACEMENT_RECOMMENDED,
+                                2L,
+                                "Covering Driver",
+                                "9:00 AM–5:00 PM",
+                                "Scheduled Driver no longer fully covers the morning driving window."
+                        ))
+                        : List.of();
                 DashboardPlan plan = new DashboardPlan(DATE, DATE, List.of(DATE), true, true, List.of(f.imported()),
                         demand(), schedules, List.of(f.drivers().get(1)), f.drivers(),
-                        allowed ? List.of(f.assignment()) : List.of(), f.imported(), true, null, day,
+                        allowed ? List.of(f.assignment()) : List.of(), reconciliations, f.imported(), allowed, null, day,
                         "Calendar status", status == ParkOperatingStatus.UNKNOWN && override);
                 ExtendedModelMap model = managerModel();
                 new DashboardModelAssembler().populate(model, plan);
@@ -229,13 +263,17 @@ public final class CleanupRegressionChecks {
                     check(html.contains("assign-midday") && html.contains("assign-afternoon"), "all three shift fragments render");
                     check(html.contains("/assignments/manual"), "manual assignment action");
                     check(html.contains("/assignments/1/driver"), "driver-change action");
+                    check(html.contains("/assignments/1/accept-schedule-recommendation"),
+                            "schedule reconciliation accept action");
+                    check(html.contains("/assignments/1/keep-current-after-schedule-change"),
+                            "schedule reconciliation keep action");
                 }
             }
         }
         ExtendedModelMap empty = managerModel();
         new DashboardModelAssembler().populate(empty, new DashboardPlan(DATE, DATE, List.of(), false,
                 false, List.of(), TransportationDemandAnalysis.empty(), List.of(), List.of(), List.of(),
-                List.of(), null, false, null, null, null, false));
+                List.of(), List.of(), null, false, null, null, null, false));
         check(render(engine, "manager/dashboard", empty).contains("scheduleFile"), "empty dashboard still permits import");
     }
 

@@ -126,7 +126,7 @@ public final class AttentionSupport {
         }
 
         return driverSchedules.stream()
-                .anyMatch(schedule -> schedule.overlaps(
+                .anyMatch(schedule -> schedule.covers(
                         requestedStart,
                         requestedEnd
                 ));

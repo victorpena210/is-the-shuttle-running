@@ -285,4 +285,78 @@ public class DriverAssignmentController {
 
         return "redirect:/app#coverage";
     }
+    @PostMapping("/assignments/{assignmentId}/accept-schedule-recommendation")
+    public String acceptScheduleRecommendation(
+            Authentication authentication,
+            @PathVariable Long assignmentId,
+            @RequestParam Long recommendedDriverId,
+            @RequestParam Long expectedScheduleImportId,
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate assignmentDate,
+            RedirectAttributes redirectAttributes) {
+
+        Long organizationId = currentOrganizationService
+                .requireOrganizationId(authentication);
+
+        try {
+            driverAssignmentService.acceptScheduleRecommendation(
+                    organizationId,
+                    assignmentId,
+                    recommendedDriverId,
+                    expectedScheduleImportId,
+                    authentication.getName()
+            );
+
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "RoutePulse recommendation accepted and coverage was reconciled against the latest schedule."
+            );
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    exception.getMessage()
+            );
+        }
+
+        redirectAttributes.addAttribute("date", assignmentDate.toString());
+        return "redirect:/app#coverage";
+    }
+
+    @PostMapping("/assignments/{assignmentId}/keep-current-after-schedule-change")
+    public String keepCurrentAssignmentAfterScheduleChange(
+            Authentication authentication,
+            @PathVariable Long assignmentId,
+            @RequestParam Long expectedScheduleImportId,
+            @RequestParam
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
+            LocalDate assignmentDate,
+            RedirectAttributes redirectAttributes) {
+
+        Long organizationId = currentOrganizationService
+                .requireOrganizationId(authentication);
+
+        try {
+            driverAssignmentService.keepCurrentAssignmentAfterScheduleChange(
+                    organizationId,
+                    assignmentId,
+                    expectedScheduleImportId,
+                    authentication.getName()
+            );
+
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    "Current assignment kept and confirmed against the latest schedule."
+            );
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    exception.getMessage()
+            );
+        }
+
+        redirectAttributes.addAttribute("date", assignmentDate.toString());
+        return "redirect:/app#coverage";
+    }
+
 }

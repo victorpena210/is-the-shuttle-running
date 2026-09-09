@@ -103,6 +103,32 @@ public record DriverSchedule(
      * Number of minutes of the requested window this work shift can cover.
      * A zero result means there is no usable overlap.
      */
+    /**
+     * Returns true only when this work shift covers the entire requested
+     * driving window. Partial overlap is not enough for reconciled coverage.
+     */
+    public boolean covers(
+            LocalTime requestedStart,
+            LocalTime requestedEnd) {
+
+        DrivingWindow window = clipTo(
+                requestedStart,
+                requestedEnd
+        );
+
+        if (window == null) {
+            return false;
+        }
+
+        int requestedStartMinute = toMinuteOfDay(requestedStart);
+        int requestedEndMinute = normalizeEndMinute(
+                requestedStartMinute,
+                toMinuteOfDay(requestedEnd)
+        );
+
+        return window.minutes() == requestedEndMinute - requestedStartMinute;
+    }
+
     public long overlapMinutes(
             LocalTime requestedStart,
             LocalTime requestedEnd) {

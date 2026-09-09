@@ -67,7 +67,7 @@
 
             <div
                 class="coverage-action coverage-action--success"
-                th:if="${needsAttentionShiftCount != null and needsAttentionShiftCount == 0}">
+                th:if="${needsAttentionShiftCount != null and needsAttentionShiftCount == 0 and !assignmentReviewRequired}">
 
                 <div>
 
@@ -84,45 +84,24 @@
 
             </div>
 
+            <th:block th:replace="~{fragments/driver-coverage/schedule-reconciliation :: scheduleReconciliation}"></th:block>
+
             <div
-                th:if="${assignmentReviewRequired}"
+                th:if="${assignmentReviewRequired and #lists.isEmpty(scheduleReconciliations)}"
                 class="alert alert--warning coverage-review-alert"
                 role="alert">
 
                 <span>
-                    <strong>
-                        Schedule changed after coverage was generated.
-                    </strong>
-
-                    Transportation demand uses import
-
-                    <span
-                        class="mono"
-                        th:if="${latestScheduleImport != null}"
-                        th:text="${latestScheduleImport.shortVersionId}">
-                        abc12345
-                    </span>.
-
-                    Review the assigned drivers before operations begin.
+                    <strong>Schedule coverage needs review.</strong>
+                    A newer employee schedule is active for this date. Review the existing assignments before operations begin.
                 </span>
 
-                <form
-                    th:action="@{/assignments/confirm-schedule}"
-                    method="post">
-
-                    <input
-                        type="hidden"
-                        name="assignmentDate"
-                        th:value="${selectedDate}">
-
-                    <button
-                        class="button button--secondary"
-                        type="submit">
+                <form th:action="@{/assignments/confirm-schedule}" method="post">
+                    <input type="hidden" name="assignmentDate" th:value="${selectedDate}">
+                    <button class="button button--secondary" type="submit">
                         Confirm reviewed coverage
                     </button>
-
                 </form>
-
             </div>
 
             <div class="coverage-section-label">

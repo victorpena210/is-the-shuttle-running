@@ -138,6 +138,7 @@ class LiveOperationsAttentionCheckerTests {
                 List.of(),
                 List.of(),
                 List.of(assignment),
+                List.of(),
                 null,
                 false,
                 null,
