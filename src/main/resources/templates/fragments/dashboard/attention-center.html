@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section
+        th:fragment="attentionCenter"
+        class="attention-center"
+        data-dashboard-section="overview"
+        aria-labelledby="attention-center-heading">
+
+        <div class="attention-center__header">
+
+            <div>
+                <p class="eyebrow">
+                    Manager command center
+                </p>
+
+                <h2 id="attention-center-heading">
+                    Needs attention
+                </h2>
+
+                <p>
+                    RoutePulse checks the current schedule, calendar,
+                    driver coverage, and live driving status for problems
+                    that need a manager decision.
+                </p>
+            </div>
+
+            <div
+                class="attention-center__count"
+                th:classappend="${attentionCenter.hasItems()} ? ' attention-center__count--active' : ' attention-center__count--clear'"
+                aria-live="polite">
+
+                <strong th:text="${attentionCenter.count}">
+                    3
+                </strong>
+
+                <span th:text="${attentionCenter.count == 1 ? 'item' : 'items'}">
+                    items
+                </span>
+
+            </div>
+
+        </div>
+
+        <div
+            class="attention-center__summary"
+            th:if="${attentionCenter.hasItems()}">
+
+            <strong th:text="${attentionCenter.headline}">
+                3 things need attention
+            </strong>
+
+            <span
+                th:if="${attentionCenter.urgentCount > 0}"
+                th:text="${attentionCenter.urgentCount == 1
+                    ? '1 urgent item'
+                    : attentionCenter.urgentCount + ' urgent items'}">
+                1 urgent item
+            </span>
+
+        </div>
+
+        <div
+            class="attention-list"
+            th:if="${attentionCenter.hasItems()}">
+
+            <article
+                class="attention-item"
+                th:each="item : ${attentionCenter.items}"
+                th:classappend="| attention-item--${item.severity.cssModifier}|">
+
+                <div class="attention-item__status" aria-hidden="true"></div>
+
+                <div class="attention-item__body">
+
+                    <div class="attention-item__copy">
+
+                        <span
+                            class="attention-item__severity"
+                            th:text="${item.severity.name() == 'URGENT'
+                                ? 'Urgent'
+                                : (item.severity.name() == 'WARNING'
+                                    ? 'Review'
+                                    : 'Info')}">
+                            Review
+                        </span>
+
+                        <strong th:text="${item.title}">
+                            Morning driving has not started
+                        </strong>
+
+                        <p th:text="${item.detail}">
+                            Scheduled for 8:45 AM. It is now 9:03 AM.
+                        </p>
+
+                    </div>
+
+                    <a
+                        class="button button--secondary attention-item__action"
+                        th:href="${item.actionHref}"
+                        th:text="${item.actionLabel}">
+                        Review
+                    </a>
+
+                </div>
+
+            </article>
+
+        </div>
+
+        <div
+            class="attention-center__clear"
+            th:if="${attentionCenter.clear}">
+
+            <span class="attention-center__clear-mark" aria-hidden="true">
+                ✓
+            </span>
+
+            <div>
+                <strong>
+                    Nothing needs attention
+                </strong>
+
+                <p>
+                    RoutePulse has not found any current schedule,
+                    coverage, calendar, or driving issues for this plan.
+                </p>
+            </div>
+
+        </div>
+
+    </section>
+</body>
+</html>

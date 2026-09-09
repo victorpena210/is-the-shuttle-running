@@ -7,6 +7,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import technology.renatus.routepulse.attention.service.AttentionCenterService;
+import technology.renatus.routepulse.dashboard.model.DashboardPlan;
 import technology.renatus.routepulse.dashboard.service.DashboardPlanningService;
 import technology.renatus.routepulse.dashboard.view.DashboardModelAssembler;
 import technology.renatus.routepulse.organization.model.Organization;
@@ -18,14 +20,17 @@ public class DashboardController {
     private final CurrentOrganizationService currentOrganizationService;
     private final DashboardPlanningService dashboardPlanningService;
     private final DashboardModelAssembler dashboardModelAssembler;
+    private final AttentionCenterService attentionCenterService;
 
     public DashboardController(
             CurrentOrganizationService currentOrganizationService,
             DashboardPlanningService dashboardPlanningService,
-            DashboardModelAssembler dashboardModelAssembler) {
+            DashboardModelAssembler dashboardModelAssembler,
+            AttentionCenterService attentionCenterService) {
         this.currentOrganizationService = currentOrganizationService;
         this.dashboardPlanningService = dashboardPlanningService;
         this.dashboardModelAssembler = dashboardModelAssembler;
+        this.attentionCenterService = attentionCenterService;
     }
 
     @GetMapping("/app")
@@ -37,8 +42,17 @@ public class DashboardController {
         model.addAttribute("organizationSlug", organization.getSlug());
         model.addAttribute("isOwner", authentication.getAuthorities().stream()
                 .anyMatch(authority -> authority.getAuthority().equals("ROLE_OWNER")));
-        dashboardModelAssembler.populate(model,
-                dashboardPlanningService.getPlan(organization.getId(), date, allowUnverifiedCalendar));
+        DashboardPlan plan = dashboardPlanningService.getPlan(
+                organization.getId(),
+                date,
+                allowUnverifiedCalendar
+        );
+
+        dashboardModelAssembler.populate(model, plan);
+        model.addAttribute(
+                "attentionCenter",
+                attentionCenterService.build(organization.getId(), plan)
+        );
         return "manager/dashboard";
     }
 }

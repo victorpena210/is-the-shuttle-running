@@ -85,6 +85,8 @@
         th:text="${errorMessage}">
     </div>
 
+		 <th:block th:replace="~{fragments/dashboard/attention-center :: attentionCenter}"></th:block>
+
 		 <th:block th:replace="~{fragments/dashboard/overview :: overview}"></th:block>
 
     <th:block th:replace="~{fragments/dashboard/schedule-upload :: upload}"></th:block>
