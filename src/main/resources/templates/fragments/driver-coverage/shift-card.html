@@ -153,7 +153,12 @@
                         </span>
 
                         <span th:if="${assignment.drivingCompleted}">
-                            Completed
+                            Driving stopped
+                            <span
+                                th:if="${#lists.size(assignment.drivingSessions) > 1}"
+                                th:text="| · ${#lists.size(assignment.drivingSessions)} sessions|">
+                                · 2 sessions
+                            </span>
                         </span>
                     </dd>
                 </div>

@@ -146,6 +146,22 @@
 
             </div>
 
+
+            <div
+                th:if="${scanAction.name() == 'RESUME'}"
+                class="alert alert--info"
+                role="status">
+
+                <strong>
+                    Previous driving session found.
+                </strong>
+
+                RoutePulse will keep the earlier session in this assignment's
+                history and open a new actual driving session starting at this
+                scan time.
+
+            </div>
+
             <div
                 th:if="${coverageRequired}"
                 class="alert alert--info"
@@ -234,6 +250,14 @@
 
                 <div
                     class="readonly-field"
+                    th:if="${scanAction.name() == 'RESUME'}">
+
+                    Resume driving
+
+                </div>
+
+                <div
+                    class="readonly-field"
                     th:if="${scanAction.name() == 'START' and takeoverRequired}">
 
                     Take over active driving
@@ -279,6 +303,15 @@
                 <button
                     class="button button--block"
                     type="submit"
+                    th:if="${scanAction.name() == 'RESUME'}">
+
+                    Confirm resume driving
+
+                </button>
+
+                <button
+                    class="button button--block"
+                    type="submit"
                     th:if="${scanAction.name() == 'START' and takeoverRequired}">
 
                     Confirm driving handoff
@@ -307,10 +340,12 @@
 
             <p
                 class="auth-panel__footer"
-                th:if="${scanAction.name() == 'START'}">
+                th:if="${scanAction.name() == 'START' or scanAction.name() == 'RESUME'}">
 
-                After you finish driving, scan this same physical
-                QR code again to record your actual end time.
+                When this stretch of driving stops, scan this same physical
+                QR code again to end the current session. If service resumes
+                later in the same scheduled assignment, another scan can open
+                a new session without erasing the earlier one.
 
             </p>
 

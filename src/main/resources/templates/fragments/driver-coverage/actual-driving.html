@@ -17,17 +17,26 @@
             </strong>
 
             <strong th:if="${assignment.drivingCompleted}">
-                Completed
+                Driving stopped
             </strong>
+
+            <small
+                th:if="${assignment.drivingCompleted and #lists.size(assignment.drivingSessions) > 1}"
+                th:text="|${#lists.size(assignment.drivingSessions)} actual sessions recorded|">
+                2 actual sessions recorded
+            </small>
         </div>
 
         <div class="coverage-actual-driving__actions">
 
             <form
-                th:if="${assignment.actualStartedAt == null
+                th:if="${!assignment.driving
                     and assignment.scheduledStartTime != null
                     and assignment.scheduledEndTime != null
-                    and assignment.assignmentDate.equals(currentOperationsDate)}"
+                    and assignment.assignmentDate.equals(currentOperationsDate)
+                    and assignment.assignmentOutcome.name() != 'MISSED'
+                    and assignment.assignmentOutcome.name() != 'EXCUSED'
+                    and assignment.assignmentOutcome.name() != 'CANCELLED'}"
                 th:action="@{/assignments/{assignmentId}/start(assignmentId=${assignment.id})}"
                 method="post">
 
@@ -38,7 +47,8 @@
 
                 <button
                     class="button button--success"
-                    type="submit">
+                    type="submit"
+                    th:text="${#lists.isEmpty(assignment.drivingSessions) ? 'Start driving' : 'Resume driving'}">
                     Start driving
                 </button>
             </form>
@@ -56,7 +66,7 @@
                 <button
                     class="button button--danger"
                     type="submit">
-                    End driving
+                    End current session
                 </button>
             </form>
 

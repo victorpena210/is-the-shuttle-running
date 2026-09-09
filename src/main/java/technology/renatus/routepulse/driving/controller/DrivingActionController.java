@@ -117,8 +117,8 @@ public class DrivingActionController {
             redirectAttributes
                     .addFlashAttribute(
                             "successMessage",
-                            "Driving ended. RoutePulse recorded "
-                                    + "the actual end time."
+                            "Driving session ended. RoutePulse recorded "
+                                    + "the actual end time. This assignment can be resumed if service continues."
                     );
 
         } catch (

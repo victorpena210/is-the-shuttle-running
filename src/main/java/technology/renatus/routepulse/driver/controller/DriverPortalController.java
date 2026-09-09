@@ -104,7 +104,21 @@ public class DriverPortalController {
             ScanResult result = driverPortalService
                     .recordQrScan(authentication, code);
 
-            if (result.action() == ScanAction.START) {
+            if (result.action() == ScanAction.RESUME) {
+                String coverageMessage = result.coveragePerformed()
+                        && result.scheduledDriver() != null
+                                ? " " + result.scheduledDriver().getName()
+                                        + " remains the scheduled driver."
+                                : "";
+
+                redirectAttributes.addFlashAttribute(
+                        "successMessage",
+                        "Driving resumed. RoutePulse opened a new actual driving session on the same "
+                                + result.assignment().getPeriod()
+                                + " assignment and kept the earlier session in the record."
+                                + coverageMessage
+                );
+            } else if (result.action() == ScanAction.START) {
                 if (result.takeoverPerformed()
                         && result.previousActualDriver() != null) {
 
@@ -140,7 +154,7 @@ public class DriverPortalController {
             } else {
                 redirectAttributes.addFlashAttribute(
                         "successMessage",
-                        "Driving ended. RoutePulse recorded your actual end time."
+                        "Driving session ended. RoutePulse saved this session. If service resumes during this assignment, scan the same QR again to open another session."
                 );
             }
 

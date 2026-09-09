@@ -138,6 +138,29 @@ class DrivingSessionIntegrationTests extends MySqlIntegrationTestSupport {
                 assignment.getActualEndedBy().getId()
         );
 
+        /*
+         * Ending one actual session must not permanently close the scheduled
+         * assignment. A manager can reopen it and RoutePulse keeps both
+         * sessions under the same assignment.
+         */
+        assignmentService.startDriving(
+                organization.getId(),
+                assignment.getId(),
+                operator.getEmail()
+        );
+
+        assertTrue(assignment.isDriving());
+        assertEquals(2, assignment.getDrivingSessions().size());
+
+        assignmentService.endDriving(
+                organization.getId(),
+                assignment.getId(),
+                operator.getEmail()
+        );
+
+        assertTrue(assignment.isDrivingCompleted());
+        assertEquals(2, assignment.getDrivingSessions().size());
+
         assertThrows(
                 IllegalStateException.class,
                 () -> assignmentService.endDriving(
