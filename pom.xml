@@ -13,10 +13,10 @@
     </parent>
 
     <groupId>technology.renatus</groupId>
-    <artifactId>shuttleflow</artifactId>
+    <artifactId>routepulse</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
-    <name>shuttleflow</name>
+    <name>RoutePulse</name>
 
     <description>
         Shuttle demand planning dashboard based on employee shift schedules

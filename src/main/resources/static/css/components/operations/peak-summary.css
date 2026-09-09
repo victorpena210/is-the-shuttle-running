@@ -1,0 +1,103 @@
+/* Peak demand summary */
+.demand-summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(14rem, 0.32fr);
+    overflow: hidden;
+    border: 1px solid #bfdbfe;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, #eff6ff 0%, var(--white) 62%);
+    box-shadow: var(--shadow-sm);
+}
+
+.demand-summary--quiet {
+    grid-template-columns: 1fr;
+    border-color: var(--slate-200);
+    background: var(--white);
+}
+
+.demand-summary__primary {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    min-width: 0;
+    padding: 1.35rem 1.5rem;
+}
+
+.demand-summary__icon {
+    display: grid;
+    width: 3.6rem;
+    height: 3.6rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 50%;
+    color: var(--blue-600);
+    background: rgba(37, 99, 235, 0.09);
+    font-size: 1.7rem;
+    font-weight: 900;
+}
+
+.demand-summary__icon--quiet {
+    color: var(--green-700);
+    background: var(--green-100);
+}
+
+.demand-summary__label {
+    display: block;
+    margin-bottom: 0.15rem;
+    color: var(--blue-600);
+    font-size: 0.78rem;
+    font-weight: 850;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.demand-summary--quiet .demand-summary__label {
+    color: var(--slate-600);
+}
+
+.demand-summary__time {
+    display: block;
+    margin-bottom: 0.2rem;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    line-height: 1.1;
+    letter-spacing: -0.035em;
+}
+
+.demand-summary__primary p {
+    margin: 0;
+    color: var(--slate-500);
+    font-size: 0.82rem;
+}
+
+.demand-summary__metric {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1.35rem 1.5rem;
+    border-left: 1px solid #dbeafe;
+    background: rgba(255, 255, 255, 0.55);
+}
+
+.demand-summary__metric-value {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--blue-600);
+}
+
+.demand-summary__metric-value > span {
+    font-size: 1.25rem;
+}
+
+.demand-summary__metric-value strong {
+    font-size: 1.65rem;
+    line-height: 1;
+}
+
+.demand-summary__metric-label {
+    color: var(--slate-500);
+    font-size: 0.72rem;
+}
+

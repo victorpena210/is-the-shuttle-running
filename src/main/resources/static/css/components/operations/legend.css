@@ -1,0 +1,123 @@
+/* Demand legend */
+.demand-legend {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.65rem 1rem;
+    padding: 0.8rem 0.95rem;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    color: var(--slate-500);
+    background: var(--white);
+    font-size: 0.68rem;
+}
+
+.demand-legend > span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+}
+
+.demand-legend__dot {
+    display: inline-block;
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background: var(--green-600);
+}
+
+.demand-legend__dot--moderate {
+    background: var(--amber-500);
+}
+
+.demand-legend__dot--high {
+    background: #f97316;
+}
+
+.demand-legend__dot--very-high {
+    background: var(--red-600);
+}
+
+@media (max-width: 760px) {
+    .demand-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .demand-summary__metric {
+        border-top: 1px solid #dbeafe;
+        border-left: 0;
+    }
+
+    .demand-timeline {
+        padding-left: 3rem;
+    }
+
+    .demand-timeline::before {
+        left: 1rem;
+    }
+
+    .demand-daypart__icon {
+        left: -3rem;
+        width: 2.1rem;
+        height: 2.1rem;
+    }
+
+    .demand-row {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 0.4rem 0.75rem;
+    }
+
+    .demand-row__count {
+        justify-content: flex-end;
+    }
+
+    .demand-pill {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+}
+
+@media (max-width: 520px) {
+    .demand-summary__primary,
+    .demand-summary__metric {
+        padding: 1rem;
+    }
+
+    .demand-summary__primary {
+        align-items: flex-start;
+    }
+
+    .demand-summary__icon {
+        width: 2.8rem;
+        height: 2.8rem;
+        font-size: 1.25rem;
+    }
+
+    .demand-timeline {
+        padding-left: 0;
+    }
+
+    .demand-timeline::before,
+    .demand-daypart__icon {
+        display: none;
+    }
+
+    .demand-daypart__header {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .demand-cluster-label {
+        margin-left: 0;
+    }
+
+    .demand-row {
+        grid-template-columns: 1fr;
+    }
+
+    .demand-row__count {
+        justify-content: flex-start;
+    }
+}
+

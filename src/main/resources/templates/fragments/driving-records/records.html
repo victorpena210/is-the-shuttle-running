@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="records"
+        class="records-view"
+        th:if="${selectedView == 'records'}"
+        aria-labelledby="individual-records-heading">
+
+        <div class="records-section-heading records-section-heading--records">
+
+            <div>
+
+                <p class="records-section-kicker">
+                    Individual records
+                </p>
+
+                <h2 id="individual-records-heading">
+                    Assignment history
+                </h2>
+
+                <p
+                    th:text="|${#lists.size(records)} ${#lists.size(records) == 1 ? 'record' : 'records'} found.|">
+
+                    2 records found.
+
+                </p>
+
+            </div>
+
+            <p class="records-summary-note">
+
+                Records include assignments where the selected
+                driver was either scheduled or actually drove.
+
+            </p>
+
+        </div>
+
+        <div
+            th:if="${#lists.isEmpty(records) and filterError == null}"
+            class="alert alert--info">
+
+            No driving records matched these filters.
+
+        </div>
+
+        <div
+            class="record-card-list"
+            th:if="${!#lists.isEmpty(records)}">
+
+            <article
+                class="record-card"
+                th:each="record : ${records}"
+                th:id="|record-${record.id}|">
+
+                <!-- RECORD HEADER                                     -->
+
+                <th:block th:replace="~{fragments/driving-records/record-header :: recordHeader(${record})}"></th:block>
+
+                <!-- RECORD SUMMARY                                    -->
+
+                <div class="record-card__body">
+
+                    <th:block th:replace="~{fragments/driving-records/record-overview :: recordOverview(${record})}"></th:block>
+
+                    <!-- EXPANDABLE DETAILS                                -->
+
+                    <details class="record-details">
+
+                        <summary>
+
+                            <span>
+                                View details / management review
+                            </span>
+
+                            <span
+                                class="record-details__chevron"
+                                aria-hidden="true">
+                                ⌄
+                            </span>
+
+                        </summary>
+
+                        <div class="record-details__content">
+
+                            <!-- ASSIGNMENT DETAIL                         -->
+
+                            <th:block th:replace="~{fragments/driving-records/scheduled-details :: scheduledDetails(${record})}"></th:block>
+
+                            <!-- MANAGEMENT HISTORY                        -->
+
+                            <th:block th:replace="~{fragments/driving-records/actual-details :: actualDetails(${record})}"></th:block>
+
+                            <!-- MANAGEMENT REVIEW                         -->
+
+                            <th:block th:replace="~{fragments/driving-records/management-review :: review(${record})}"></th:block>
+
+                        </div>
+
+                    </details>
+
+                </div>
+
+            </article>
+
+        </div>
+
+    </section>
+</body>
+</html>

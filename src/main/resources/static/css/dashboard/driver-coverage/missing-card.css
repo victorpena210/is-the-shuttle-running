@@ -1,0 +1,74 @@
+/* Missing card */
+.coverage-empty-state strong {
+    display: block;
+    margin-bottom: 0.2rem;
+    font-size: 1rem;
+}
+
+.coverage-empty-state p {
+    margin: 0;
+    color: var(--slate-500);
+    font-size: 0.8rem;
+}
+
+.coverage-candidate-preview {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.9rem;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    background: var(--slate-50);
+}
+
+.coverage-candidate-preview h4 {
+    margin: 0 0 0.1rem;
+    color: var(--slate-500);
+    font-size: 0.66rem;
+    font-weight: 900;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.coverage-candidate-preview__secondary {
+    margin-top: 0.55rem !important;
+    padding-top: 0.65rem;
+    border-top: 1px solid var(--slate-200);
+}
+
+.coverage-candidate {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.45rem 0;
+}
+
+.coverage-candidate > div {
+    min-width: 0;
+}
+
+.coverage-candidate strong {
+    display: block;
+    font-size: 0.84rem;
+}
+
+.coverage-candidate > div span,
+.coverage-candidate > span {
+    color: var(--slate-500);
+    font-size: 0.72rem;
+}
+
+.coverage-candidate--muted strong {
+    color: var(--slate-700);
+}
+
+.coverage-manager--assign > summary {
+    margin-left: auto;
+}
+
+.coverage-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.55rem;
+}
+

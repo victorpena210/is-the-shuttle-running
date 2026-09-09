@@ -1,0 +1,143 @@
+/* Assignment cards */
+.assignment-list {
+    display: grid;
+    gap: 1rem;
+}
+
+.assignment-card {
+    overflow: hidden;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+    box-shadow: var(--shadow-sm);
+}
+
+.assignment-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.1rem 1.25rem;
+    border-bottom: 1px solid var(--slate-200);
+    background: linear-gradient(90deg, #fbfdff, var(--white));
+}
+
+.assignment-card__title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.period-icon {
+    display: grid;
+    width: 2.4rem;
+    height: 2.4rem;
+    flex: 0 0 auto;
+    place-items: center;
+    border-radius: 0.75rem;
+    color: #1e3a8a;
+    background: var(--blue-100);
+    font-size: 0.74rem;
+    font-weight: 900;
+}
+
+.assignment-card__title h3 {
+    margin-bottom: 0.1rem;
+}
+
+.assignment-card__title p {
+    margin-bottom: 0;
+    color: var(--slate-500);
+    font-size: 0.78rem;
+}
+
+.assignment-card__body {
+    padding: 1.25rem;
+}
+
+.assignment-summary {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.7rem;
+}
+
+.stat {
+    min-width: 0;
+    padding: 0.82rem;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    background: var(--slate-50);
+}
+
+.stat__label {
+    display: block;
+    margin-bottom: 0.28rem;
+    color: var(--slate-500);
+    font-size: 0.65rem;
+    font-weight: 850;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.stat__value {
+    display: block;
+    overflow-wrap: anywhere;
+    font-size: 0.9rem;
+    font-weight: 780;
+}
+
+.assignment-controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.8rem;
+    margin-top: 1rem;
+}
+
+.control-card {
+    padding: 1rem;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    background: var(--white);
+}
+
+.control-card h3 {
+    margin-bottom: 0.25rem;
+    font-size: 0.93rem;
+}
+
+.control-card > p {
+    margin-bottom: 0.85rem;
+    color: var(--slate-500);
+    font-size: 0.76rem;
+}
+
+.control-card .form-group {
+    margin-bottom: 0.72rem;
+}
+
+.control-card label {
+    font-size: 0.76rem;
+}
+
+.locked-note {
+    display: flex;
+    gap: 0.55rem;
+    margin: 0;
+    padding: 0.7rem;
+    border-radius: var(--radius-sm);
+    color: var(--slate-600);
+    background: var(--slate-100);
+    font-size: 0.78rem;
+}
+
+.locked-note::before {
+    content: "â—";
+    color: var(--slate-400);
+}
+
+.manual-panel {
+    margin-top: 1rem;
+    border-color: #bfdbfe;
+    background: linear-gradient(135deg, #eff6ff, var(--white) 55%);
+}
+

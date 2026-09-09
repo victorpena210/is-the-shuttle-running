@@ -1,0 +1,82 @@
+/* Responsive */
+@media (max-width: 900px) {
+    .coverage-shift-grid,
+    .coverage-manager__grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 760px) {
+    .coverage-heading,
+    .coverage-action,
+    .coverage-manager__recommendation,
+    .coverage-actual-driving,
+    .coverage-candidate {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .coverage-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .coverage-action .button {
+        width: 100%;
+    }
+
+    .coverage-timeline__row {
+        grid-template-columns: 4rem minmax(0, 1fr);
+    }
+
+    .coverage-timeline__times {
+        grid-column: 2;
+    }
+
+    .coverage-facts > div {
+        grid-template-columns: 1fr;
+        gap: 0.2rem;
+    }
+
+    .coverage-facts dd {
+        justify-content: flex-start;
+        text-align: left;
+    }
+
+    .coverage-actual-driving__actions,
+    .coverage-actual-driving__actions form,
+    .coverage-actual-driving__actions .button {
+        width: 100%;
+    }
+
+    .coverage-form-actions {
+        flex-direction: column-reverse;
+    }
+
+    .coverage-form-actions .button {
+        width: 100%;
+    }
+}
+
+@media (max-width: 520px) {
+    .coverage-shift-card__header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .coverage-state {
+        align-self: flex-start;
+    }
+
+    .coverage-time-fields {
+        grid-template-columns: 1fr;
+    }
+
+    .coverage-time-arrow {
+        display: none;
+    }
+
+    .coverage-manager__panel,
+    .coverage-shift-card__body {
+        padding: 0.9rem;
+    }
+}

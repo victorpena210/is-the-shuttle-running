@@ -1,0 +1,65 @@
+/*
+ * ============================================================
+ * MANAGEMENT REVIEW
+ * ============================================================
+ */
+
+.record-review-form {
+    display: grid;
+
+    grid-template-columns:
+        minmax(0, 0.8fr)
+        minmax(0, 1.3fr);
+
+    gap: 0.8rem;
+}
+
+.record-review-form .form-group {
+    margin: 0;
+}
+
+.record-review-form__makeup {
+    grid-column:
+        1 / -1;
+
+    padding: 0.78rem;
+
+    border:
+        1px solid
+        var(--slate-200);
+
+    border-radius:
+        var(--radius-sm);
+
+    background:
+        var(--slate-50);
+}
+
+.record-review-form__makeup
+.field-label {
+    margin-bottom: 0.45rem;
+}
+
+.record-review-form__makeup
+.checkbox-row {
+    margin: 0;
+
+    color: var(--slate-700);
+
+    font-size: 0.78rem;
+    font-weight: 720;
+}
+
+.record-review-form__action {
+    grid-column:
+        1 / -1;
+}
+
+.record-makeup-alert {
+    margin:
+        0.8rem
+        0
+        0;
+}
+
+

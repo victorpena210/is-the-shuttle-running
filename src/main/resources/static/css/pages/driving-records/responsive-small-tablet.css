@@ -1,0 +1,51 @@
+/*
+ * ============================================================
+ * RESPONSIVE — SMALL TABLET
+ * ============================================================
+ */
+
+@media (max-width: 760px) {
+
+    .records-view-tabs {
+        display: grid;
+
+        width: 100%;
+
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .records-view-tab {
+        min-width: 0;
+    }
+
+    .records-section-heading {
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 0.6rem;
+    }
+
+    .records-summary-note {
+        max-width: none;
+
+        text-align: left;
+    }
+
+    .summary-metric-grid,
+    .record-overview-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .record-review-form {
+        grid-template-columns: 1fr;
+    }
+
+    .record-review-form__makeup,
+    .record-review-form__action {
+        grid-column: auto;
+    }
+}
+
+

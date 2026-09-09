@@ -3,6 +3,21 @@
 RoutePulse converts Dayforce schedule exports into shuttle-demand windows,
 driver recommendations, manager-approved coverage, and actual driving records.
 
+## Project organization
+
+Java source is grouped by feature: auth, organization, driver, scheduling,
+assignments, driving, reporting, calendar, dashboard, marketing and shared code.
+
+- [Architecture](docs/architecture.md): backend boundaries, calendar provider and tests.
+- [Frontend organization](FRONTEND_ORGANIZATION.md): current CSS, JavaScript and Thymeleaf layout.
+- [Cleanup notes](docs/cleanup-notes.md): changes, verification and installation details.
+
+The application entry point is
+`technology.renatus.routepulse.RoutePulseApplication`. After applying the cleanup,
+reload the Maven project in your IDE, update any old run configuration, and run
+`./mvnw clean verify` before starting. The packaged artifact is
+`target/routepulse-0.0.1-SNAPSHOT.jar`.
+
 ## Current capabilities
 
 - organization-isolated users, drivers, schedules, imports, and assignments;
@@ -65,6 +80,14 @@ Start Docker Desktop, then run:
 The tests start a temporary MySQL 8.4 container and run every Flyway migration
 against a blank database. GitHub Actions runs the same command and builds the
 production Docker image after the tests pass.
+
+For focused unit and template checks without Docker:
+
+```bash
+./mvnw -Dtest=CleanupRegressionTests,DriverScheduleAvailabilityTests,TransportationDemandServiceTests,SixFlagsCalendarProviderTests test
+```
+
+The full integration suite still requires Docker and MySQL Testcontainers.
 
 ## Production environment variables
 

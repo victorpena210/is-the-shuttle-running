@@ -1,0 +1,38 @@
+/* Top status */
+.coverage-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+    box-shadow: var(--shadow-sm);
+}
+
+.coverage-action strong {
+    display: block;
+    margin-bottom: 0.2rem;
+}
+
+.coverage-action p {
+    margin-bottom: 0;
+    color: var(--slate-600);
+    font-size: 0.84rem;
+}
+
+.coverage-action--warning {
+    border-color: #fde68a;
+    background: #fffbeb;
+}
+
+.coverage-action--success {
+    border-color: #bbf7d0;
+    background: #f0fdf4;
+}
+
+.coverage-review-alert {
+    margin-bottom: 0;
+}
+

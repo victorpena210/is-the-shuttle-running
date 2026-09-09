@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="summary"
+        class="records-view"
+        th:if="${selectedView == 'summary'}"
+        aria-labelledby="driver-summary-heading">
+
+        <div class="records-section-heading">
+
+            <div>
+
+                <p class="records-section-kicker">
+                    Driver summary
+                </p>
+
+                <h2
+                    id="driver-summary-heading"
+                    th:if="${selectedDriverSummary == null}">
+
+                    Workload by driver
+
+                </h2>
+
+                <h2
+                    id="driver-summary-heading"
+                    th:if="${selectedDriverSummary != null}"
+                    th:text="${selectedDriverSummary.driver.name}">
+
+                    Driver name
+
+                </h2>
+
+                <p
+                    th:text="|${#temporals.format(fromDate, 'MMMM d, yyyy')} – ${#temporals.format(toDate, 'MMMM d, yyyy')}|">
+
+                    August 8, 2026 – September 7, 2026
+
+                </p>
+
+            </div>
+
+            <p class="records-summary-note">
+
+                Scheduled time is credited to the scheduled driver.
+                Actual time is credited to the person who actually drove.
+
+            </p>
+
+        </div>
+
+        <!-- TOP TOTALS -->
+
+        <th:block th:replace="~{fragments/driving-records/summary-metrics :: metrics}"></th:block>
+
+        <!-- SINGLE DRIVER                                         -->
+
+        <th:block th:replace="~{fragments/driving-records/driver-detail :: driverDetail}"></th:block>
+
+        <div
+            th:if="${#lists.isEmpty(workloadSummary.drivers) and filterError == null}"
+            class="alert alert--info">
+
+            No drivers were found for this organization.
+
+        </div>
+
+        <!-- ALL DRIVER TABLE                                      -->
+
+        <th:block th:replace="~{fragments/driving-records/workload :: workload}"></th:block>
+
+        <p
+            class="workload-footnote"
+            th:if="${filterError == null}">
+
+            Actual hours include completed driving sessions.
+            A currently active driving session begins contributing
+            recorded time after it is ended.
+
+        </p>
+
+    </section>
+</body>
+</html>

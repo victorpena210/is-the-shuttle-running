@@ -1,0 +1,115 @@
+/* App shell */
+.app-page {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at 92% -8%, rgba(59, 130, 246, 0.13), transparent 28rem),
+        linear-gradient(180deg, #f7faff 0, var(--slate-50) 30rem);
+}
+
+.app-topbar {
+    position: sticky;
+    z-index: 50;
+    top: 0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+    color: var(--white);
+    background: rgba(7, 17, 31, 0.96);
+    box-shadow: 0 8px 30px rgba(7, 17, 31, 0.16);
+    backdrop-filter: blur(16px);
+}
+
+.app-topbar__inner {
+    width: min(calc(100% - 2rem), var(--content-width));
+    min-height: 4.7rem;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.app-nav {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.25rem;
+}
+
+.app-nav__link,
+.app-nav__button {
+    display: inline-flex;
+    min-height: 2.65rem;
+    align-items: center;
+    justify-content: center;
+    padding: 0.58rem 0.85rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+    color: var(--slate-300);
+    background: transparent;
+    font-size: 0.88rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.app-nav__link:hover,
+.app-nav__link[aria-current="page"],
+.app-nav__button:hover {
+    color: var(--white);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.app-nav__form {
+    margin: 0 0 0 0.25rem;
+}
+
+.app-nav__button {
+    border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.app-main {
+    width: min(calc(100% - 2rem), var(--content-width));
+    margin: 0 auto;
+    padding: 3.25rem 0 5rem;
+}
+
+.page-header {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: 2rem;
+}
+
+.page-header h1 {
+    max-width: 18ch;
+    margin-bottom: 0.5rem;
+}
+
+.page-header p {
+    max-width: 64ch;
+    margin-bottom: 0;
+    color: var(--slate-600);
+    font-size: 1.04rem;
+}
+
+.eyebrow {
+    margin-bottom: 0.55rem;
+    color: var(--blue-600);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.page-date {
+    flex: 0 0 auto;
+    padding: 0.78rem 1rem;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    color: var(--slate-700);
+    background: rgba(255, 255, 255, 0.78);
+    font-size: 0.92rem;
+    font-weight: 700;
+    box-shadow: var(--shadow-sm);
+}
+

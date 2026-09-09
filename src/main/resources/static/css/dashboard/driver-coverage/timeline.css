@@ -1,0 +1,55 @@
+/* Work vs driving timeline */
+.coverage-timeline {
+    display: grid;
+    gap: 0.72rem;
+    padding: 0.9rem;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    background: var(--slate-50);
+}
+
+.coverage-timeline__row {
+    display: grid;
+    grid-template-columns: 4.5rem minmax(5rem, 1fr) auto;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.coverage-timeline__name {
+    color: var(--slate-600);
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.coverage-timeline__track {
+    position: relative;
+    height: 0.48rem;
+    overflow: hidden;
+    border-radius: 999px;
+    background: var(--slate-200);
+}
+
+.coverage-timeline__fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: inherit;
+}
+
+.coverage-timeline__fill--work {
+    width: 100%;
+    background: var(--slate-400);
+}
+
+.coverage-timeline__fill--drive {
+    width: 45%;
+    background: var(--blue-600);
+}
+
+.coverage-timeline__times {
+    color: var(--slate-600);
+    font-size: 0.7rem;
+    white-space: nowrap;
+}
+

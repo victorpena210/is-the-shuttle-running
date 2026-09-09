@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div th:fragment="metrics"
+        class="summary-metric-grid"
+        th:if="${filterError == null}">
+
+        <article class="summary-metric-card">
+
+            <span class="summary-metric-card__label">
+                Scheduled
+            </span>
+
+            <strong
+                class="summary-metric-card__value"
+                th:text="|${#numbers.formatDecimal(workloadSummary.scheduledHours, 1, 2)} hours|">
+
+                42.50 hours
+
+            </strong>
+
+            <span
+                class="summary-metric-card__meta"
+                th:text="|${workloadSummary.scheduledShifts} scheduled ${workloadSummary.scheduledShifts == 1 ? 'shift' : 'shifts'}|">
+
+                14 scheduled shifts
+
+            </span>
+
+        </article>
+
+        <article class="summary-metric-card">
+
+            <span class="summary-metric-card__label">
+                Actually driven
+            </span>
+
+            <strong
+                class="summary-metric-card__value"
+                th:text="|${#numbers.formatDecimal(workloadSummary.actualHours, 1, 2)} hours|">
+
+                39.20 hours
+
+            </strong>
+
+            <span
+                class="summary-metric-card__meta"
+                th:text="|${workloadSummary.shiftsDriven} ${workloadSummary.shiftsDriven == 1 ? 'shift' : 'shifts'} with driving activity|">
+
+                15 shifts with driving activity
+
+            </span>
+
+        </article>
+
+        <article
+            class="summary-metric-card"
+            th:classappend="${workloadSummary.differenceMinutes > 0}
+                ? ' summary-metric-card--positive'
+                : (${workloadSummary.differenceMinutes < 0}
+                    ? ' summary-metric-card--negative'
+                    : ' summary-metric-card--balanced')">
+
+            <span class="summary-metric-card__label">
+                Difference
+            </span>
+
+            <strong
+                class="summary-metric-card__value"
+                th:text="|${workloadSummary.differenceMinutes > 0 ? '+' : ''}${#numbers.formatDecimal(workloadSummary.differenceHours, 1, 2)} hours|">
+
+                -3.30 hours
+
+            </strong>
+
+            <span
+                class="summary-metric-card__meta"
+                th:if="${workloadSummary.differenceMinutes == 0}">
+
+                Scheduled and actual workload are balanced.
+
+            </span>
+
+            <span
+                class="summary-metric-card__meta"
+                th:if="${workloadSummary.differenceMinutes > 0}">
+
+                More actual driving than scheduled.
+
+            </span>
+
+            <span
+                class="summary-metric-card__meta"
+                th:if="${workloadSummary.differenceMinutes < 0}">
+
+                Less actual driving than scheduled.
+
+            </span>
+
+        </article>
+
+    </div>
+</body>
+</html>

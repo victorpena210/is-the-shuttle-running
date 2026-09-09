@@ -1,0 +1,45 @@
+/*
+ * ============================================================
+ * VIEW HEADINGS
+ * ============================================================
+ */
+
+.records-view {
+    margin-top: 1.65rem;
+}
+
+.records-section-heading {
+    display: flex;
+
+    align-items: flex-end;
+    justify-content: space-between;
+
+    gap: 1.5rem;
+
+    margin-bottom: 1rem;
+}
+
+.records-section-heading h2 {
+    margin-bottom: 0.25rem;
+}
+
+.records-section-heading > div > p:last-child,
+.records-section-heading--records > div > p:last-child {
+    margin: 0;
+
+    color: var(--slate-500);
+}
+
+.records-summary-note {
+    max-width: 48ch;
+
+    margin: 0;
+
+    color: var(--slate-500);
+
+    font-size: 0.82rem;
+
+    text-align: right;
+}
+
+

@@ -1,0 +1,92 @@
+/*
+ * ============================================================
+ * SINGLE DRIVER DETAIL
+ * ============================================================
+ */
+
+.selected-driver-breakdown {
+    margin-top: 0.95rem;
+
+    padding: 1.15rem;
+
+    border:
+        1px solid
+        var(--slate-200);
+
+    border-radius:
+        var(--radius-lg);
+
+    background:
+        var(--white);
+
+    box-shadow:
+        var(--shadow-sm);
+}
+
+.selected-driver-breakdown__heading {
+    display: flex;
+
+    align-items: flex-start;
+    justify-content: space-between;
+
+    gap: 1rem;
+
+    margin-bottom: 0.9rem;
+}
+
+.selected-driver-breakdown__heading h3 {
+    margin:
+        0.15rem
+        0
+        0;
+}
+
+.selected-driver-breakdown__employee {
+    color: var(--slate-500);
+
+    font-size: 0.75rem;
+
+    font-weight: 750;
+}
+
+.selected-driver-stat-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+    gap: 0.7rem;
+}
+
+.selected-driver-stat {
+    padding: 0.9rem;
+
+    border:
+        1px solid
+        var(--slate-200);
+
+    border-radius:
+        var(--radius-md);
+
+    background:
+        var(--slate-50);
+}
+
+.selected-driver-stat span {
+    display: block;
+
+    margin-bottom: 0.25rem;
+
+    color: var(--slate-500);
+
+    font-size: 0.7rem;
+    font-weight: 750;
+}
+
+.selected-driver-stat strong {
+    font-size: 1.35rem;
+
+    line-height: 1;
+}
+
+

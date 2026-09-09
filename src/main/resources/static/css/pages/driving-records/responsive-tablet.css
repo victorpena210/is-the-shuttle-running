@@ -1,0 +1,45 @@
+/*
+ * ============================================================
+ * RESPONSIVE — TABLET
+ * ============================================================
+ */
+
+@media (max-width: 1000px) {
+
+    .records-filter-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .records-filter-panel__heading {
+        padding-right: 0;
+        padding-bottom: 0.9rem;
+
+        border-right: 0;
+
+        border-bottom:
+            1px solid
+            var(--slate-200);
+    }
+
+    .records-filter-grid {
+        grid-template-columns:
+            repeat(3, minmax(0, 1fr));
+    }
+
+    .records-filter-actions {
+        grid-column:
+            1 / -1;
+    }
+
+    .selected-driver-stat-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+
+    .record-detail-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr));
+    }
+}
+
+

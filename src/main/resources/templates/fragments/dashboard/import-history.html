@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="importHistory"
+        class="section"
+        data-dashboard-section="schedules"
+        th:if="${!#lists.isEmpty(recentScheduleImports)}"
+        aria-labelledby="imports-heading">
+
+        <div class="section-heading">
+
+            <div>
+
+                <h2 id="imports-heading">
+                    Recent schedule imports
+                </h2>
+
+                <p>
+                    RoutePulse uses the newest import containing
+                    each planning date.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="table-shell">
+
+            <table>
+
+                <thead>
+
+                <tr>
+
+                    <th scope="col">
+                        Import
+                    </th>
+
+                    <th scope="col">
+                        Uploaded
+                    </th>
+
+                    <th scope="col">
+                        Manager
+                    </th>
+
+                    <th scope="col">
+                        File
+                    </th>
+
+                    <th scope="col">
+                        Rows
+                    </th>
+
+                    <th scope="col">
+                        Date range
+                    </th>
+
+                </tr>
+
+                </thead>
+
+                <tbody>
+
+                <tr
+                    th:each="scheduleImport : ${recentScheduleImports}">
+
+                    <td
+                        class="mono"
+                        th:text="${scheduleImport.shortVersionId}">
+                        abc12345
+                    </td>
+
+                    <td
+                        class="nowrap"
+                        th:text="${#temporals.format(scheduleImport.uploadedAt, 'MMM d, yyyy h:mm a')}">
+
+                        Aug 28, 2026 8:00 AM
+
+                    </td>
+
+                    <td>
+
+                        <strong
+                            th:text="${scheduleImport.uploadedByDisplayName}">
+                            Manager
+                        </strong>
+
+                        <br>
+
+                        <span
+                            class="muted"
+                            th:text="${scheduleImport.uploadedBy.email}">
+                            manager@example.com
+                        </span>
+
+                    </td>
+
+                    <td
+                        th:text="${scheduleImport.originalFilename}">
+                        schedule.csv
+                    </td>
+
+                    <td
+                        th:text="${scheduleImport.rowCount}">
+                        100
+                    </td>
+
+                    <td class="nowrap">
+
+                        <span
+                            th:text="${#temporals.format(scheduleImport.firstShiftDate, 'MMM d')}">
+                            Aug 28
+                        </span>
+
+                        –
+
+                        <span
+                            th:text="${#temporals.format(scheduleImport.lastShiftDate, 'MMM d, yyyy')}">
+                            Sep 3, 2026
+                        </span>
+
+                    </td>
+
+                </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+</body>
+</html>

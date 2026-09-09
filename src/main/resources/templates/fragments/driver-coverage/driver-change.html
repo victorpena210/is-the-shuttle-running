@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="driverChange(assignment)" class="coverage-control-block">
+
+        <h4>Assigned driver</h4>
+        <p>
+            Replace the planned driver while preserving the original recommendation.
+        </p>
+
+        <form
+            class="coverage-driver-form"
+            th:action="@{/assignments/{assignmentId}/driver(assignmentId=${assignment.id})}"
+            method="post"
+            th:attr="data-original-driver=${assignment.scheduledDriver.id}">
+
+            <input
+                type="hidden"
+                name="assignmentDate"
+                th:value="${selectedDate}">
+
+            <div class="form-group">
+                <label th:for="|driver-${assignment.id}|">
+                    Final driver
+                </label>
+
+                <select
+                    th:id="|driver-${assignment.id}|"
+                    name="finalDriverId"
+                    data-coverage-driver-select
+                    required>
+
+                    <optgroup
+                        label="Scheduled today"
+                        th:unless="${#lists.isEmpty(driverSchedules)}">
+
+                        <option
+                            th:each="driverSchedule : ${driverSchedules}"
+                            th:value="${driverSchedule.driverId}"
+                            th:selected="${driverSchedule.driverId == assignment.scheduledDriver.id}"
+                            data-scheduled="true"
+                            th:text="|${driverSchedule.driverName} — working ${#temporals.format(driverSchedule.startTime, 'h:mm a')}–${#temporals.format(driverSchedule.endTime, 'h:mm a')}|">
+                            Victor Pena — working 9:00 AM–6:00 PM
+                        </option>
+
+                    </optgroup>
+
+                    <optgroup
+                        label="Not scheduled today"
+                        th:unless="${#lists.isEmpty(driversWithoutSchedules)}">
+
+                        <option
+                            th:each="driver : ${driversWithoutSchedules}"
+                            th:value="${driver.id}"
+                            th:selected="${driver.id == assignment.scheduledDriver.id}"
+                            data-scheduled="false"
+                            th:text="|${driver.name} — not on uploaded schedule|">
+                            Jody Irons — not on uploaded schedule
+                        </option>
+
+                    </optgroup>
+
+                </select>
+            </div>
+
+            <div
+                class="coverage-driver-warning"
+                data-unscheduled-warning
+                hidden>
+
+                <strong>
+                    This driver is not listed on today's uploaded work schedule.
+                </strong>
+
+                <span>
+                    You can still assign them if they are actually working.
+                </span>
+            </div>
+
+            <div class="form-group">
+                <label th:for="|reason-${assignment.id}|">
+                    Reason for change
+                    <span class="muted">(optional)</span>
+                </label>
+
+                <textarea
+                    th:id="|reason-${assignment.id}|"
+                    name="changeReason"
+                    maxlength="500"
+                    placeholder="Example: driver called out"></textarea>
+            </div>
+
+            <button
+                class="button button--secondary button--block"
+                type="submit"
+                data-driver-submit>
+                Save driver
+            </button>
+
+        </form>
+
+    </section>
+</body>
+</html>

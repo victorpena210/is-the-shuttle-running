@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="availability"
+        class="coverage-availability"
+        aria-labelledby="driver-availability-heading">
+
+        <div class="coverage-section-label">
+            <span id="driver-availability-heading">
+                Driver availability
+            </span>
+        </div>
+
+        <div class="table-shell">
+
+            <table class="coverage-availability-table">
+
+                <thead>
+                <tr>
+                    <th scope="col">Driver</th>
+                    <th scope="col">Employee ID</th>
+                    <th scope="col">Work schedule</th>
+                    <th scope="col">Coverage status</th>
+                </tr>
+                </thead>
+
+                <tbody>
+
+                <tr th:each="driverSchedule : ${driverSchedules}">
+
+                    <td>
+                        <strong th:text="${driverSchedule.driverName}">
+                            Victor Pena
+                        </strong>
+                    </td>
+
+                    <td
+                        class="mono"
+                        th:text="${driverSchedule.employeeId}">
+                        3665404
+                    </td>
+
+                    <td>
+                        <span
+                            class="coverage-work-status coverage-work-status--scheduled">
+                            Scheduled
+                        </span>
+
+                        <span
+                            th:text="|${#temporals.format(driverSchedule.startTime, 'h:mm a')}–${#temporals.format(driverSchedule.endTime, 'h:mm a')}|">
+                            9:00 AM–6:00 PM
+                        </span>
+                    </td>
+
+                    <td>
+                        <span
+                            class="coverage-driver-role"
+                            th:if="${morningAssignment != null and morningAssignment.scheduledDriver.id == driverSchedule.driverId}">
+                            Morning driver
+                        </span>
+
+                        <span
+                            class="coverage-driver-role"
+                            th:if="${afternoonAssignment != null and afternoonAssignment.scheduledDriver.id == driverSchedule.driverId}">
+                            Afternoon driver
+                        </span>
+
+                        <span
+                            class="muted"
+                            th:if="${(morningAssignment == null or morningAssignment.scheduledDriver.id != driverSchedule.driverId)
+                                and (afternoonAssignment == null or afternoonAssignment.scheduledDriver.id != driverSchedule.driverId)}">
+                            Available
+                        </span>
+                    </td>
+
+                </tr>
+
+                <tr th:each="driver : ${driversWithoutSchedules}">
+
+                    <td>
+                        <strong th:text="${driver.name}">
+                            Jody Irons
+                        </strong>
+                    </td>
+
+                    <td
+                        class="mono"
+                        th:text="${driver.employeeId}">
+                        3683811
+                    </td>
+
+                    <td>
+                        <span
+                            class="coverage-work-status coverage-work-status--unscheduled">
+                            Not scheduled
+                        </span>
+
+                        <span class="muted">
+                            Not on uploaded schedule
+                        </span>
+                    </td>
+
+                    <td>
+                        <span
+                            class="coverage-driver-role coverage-driver-role--warning"
+                            th:if="${morningAssignment != null and morningAssignment.scheduledDriver.id == driver.id}">
+                            Morning driver · manager override
+                        </span>
+
+                        <span
+                            class="coverage-driver-role coverage-driver-role--warning"
+                            th:if="${afternoonAssignment != null and afternoonAssignment.scheduledDriver.id == driver.id}">
+                            Afternoon driver · manager override
+                        </span>
+
+                        <span
+                            class="muted"
+                            th:if="${(morningAssignment == null or morningAssignment.scheduledDriver.id != driver.id)
+                                and (afternoonAssignment == null or afternoonAssignment.scheduledDriver.id != driver.id)}">
+                            Registered · not working today
+                        </span>
+                    </td>
+
+                </tr>
+
+                <tr
+                    th:if="${#lists.isEmpty(driverSchedules) and #lists.isEmpty(driversWithoutSchedules)}">
+
+                    <td
+                        class="empty-cell"
+                        colspan="4">
+                        No active registered drivers are available.
+                    </td>
+
+                </tr>
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </section>
+</body>
+</html>

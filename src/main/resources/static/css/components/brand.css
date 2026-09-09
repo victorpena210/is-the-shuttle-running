@@ -1,0 +1,39 @@
+/* Brand */
+.brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.78rem;
+    color: inherit;
+    text-decoration: none;
+}
+
+.brand:hover {
+    color: inherit;
+}
+
+.brand-mark {
+    width: 2.55rem;
+    height: 2.55rem;
+    flex: 0 0 auto;
+    filter: drop-shadow(0 8px 18px rgba(37, 99, 235, 0.24));
+}
+
+.brand-copy {
+    display: grid;
+    gap: 0.03rem;
+}
+
+.brand-name {
+    font-size: 1.08rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+}
+
+.brand-tagline {
+    color: var(--slate-400);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+

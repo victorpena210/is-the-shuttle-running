@@ -1,0 +1,52 @@
+/*
+ * ============================================================
+ * RESPONSIVE — MOBILE
+ * ============================================================
+ */
+
+@media (max-width: 620px) {
+
+    .records-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .records-filter-actions {
+        grid-column: auto;
+    }
+
+    .records-filter-actions,
+    .records-filter-actions .button {
+        width: 100%;
+    }
+
+    .records-view-tabs {
+        grid-template-columns: 1fr;
+    }
+
+    .selected-driver-stat-grid,
+    .record-detail-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .record-card__header {
+        align-items: flex-start;
+    }
+
+    .record-card__identity {
+        align-items: flex-start;
+    }
+
+    .record-card__body,
+    .record-card__header {
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
+    }
+
+    .record-details__content {
+        padding: 0.65rem;
+    }
+
+    .record-detail-section {
+        padding: 0.8rem;
+    }
+}

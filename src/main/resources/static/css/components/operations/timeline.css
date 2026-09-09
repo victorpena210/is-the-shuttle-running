@@ -1,0 +1,82 @@
+/* Vertical timeline */
+.demand-timeline {
+    position: relative;
+    display: grid;
+    gap: 1.35rem;
+    padding-left: 3.65rem;
+}
+
+.demand-timeline::before {
+    position: absolute;
+    top: 1.2rem;
+    bottom: 1.2rem;
+    left: 1.28rem;
+    width: 2px;
+    border-radius: 999px;
+    background: var(--slate-200);
+    content: "";
+}
+
+.demand-daypart {
+    position: relative;
+}
+
+.demand-daypart__header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 2.6rem;
+    margin-bottom: 0.55rem;
+}
+
+.demand-daypart__icon {
+    position: absolute;
+    left: -3.65rem;
+    display: grid;
+    width: 2.6rem;
+    height: 2.6rem;
+    place-items: center;
+    border: 1px solid var(--slate-200);
+    border-radius: 50%;
+    color: var(--blue-600);
+    background: var(--white);
+    box-shadow: 0 0 0 5px var(--slate-50);
+    font-size: 1rem;
+    font-weight: 900;
+}
+
+.demand-daypart__icon--rush {
+    border-color: #fecaca;
+    color: var(--red-600);
+    background: var(--red-100);
+}
+
+.demand-daypart__heading {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.demand-daypart__heading h3 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.demand-daypart__heading > span {
+    color: var(--slate-500);
+    font-size: 0.72rem;
+}
+
+.demand-cluster-label {
+    margin-left: auto;
+    padding: 0.28rem 0.55rem;
+    border: 1px solid #fecaca;
+    border-radius: 999px;
+    color: var(--red-700);
+    background: #fff1f2;
+    font-size: 0.65rem;
+    font-weight: 850;
+    white-space: nowrap;
+}
+

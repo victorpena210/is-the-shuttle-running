@@ -1,0 +1,61 @@
+/* =========================================================
+   RENATUS FOOTER BRANDING
+   ========================================================= */
+
+.site-footer__renatus {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.site-footer__renatus-label {
+    color: var(--slate-500);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.site-footer__renatus a {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+}
+
+.site-footer__renatus-logo {
+    display: block;
+    width: clamp(9rem, 14vw, 12rem);
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+.site-footer__renatus a:hover .site-footer__renatus-logo {
+    opacity: 0.9;
+}
+
+@media (max-width: 760px) {
+
+    .site-footer__renatus {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+}
+
+@media (max-width: 520px) {
+
+    .site-footer__renatus {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .site-footer__renatus-logo {
+        width: 12rem;
+    }
+
+}

@@ -1,0 +1,14 @@
+/* Time fields */
+.coverage-time-fields {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: end;
+    gap: 0.5rem;
+}
+
+.coverage-time-arrow {
+    padding-bottom: 0.68rem;
+    color: var(--slate-400);
+    font-weight: 900;
+}
+

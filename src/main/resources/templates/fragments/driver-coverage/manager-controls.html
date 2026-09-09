@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <details th:fragment="managerControls(assignment, periodLabel)"
+        class="coverage-manager"
+        th:id="|manage-${#strings.toLowerCase(periodName)}|">
+
+        <summary class="button button--secondary">
+            <span th:text="|Manage ${#strings.toLowerCase(periodLabel)} shift|">
+                Manage morning shift
+            </span>
+        </summary>
+
+        <div class="coverage-manager__panel">
+
+            <div class="coverage-manager__heading">
+                <div>
+                    <span class="coverage-manager__eyebrow">
+                        Manager controls
+                    </span>
+                    <h3 th:text="|${periodLabel} shift|">
+                        Morning shift
+                    </h3>
+                </div>
+
+                <button
+                    type="button"
+                    class="coverage-manager__close"
+                    data-close-coverage-details
+                    aria-label="Close manager controls">
+                    ×
+                </button>
+            </div>
+
+            <div
+                class="coverage-manager__recommendation"
+                th:if="${assignment.originallySuggestedDriver != null}">
+
+                <span>RoutePulse recommendation</span>
+                <strong th:text="${assignment.originallySuggestedDriver.name}">
+                    Victor Pena
+                </strong>
+            </div>
+
+            <div
+                class="coverage-manager__grid"
+                th:if="${assignment.actualStartedAt == null}">
+
+                <!-- Change driver -->
+
+                <th:block th:replace="~{fragments/driver-coverage/driver-change :: driverChange(${assignment})}"></th:block>
+
+                <!-- Change driving window -->
+
+                <th:block th:replace="~{fragments/driver-coverage/schedule-change :: scheduleChange(${assignment})}"></th:block>
+
+            </div>
+
+            <div
+                class="coverage-manager__locked"
+                th:if="${assignment.actualStartedAt != null}">
+
+                <strong>
+                    Assignment controls are locked because driving has started.
+                </strong>
+
+                <p>
+                    RoutePulse preserves the planned assignment after actual driving begins.
+                    Actual driver changes are recorded through driving sessions.
+                </p>
+
+            </div>
+
+            <!-- Actual driving controls -->
+
+            <th:block th:replace="~{fragments/driver-coverage/actual-driving :: actualDriving(${assignment})}"></th:block>
+
+            <p
+                class="locked-note"
+                th:if="${assignment.actualStartedAt == null
+                    and (assignment.scheduledStartTime == null or assignment.scheduledEndTime == null)}">
+                Set the scheduled driving window before starting actual driving.
+            </p>
+
+            <p
+                class="locked-note"
+                th:if="${assignment.actualStartedAt == null
+                    and assignment.scheduledStartTime != null
+                    and assignment.scheduledEndTime != null
+                    and not assignment.assignmentDate.equals(currentOperationsDate)}">
+                Start driving becomes available on the assignment date.
+            </p>
+
+        </div>
+
+    </details>
+</body>
+</html>

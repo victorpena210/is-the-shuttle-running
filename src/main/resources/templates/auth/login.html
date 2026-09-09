@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <title>Sign In | RoutePulse</title>
+    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+</head>
+
+<body class="public-page">
+<main class="public-shell">
+    <section class="public-story" aria-labelledby="product-heading">
+        <a class="brand" th:href="@{/}" aria-label="RoutePulse home">
+            <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+            <span class="brand-copy">
+                <span class="brand-name">RoutePulse</span>
+                <span class="brand-tagline">Shuttle operations</span>
+            </span>
+        </a>
+
+		<p class="public-kicker">Operate with clarity</p>
+		<h1 id="product-heading">
+		    RoutePulse leverages <strong>shuttle-based synergies</strong> to actualize cross-functional
+		    driving excellence.
+		</h1>
+		<p>
+		    Align schedules, drivers, and transportation demand into one vertically integrated mobility
+		    ecosystem.
+		</p>
+
+        <div class="route-visual" aria-hidden="true">
+            <span class="route-stop"></span>
+            <span class="route-line"></span>
+            <span class="route-stop"></span>
+            <span class="route-line"></span>
+            <span class="route-stop"></span>
+        </div>
+    </section>
+
+    <section class="auth-panel" aria-labelledby="sign-in-heading">
+        <p class="eyebrow">Operations workspace</p>
+        <h1 id="sign-in-heading">Welcome back</h1>
+        <p class="auth-panel__intro">
+            Sign in to access your RoutePulse workspace, manage shuttle operations,
+            or view your driving assignment.
+        </p>
+
+        <div th:if="${param.error}" class="alert alert--error" role="alert">
+            The email or password was incorrect, or this account cannot currently sign in.
+        </div>
+
+        <div th:if="${param.logout}" class="alert alert--success" role="status">
+            You have been signed out.
+        </div>
+
+        <div th:if="${param.registered}" class="alert alert--success" role="status">
+            Your account was created. Verify your email address before signing in.
+        </div>
+
+        <div th:if="${param.verified}" class="alert alert--success" role="status">
+            Your email address has been verified. You can now sign in.
+        </div>
+
+        <div th:if="${param.verificationExpired}" class="alert alert--error" role="alert">
+            That verification link has expired.
+        </div>
+
+        <div th:if="${param.verificationUsed}" class="alert alert--error" role="alert">
+            That verification link has already been used.
+        </div>
+
+        <div th:if="${param.verificationError}" class="alert alert--error" role="alert">
+            That verification link is invalid.
+        </div>
+
+		<div th:if="${param.invitationAccepted}" class="alert alert--success" role="status">
+		    Your RoutePulse account was created. You can now sign in.
+		</div>
+
+		<div th:if="${param.invitationError}" class="alert alert--error" role="alert">
+		    That invitation is invalid, expired, or has already been used.
+		</div>
+
+        <div th:if="${param.passwordReset}" class="alert alert--success" role="status">
+            Your password has been reset. You can now sign in.
+        </div>
+
+        <div th:if="${param.passwordResetError}" class="alert alert--error" role="alert">
+            That password-reset link is invalid, expired, or has already been used.
+        </div>
+
+        <div th:if="${param.registrationClosed}" class="alert alert--info" role="status">
+            New organization registration is currently invitation-only.
+        </div>
+
+        <div th:if="${param.rateLimited}" class="alert alert--warning" role="alert">
+            Too many sign-in attempts were received. Wait 15 minutes and try again.
+        </div>
+
+        <form class="auth-form" th:action="@{/login}" method="post">
+            <label for="email">Email address</label>
+            <input
+                type="email"
+                id="email"
+                name="email"
+                autocomplete="username"
+                inputmode="email"
+                required>
+
+            <label for="password">Password</label>
+            <input
+                type="password"
+                id="password"
+                name="password"
+                autocomplete="current-password"
+                required>
+
+            <a class="auth-link" th:href="@{/forgot-password}">
+                Forgot your password?
+            </a>
+
+            <button class="button button--block" type="submit">Sign in</button>
+        </form>
+
+        <p class="auth-panel__footer">
+            Interested in RoutePulse?
+            <a href="/#demo-request">Request demo access</a>.
+            <br>
+            <a th:href="@{/resend-verification}">Resend verification email</a>
+        </p>
+    </section>
+</main>
+<footer th:replace="~{fragments/footer :: footer('public')}"></footer>
+</body>
+</html>

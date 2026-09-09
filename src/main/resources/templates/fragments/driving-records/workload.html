@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div th:fragment="workload"
+        class="workload-table-shell"
+        th:if="${!#lists.isEmpty(workloadSummary.drivers)
+                and selectedDriverSummary == null
+                and filterError == null}">
+
+        <table class="workload-table">
+
+            <thead>
+
+            <tr>
+
+                <th scope="col">
+                    Driver
+                </th>
+
+                <th
+                    scope="col"
+                    class="numeric-column">
+
+                    Scheduled
+
+                </th>
+
+                <th
+                    scope="col"
+                    class="numeric-column">
+
+                    Actual
+
+                </th>
+
+                <th
+                    scope="col"
+                    class="numeric-column">
+
+                    Difference
+
+                </th>
+
+                <th
+                    scope="col"
+                    class="numeric-column">
+
+                    Assigned
+
+                </th>
+
+                <th
+                    scope="col"
+                    class="numeric-column">
+
+                    Driven
+
+                </th>
+
+            </tr>
+
+            </thead>
+
+            <tbody>
+
+            <tr
+                th:each="row : ${workloadSummary.drivers}">
+
+                <td>
+
+                    <a
+                        class="workload-driver-link"
+                        th:href="@{/driving-records(
+                            from=${fromDate},
+                            to=${toDate},
+                            driverId=${row.driver.id},
+                            view='summary'
+                        )}">
+
+                        <span
+                            th:text="${row.driver.name}">
+
+                            Victor Peña
+
+                        </span>
+
+                        <small
+                            th:text="|ID ${row.driver.employeeId}|">
+
+                            ID 12345
+
+                        </small>
+
+                    </a>
+
+                    <span
+                        class="workload-driver-status"
+                        th:if="${!row.driver.active}">
+
+                        Inactive
+
+                    </span>
+
+                </td>
+
+                <td
+                    class="numeric-column workload-number"
+                    th:text="|${#numbers.formatDecimal(row.scheduledHours, 1, 2)} hrs|">
+
+                    12.00 hrs
+
+                </td>
+
+                <td
+                    class="numeric-column workload-number"
+                    th:text="|${#numbers.formatDecimal(row.actualHours, 1, 2)} hrs|">
+
+                    10.50 hrs
+
+                </td>
+
+                <td class="numeric-column">
+
+                    <span
+                        class="workload-difference"
+                        th:classappend="${row.differenceMinutes > 0}
+                            ? ' workload-difference--positive'
+                            : (${row.differenceMinutes < 0}
+                                ? ' workload-difference--negative'
+                                : ' workload-difference--balanced')"
+                        th:text="|${row.differenceMinutes > 0 ? '+' : ''}${#numbers.formatDecimal(row.differenceHours, 1, 2)} hrs|">
+
+                        -1.50 hrs
+
+                    </span>
+
+                </td>
+
+                <td
+                    class="numeric-column workload-count"
+                    th:text="${row.scheduledShifts}">
+
+                    4
+
+                </td>
+
+                <td
+                    class="numeric-column workload-count"
+                    th:text="${row.shiftsDriven}">
+
+                    4
+
+                </td>
+
+            </tr>
+
+            </tbody>
+
+        </table>
+
+    </div>
+</body>
+</html>

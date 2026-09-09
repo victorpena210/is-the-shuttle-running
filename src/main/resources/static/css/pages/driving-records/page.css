@@ -1,0 +1,19 @@
+/*
+ * ============================================================
+ * DRIVING RECORDS
+ * ============================================================
+ */
+
+.driving-records-page .app-main {
+    padding-bottom: 4rem;
+}
+
+.records-page-header {
+    margin-bottom: 1.25rem;
+}
+
+.records-page-header p:last-child {
+    max-width: 64ch;
+}
+
+

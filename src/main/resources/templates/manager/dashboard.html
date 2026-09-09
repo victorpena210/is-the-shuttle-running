@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+
+    <title>Overview | RoutePulse</title>
+
+    <link
+        rel="icon"
+        th:href="@{/images/routepulse-mark.svg}"
+        type="image/svg+xml">
+
+    <link
+        rel="stylesheet"
+        th:href="@{/css/site.css}">
+
+    <link
+        rel="stylesheet"
+        th:href="@{/css/dashboard.css}">
+
+    <script
+        type="module"
+        th:src="@{/js/pages/dashboard.js}">
+    </script>
+</head>
+
+<body class="app-page">
+
+<th:block th:replace="~{fragments/navigation :: managerNav('dashboard')}"></th:block>
+
+<main
+    id="main-content"
+    class="app-main">
+
+		 <header class="page-header">
+
+		     <div>
+
+		         <p
+		             class="eyebrow"
+		             th:text="${organizationName}">
+		             Organization
+		         </p>
+
+		         <h1>
+		             Overview
+		         </h1>
+
+		         <p>
+		             Review today’s transportation demand, driver coverage,
+		             and shuttle operations.
+		         </p>
+
+		     </div>
+
+		     <div
+		         class="page-date"
+		         th:if="${selectedDate != null}">
+
+		         Planning for
+
+		         <span
+		             th:text="${#temporals.format(selectedDate, 'EEEE, MMMM d, yyyy')}">
+		             Monday, August 10, 2026
+		         </span>
+
+		     </div>
+
+		 </header>
+
+    <div
+        th:if="${successMessage}"
+        class="alert alert--success"
+        role="status"
+        th:text="${successMessage}">
+    </div>
+
+    <div
+        th:if="${errorMessage}"
+        class="alert alert--error"
+        role="alert"
+        th:text="${errorMessage}">
+    </div>
+
+		 <th:block th:replace="~{fragments/dashboard/overview :: overview}"></th:block>
+
+    <th:block th:replace="~{fragments/dashboard/schedule-upload :: upload}"></th:block>
+
+    <th:block th:replace="~{fragments/dashboard/planning-date :: planningDate}"></th:block>
+
+    <th:block th:replace="~{fragments/dashboard/import-history :: importHistory}"></th:block>
+
+    <div
+        th:if="${scheduleUploaded and !selectedDateAvailable}"
+        data-dashboard-section="demand"
+        class="alert alert--warning"
+        role="alert">
+
+        The selected date is not included in the uploaded schedule.
+        Choose one of the available dates above.
+
+    </div>
+
+    <div th:if="${generated}" data-plan-container>
+
+        <div>
+
+            <th:block th:replace="~{fragments/dashboard/transportation-demand :: demand}"></th:block>
+
+                <div
+                    class="alert alert--warning"
+                    th:if="${calendarConfirmationRequired}"
+                    role="alert">
+
+                    <div>
+                        <strong>Park calendar unverified.</strong>
+                        Transportation demand above still comes from the uploaded
+                        employee schedule. RoutePulse has not created driver
+                        coverage because the Six Flags calendar could not be verified.
+
+                        <span
+                            class="mono"
+                            th:if="${calendarDiagnosticCode != null}"
+                            th:text="| Calendar check: ${calendarDiagnosticCode}.|">
+                            Calendar check: DATE_MISSING_FROM_API.
+                        </span>
+                    </div>
+
+                    <form
+                        th:action="@{/park-calendar/confirm-open}"
+                        method="post">
+
+                        <input
+                            type="hidden"
+                            name="operatingDate"
+                            th:value="${selectedDate}">
+
+                        <button
+                            class="button"
+                            type="submit">
+                            Confirm park is open and continue
+                        </button>
+
+                    </form>
+
+                </div>
+
+                <div
+                    class="alert alert--info"
+                    th:if="${operatingDay != null and operatingDay.status.name() == 'CLOSED'}"
+                    role="status">
+                    <strong>Park closed — shuttle coverage is not scheduled.</strong>
+                    Transportation demand remains visible for schedule review, but
+                    RoutePulse will not create shuttle driver assignments for this date.
+                </div>
+
+                <th:block th:if="${showSchedule}">
+                    <th:block th:replace="~{fragments/driver-coverage/coverage :: coverage}"></th:block>
+                </th:block>
+
+        </div>
+
+    </div>
+
+</main>
+
+<footer
+    th:replace="~{fragments/footer :: footer('app')}">
+</footer>
+
+</body>
+
+</html>

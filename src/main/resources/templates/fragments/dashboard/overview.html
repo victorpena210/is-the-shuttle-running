@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="overview"
+        class="dashboard-overview"
+        data-dashboard-section="overview"
+        aria-labelledby="overview-heading">
+
+        <div class="section-heading">
+
+            <div>
+
+                <h2 id="overview-heading">
+                    Today at a glance
+                </h2>
+
+                <p>
+                    Review the operating plan, then open a section
+                    when it needs attention.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div
+            class="overview-grid"
+            th:if="${generated and showSchedule}">
+
+            <!-- Peak transportation window -->
+            <article class="overview-card">
+
+                <span class="overview-card__label">
+                    Peak transportation window
+                </span>
+
+                <strong
+                    class="overview-card__value"
+                    th:text="${transportationDemand.overallPeakWindowStart != null
+                        ? #temporals.format(transportationDemand.overallPeakWindowStart, 'h:mm a')
+                        : 'No demand'}">
+                    6:00 PM
+                </strong>
+
+                <span
+                    class="overview-card__detail"
+                    th:text="${transportationDemand.overallPeakWindowStart != null
+                        ? transportationDemand.overallPeakWindowCount
+                            + ' movements · '
+                            + transportationDemand.overallPeakPeriodTitle
+                        : 'No normal operating demand'}">
+                    80 movements · Evening Pickups
+                </span>
+
+            </article>
+
+            <!-- Eligible drivers -->
+            <article class="overview-card">
+
+                <span class="overview-card__label">
+                    Eligible drivers
+                </span>
+
+                <strong
+                    class="overview-card__value"
+                    th:text="${#lists.size(driverSchedules)}">
+                    1
+                </strong>
+
+                <span class="overview-card__detail">
+                    Matched to this schedule by employee ID
+                </span>
+
+            </article>
+
+            <!-- Coverage status -->
+            <article class="overview-card">
+
+                <span class="overview-card__label">
+                    Coverage status
+                </span>
+
+                <strong
+                    class="overview-card__value"
+                    th:text="|${#lists.size(driverAssignments)} of 2|">
+                    1 of 2
+                </strong>
+
+                <span
+                    class="overview-card__detail"
+                    th:text="${morningAssignmentExists and afternoonAssignmentExists
+                        ? 'Morning and afternoon shifts are covered'
+                        : (!morningAssignmentExists and !afternoonAssignmentExists
+                            ? 'Morning and afternoon shifts are missing drivers'
+                            : (!morningAssignmentExists
+                                ? 'Morning shift is missing a driver'
+                                : 'Afternoon shift is missing a driver'))}">
+                    Shift coverage status
+                </span>
+
+            </article>
+
+        </div>
+
+        <!-- Missing driver warning -->
+        <div
+            class="overview-action"
+            th:if="${generated and showSchedule and (!morningAssignmentExists or !afternoonAssignmentExists)}">
+
+            <div>
+
+                <strong>
+                    Driver coverage needs attention
+                </strong>
+
+                <p
+                    th:text="${!morningAssignmentExists and !afternoonAssignmentExists
+                        ? 'Morning and afternoon shifts are missing drivers.'
+                        : (!morningAssignmentExists
+                            ? 'Morning shift is missing a driver.'
+                            : 'Afternoon shift is missing a driver.')}">
+                    A shift is missing a driver.
+                </p>
+
+            </div>
+
+            <a
+                class="button"
+                th:href="@{/app(date=${selectedDate})} + '#coverage'">
+                Assign coverage
+            </a>
+
+        </div>
+
+        <!-- No schedule uploaded -->
+        <div
+            class="overview-action"
+            th:unless="${scheduleUploaded}">
+
+            <div>
+
+                <strong>
+                    Start with a weekly schedule
+                </strong>
+
+                <p>
+                    Upload a Dayforce CSV before building the pickup plan.
+                </p>
+
+            </div>
+
+            <a
+                class="button"
+                href="#schedules">
+                Upload schedule
+            </a>
+
+        </div>
+
+        <!-- Overview shortcuts -->
+        <div
+            class="overview-actions"
+            th:if="${generated and showSchedule}">
+
+            <a
+                class="button button--secondary"
+                th:href="@{/app(date=${selectedDate})} + '#demand'">
+                View transportation demand
+            </a>
+
+            <a
+                class="button button--secondary"
+                th:href="@{/app(date=${selectedDate})} + '#coverage'">
+                Manage driver coverage
+            </a>
+
+        </div>
+
+        <div class="overview-actions">
+
+            <a
+                class="button button--secondary"
+                th:href="@{/ride/{slug}(slug=${organizationSlug})}"
+                target="_blank"
+                rel="noopener">
+                Open rider status page
+            </a>
+
+        </div>
+
+    </section>
+</body>
+</html>

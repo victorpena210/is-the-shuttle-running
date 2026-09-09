@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="upload"
+        class="workflow-grid workflow-grid--single"
+        data-dashboard-section="schedules"
+        aria-label="Schedule upload">
+
+        <!-- Upload schedule -->
+
+        <article class="workflow-card">
+
+            <h2>
+                Upload weekly schedule
+            </h2>
+
+            <p>
+                Use the exported Dayforce CSV.
+                Existing imports stay available for history.
+            </p>
+
+            <form
+                th:action="@{/upload}"
+                method="post"
+                enctype="multipart/form-data">
+
+                <div class="form-group">
+
+                    <label for="scheduleFile">
+                        Schedule CSV
+                    </label>
+
+                    <input
+                        type="file"
+                        id="scheduleFile"
+                        name="scheduleFile"
+                        accept=".csv,text/csv"
+                        required>
+
+                </div>
+
+                <button
+                    class="button"
+                    type="submit">
+                    Upload schedule
+                </button>
+
+            </form>
+
+        </article>
+
+    </section>
+</body>
+</html>

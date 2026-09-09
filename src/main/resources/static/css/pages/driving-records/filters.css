@@ -1,0 +1,101 @@
+/*
+ * ============================================================
+ * FILTER PANEL
+ * ============================================================
+ */
+
+.records-filter-panel {
+    display: grid;
+    grid-template-columns:
+        minmax(220px, 0.75fr)
+        minmax(0, 2fr);
+
+    gap: 1.5rem;
+
+    padding: 1.35rem;
+
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-lg);
+
+    background: rgba(255, 255, 255, 0.94);
+
+    box-shadow: var(--shadow-sm);
+}
+
+.records-filter-panel__heading {
+    padding-right: 1.25rem;
+
+    border-right:
+        1px solid var(--slate-200);
+}
+
+.records-filter-panel__eyebrow,
+.records-section-kicker,
+.record-detail-kicker {
+    display: block;
+
+    margin-bottom: 0.35rem;
+
+    color: var(--blue-600);
+
+    font-size: 0.68rem;
+    font-weight: 900;
+
+    letter-spacing: 0.12em;
+
+    text-transform: uppercase;
+}
+
+.records-filter-panel__heading h2 {
+    margin-bottom: 0.35rem;
+
+    font-size: 1.15rem;
+}
+
+.records-filter-panel__heading p {
+    margin: 0;
+
+    color: var(--slate-500);
+
+    font-size: 0.86rem;
+}
+
+.records-filter-form {
+    min-width: 0;
+}
+
+.records-filter-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr))
+        auto;
+
+    align-items: end;
+
+    gap: 0.8rem;
+}
+
+.records-filter-grid .form-group {
+    margin: 0;
+}
+
+.records-filter-actions {
+    display: flex;
+
+    align-items: center;
+
+    gap: 0.5rem;
+
+    padding-bottom: 0.02rem;
+}
+
+.records-filter-actions .button {
+    white-space: nowrap;
+}
+
+.records-alert {
+    margin-top: 1rem;
+}
+
+

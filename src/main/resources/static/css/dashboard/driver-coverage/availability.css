@@ -1,0 +1,47 @@
+/* Availability */
+.coverage-availability {
+    display: grid;
+    gap: 0.8rem;
+    margin-top: 0.4rem;
+}
+
+.coverage-availability-table td {
+    vertical-align: middle;
+}
+
+.coverage-work-status {
+    display: inline-flex;
+    margin-right: 0.4rem;
+    padding: 0.2rem 0.44rem;
+    border-radius: 999px;
+    font-size: 0.62rem;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.coverage-work-status--scheduled {
+    color: #14532d;
+    background: var(--green-100);
+}
+
+.coverage-work-status--unscheduled {
+    color: var(--slate-600);
+    background: var(--slate-100);
+}
+
+.coverage-driver-role {
+    display: inline-flex;
+    margin: 0.12rem 0.28rem 0.12rem 0;
+    padding: 0.22rem 0.48rem;
+    border-radius: 999px;
+    color: #1e3a8a;
+    background: var(--blue-100);
+    font-size: 0.65rem;
+    font-weight: 800;
+}
+
+.coverage-driver-role--warning {
+    color: var(--amber-800);
+    background: var(--amber-100);
+}
+

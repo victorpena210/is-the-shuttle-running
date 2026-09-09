@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <header th:fragment="recordHeader(record)" class="record-card__header">
+
+        <div class="record-card__identity">
+
+            <span
+                class="record-period"
+                th:classappend="${record.period.name() == 'MIDDAY'}
+                    ? ' record-period--midday'
+                    : (${record.period.name() == 'AFTERNOON'}
+                        ? ' record-period--afternoon'
+                        : '')"
+                th:text="${record.period.name() == 'MORNING'}
+                    ? 'AM'
+                    : (${record.period.name() == 'MIDDAY'}
+                        ? 'MID'
+                        : 'PM')">
+
+                AM
+
+            </span>
+
+            <div>
+
+                <p
+                    class="record-card__date"
+                    th:text="|${#temporals.format(record.assignmentDate, 'MMM d')} · ${record.period}|">
+
+                    SEP 7 · MORNING
+
+                </p>
+
+                <h3
+                    th:text="|${record.scheduledDriver.name} scheduled|">
+
+                    Victor Peña scheduled
+
+                </h3>
+
+            </div>
+
+        </div>
+
+        <span
+            class="badge"
+            th:classappend="${record.assignmentSource.name() == 'AUTO'}
+                ? ' badge--auto'
+                : (${record.assignmentSource.name() == 'OVERRIDE'}
+                    ? ' badge--override'
+                    : ' badge--manual')"
+            th:text="${record.assignmentSource}">
+
+            AUTO
+
+        </span>
+
+    </header>
+</body>
+</html>

@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <div th:fragment="timeline(assignment, assignedDriverSchedule)"
+        class="coverage-timeline"
+        th:if="${assignedDriverSchedule != null and assignment.scheduledStartTime != null and assignment.scheduledEndTime != null}"
+        th:attr="data-work-start=${assignedDriverSchedule.startTime},
+                 data-work-end=${assignedDriverSchedule.endTime},
+                 data-drive-start=${assignment.scheduledStartTime},
+                 data-drive-end=${assignment.scheduledEndTime}"
+        data-coverage-timeline>
+
+        <div class="coverage-timeline__row">
+            <span class="coverage-timeline__name">Work shift</span>
+
+            <div class="coverage-timeline__track">
+                <span class="coverage-timeline__fill coverage-timeline__fill--work"></span>
+            </div>
+
+            <span
+                class="coverage-timeline__times"
+                th:text="|${#temporals.format(assignedDriverSchedule.startTime, 'h:mm a')}–${#temporals.format(assignedDriverSchedule.endTime, 'h:mm a')}|">
+                9:00 AM–6:00 PM
+            </span>
+        </div>
+
+        <div class="coverage-timeline__row">
+            <span class="coverage-timeline__name">Driving</span>
+
+            <div class="coverage-timeline__track">
+                <span class="coverage-timeline__fill coverage-timeline__fill--drive" data-driving-fill></span>
+            </div>
+
+            <span
+                class="coverage-timeline__times"
+                th:text="|${#temporals.format(assignment.scheduledStartTime, 'h:mm a')}–${#temporals.format(assignment.scheduledEndTime, 'h:mm a')}|">
+                9:00 AM–12:15 PM
+            </span>
+        </div>
+
+    </div>
+</body>
+</html>

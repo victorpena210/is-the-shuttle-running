@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="period"
+        class="transportation-card"
+        th:each="period : ${transportationDemand.periods}"
+        th:classappend="| transportation-card--${period.key}|">
+
+        <header class="transportation-card__header">
+
+            <div
+                class="transportation-card__icon"
+                th:text="${period.icon}"
+                aria-hidden="true">
+                ↑
+            </div>
+
+            <div class="transportation-card__heading">
+
+                <h3
+                    th:text="${period.title}">
+                    Morning Arrivals
+                </h3>
+
+                <p
+                    th:text="${period.description}">
+                    Team members clocking in and moving toward the park.
+                </p>
+
+            </div>
+
+            <div
+                class="transportation-card__peak"
+                th:if="${period.hasDemand}">
+
+                <span>
+                    Peak
+                </span>
+
+                <strong
+                    th:text="${period.peakWindowCount}">
+                    82
+                </strong>
+
+            </div>
+
+        </header>
+
+        <div
+            class="transportation-card__rows"
+            th:if="${period.hasDemand}">
+
+            <article
+                class="transportation-window"
+                th:each="window : ${period.windows}"
+                th:classappend="${' transportation-window--' + window.priority.cssClass}">
+
+                <div>
+
+                    <strong
+                        class="transportation-window__time"
+                        th:text="|${#temporals.format(window.windowStart, 'h:mm')}–${#temporals.format(window.windowEnd, 'h:mm a')}|">
+                        10:00–10:15 AM
+                    </strong>
+
+                    <span
+                        class="transportation-window__breakdown"
+                        th:if="${period.key == 'midday'}"
+                        th:text="|${window.arrivals} in · ${window.departures} out|">
+                        17 in · 24 out
+                    </span>
+
+                    <span
+                        class="transportation-window__breakdown"
+                        th:if="${period.key == 'morning' and window.departures > 0}"
+                        th:text="|${window.departures} clock-outs also scheduled|">
+                        2 clock-outs also scheduled
+                    </span>
+
+                    <span
+                        class="transportation-window__breakdown"
+                        th:if="${period.key == 'evening' and window.arrivals > 0}"
+                        th:text="|${window.arrivals} clock-ins also scheduled|">
+                        3 clock-ins also scheduled
+                    </span>
+
+                </div>
+
+                <div class="transportation-window__count">
+
+                    <div class="transportation-window__number">
+
+                        <strong
+                            th:text="${window.demandCount}">
+                            82
+                        </strong>
+
+                        <span
+                            th:text="${period.totalLabel}">
+                            arrivals
+                        </span>
+
+                    </div>
+
+                    <span
+                        class="demand-pill"
+                        th:classappend="${' demand-pill--' + window.priority.cssClass}">
+
+                        <span
+                            class="demand-pill__dot"
+                            aria-hidden="true">
+                        </span>
+
+                        <span
+                            th:text="${window.priority.label}">
+                            Very high
+                        </span>
+
+                    </span>
+
+                </div>
+
+            </article>
+
+        </div>
+
+        <div
+            class="transportation-card__empty"
+            th:unless="${period.hasDemand}">
+
+            No meaningful
+            <span
+                th:text="${period.totalLabel}">
+                arrivals
+            </span>
+            were found in this part of the operating day.
+
+        </div>
+
+    </section>
+</body>
+</html>

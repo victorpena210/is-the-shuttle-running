@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <title>Organization Access | RoutePulse</title>
+    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+</head>
+
+<body class="app-page">
+<main class="blocked-shell">
+    <section class="blocked-panel" aria-labelledby="access-heading">
+        <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+        <div class="blocked-icon" aria-hidden="true">!</div>
+        <p class="eyebrow">Workspace unavailable</p>
+        <h1 id="access-heading">Organization access is paused</h1>
+        <p
+            class="muted"
+            th:text="${accessMessage}">
+            This organization is not currently allowed to use RoutePulse.
+        </p>
+        <p class="muted">
+            Contact your organization owner or RoutePulse support for help restoring access.
+        </p>
+
+        <form th:action="@{/logout}" method="post">
+            <button class="button" type="submit">Return to sign in</button>
+        </form>
+    </section>
+</main>
+<footer th:replace="~{fragments/footer :: footer('app')}"></footer>
+</body>
+</html>

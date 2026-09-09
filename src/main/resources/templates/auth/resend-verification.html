@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <title>Resend Verification | RoutePulse</title>
+    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+</head>
+
+<body class="public-page">
+<main class="public-shell">
+    <section class="public-story" aria-labelledby="product-heading">
+        <a class="brand" th:href="@{/login}" aria-label="RoutePulse sign in">
+            <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+            <span class="brand-copy">
+                <span class="brand-name">RoutePulse</span>
+                <span class="brand-tagline">Shuttle operations</span>
+            </span>
+        </a>
+
+        <p class="public-kicker">Email verification</p>
+        <h1 id="product-heading">Activate your workspace access.</h1>
+        <p>
+            Request a new verification link if the original message expired
+            or never arrived.
+        </p>
+    </section>
+
+    <section class="auth-panel" aria-labelledby="resend-heading">
+        <p class="eyebrow">Account assistance</p>
+        <h1 id="resend-heading">Resend verification email</h1>
+        <p class="auth-panel__intro">
+            New links expire after 24 hours.
+        </p>
+
+        <div th:if="${param.requested}" class="alert alert--success" role="status">
+            If an unverified account exists for that address, a new link has been sent.
+        </div>
+
+        <form
+            class="auth-form"
+            th:action="@{/resend-verification}"
+            th:object="${resendVerificationForm}"
+            method="post">
+
+            <label for="email">Email address</label>
+            <input
+                type="email"
+                id="email"
+                th:field="*{email}"
+                autocomplete="email"
+                inputmode="email"
+                maxlength="254"
+                required>
+
+            <p
+                th:if="${#fields.hasErrors('email')}"
+                th:errors="*{email}"
+                class="field-error">
+            </p>
+
+            <button class="button button--block" type="submit">
+                Send verification link
+            </button>
+        </form>
+
+        <p class="auth-panel__footer">
+            <a th:href="@{/login}">Return to sign in</a>
+        </p>
+    </section>
+</main>
+<footer th:replace="~{fragments/footer :: footer('public')}"></footer>
+</body>
+</html>

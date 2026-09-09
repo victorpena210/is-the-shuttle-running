@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<th:block th:fragment="managerNav(activePage)">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <header class="app-topbar">
+        <div class="app-topbar__inner">
+
+            <a class="brand" th:href="@{/app}" aria-label="RoutePulse dashboard">
+                <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+                <span class="brand-copy">
+                    <span class="brand-name">RoutePulse</span>
+                    <span class="brand-tagline">Shuttle operations</span>
+                </span>
+            </a>
+
+            <nav class="app-nav" aria-label="Primary navigation">
+                <a
+                    class="app-nav__link"
+                    th:href="@{/app#overview}"
+                    data-dashboard-link="overview"
+                    th:attr="aria-current=${activePage == 'overview' ? 'page' : null}">
+                    Overview
+                </a>
+
+                <a
+                    class="app-nav__link"
+                    th:href="@{/app#schedules}"
+                    data-dashboard-link="schedules"
+                    th:attr="aria-current=${activePage == 'schedules' ? 'page' : null}">
+                    Schedules
+                </a>
+
+                <a
+                    class="app-nav__link"
+                    th:href="@{/app#demand}"
+                    data-dashboard-link="demand"
+                    th:attr="aria-current=${activePage == 'demand' ? 'page' : null}">
+                    Transportation demand
+                </a>
+
+                <a
+                    class="app-nav__link"
+                    th:href="@{/app#coverage}"
+                    data-dashboard-link="coverage"
+                    th:attr="aria-current=${activePage == 'coverage' ? 'page' : null}">
+                    Driver coverage
+                </a>
+
+                <a
+                    class="app-nav__link"
+                    th:href="@{/driving-records}"
+                    th:attr="aria-current=${activePage == 'driving-records' ? 'page' : null}">
+                    Driving records
+                </a>
+
+                <a
+                    class="app-nav__link"
+                    th:href="@{/drivers}"
+                    th:attr="aria-current=${activePage == 'drivers' ? 'page' : null}">
+                    Drivers
+                </a>
+
+                <a
+                    class="app-nav__link"
+                    th:if="${canManageDrivingQr}"
+                    th:href="@{/driving-qr}"
+                    th:attr="aria-current=${activePage == 'driving-qr' ? 'page' : null}">
+                    Driving QR
+                </a>
+
+                <a
+                    class="app-nav__link"
+                    th:if="${isOwner}"
+                    th:href="@{/organization/invitations}"
+                    th:attr="aria-current=${activePage == 'managers' ? 'page' : null}">
+                    Managers
+                </a>
+
+                <form class="app-nav__form" th:action="@{/logout}" method="post">
+                    <button class="app-nav__button" type="submit">Sign out</button>
+                </form>
+            </nav>
+        </div>
+    </header>
+</th:block>
+
+<th:block th:fragment="driverNav">
+    <a class="skip-link" href="#main-content">Skip to main content</a>
+
+    <header class="app-topbar">
+        <div class="app-topbar__inner">
+            <a class="brand" th:href="@{/driver}" aria-label="RoutePulse driver home">
+                <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+                <span class="brand-copy">
+                    <span class="brand-name">RoutePulse</span>
+                    <span class="brand-tagline">Driver account</span>
+                </span>
+            </a>
+
+            <nav class="app-nav" aria-label="Driver navigation">
+                <a class="app-nav__link" th:href="@{/driver}" aria-current="page">
+                    My assignment
+                </a>
+
+                <form class="app-nav__form" th:action="@{/logout}" method="post">
+                    <button class="app-nav__button" type="submit">Sign out</button>
+                </form>
+            </nav>
+        </div>
+    </header>
+</th:block>
+
+</body>
+</html>

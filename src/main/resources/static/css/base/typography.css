@@ -1,0 +1,26 @@
+h1,
+h2,
+h3,
+p {
+    margin-top: 0;
+}
+
+h1,
+h2,
+h3 {
+    line-height: 1.16;
+    letter-spacing: -0.025em;
+}
+
+h1 {
+    font-size: clamp(2rem, 4vw, 3.25rem);
+}
+
+h2 {
+    font-size: clamp(1.35rem, 2.5vw, 1.8rem);
+}
+
+h3 {
+    font-size: 1.05rem;
+}
+

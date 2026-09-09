@@ -1,0 +1,20 @@
+/* Section divider */
+.coverage-section-label {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 0.4rem;
+    color: var(--slate-500);
+    font-size: 0.68rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.coverage-section-label::after {
+    height: 1px;
+    flex: 1;
+    background: var(--slate-200);
+    content: "";
+}
+

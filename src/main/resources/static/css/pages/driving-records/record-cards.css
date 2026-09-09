@@ -1,0 +1,199 @@
+/*
+ * ============================================================
+ * INDIVIDUAL RECORDS
+ * ============================================================
+ */
+
+.record-card-list {
+    display: grid;
+
+    gap: 0.85rem;
+}
+
+.record-card {
+    overflow: hidden;
+
+    border:
+        1px solid
+        var(--slate-200);
+
+    border-radius:
+        var(--radius-lg);
+
+    background:
+        var(--white);
+
+    box-shadow:
+        var(--shadow-sm);
+
+    scroll-margin-top: 6rem;
+}
+
+.record-card:target {
+    border-color:
+        rgba(59, 130, 246, 0.55);
+
+    box-shadow:
+        0 0 0 4px
+        rgba(59, 130, 246, 0.10),
+        var(--shadow-md);
+}
+
+.record-card__header {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    gap: 1rem;
+
+    padding:
+        1rem
+        1.1rem;
+
+    border-bottom:
+        1px solid
+        var(--slate-200);
+
+    background:
+        linear-gradient(
+            90deg,
+            #fbfdff,
+            #ffffff
+        );
+}
+
+.record-card__identity {
+    display: flex;
+
+    align-items: center;
+
+    gap: 0.75rem;
+}
+
+.record-period {
+    display: grid;
+
+    width: 2.55rem;
+    height: 2.55rem;
+
+    flex: 0 0 auto;
+
+    place-items: center;
+
+    border-radius: 0.75rem;
+
+    color: #1e3a8a;
+
+    background: var(--blue-100);
+
+    font-size: 0.7rem;
+    font-weight: 900;
+}
+
+.record-period--midday {
+    color: var(--amber-800);
+
+    background: var(--amber-100);
+}
+
+.record-period--afternoon {
+    color: #5b21b6;
+
+    background: var(--violet-100);
+}
+
+.record-card__date {
+    margin:
+        0
+        0
+        0.08rem;
+
+    color: var(--slate-500);
+
+    font-size: 0.68rem;
+    font-weight: 850;
+
+    letter-spacing: 0.08em;
+
+    text-transform: uppercase;
+}
+
+.record-card__identity h3 {
+    margin: 0;
+
+    font-size: 1rem;
+}
+
+.record-card__body {
+    padding:
+        1rem
+        1.1rem
+        1.1rem;
+}
+
+.record-overview-grid {
+    display: grid;
+
+    grid-template-columns:
+        repeat(3, minmax(0, 1fr));
+
+    gap: 0.75rem;
+}
+
+.record-overview-block {
+    min-width: 0;
+
+    padding: 0.82rem;
+
+    border:
+        1px solid
+        var(--slate-200);
+
+    border-radius:
+        var(--radius-md);
+
+    background:
+        var(--slate-50);
+}
+
+.record-overview-block__label {
+    display: block;
+
+    margin-bottom: 0.28rem;
+
+    color: var(--slate-500);
+
+    font-size: 0.63rem;
+    font-weight: 850;
+
+    letter-spacing: 0.08em;
+
+    text-transform: uppercase;
+}
+
+.record-overview-block strong {
+    display: block;
+
+    overflow-wrap: anywhere;
+
+    font-size: 0.88rem;
+}
+
+.record-overview-block small {
+    display: block;
+
+    margin-top: 0.18rem;
+
+    color: var(--slate-500);
+
+    font-size: 0.7rem;
+}
+
+.record-outcome {
+    font-size: 0.76rem !important;
+
+    letter-spacing: 0.01em;
+}
+
+

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section th:fragment="demand"
+        class="section"
+        data-dashboard-section="demand"
+        aria-labelledby="transportation-demand-heading">
+
+        <div class="section-heading">
+
+            <div>
+
+                <h2 id="transportation-demand-heading">
+                    Transportation demand
+                </h2>
+
+                <p>
+                    See when team members are arriving, when midday
+                    turnover creates two-way movement, and when evening
+                    pickups require shuttle coverage.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div
+            class="transportation-demand"
+            th:if="${transportationDemand.hasAnyDemand}">
+
+            <th:block th:replace="~{fragments/dashboard/demand-summary :: summary}"></th:block>
+
+            <div
+                class="transportation-columns"
+                th:if="${transportationDemand.hasOperationalDemand}">
+
+                <th:block th:replace="~{fragments/dashboard/demand-period :: period}"></th:block>
+
+            </div>
+
+            <th:block th:replace="~{fragments/dashboard/off-hours :: offHours}"></th:block>
+
+            <div
+                class="transportation-legend"
+                th:if="${transportationDemand.hasOperationalDemand}"
+                aria-label="Transportation demand legend">
+
+                <span>
+                    <i class="transportation-legend__dot"></i>
+                    Low: 0–9
+                </span>
+
+                <span>
+                    <i class="transportation-legend__dot transportation-legend__dot--moderate"></i>
+                    Moderate: 10–24
+                </span>
+
+                <span>
+                    <i class="transportation-legend__dot transportation-legend__dot--high"></i>
+                    High: 25–49
+                </span>
+
+                <span>
+                    <i class="transportation-legend__dot transportation-legend__dot--very-high"></i>
+                    Very high: 50+
+                </span>
+
+                <span>
+                    Demand level is based on each period’s primary movement.
+                </span>
+
+            </div>
+
+        </div>
+
+        <div
+            th:unless="${transportationDemand.hasAnyDemand}"
+            class="alert alert--info">
+
+            No transportation demand was found for this date.
+
+        </div>
+
+    </section>
+</body>
+</html>
