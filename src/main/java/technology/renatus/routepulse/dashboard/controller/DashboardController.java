@@ -33,6 +33,31 @@ public class DashboardController {
         this.attentionCenterService = attentionCenterService;
     }
 
+    @GetMapping("/app/attention")
+    public String showAttentionCenter(
+            Authentication authentication,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(defaultValue = "false") boolean allowUnverifiedCalendar,
+            Model model) {
+
+        Organization organization =
+                currentOrganizationService.requireOrganization(authentication);
+
+        DashboardPlan plan = dashboardPlanningService.getReadOnlyPlan(
+                organization.getId(),
+                date,
+                allowUnverifiedCalendar
+        );
+
+        model.addAttribute(
+                "attentionCenter",
+                attentionCenterService.build(organization.getId(), plan)
+        );
+
+        return "fragments/dashboard/attention-center :: attentionCenter";
+    }
+
     @GetMapping("/app")
     public String showDashboard(Authentication authentication,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,

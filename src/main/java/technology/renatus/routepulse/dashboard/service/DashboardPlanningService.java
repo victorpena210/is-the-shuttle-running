@@ -45,7 +45,31 @@ public class DashboardPlanningService {
         this.driverService = driverService;
     }
 
-    public DashboardPlan getPlan(Long organizationId, LocalDate date, boolean allowUnverifiedCalendar) {
+    public DashboardPlan getPlan(
+            Long organizationId,
+            LocalDate date,
+            boolean allowUnverifiedCalendar) {
+
+        return buildPlan(organizationId, date, allowUnverifiedCalendar, true);
+    }
+
+    /**
+     * Rebuilds the dashboard view model without creating missing assignments.
+     * Used by live attention polling so a background refresh cannot mutate coverage.
+     */
+    public DashboardPlan getReadOnlyPlan(
+            Long organizationId,
+            LocalDate date,
+            boolean allowUnverifiedCalendar) {
+
+        return buildPlan(organizationId, date, allowUnverifiedCalendar, false);
+    }
+
+    private DashboardPlan buildPlan(
+            Long organizationId,
+            LocalDate date,
+            boolean allowUnverifiedCalendar,
+            boolean createMissingAssignments) {
         List<LocalDate> availableDates = csvScheduleProvider.getAvailableDates(organizationId);
         LocalDate selectedDate = date;
         if (selectedDate == null && !availableDates.isEmpty()) {
@@ -80,7 +104,9 @@ public class DashboardPlanningService {
                 DriverScheduleResult result = driverScheduleService.getDriverSchedulesForDate(organizationId, selectedDate);
                 driverSchedules = result.scheduledDrivers();
                 driversWithoutSchedules = result.driversWithoutSchedules();
-                assignments = driverAssignmentService.getOrCreateAssignments(organizationId, selectedDate);
+                assignments = createMissingAssignments
+                        ? driverAssignmentService.getOrCreateAssignments(organizationId, selectedDate)
+                        : driverAssignmentService.getExistingAssignments(organizationId, selectedDate);
                 Long latestImportId = latestImport == null ? null : latestImport.getId();
                 reviewRequired = assignments.stream().anyMatch(a -> a.requiresReviewAgainst(latestImportId));
                 if (assignments.isEmpty()) {

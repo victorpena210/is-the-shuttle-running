@@ -56,7 +56,7 @@ public class LiveOperationsAttentionChecker {
         if (scheduledStart == null
                 || assignment.getAssignmentOutcome() != AssignmentOutcome.PENDING
                 || assignment.hasDrivingSessions()
-                || !now.isAfter(scheduledStart.plusMinutes(startGraceMinutes))) {
+                || !now.isAfter(scheduledStart)) {
             return;
         }
 
@@ -65,20 +65,64 @@ public class LiveOperationsAttentionChecker {
                 Duration.between(scheduledStart, now).toMinutes()
         );
 
+        LocalDateTime urgentAt = scheduledStart.plusMinutes(startGraceMinutes);
+        boolean graceExpired = startGraceMinutes == 0
+                || !now.isBefore(urgentAt);
+
+        AttentionSeverity severity = graceExpired
+                ? AttentionSeverity.URGENT
+                : AttentionSeverity.WARNING;
+
+        String detail = buildLateStartDetail(
+                assignment,
+                scheduledStart,
+                urgentAt,
+                now,
+                minutesLate,
+                graceExpired
+        );
+
         items.add(new AttentionItem(
                 "driving-not-started-" + assignment.getId(),
-                AttentionSeverity.URGENT,
+                severity,
                 AttentionSupport.periodLabel(assignment.getPeriod())
-                        + " driving has not started",
-                "Scheduled for "
-                        + AttentionSupport.formatTime(scheduledStart.toLocalTime())
-                        + ". It is now "
-                        + AttentionSupport.formatTime(now.toLocalTime())
-                        + " — " + minutesLate
-                        + " minutes past the planned start.",
+                        + " shuttle has not started",
+                detail,
                 "Review shift",
                 AttentionSupport.dashboardHref(plan, "coverage")
         ));
+    }
+
+    private String buildLateStartDetail(
+            DriverAssignment assignment,
+            LocalDateTime scheduledStart,
+            LocalDateTime urgentAt,
+            LocalDateTime now,
+            long minutesLate,
+            boolean graceExpired) {
+
+        String driverName = assignment.getScheduledDriver() == null
+                ? "The assigned driver"
+                : assignment.getScheduledDriver().getName();
+
+        String base = driverName
+                + " was scheduled to start at "
+                + AttentionSupport.formatTime(scheduledStart.toLocalTime())
+                + ". It is now "
+                + AttentionSupport.formatTime(now.toLocalTime())
+                + " — " + minutesLate
+                + (minutesLate == 1 ? " minute" : " minutes")
+                + " past the planned start.";
+
+        if (graceExpired || startGraceMinutes == 0) {
+            return base
+                    + " No driving session has been recorded, so manager review is required.";
+        }
+
+        return base
+                + " RoutePulse will mark this urgent at "
+                + AttentionSupport.formatTime(urgentAt.toLocalTime())
+                + " if no driving session starts.";
     }
 
     private void addOverrunAlert(
