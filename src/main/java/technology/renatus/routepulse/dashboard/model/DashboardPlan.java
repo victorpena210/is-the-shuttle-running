@@ -3,6 +3,7 @@ package technology.renatus.routepulse.dashboard.model;
 import java.time.LocalDate;
 import java.util.List;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
+import technology.renatus.routepulse.assignments.model.ScheduleReconciliation;
 import technology.renatus.routepulse.calendar.domain.ParkOperatingDay;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.scheduling.domain.DriverSchedule;
@@ -17,6 +18,7 @@ public record DashboardPlan(
         TransportationDemandAnalysis transportationDemand,
         List<DriverSchedule> driverSchedules, List<Driver> driversWithoutSchedules,
         List<Driver> activeDrivers, List<DriverAssignment> driverAssignments,
+        List<ScheduleReconciliation> scheduleReconciliations,
         ScheduleImport latestScheduleImport, boolean assignmentReviewRequired,
         String assignmentMessage, ParkOperatingDay operatingDay,
         String calendarMessage, boolean calendarOverrideActive) {

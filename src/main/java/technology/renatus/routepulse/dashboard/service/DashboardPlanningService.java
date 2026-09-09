@@ -4,7 +4,9 @@ import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
+import technology.renatus.routepulse.assignments.model.ScheduleReconciliation;
 import technology.renatus.routepulse.assignments.service.DriverAssignmentService;
+import technology.renatus.routepulse.assignments.service.ScheduleReconciliationService;
 import technology.renatus.routepulse.calendar.domain.ParkOperatingDay;
 import technology.renatus.routepulse.calendar.domain.ParkOperatingStatus;
 import technology.renatus.routepulse.calendar.service.ParkOperatingDayService;
@@ -29,6 +31,7 @@ public class DashboardPlanningService {
     private final ParkOperatingDayService parkOperatingDayService;
     private final DriverAssignmentService driverAssignmentService;
     private final DriverService driverService;
+    private final ScheduleReconciliationService scheduleReconciliationService;
 
     public DashboardPlanningService(
             TransportationDemandService transportationDemandService,
@@ -36,13 +39,15 @@ public class DashboardPlanningService {
             DriverScheduleService driverScheduleService,
             ParkOperatingDayService parkOperatingDayService,
             DriverAssignmentService driverAssignmentService,
-            DriverService driverService) {
+            DriverService driverService,
+            ScheduleReconciliationService scheduleReconciliationService) {
         this.transportationDemandService = transportationDemandService;
         this.csvScheduleProvider = csvScheduleProvider;
         this.driverScheduleService = driverScheduleService;
         this.parkOperatingDayService = parkOperatingDayService;
         this.driverAssignmentService = driverAssignmentService;
         this.driverService = driverService;
+        this.scheduleReconciliationService = scheduleReconciliationService;
     }
 
     public DashboardPlan getPlan(
@@ -83,6 +88,7 @@ public class DashboardPlanningService {
         List<DriverSchedule> driverSchedules = List.of();
         List<Driver> driversWithoutSchedules = List.of();
         List<DriverAssignment> assignments = List.of();
+        List<ScheduleReconciliation> scheduleReconciliations = List.of();
         List<Driver> activeDrivers = driverService.getActiveDrivers(organizationId);
         ScheduleImport latestImport = null;
         ParkOperatingDay operatingDay = null;
@@ -107,8 +113,15 @@ public class DashboardPlanningService {
                 assignments = createMissingAssignments
                         ? driverAssignmentService.getOrCreateAssignments(organizationId, selectedDate)
                         : driverAssignmentService.getExistingAssignments(organizationId, selectedDate);
-                Long latestImportId = latestImport == null ? null : latestImport.getId();
-                reviewRequired = assignments.stream().anyMatch(a -> a.requiresReviewAgainst(latestImportId));
+                scheduleReconciliations = scheduleReconciliationService.reconcile(
+                        organizationId,
+                        assignments,
+                        driverSchedules,
+                        demand,
+                        latestImport
+                );
+                reviewRequired = scheduleReconciliations.stream()
+                        .anyMatch(ScheduleReconciliation::requiresAction);
                 if (assignments.isEmpty()) {
                     assignmentMessage = "Manual morning and afternoon coverage required — no eligible drivers are working this date.";
                 } else if (assignments.size() == 1) {
@@ -120,7 +133,7 @@ public class DashboardPlanningService {
         return new DashboardPlan(selectedDate, driverAssignmentService.getCurrentOperationsDate(),
                 availableDates, selectedDateAvailable, csvScheduleProvider.hasUploadedSchedule(organizationId),
                 csvScheduleProvider.getRecentImports(organizationId), demand, driverSchedules,
-                driversWithoutSchedules, activeDrivers, assignments, latestImport, reviewRequired,
+                driversWithoutSchedules, activeDrivers, assignments, scheduleReconciliations, latestImport, reviewRequired,
                 assignmentMessage, operatingDay, calendarMessage, overrideActive);
     }
 

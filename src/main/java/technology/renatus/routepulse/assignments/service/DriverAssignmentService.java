@@ -17,7 +17,9 @@ import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driver.repository.DriverRepository;
 import technology.renatus.routepulse.driving.service.DrivingActionService;
 import technology.renatus.routepulse.organization.service.OrganizationActorService;
+import technology.renatus.routepulse.scheduling.domain.DriverSchedule;
 import technology.renatus.routepulse.scheduling.model.ScheduleImport;
+import technology.renatus.routepulse.scheduling.model.UploadedShift;
 import technology.renatus.routepulse.scheduling.repository.UploadedShiftRepository;
 
 /** Edits manual coverage and schedule reviews; delegates planning and driving lifecycle rules. */
@@ -190,6 +192,127 @@ public class DriverAssignmentService {
     }
 
     @Transactional
+    public DriverAssignment acceptScheduleRecommendation(
+            Long organizationId,
+            Long assignmentId,
+            Long recommendedDriverId,
+            Long expectedScheduleImportId,
+            String actorEmail) {
+
+        DriverAssignment assignment = loadAssignment(
+                organizationId,
+                assignmentId
+        );
+
+        ensureAutomaticScheduleAssignment(assignment);
+
+        ScheduleImport latestImport = requireExpectedLatestImport(
+                organizationId,
+                assignment.getAssignmentDate(),
+                expectedScheduleImportId
+        );
+
+        Driver recommendedDriver = loadActiveDriver(
+                organizationId,
+                recommendedDriverId
+        );
+
+        List<UploadedShift> latestDriverShifts = uploadedShiftRepository
+                .findAllByOrganization_IdAndScheduleImport_IdAndShiftDateAndEmployeeIdOrderByStartTimeAsc(
+                        organizationId,
+                        latestImport.getId(),
+                        assignment.getAssignmentDate(),
+                        recommendedDriver.getEmployeeId()
+                );
+
+        if (latestDriverShifts.isEmpty()) {
+            throw new IllegalStateException(
+                    "That recommendation is no longer on the latest uploaded schedule. Refresh coverage and try again."
+            );
+        }
+
+        if (assignment.getScheduledStartTime() != null
+                && assignment.getScheduledEndTime() != null
+                && latestDriverShifts.stream().noneMatch(shift ->
+                        new DriverSchedule(
+                                recommendedDriver.getId(),
+                                recommendedDriver.getEmployeeId(),
+                                recommendedDriver.getName(),
+                                assignment.getAssignmentDate(),
+                                shift.getStartTime(),
+                                shift.getEndTime()
+                        ).covers(
+                                assignment.getScheduledStartTime(),
+                                assignment.getScheduledEndTime()
+                        )
+                )) {
+
+            throw new IllegalStateException(
+                    "That recommendation no longer covers the full driving window. Refresh coverage and review the latest schedule."
+            );
+        }
+
+        UserAccount actor = organizationActorService.loadActor(
+                organizationId,
+                actorEmail
+        );
+
+        boolean changed = assignment.changeDriver(
+                recommendedDriver,
+                "Accepted RoutePulse recommendation after schedule change",
+                actor
+        );
+
+        if (!changed) {
+            throw new IllegalStateException(
+                    "The recommended driver is already assigned. Refresh coverage to review the current schedule."
+            );
+        }
+
+        assignment.confirmScheduleReview(
+                latestImport,
+                actor,
+                currentOperationsDateTime()
+        );
+
+        return assignment;
+    }
+
+    @Transactional
+    public DriverAssignment keepCurrentAssignmentAfterScheduleChange(
+            Long organizationId,
+            Long assignmentId,
+            Long expectedScheduleImportId,
+            String actorEmail) {
+
+        DriverAssignment assignment = loadAssignment(
+                organizationId,
+                assignmentId
+        );
+
+        ensureAutomaticScheduleAssignment(assignment);
+
+        ScheduleImport latestImport = requireExpectedLatestImport(
+                organizationId,
+                assignment.getAssignmentDate(),
+                expectedScheduleImportId
+        );
+
+        UserAccount actor = organizationActorService.loadActor(
+                organizationId,
+                actorEmail
+        );
+
+        assignment.confirmScheduleReview(
+                latestImport,
+                actor,
+                currentOperationsDateTime()
+        );
+
+        return assignment;
+    }
+
+    @Transactional
     public void confirmAssignmentsAgainstLatestImport(
             Long organizationId,
             LocalDate assignmentDate,
@@ -233,9 +356,8 @@ public class DriverAssignmentService {
         assignments
                 .stream()
                 .filter(assignment ->
-                        assignment
-                                .getAssignmentSource()
-                                != AssignmentSource.MANUAL
+                        assignment.getAssignmentSource() != AssignmentSource.MANUAL
+                                && !assignment.hasDrivingSessions()
                 )
                 .forEach(assignment ->
                         assignment
@@ -313,6 +435,38 @@ public class DriverAssignmentService {
 
             throw new IllegalArgumentException(
                     "Change reason cannot exceed 500 characters."
+            );
+        }
+    }
+
+    private ScheduleImport requireExpectedLatestImport(
+            Long organizationId,
+            LocalDate assignmentDate,
+            Long expectedScheduleImportId) {
+
+        ScheduleImport latestImport = uploadedShiftRepository
+                .findLatestScheduleImportForDate(
+                        organizationId,
+                        assignmentDate
+                )
+                .orElseThrow(() -> new IllegalStateException(
+                        "No current schedule import was found for this date."
+                ));
+
+        if (expectedScheduleImportId == null
+                || !latestImport.getId().equals(expectedScheduleImportId)) {
+            throw new IllegalStateException(
+                    "A newer schedule was uploaded after this recommendation was calculated. Refresh coverage before making a decision."
+            );
+        }
+
+        return latestImport;
+    }
+
+    private void ensureAutomaticScheduleAssignment(DriverAssignment assignment) {
+        if (assignment.getAssignmentSource() == AssignmentSource.MANUAL) {
+            throw new IllegalStateException(
+                    "Manual assignments are not reconciled against schedule imports."
             );
         }
     }

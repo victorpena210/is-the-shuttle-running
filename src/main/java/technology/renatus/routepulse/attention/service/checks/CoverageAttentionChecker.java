@@ -6,6 +6,8 @@ import java.util.Set;
 import org.springframework.stereotype.Component;
 import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
+import technology.renatus.routepulse.assignments.model.ScheduleReconciliation;
+import technology.renatus.routepulse.assignments.model.ScheduleReconciliationStatus;
 import technology.renatus.routepulse.attention.model.AttentionItem;
 import technology.renatus.routepulse.attention.model.AttentionSeverity;
 import technology.renatus.routepulse.attention.service.AttentionSupport;
@@ -41,57 +43,40 @@ public class CoverageAttentionChecker {
 
         Set<Long> mismatchedAssignmentIds = new HashSet<>();
 
-        if (!plan.assignmentReviewRequired()) {
-            return mismatchedAssignmentIds;
-        }
+        for (ScheduleReconciliation reconciliation : plan.scheduleReconciliations()) {
+            if (reconciliation.status() != ScheduleReconciliationStatus.COVERAGE_STILL_VALID) {
+                mismatchedAssignmentIds.add(reconciliation.assignmentId());
+            }
 
-        Long latestImportId = plan.latestScheduleImport() == null
-                ? null
-                : plan.latestScheduleImport().getId();
-
-        for (DriverAssignment assignment : plan.driverAssignments()) {
-            if (!assignment.requiresReviewAgainst(latestImportId)) {
+            if (!reconciliation.requiresAction()) {
                 continue;
             }
 
-            if (AttentionSupport.assignedDriverStillMatchesCurrentSchedule(
-                    plan,
-                    assignment
-            )) {
-                continue;
+            String title = switch (reconciliation.status()) {
+                case COVERAGE_STILL_VALID ->
+                        "Schedule changed: " + reconciliation.scheduledDriverName()
+                                + " still covers " + reconciliation.periodLabel();
+                case REPLACEMENT_RECOMMENDED ->
+                        "Schedule changed: " + reconciliation.scheduledDriverName()
+                                + " no longer covers " + reconciliation.periodLabel();
+                case NO_REPLACEMENT_AVAILABLE ->
+                        "Schedule changed: " + reconciliation.periodLabel()
+                                + " needs a coverage decision";
+                case HISTORY_PRESERVED ->
+                        "Schedule history preserved";
+            };
+
+            String detail = reconciliation.detail();
+            if (reconciliation.hasRecommendation()) {
+                detail += " Recommended replacement: "
+                        + reconciliation.recommendedDriverName() + ".";
             }
 
-            mismatchedAssignmentIds.add(assignment.getId());
-
-            String driverName = assignment.getScheduledDriver().getName();
-            String periodLabel = AttentionSupport.periodLabel(
-                    assignment.getPeriod()
-            );
-            String requestedWindow = AttentionSupport.requestedWindowLabel(
-                    plan,
-                    assignment
-            );
-
             items.add(new AttentionItem(
-                    "schedule-change-" + assignment.getId(),
+                    "schedule-reconciliation-" + reconciliation.assignmentId(),
                     AttentionSeverity.WARNING,
-                    "New schedule changed " + driverName + "’s shift",
-                    requestedWindow == null
-                            ? driverName + " no longer has a usable work shift for "
-                                    + periodLabel + " coverage. Review or replace this assignment."
-                            : driverName + " no longer has a work shift overlapping "
-                                    + requestedWindow + " for " + periodLabel + " coverage.",
-                    "Review coverage",
-                    AttentionSupport.dashboardHref(plan, "coverage")
-            ));
-        }
-
-        if (mismatchedAssignmentIds.isEmpty()) {
-            items.add(new AttentionItem(
-                    "schedule-review-required",
-                    AttentionSeverity.WARNING,
-                    "Driver coverage needs review after a schedule upload",
-                    "A newer employee schedule is now being used for this date. Confirm the existing automatic assignments still make sense before operations begin.",
+                    title,
+                    detail,
                     "Review coverage",
                     AttentionSupport.dashboardHref(plan, "coverage")
             ));
@@ -166,6 +151,17 @@ public class CoverageAttentionChecker {
                 continue;
             }
 
+            boolean hasNewReconciliation = plan.scheduleReconciliations().stream()
+                    .anyMatch(item -> item.assignmentId().equals(assignment.getId()));
+
+            if (assignment.getReviewedScheduleImport() != null
+                    && !hasNewReconciliation) {
+                // A manager already made an explicit schedule decision and
+                // the reconciliation engine found no meaningful new change
+                // since that reviewed version (including identical re-uploads).
+                continue;
+            }
+
             if (AttentionSupport.assignedDriverStillMatchesCurrentSchedule(
                     plan,
                     assignment
@@ -188,7 +184,7 @@ public class CoverageAttentionChecker {
                     driverName + " is assigned but not scheduled for " + periodLabel,
                     requestedWindow == null
                             ? driverName + " does not have a usable uploaded work shift for this assignment."
-                            : driverName + " does not have a work shift overlapping "
+                            : driverName + " does not have a work shift fully covering "
                                     + requestedWindow + ".",
                     "Review assignment",
                     AttentionSupport.dashboardHref(plan, "coverage")

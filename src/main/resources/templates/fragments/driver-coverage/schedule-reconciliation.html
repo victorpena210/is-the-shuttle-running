@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+    <section
+        th:fragment="scheduleReconciliation"
+        class="schedule-reconciliation"
+        th:unless="${#lists.isEmpty(scheduleReconciliations)}"
+        aria-labelledby="schedule-reconciliation-heading">
+
+        <header class="schedule-reconciliation__heading">
+            <div>
+                <p class="eyebrow">Schedule reconciliation</p>
+                <h3 id="schedule-reconciliation-heading">
+                    Latest upload changed existing coverage
+                </h3>
+                <p>
+                    RoutePulse is using the newest employee schedule. Existing driving decisions stay preserved until a manager accepts a recommendation or keeps the current assignment.
+                </p>
+            </div>
+
+            <span
+                class="schedule-reconciliation__count"
+                th:if="${scheduleReconciliationActionCount > 0}"
+                th:text="${scheduleReconciliationActionCount == 1
+                    ? '1 decision needed'
+                    : scheduleReconciliationActionCount + ' decisions needed'}">
+                1 decision needed
+            </span>
+        </header>
+
+        <div class="schedule-reconciliation__list">
+            <article
+                class="schedule-reconciliation-card"
+                th:each="item : ${scheduleReconciliations}"
+                th:classappend="${item.status.name() == 'HISTORY_PRESERVED'
+                    ? ' schedule-reconciliation-card--history'
+                    : (item.status.name() == 'COVERAGE_STILL_VALID'
+                        ? ' schedule-reconciliation-card--valid'
+                        : ' schedule-reconciliation-card--action')}"
+                th:id="|schedule-reconciliation-${item.assignmentId}|">
+
+                <div class="schedule-reconciliation-card__topline">
+                    <div>
+                        <span class="schedule-reconciliation-card__period" th:text="${item.periodLabel}">
+                            Morning
+                        </span>
+                        <strong th:text="${item.scheduledDriverName}">
+                            Alex
+                        </strong>
+                    </div>
+
+                    <span
+                        class="schedule-reconciliation-card__state"
+                        th:text="${item.status.name() == 'REPLACEMENT_RECOMMENDED'
+                            ? 'Replacement recommended'
+                            : (item.status.name() == 'NO_REPLACEMENT_AVAILABLE'
+                                ? 'Manager decision needed'
+                                : (item.status.name() == 'COVERAGE_STILL_VALID'
+                                    ? 'Coverage still works'
+                                    : 'History preserved'))}">
+                        Replacement recommended
+                    </span>
+                </div>
+
+                <div class="schedule-reconciliation-card__comparison">
+                    <div>
+                        <span>Previous schedule</span>
+                        <strong th:text="${item.previousScheduleLabel}">9:00 AM–5:00 PM</strong>
+                    </div>
+
+                    <span class="schedule-reconciliation-card__arrow" aria-hidden="true">→</span>
+
+                    <div>
+                        <span>Latest schedule</span>
+                        <strong th:text="${item.latestScheduleLabel}">12:00 PM–8:00 PM</strong>
+                    </div>
+                </div>
+
+                <p class="schedule-reconciliation-card__detail" th:text="${item.detail}">
+                    Alex no longer fully covers the morning driving window.
+                </p>
+
+                <div
+                    class="schedule-reconciliation-card__recommendation"
+                    th:if="${item.hasRecommendation()}">
+                    <span>RoutePulse recommendation</span>
+                    <strong th:text="${item.recommendedDriverName}">Jordan</strong>
+                    <span
+                        th:if="${item.recommendedDriverScheduleLabel != null}"
+                        th:text="|Latest shift ${item.recommendedDriverScheduleLabel}|">
+                        Latest shift 9:00 AM–5:00 PM
+                    </span>
+                </div>
+
+                <div
+                    class="schedule-reconciliation-card__actions"
+                    th:if="${item.requiresAction()}">
+
+                    <form
+                        th:if="${item.hasRecommendation()}"
+                        th:action="@{/assignments/{assignmentId}/accept-schedule-recommendation(assignmentId=${item.assignmentId})}"
+                        method="post">
+
+                        <input type="hidden" name="assignmentDate" th:value="${selectedDate}">
+                        <input type="hidden" name="recommendedDriverId" th:value="${item.recommendedDriverId}">
+                        <input type="hidden" name="expectedScheduleImportId" th:value="${item.latestScheduleImportId}">
+
+                        <button class="button" type="submit" th:text="|Accept ${item.recommendedDriverName}|">
+                            Accept Jordan
+                        </button>
+                    </form>
+
+                    <form
+                        th:action="@{/assignments/{assignmentId}/keep-current-after-schedule-change(assignmentId=${item.assignmentId})}"
+                        method="post">
+
+                        <input type="hidden" name="assignmentDate" th:value="${selectedDate}">
+                        <input type="hidden" name="expectedScheduleImportId" th:value="${item.latestScheduleImportId}">
+
+                        <button
+                            class="button button--secondary"
+                            type="submit"
+                            th:text="|Keep ${item.scheduledDriverName}|">
+                            Keep Alex
+                        </button>
+                    </form>
+                </div>
+
+                <p
+                    class="schedule-reconciliation-card__history-note"
+                    th:if="${item.status.name() == 'HISTORY_PRESERVED'}">
+                    No assignment was rewritten because driving activity already exists for this shift.
+                </p>
+
+            </article>
+        </div>
+    </section>
+</body>
+</html>
