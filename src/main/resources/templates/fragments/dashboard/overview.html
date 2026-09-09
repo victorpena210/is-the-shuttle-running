@@ -82,78 +82,21 @@
 
                 <strong
                     class="overview-card__value"
-                    th:text="|${#lists.size(driverAssignments)} of 2|">
-                    1 of 2
+                    th:text="|${coveredShiftCount} of ${totalShiftCount}|">
+                    2 of 3
                 </strong>
 
                 <span
                     class="overview-card__detail"
-                    th:text="${morningAssignmentExists and afternoonAssignmentExists
-                        ? 'Morning and afternoon shifts are covered'
-                        : (!morningAssignmentExists and !afternoonAssignmentExists
-                            ? 'Morning and afternoon shifts are missing drivers'
-                            : (!morningAssignmentExists
-                                ? 'Morning shift is missing a driver'
-                                : 'Afternoon shift is missing a driver'))}">
+                    th:text="${needsAttentionShiftCount == 0
+                        ? 'Morning, Midday Turnover, and Afternoon are covered'
+                        : (needsAttentionShiftCount == 1
+                            ? '1 shuttle shift still needs a driver'
+                            : needsAttentionShiftCount + ' shuttle shifts still need drivers')}">
                     Shift coverage status
                 </span>
 
             </article>
-
-        </div>
-
-        <!-- Missing driver warning -->
-        <div
-            class="overview-action"
-            th:if="${generated and showSchedule and (!morningAssignmentExists or !afternoonAssignmentExists)}">
-
-            <div>
-
-                <strong>
-                    Driver coverage needs attention
-                </strong>
-
-                <p
-                    th:text="${!morningAssignmentExists and !afternoonAssignmentExists
-                        ? 'Morning and afternoon shifts are missing drivers.'
-                        : (!morningAssignmentExists
-                            ? 'Morning shift is missing a driver.'
-                            : 'Afternoon shift is missing a driver.')}">
-                    A shift is missing a driver.
-                </p>
-
-            </div>
-
-            <a
-                class="button"
-                th:href="@{/app(date=${selectedDate})} + '#coverage'">
-                Assign coverage
-            </a>
-
-        </div>
-
-        <!-- No schedule uploaded -->
-        <div
-            class="overview-action"
-            th:unless="${scheduleUploaded}">
-
-            <div>
-
-                <strong>
-                    Start with a weekly schedule
-                </strong>
-
-                <p>
-                    Upload a Dayforce CSV before building the pickup plan.
-                </p>
-
-            </div>
-
-            <a
-                class="button"
-                href="#schedules">
-                Upload schedule
-            </a>
 
         </div>
 

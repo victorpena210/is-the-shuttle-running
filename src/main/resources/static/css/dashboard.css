@@ -1,4 +1,5 @@
 /* Dashboard-only styles */
+@import url("./dashboard/attention-center.css");
 @import url("./dashboard/transportation-demand.css");
 @import url("./dashboard/planning-date-control.css");
 @import url("./dashboard/driver-coverage.css");
