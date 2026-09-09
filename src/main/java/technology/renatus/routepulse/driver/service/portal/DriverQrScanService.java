@@ -16,7 +16,7 @@ import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
 import technology.renatus.routepulse.driving.model.DrivingSession;
 import technology.renatus.routepulse.driving.service.DrivingSessionService;
 
-/** Coordinates driver QR previews and start/end/takeover recording. */
+/** Coordinates driver QR previews and start/end/resume/takeover recording. */
 @Service
 @Transactional(readOnly = true)
 public class DriverQrScanService {
@@ -61,10 +61,14 @@ public class DriverQrScanService {
         startPolicy.requireStartAllowed(driver, assignment, now);
 
         Driver scheduledDriver = assignment.getScheduledDriver();
+        ScanAction action = assignment.hasDrivingSessions()
+                ? ScanAction.RESUME
+                : ScanAction.START;
+
         return new ScanPreview(
                 driver,
                 assignment,
-                ScanAction.START,
+                action,
                 !sameDriver(scheduledDriver, driver),
                 false,
                 scheduledDriver,
@@ -94,6 +98,10 @@ public class DriverQrScanService {
         startPolicy.requireStartAllowed(driver, assignment, now);
 
         Driver scheduledDriver = assignment.getScheduledDriver();
+        ScanAction action = assignment.hasDrivingSessions()
+                ? ScanAction.RESUME
+                : ScanAction.START;
+
         drivingSessionService.startSession(
                 assignment,
                 driver,
@@ -102,7 +110,7 @@ public class DriverQrScanService {
                 DrivingActionMethod.QR);
 
         return new ScanResult(
-                ScanAction.START,
+                action,
                 assignment,
                 !sameDriver(scheduledDriver, driver),
                 false,
@@ -196,6 +204,7 @@ public class DriverQrScanService {
 
     public enum ScanAction {
         START,
+        RESUME,
         END
     }
 

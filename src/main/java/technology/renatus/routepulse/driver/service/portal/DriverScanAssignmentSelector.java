@@ -11,7 +11,7 @@ import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.driver.model.Driver;
 
-/** Selects the most appropriate remaining assignment for a driver's QR scan. */
+/** Selects the most appropriate startable or resumable assignment for a driver's QR scan. */
 @Component
 public class DriverScanAssignmentSelector {
 
@@ -20,34 +20,36 @@ public class DriverScanAssignmentSelector {
             List<DriverAssignment> assignments,
             LocalDateTime now) {
 
-        List<DriverAssignment> available = assignments.stream()
+        List<DriverAssignment> candidates = assignments.stream()
                 .filter(assignment -> !assignment.isDriving())
-                .filter(assignment -> !assignment.isDrivingCompleted())
                 .filter(assignment -> !isManagementClosed(assignment))
+                .filter(assignment -> isStartableOrResumable(
+                        assignment,
+                        now.toLocalTime()))
                 .toList();
 
-        if (available.isEmpty()) {
+        if (candidates.isEmpty()) {
             if (assignments.isEmpty()) {
                 throw new IllegalStateException(
                         "There are no driving assignments scheduled for today.");
             }
             throw new IllegalStateException(
-                    "All driving assignments for today are already complete or closed.");
+                    "There is no startable or resumable driving assignment right now. A manager can reopen an ended assignment if service needs to continue outside its scheduled window.");
         }
 
-        if (available.size() == 1) {
-            return available.get(0);
+        if (candidates.size() == 1) {
+            return candidates.get(0);
         }
 
-        return available.stream()
+        return candidates.stream()
                 .filter(this::hasScheduledTimes)
                 .min(Comparator
-                        .<DriverAssignment>comparingLong(assignment ->
+                        .<DriverAssignment>comparingInt(assignment ->
+                                scanPriority(driver, assignment))
+                        .thenComparingLong(assignment ->
                                 distanceFromScheduledStart(
                                         now.toLocalTime(),
                                         assignment.getScheduledStartTime()))
-                        .thenComparingInt(assignment ->
-                                sameDriver(assignment.getScheduledDriver(), driver) ? 0 : 1)
                         .thenComparingInt(assignment -> assignment.getPeriod().ordinal()))
                 .orElseThrow(() -> new IllegalStateException(
                         "RoutePulse cannot determine which shift this scan belongs to "
@@ -63,9 +65,66 @@ public class DriverScanAssignmentSelector {
         }
     }
 
+    private boolean isStartableOrResumable(
+            DriverAssignment assignment,
+            LocalTime now) {
+
+        if (!assignment.hasDrivingSessions()) {
+            return true;
+        }
+
+        /*
+         * A QR END closes only the current actual DrivingSession. It does not
+         * permanently close the scheduled DriverAssignment. While the current
+         * time is still inside that assignment's scheduled driving window, the
+         * assignment remains eligible for a QR resume. Outside the window, a
+         * manager can still explicitly reopen it from coverage controls.
+         */
+        return hasScheduledTimes(assignment)
+                && isInsideScheduledWindow(assignment, now);
+    }
+
+    private int scanPriority(
+            Driver driver,
+            DriverAssignment assignment) {
+
+        boolean resuming = assignment.hasDrivingSessions();
+
+        if (resuming && sameDriver(assignment.getFinalDriver(), driver)) {
+            return 0;
+        }
+
+        if (resuming && sameDriver(assignment.getScheduledDriver(), driver)) {
+            return 1;
+        }
+
+        if (!resuming && sameDriver(assignment.getScheduledDriver(), driver)) {
+            return 2;
+        }
+
+        if (resuming) {
+            return 3;
+        }
+
+        return 4;
+    }
+
     private boolean hasScheduledTimes(DriverAssignment assignment) {
         return assignment.getScheduledStartTime() != null
                 && assignment.getScheduledEndTime() != null;
+    }
+
+    private boolean isInsideScheduledWindow(
+            DriverAssignment assignment,
+            LocalTime now) {
+
+        LocalTime start = assignment.getScheduledStartTime();
+        LocalTime end = assignment.getScheduledEndTime();
+
+        return start != null
+                && end != null
+                && !now.isBefore(start)
+                && !now.isAfter(end);
     }
 
     private boolean isManagementClosed(DriverAssignment assignment) {

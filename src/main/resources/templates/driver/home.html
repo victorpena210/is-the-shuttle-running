@@ -59,8 +59,9 @@
                 </strong>.
                 Scan the RoutePulse QR posted in the shuttle
                 when you begin driving. Scan the same QR again
-                when you finish so RoutePulse can save your
-                actual start and end times.
+                whenever that stretch of driving stops. If you resume
+                later in the same assignment, RoutePulse opens another
+                actual session instead of erasing the first one.
             </p>
 
         </div>
@@ -178,7 +179,16 @@
                             class="badge badge--inactive"
                             th:if="${assignment.drivingCompleted}">
 
-                            Completed
+                            Driving stopped
+
+                        </span>
+
+                        <span
+                            class="muted"
+                            th:if="${assignment.drivingCompleted and #lists.size(assignment.drivingSessions) > 1}"
+                            th:text="| · ${#lists.size(assignment.drivingSessions)} sessions|">
+
+                            · 2 sessions
 
                         </span>
 
@@ -252,7 +262,14 @@
 
             <p>
                 <strong>Your next valid scan while driving:</strong>
-                ends your active driving session and saves your actual end time.
+                ends only the current actual driving session and saves its end time.
+            </p>
+
+            <p>
+                <strong>If service resumes during the same scheduled shift:</strong>
+                scan again. RoutePulse reopens that assignment with a new actual
+                driving session, so breaks, accidental END scans, and temporary
+                shuttle downtime remain visible in the history.
             </p>
 
             <div
