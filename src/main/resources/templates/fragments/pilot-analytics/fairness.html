@@ -1,16 +1,30 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
+
 <body>
-<section th:fragment="fairness" class="analytics-section" aria-labelledby="fairness-heading">
+
+<section th:fragment="fairness"
+         class="analytics-section"
+         aria-labelledby="fairness-heading">
+
     <div class="analytics-section__heading">
         <div>
             <p class="eyebrow">Driver distribution</p>
             <h2 id="fairness-heading">Fairness distribution</h2>
         </div>
-        <p>Scheduled responsibility stays with the scheduled driver; actual hours stay with the person who drove.</p>
+
+        <p>
+            Scheduled responsibility stays with the scheduled driver;
+            actual hours stay with the person who drove.
+        </p>
     </div>
 
-    <div class="analytics-table-shell" th:if="${!report.fairnessRows().isEmpty()}">
+    <!-- HAS FAIRNESS DATA -->
+    <div class="analytics-table-shell"
+         th:if="${report != null
+                 and report.fairnessRows() != null
+                 and not #lists.isEmpty(report.fairnessRows())}">
+
         <table class="analytics-table">
             <thead>
             <tr>
@@ -22,26 +36,64 @@
                 <th>Shifts driven</th>
             </tr>
             </thead>
+
             <tbody>
             <tr th:each="row : ${report.fairnessRows()}">
-                <td data-label="Driver" th:text="${row.driverName()}">Driver</td>
-                <td data-label="Scheduled" th:text="${#numbers.formatDecimal(row.scheduledHours(), 1, 1)} + 'h'">0.0h</td>
-                <td data-label="Actual" th:text="${#numbers.formatDecimal(row.actualHours(), 1, 1)} + 'h'">0.0h</td>
-                <td data-label="Difference"
-                    th:classappend="${row.differenceHours() > 0 ? ' analytics-table__positive' : (row.differenceHours() < 0 ? ' analytics-table__negative' : '')}"
-                    th:text="${(row.differenceHours() > 0 ? '+' : '') + #numbers.formatDecimal(row.differenceHours(), 1, 1) + 'h'}">
+
+                <td data-label="Driver"
+                    th:text="${row.driverName()}">
+                    Driver
+                </td>
+
+                <td data-label="Scheduled"
+                    th:text="${#numbers.formatDecimal(row.scheduledHours(), 1, 1) + 'h'}">
                     0.0h
                 </td>
-                <td data-label="Scheduled shifts" th:text="${row.scheduledAssignments()}">0</td>
-                <td data-label="Shifts driven" th:text="${row.assignmentsDriven()}">0</td>
+
+                <td data-label="Actual"
+                    th:text="${#numbers.formatDecimal(row.actualHours(), 1, 1) + 'h'}">
+                    0.0h
+                </td>
+
+                <td data-label="Difference"
+                    th:classappend="${row.differenceHours() > 0
+                        ? 'analytics-table__positive'
+                        : (row.differenceHours() < 0
+                            ? 'analytics-table__negative'
+                            : '')}"
+                    th:text="${(row.differenceHours() > 0 ? '+' : '')
+                        + #numbers.formatDecimal(row.differenceHours(), 1, 1)
+                        + 'h'}">
+                    0.0h
+                </td>
+
+                <td data-label="Scheduled shifts"
+                    th:text="${row.scheduledAssignments()}">
+                    0
+                </td>
+
+                <td data-label="Shifts driven"
+                    th:text="${row.assignmentsDriven()}">
+                    0
+                </td>
+
             </tr>
             </tbody>
         </table>
+
     </div>
 
-    <div class="analytics-empty" th:if="${report.fairnessRows().isEmpty()}">
+    <!-- NO FAIRNESS DATA -->
+    <div class="analytics-empty"
+         th:if="${report == null
+                 or report.fairnessRows() == null
+                 or #lists.isEmpty(report.fairnessRows())}">
+
         No scheduled or actual driver activity was recorded for this week.
+
     </div>
+
 </section>
+
 </body>
 </html>
