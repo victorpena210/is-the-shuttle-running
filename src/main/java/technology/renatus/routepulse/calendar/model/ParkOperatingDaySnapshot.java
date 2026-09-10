@@ -10,7 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.LocalTime;
 import technology.renatus.routepulse.calendar.domain.ParkOperatingStatus;
 
@@ -62,13 +62,13 @@ public class ParkOperatingDaySnapshot {
     private String source;
 
     @Column(name = "fetched_at", nullable = false)
-    private LocalDateTime fetchedAt;
+    private Instant fetchedAt;
 
     @Column(name = "confirmed_by", length = 255)
     private String confirmedBy;
 
     @Column(name = "confirmed_at")
-    private LocalDateTime confirmedAt;
+    private Instant confirmedAt;
 
     protected ParkOperatingDaySnapshot() {
     }
@@ -81,7 +81,7 @@ public class ParkOperatingDaySnapshot {
             LocalTime closingTime,
             boolean buyout,
             String source,
-            LocalDateTime fetchedAt) {
+            Instant fetchedAt) {
 
         this.parkId = parkId;
         this.operatingDate = operatingDate;
@@ -101,7 +101,7 @@ public class ParkOperatingDaySnapshot {
             LocalTime closingTime,
             boolean buyout,
             String source,
-            LocalDateTime fetchedAt) {
+            Instant fetchedAt) {
 
         this.operatingStatus = operatingStatus;
         this.openingTime = openingTime;
@@ -115,7 +115,7 @@ public class ParkOperatingDaySnapshot {
 
     public void confirmOpen(
             String confirmedBy,
-            LocalDateTime confirmedAt) {
+            Instant confirmedAt) {
 
         this.operatingStatus = ParkOperatingStatus.OPEN;
         this.openingTime = null;
@@ -159,7 +159,7 @@ public class ParkOperatingDaySnapshot {
         return source;
     }
 
-    public LocalDateTime getFetchedAt() {
+    public Instant getFetchedAt() {
         return fetchedAt;
     }
 
@@ -167,7 +167,7 @@ public class ParkOperatingDaySnapshot {
         return confirmedBy;
     }
 
-    public LocalDateTime getConfirmedAt() {
+    public Instant getConfirmedAt() {
         return confirmedAt;
     }
 }

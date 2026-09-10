@@ -13,7 +13,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import technology.renatus.routepulse.auth.model.UserAccount;
 import technology.renatus.routepulse.organization.domain.OrganizationRole;
 
@@ -68,7 +68,7 @@ public class OrganizationMembership {
             nullable = false,
             updatable = false
     )
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     protected OrganizationMembership() {
     }
@@ -85,7 +85,7 @@ public class OrganizationMembership {
 
     @PrePersist
     void onCreate() {
-        createdAt = LocalDateTime.now();
+        createdAt = Instant.now();
     }
 
     public Long getId() {
@@ -104,7 +104,7 @@ public class OrganizationMembership {
         return role;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 

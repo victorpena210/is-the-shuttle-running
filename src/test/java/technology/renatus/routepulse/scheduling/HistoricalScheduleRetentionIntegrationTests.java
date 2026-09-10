@@ -5,7 +5,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.time.LocalTime;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -100,12 +101,16 @@ class HistoricalScheduleRetentionIntegrationTests
         DrivingSession session = DrivingSession.start(
                 assignment,
                 driver,
-                LocalDateTime.of(completedDate, LocalTime.of(9, 0)),
+                completedDate.atTime(LocalTime.of(9, 0))
+                        .atZone(ZoneId.of("America/Chicago"))
+                        .toInstant(),
                 uploader,
                 DrivingActionMethod.MANAGER
         );
         session.end(
-                LocalDateTime.of(completedDate, LocalTime.of(10, 20)),
+                completedDate.atTime(LocalTime.of(10, 20))
+                        .atZone(ZoneId.of("America/Chicago"))
+                        .toInstant(),
                 uploader,
                 DrivingActionMethod.MANAGER
         );

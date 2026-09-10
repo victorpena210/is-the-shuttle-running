@@ -1,6 +1,6 @@
 package technology.renatus.routepulse.driving.repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import org.springframework.data.jpa.repository.JpaRepository;
 import technology.renatus.routepulse.driving.model.PassengerRideConfirmation;
 
@@ -12,12 +12,12 @@ public interface PassengerRideConfirmationRepository
     boolean existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
             Long assignmentId,
             String deviceTokenHash,
-            LocalDateTime submittedAfter
+            Instant submittedAfter
     );
 
     long countByOrganization_IdAndSubmittedAtGreaterThanEqualAndSubmittedAtLessThan(
             Long organizationId,
-            LocalDateTime submittedAtStart,
-            LocalDateTime submittedAtEndExclusive
+            Instant submittedAtStart,
+            Instant submittedAtEndExclusive
     );
 }

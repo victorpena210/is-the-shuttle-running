@@ -17,7 +17,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -98,7 +98,7 @@ public class HistoricalDemandSnapshot {
     private String overallPeakPeriodTitle;
 
     @Column(name = "snapshot_created_at", nullable = false)
-    private LocalDateTime snapshotCreatedAt;
+    private Instant snapshotCreatedAt;
 
     @OneToMany(
             mappedBy = "snapshot",
@@ -133,7 +133,7 @@ public class HistoricalDemandSnapshot {
             LocalTime overallPeakWindowEnd,
             int overallPeakWindowCount,
             String overallPeakPeriodTitle,
-            LocalDateTime snapshotCreatedAt) {
+            Instant snapshotCreatedAt) {
 
         this.sourceScheduleImport = sourceScheduleImport;
         this.dayOfWeek = operatingDate.getDayOfWeek();
@@ -207,6 +207,6 @@ public class HistoricalDemandSnapshot {
     public LocalTime getOverallPeakWindowEnd() { return overallPeakWindowEnd; }
     public int getOverallPeakWindowCount() { return overallPeakWindowCount; }
     public String getOverallPeakPeriodTitle() { return overallPeakPeriodTitle; }
-    public LocalDateTime getSnapshotCreatedAt() { return snapshotCreatedAt; }
+    public Instant getSnapshotCreatedAt() { return snapshotCreatedAt; }
     public List<HistoricalDemandWindow> getWindows() { return List.copyOf(windows); }
 }

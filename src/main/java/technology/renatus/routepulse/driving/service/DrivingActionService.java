@@ -1,5 +1,6 @@
 package technology.renatus.routepulse.driving.service;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import org.springframework.beans.factory.annotation.Value;
@@ -42,13 +43,13 @@ public class DrivingActionService {
                         assignmentId
                 );
 
-        LocalDateTime now =
-                currentOperationsDateTime();
+        Instant now = Instant.now();
+        LocalDateTime localNow = LocalDateTime.ofInstant(now, operationsZone);
 
         if (!assignment
                 .getAssignmentDate()
                 .equals(
-                        now.toLocalDate()
+                        localNow.toLocalDate()
                 )) {
 
             throw new IllegalStateException(
@@ -93,18 +94,11 @@ public class DrivingActionService {
                                 organizationId,
                                 actorEmail
                         ),
-                        currentOperationsDateTime(),
+                        Instant.now(),
                         DrivingActionMethod.MANAGER
                 );
 
         return assignment;
-    }
-
-    private LocalDateTime currentOperationsDateTime() {
-
-        return LocalDateTime.now(
-                operationsZone
-        );
     }
 
     private DriverAssignment loadAssignment(

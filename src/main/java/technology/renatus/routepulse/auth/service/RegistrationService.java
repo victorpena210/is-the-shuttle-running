@@ -1,6 +1,7 @@
 package technology.renatus.routepulse.auth.service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -89,11 +90,11 @@ public class RegistrationService {
                         form.getOrganizationDisplayName()
                 );
 
-        LocalDateTime trialStartedAt =
-                LocalDateTime.now();
+        Instant trialStartedAt =
+                Instant.now();
 
-        LocalDateTime trialEndsAt =
-                trialStartedAt.plusDays(90);
+        Instant trialEndsAt =
+                trialStartedAt.plus(90, ChronoUnit.DAYS);
 
         Organization organization =
                 new Organization(

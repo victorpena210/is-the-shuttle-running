@@ -1,7 +1,7 @@
 package technology.renatus.routepulse.scheduling.retention.service;
 
+import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
@@ -80,7 +80,7 @@ public class HistoricalScheduleRetentionService {
             throw new IllegalArgumentException("Current operating date is required.");
         }
 
-        LocalDateTime snapshotTime = LocalDateTime.now(operationsZone);
+        Instant snapshotTime = Instant.now();
         int archivedDays = 0;
 
         List<Long> organizationIds = uploadedShiftRepository
@@ -131,7 +131,7 @@ public class HistoricalScheduleRetentionService {
             Long organizationId,
             LocalDate operatingDate,
             List<UploadedShift> effectiveShifts,
-            LocalDateTime snapshotTime) {
+            Instant snapshotTime) {
 
         Organization organization = effectiveShifts.get(0).getOrganization();
         ScheduleImport sourceScheduleImport = effectiveShifts.get(0).getScheduleImport();

@@ -152,14 +152,14 @@
                     </td>
 
                     <td
-                        th:text="${assignment.actualStartedAt != null ? #temporals.format(assignment.actualStartedAt, 'h:mm a') : '—'}">
+                        th:text="${assignment.actualStartedAt != null ? timestampDisplay.format(assignment.actualStartedAt, 'h:mm a') : '—'}">
 
                         —
 
                     </td>
 
                     <td
-                        th:text="${assignment.actualEndedAt != null ? #temporals.format(assignment.actualEndedAt, 'h:mm a') : '—'}">
+                        th:text="${assignment.actualEndedAt != null ? timestampDisplay.format(assignment.actualEndedAt, 'h:mm a') : '—'}">
 
                         —
 

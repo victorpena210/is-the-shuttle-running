@@ -10,7 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Objects;
 
 @Entity
@@ -43,17 +43,17 @@ public class PasswordResetToken {
             name = "expires_at",
             nullable = false
     )
-    private LocalDateTime expiresAt;
+    private Instant expiresAt;
 
     @Column(name = "used_at")
-    private LocalDateTime usedAt;
+    private Instant usedAt;
 
     @Column(
             name = "created_at",
             nullable = false,
             updatable = false
     )
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     protected PasswordResetToken() {
     }
@@ -61,7 +61,7 @@ public class PasswordResetToken {
     public PasswordResetToken(
             UserAccount user,
             String tokenHash,
-            LocalDateTime expiresAt) {
+            Instant expiresAt) {
 
         this.user = Objects.requireNonNull(
                 user,
@@ -81,7 +81,7 @@ public class PasswordResetToken {
 
     @PrePersist
     void onCreate() {
-        createdAt = LocalDateTime.now();
+        createdAt = Instant.now();
     }
 
     public Long getId() {
@@ -96,15 +96,15 @@ public class PasswordResetToken {
         return tokenHash;
     }
 
-    public LocalDateTime getExpiresAt() {
+    public Instant getExpiresAt() {
         return expiresAt;
     }
 
-    public LocalDateTime getUsedAt() {
+    public Instant getUsedAt() {
         return usedAt;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
@@ -112,11 +112,11 @@ public class PasswordResetToken {
         return usedAt != null;
     }
 
-    public boolean isExpired(LocalDateTime now) {
+    public boolean isExpired(Instant now) {
         return !expiresAt.isAfter(now);
     }
 
-    public void markUsed(LocalDateTime time) {
+    public void markUsed(Instant time) {
         if (usedAt == null) {
             usedAt = Objects.requireNonNull(
                     time,

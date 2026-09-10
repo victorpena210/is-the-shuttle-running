@@ -1,7 +1,7 @@
 package technology.renatus.routepulse.assignments.service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -272,7 +272,7 @@ public class DriverAssignmentService {
         assignment.confirmScheduleReview(
                 latestImport,
                 actor,
-                currentOperationsDateTime()
+                Instant.now()
         );
 
         return assignment;
@@ -306,7 +306,7 @@ public class DriverAssignmentService {
         assignment.confirmScheduleReview(
                 latestImport,
                 actor,
-                currentOperationsDateTime()
+                Instant.now()
         );
 
         return assignment;
@@ -336,8 +336,8 @@ public class DriverAssignmentService {
                         actorEmail
                 );
 
-        LocalDateTime reviewedAt =
-                currentOperationsDateTime();
+        Instant reviewedAt =
+                Instant.now();
 
         List<DriverAssignment> assignments =
                 assignmentRepository
@@ -390,13 +390,6 @@ public class DriverAssignmentService {
     public LocalDate getCurrentOperationsDate() {
 
         return LocalDate.now(
-                operationsZone
-        );
-    }
-
-    private LocalDateTime currentOperationsDateTime() {
-
-        return LocalDateTime.now(
                 operationsZone
         );
     }

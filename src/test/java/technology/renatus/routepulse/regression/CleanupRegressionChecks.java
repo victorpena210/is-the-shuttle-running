@@ -4,7 +4,9 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Proxy;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,6 +24,7 @@ import org.thymeleaf.context.IExpressionContext;
 import org.thymeleaf.linkbuilder.StandardLinkBuilder;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.FileTemplateResolver;
+import technology.renatus.routepulse.shared.time.TimestampDisplay;
 import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
 import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
@@ -86,7 +89,22 @@ public final class CleanupRegressionChecks {
         dashboardPlanningGate();
         renderDashboardStates();
         renderReportingStates();
-        System.out.println("PASS: 6 cleanup regression groups (workload, organization, calendar, planning, dashboard, reporting)");
+        timestampDisplayUsesOperationsZone();
+        System.out.println("PASS: 7 cleanup regression groups (workload, organization, calendar, planning, dashboard, reporting, timestamps)");
+    }
+
+    public static void timestampDisplayUsesOperationsZone() {
+        TimestampDisplay display = new TimestampDisplay("America/Chicago");
+        equal(
+                "Sep 10, 2026 10:00 AM",
+                display.format(Instant.parse("2026-09-10T15:00:00Z"), "MMM d, yyyy h:mm a"),
+                "summer UTC timestamp display"
+        );
+        equal(
+                "Jan 10, 2026 9:00 AM",
+                display.format(Instant.parse("2026-01-10T15:00:00Z"), "MMM d, yyyy h:mm a"),
+                "winter UTC timestamp display"
+        );
     }
 
     public static void workloadAccounting() throws Exception {
@@ -104,7 +122,7 @@ public final class CleanupRegressionChecks {
         equal(0L, filtered.getScheduledMinutes(), "filtered scheduled time");
         equal(75L, filtered.getActualMinutes(), "filtered actual time");
         DrivingSession active = DrivingSession.start(f.assignment(), f.drivers().get(1),
-                DATE.atTime(11, 0), f.actor(), DrivingActionMethod.QR);
+                DATE.atTime(11, 0).atZone(ZoneId.of("America/Chicago")).toInstant(), f.actor(), DrivingActionMethod.QR);
         f.assignment().registerDrivingSession(active);
         WorkloadSummary inProgress = calculator.calculate(DATE, DATE, null, f.drivers(), List.of(f.assignment()));
         equal(75L, inProgress.getActualMinutes(), "an open session has no final duration");
@@ -201,7 +219,7 @@ public final class CleanupRegressionChecks {
                         return new ParkOperatingDay(date, status, null, null, false, "NONE", null);
                     }
                 };
-                ParkCalendarOverrideService overrideService = new ParkCalendarOverrideService(null, null, null, "UTC") {
+                ParkCalendarOverrideService overrideService = new ParkCalendarOverrideService(null, null, null) {
                     @Override
                     public Optional<ParkCalendarOverride> findLatest(Long organizationId, LocalDate operatingDate) {
                         if (!override || status == ParkOperatingStatus.OPEN) {
@@ -210,7 +228,7 @@ public final class CleanupRegressionChecks {
                         return Optional.of(new ParkCalendarOverride(
                                 organizationId, operatingDate, status, ParkOperatingStatus.OPEN,
                                 "TEST", null, "Employee event", 1L, "Test Manager",
-                                "manager@example.com", LocalDateTime.of(2026, 9, 7, 8, 4)));
+                                "manager@example.com", LocalDateTime.of(2026, 9, 7, 8, 4).atZone(ZoneId.of("America/Chicago")).toInstant()));
                     }
                 };
                 DashboardPlanningService service = new DashboardPlanningService(demandService, schedules,
@@ -261,7 +279,7 @@ public final class CleanupRegressionChecks {
                 ParkCalendarOverride calendarOverride = override && status != ParkOperatingStatus.OPEN
                         ? new ParkCalendarOverride(10L, DATE, status, ParkOperatingStatus.OPEN, "TEST",
                                 "CALENDAR_TEST", "Employee event", 1L, "Test Manager",
-                                "manager@example.com", LocalDateTime.of(2026, 9, 7, 8, 4))
+                                "manager@example.com", LocalDateTime.of(2026, 9, 7, 8, 4).atZone(ZoneId.of("America/Chicago")).toInstant())
                         : null;
                 DashboardPlan plan = new DashboardPlan(DATE, DATE, List.of(DATE), true, true, List.of(f.imported()),
                         demand(), schedules, List.of(f.drivers().get(1)), f.drivers(),
@@ -325,6 +343,7 @@ public final class CleanupRegressionChecks {
         model.addAttribute("organizationSlug", "test");
         model.addAttribute("isOwner", true);
         model.addAttribute("canManageDrivingQr", true);
+        model.addAttribute("timestampDisplay", new TimestampDisplay("America/Chicago"));
         return model;
     }
 
@@ -365,7 +384,8 @@ public final class CleanupRegressionChecks {
 
     private static Fixture fixture() throws Exception {
         Organization org = new Organization("Test", "Test", "test", OrganizationStatus.ACTIVE,
-                DATE.atStartOfDay(), DATE.plusDays(30).atStartOfDay());
+                DATE.atStartOfDay(ZoneId.of("America/Chicago")).toInstant(),
+                DATE.plusDays(30).atStartOfDay(ZoneId.of("America/Chicago")).toInstant());
         id(org, 10L);
         UserAccount actor = new UserAccount("manager@example.com", "unused-test-hash", "Test", "Manager", true, true);
         id(actor, 20L);
@@ -373,16 +393,18 @@ public final class CleanupRegressionChecks {
         Driver covering = new Driver(org, "200", "Covering Driver", true);
         id(scheduled, 1L); id(covering, 2L);
         ScheduleImport imported = new ScheduleImport(org, actor, "abcdef123456", "test.csv", 2,
-                DATE, DATE, DATE.toString(), DATE.atTime(8, 0));
+                DATE, DATE, DATE.toString(), DATE.atTime(8, 0).atZone(ZoneId.of("America/Chicago")).toInstant());
         id(imported, 30L);
         DriverAssignment assignment = DriverAssignment.automatic(DATE, ShuttlePeriod.MORNING, scheduled, imported);
         id(assignment, 1L);
         assignment.updateScheduledTimes(LocalTime.of(9, 0), LocalTime.of(12, 0));
         for (int i = 0; i < 2; i++) {
-            LocalDateTime start = DATE.atTime(9 + i, 0);
+            Instant start = DATE.atTime(9 + i, 0)
+                    .atZone(ZoneId.of("America/Chicago"))
+                    .toInstant();
             DrivingSession session = DrivingSession.start(assignment, covering, start, actor, DrivingActionMethod.QR);
             id(session, (long) i + 1);
-            session.end(start.plusMinutes(i == 0 ? 30 : 45), actor, DrivingActionMethod.QR);
+            session.end(start.plusSeconds((i == 0 ? 30 : 45) * 60L), actor, DrivingActionMethod.QR);
             assignment.registerDrivingSession(session);
         }
         return new Fixture(List.of(scheduled, covering), assignment, actor, imported);

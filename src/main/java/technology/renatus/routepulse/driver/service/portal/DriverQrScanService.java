@@ -1,5 +1,6 @@
 package technology.renatus.routepulse.driver.service.portal;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -79,7 +80,8 @@ public class DriverQrScanService {
     public ScanResult recordQrScan(Authentication authentication, String qrCode) {
         Driver driver = prepareDriver(authentication, qrCode);
         UserAccount user = accessService.requireCurrentUser(authentication);
-        LocalDateTime now = currentOperationsDateTime();
+        Instant eventNow = Instant.now();
+        LocalDateTime now = LocalDateTime.ofInstant(eventNow, operationsZone);
         Long organizationId = driver.getOrganization().getId();
 
         // Lock today's assignments so simultaneous scans cannot start separate shifts.
@@ -89,7 +91,7 @@ public class DriverQrScanService {
                 .findActiveSessionForUpdate(organizationId);
 
         if (activeSession != null) {
-            return recordAgainstActiveSession(driver, user, activeSession, now);
+            return recordAgainstActiveSession(driver, user, activeSession, eventNow);
         }
 
         DriverAssignment assignment = assignmentSelector
@@ -106,7 +108,7 @@ public class DriverQrScanService {
                 assignment,
                 driver,
                 user,
-                now,
+                eventNow,
                 DrivingActionMethod.QR);
 
         return new ScanResult(
@@ -154,7 +156,7 @@ public class DriverQrScanService {
             Driver driver,
             UserAccount user,
             DrivingSession activeSession,
-            LocalDateTime now) {
+            Instant now) {
 
         DriverAssignment assignment = activeSession.getAssignment();
         Driver scheduledDriver = assignment.getScheduledDriver();

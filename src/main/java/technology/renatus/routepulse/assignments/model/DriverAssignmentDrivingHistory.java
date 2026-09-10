@@ -1,6 +1,6 @@
 package technology.renatus.routepulse.assignments.model;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
@@ -37,10 +37,10 @@ final class DriverAssignmentDrivingHistory {
                 .orElse(null);
     }
 
-    LocalDateTime actualStartedAt() {
+    Instant actualStartedAt() {
         return sessions.stream()
                 .map(DrivingSession::getStartedAt)
-                .min(LocalDateTime::compareTo)
+                .min(Instant::compareTo)
                 .orElse(null);
     }
 
@@ -51,14 +51,14 @@ final class DriverAssignmentDrivingHistory {
                 .orElse(null);
     }
 
-    LocalDateTime actualEndedAt() {
+    Instant actualEndedAt() {
         if (!hasSessions() || isDriving()) {
             return null;
         }
         return sessions.stream()
                 .map(DrivingSession::getEndedAt)
                 .filter(Objects::nonNull)
-                .max(LocalDateTime::compareTo)
+                .max(Instant::compareTo)
                 .orElse(null);
     }
 

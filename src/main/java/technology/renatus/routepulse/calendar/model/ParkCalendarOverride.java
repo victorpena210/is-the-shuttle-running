@@ -9,7 +9,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import technology.renatus.routepulse.calendar.domain.ParkOperatingStatus;
 
 /**
@@ -57,7 +57,7 @@ public class ParkCalendarOverride {
     private String confirmedByEmail;
 
     @Column(name = "confirmed_at", nullable = false, updatable = false)
-    private LocalDateTime confirmedAt;
+    private Instant confirmedAt;
 
     protected ParkCalendarOverride() {
     }
@@ -73,7 +73,7 @@ public class ParkCalendarOverride {
             Long confirmedByUserId,
             String confirmedByName,
             String confirmedByEmail,
-            LocalDateTime confirmedAt) {
+            Instant confirmedAt) {
         this.organizationId = organizationId;
         this.operatingDate = operatingDate;
         this.calendarStatus = calendarStatus;
@@ -131,7 +131,7 @@ public class ParkCalendarOverride {
         return confirmedByEmail;
     }
 
-    public LocalDateTime getConfirmedAt() {
+    public Instant getConfirmedAt() {
         return confirmedAt;
     }
 }

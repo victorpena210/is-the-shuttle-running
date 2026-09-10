@@ -3,8 +3,8 @@ package technology.renatus.routepulse.driving.service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HexFormat;
 import java.util.Locale;
 import org.springframework.beans.factory.annotation.Value;
@@ -26,7 +26,6 @@ public class PassengerRideService {
     private final DrivingSessionRepository drivingSessionRepository;
     private final PassengerRideConfirmationRepository passengerRideConfirmationRepository;
     private final OperationalStatusService operationalStatusService;
-    private final ZoneId operationsZone;
     private final int cooldownMinutes;
 
     public PassengerRideService(
@@ -34,8 +33,6 @@ public class PassengerRideService {
             DrivingSessionRepository drivingSessionRepository,
             PassengerRideConfirmationRepository passengerRideConfirmationRepository,
             OperationalStatusService operationalStatusService,
-            @Value("${app.operations-zone:America/Chicago}")
-            String operationsZone,
             @Value("${app.passenger-ride.cooldown-minutes:30}")
             int cooldownMinutes) {
 
@@ -49,7 +46,6 @@ public class PassengerRideService {
         this.drivingSessionRepository = drivingSessionRepository;
         this.passengerRideConfirmationRepository = passengerRideConfirmationRepository;
         this.operationalStatusService = operationalStatusService;
-        this.operationsZone = ZoneId.of(operationsZone);
         this.cooldownMinutes = cooldownMinutes;
     }
 
@@ -76,14 +72,14 @@ public class PassengerRideService {
             );
         }
 
-        LocalDateTime now = LocalDateTime.now(operationsZone);
+        Instant now = Instant.now();
         String deviceTokenHash = hashDeviceToken(deviceToken);
 
         boolean alreadyConfirmedRecently = passengerRideConfirmationRepository
                 .existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
                         activeSession.getAssignment().getId(),
                         deviceTokenHash,
-                        now.minusMinutes(cooldownMinutes)
+                        now.minus(cooldownMinutes, ChronoUnit.MINUTES)
                 );
 
         return new PassengerRideState(
@@ -112,14 +108,14 @@ public class PassengerRideService {
             return ConfirmationResult.NO_ACTIVE_SHUTTLE;
         }
 
-        LocalDateTime now = LocalDateTime.now(operationsZone);
+        Instant now = Instant.now();
         String deviceTokenHash = hashDeviceToken(deviceToken);
 
         boolean alreadyConfirmedRecently = passengerRideConfirmationRepository
                 .existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
                         activeSession.getAssignment().getId(),
                         deviceTokenHash,
-                        now.minusMinutes(cooldownMinutes)
+                        now.minus(cooldownMinutes, ChronoUnit.MINUTES)
                 );
 
         if (alreadyConfirmedRecently) {
@@ -161,7 +157,7 @@ public class PassengerRideService {
                 ));
 
         if (!organization.hasApplicationAccess(
-                LocalDateTime.now(operationsZone))) {
+                Instant.now())) {
             throw new PassengerRideNotFoundException(
                     "Passenger ride page was not found."
             );
@@ -178,21 +174,11 @@ public class PassengerRideService {
                 .orElse(null);
     }
 
-    private LocalDateTime calculateWindowStart(LocalDateTime submittedAt) {
-        long totalMinutes = submittedAt.getHour() * 60L
-                + submittedAt.getMinute();
-
-        long windowMinute = (totalMinutes / cooldownMinutes)
-                * cooldownMinutes;
-
-        int hour = (int) (windowMinute / 60L);
-        int minute = (int) (windowMinute % 60L);
-
-        return submittedAt
-                .withHour(hour)
-                .withMinute(minute)
-                .withSecond(0)
-                .withNano(0);
+    private Instant calculateWindowStart(Instant submittedAt) {
+        long windowSeconds = cooldownMinutes * 60L;
+        long epochSecond = submittedAt.getEpochSecond();
+        long windowStart = Math.floorDiv(epochSecond, windowSeconds) * windowSeconds;
+        return Instant.ofEpochSecond(windowStart);
     }
 
     private String normalizeSlug(String organizationSlug) {

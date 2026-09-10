@@ -1,8 +1,6 @@
 package technology.renatus.routepulse.assignments.service;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import org.springframework.beans.factory.annotation.Value;
+import java.time.Instant;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
@@ -15,7 +13,6 @@ import technology.renatus.routepulse.organization.service.OrganizationActorServi
 @Service
 public class AssignmentReviewService {
 
-    private final ZoneId operationsZone;
     private final DriverAssignmentRepository assignmentRepository;
     private final DriverWorkloadService driverWorkloadService;
     private final OrganizationActorService organizationActorService;
@@ -23,12 +20,10 @@ public class AssignmentReviewService {
     public AssignmentReviewService(
             DriverAssignmentRepository assignmentRepository,
             DriverWorkloadService driverWorkloadService,
-            OrganizationActorService organizationActorService,
-            @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
+            OrganizationActorService organizationActorService) {
         this.assignmentRepository = assignmentRepository;
         this.driverWorkloadService = driverWorkloadService;
         this.organizationActorService = organizationActorService;
-        this.operationsZone = ZoneId.of(operationsZone);
     }
 
     @Transactional
@@ -87,10 +82,7 @@ public class AssignmentReviewService {
                         actorEmail
                 );
 
-        LocalDateTime now =
-                LocalDateTime.now(
-                        operationsZone
-                );
+        Instant now = Instant.now();
 
         assignment.reviewOutcome(
                 outcome,

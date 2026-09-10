@@ -13,7 +13,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.Duration;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Objects;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.auth.model.UserAccount;
@@ -42,10 +42,10 @@ public class DrivingSession {
     private Driver driver;
 
     @Column(name = "started_at", nullable = false, updatable = false)
-    private LocalDateTime startedAt;
+    private Instant startedAt;
 
     @Column(name = "ended_at")
-    private LocalDateTime endedAt;
+    private Instant endedAt;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "started_by_user_id", updatable = false)
@@ -64,7 +64,7 @@ public class DrivingSession {
     private DrivingActionMethod endMethod;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     protected DrivingSession() {
     }
@@ -72,7 +72,7 @@ public class DrivingSession {
     private DrivingSession(
             DriverAssignment assignment,
             Driver driver,
-            LocalDateTime startedAt,
+            Instant startedAt,
             UserAccount startedBy,
             DrivingActionMethod startMethod) {
 
@@ -119,7 +119,7 @@ public class DrivingSession {
     public static DrivingSession start(
             DriverAssignment assignment,
             Driver driver,
-            LocalDateTime startedAt,
+            Instant startedAt,
             UserAccount startedBy,
             DrivingActionMethod startMethod) {
 
@@ -133,7 +133,7 @@ public class DrivingSession {
     }
 
     public void end(
-            LocalDateTime endedAt,
+            Instant endedAt,
             UserAccount endedBy,
             DrivingActionMethod endMethod) {
 
@@ -167,7 +167,7 @@ public class DrivingSession {
         if (createdAt == null) {
             createdAt = startedAt != null
                     ? startedAt
-                    : LocalDateTime.now();
+                    : Instant.now();
         }
     }
 
@@ -187,11 +187,11 @@ public class DrivingSession {
         return driver;
     }
 
-    public LocalDateTime getStartedAt() {
+    public Instant getStartedAt() {
         return startedAt;
     }
 
-    public LocalDateTime getEndedAt() {
+    public Instant getEndedAt() {
         return endedAt;
     }
 
@@ -211,7 +211,7 @@ public class DrivingSession {
         return endMethod;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 

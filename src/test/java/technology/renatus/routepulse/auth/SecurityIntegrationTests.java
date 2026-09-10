@@ -9,7 +9,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.LocalTime;
 import org.junit.jupiter.api.Test;
 import technology.renatus.routepulse.auth.model.UserAccount;
@@ -69,7 +69,7 @@ void httpSecurityProtectsOrganizationRoutesAndPostRequests()
                     LocalTime.of(8, 0),
                     LocalTime.of(17, 0),
                     "Employee entrance",
-                    LocalDateTime.now()
+                    Instant.now()
             )
     );
 

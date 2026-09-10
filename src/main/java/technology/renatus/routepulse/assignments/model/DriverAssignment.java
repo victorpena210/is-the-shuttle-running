@@ -17,7 +17,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.Duration;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Objects;
@@ -88,7 +88,7 @@ public class DriverAssignment {
     private ScheduleImport reviewedScheduleImport;
 
     @Column(name = "schedule_reviewed_at")
-    private LocalDateTime scheduleReviewedAt;
+    private Instant scheduleReviewedAt;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "schedule_reviewed_by_user_id")
@@ -112,14 +112,14 @@ public class DriverAssignment {
     private String outcomeReason;
 
     @Column(name = "outcome_reviewed_at")
-    private LocalDateTime outcomeReviewedAt;
+    private Instant outcomeReviewedAt;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "outcome_reviewed_by_user_id")
     private UserAccount outcomeReviewedBy;
 
     @Column(name = "changed_at")
-    private LocalDateTime changedAt;
+    private Instant changedAt;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "changed_by_user_id")
@@ -129,7 +129,7 @@ public class DriverAssignment {
     private String changeReason;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     /*
      * The sessions are related history, not columns on the assignment.
@@ -274,7 +274,7 @@ public class DriverAssignment {
             assignmentSource = AssignmentSource.OVERRIDE;
         }
 
-        changedAt = LocalDateTime.now();
+        changedAt = Instant.now();
         changedBy = Objects.requireNonNull(
                 actor,
                 "The manager making the change is required."
@@ -287,7 +287,7 @@ public class DriverAssignment {
     public void confirmScheduleReview(
             ScheduleImport scheduleImport,
             UserAccount actor,
-            LocalDateTime reviewedAt) {
+            Instant reviewedAt) {
 
         ensureDrivingHasNotStarted(
                 "Schedule coverage cannot be confirmed after driving has started."
@@ -356,7 +356,7 @@ public class DriverAssignment {
             AssignmentOutcome outcome,
             String reason,
             UserAccount actor,
-            LocalDateTime reviewedAt) {
+            Instant reviewedAt) {
 
         Objects.requireNonNull(outcome, "Assignment outcome is required.");
 
@@ -382,7 +382,7 @@ public class DriverAssignment {
     @PrePersist
     void setCreatedAt() {
         if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+            createdAt = Instant.now();
         }
         if (assignmentOutcome == null) {
             assignmentOutcome = AssignmentOutcome.PENDING;
@@ -453,7 +453,7 @@ public class DriverAssignment {
         return reviewedScheduleImport;
     }
 
-    public LocalDateTime getScheduleReviewedAt() {
+    public Instant getScheduleReviewedAt() {
         return scheduleReviewedAt;
     }
 
@@ -496,7 +496,7 @@ public class DriverAssignment {
         return outcomeReason;
     }
 
-    public LocalDateTime getOutcomeReviewedAt() {
+    public Instant getOutcomeReviewedAt() {
         return outcomeReviewedAt;
     }
 
@@ -504,7 +504,7 @@ public class DriverAssignment {
         return outcomeReviewedBy;
     }
 
-    public LocalDateTime getChangedAt() {
+    public Instant getChangedAt() {
         return changedAt;
     }
 
@@ -516,7 +516,7 @@ public class DriverAssignment {
         return changeReason;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
@@ -544,7 +544,7 @@ public class DriverAssignment {
         return drivingHistory().activeSession();
     }
 
-    public LocalDateTime getActualStartedAt() {
+    public Instant getActualStartedAt() {
         return drivingHistory().actualStartedAt();
     }
 
@@ -552,7 +552,7 @@ public class DriverAssignment {
         return drivingHistory().actualStartedBy();
     }
 
-    public LocalDateTime getActualEndedAt() {
+    public Instant getActualEndedAt() {
         return drivingHistory().actualEndedAt();
     }
 

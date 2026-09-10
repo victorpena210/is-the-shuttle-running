@@ -61,7 +61,7 @@
 
                 <strong
                     th:if="${record.actualStartedAt != null}"
-                    th:text="${#temporals.format(record.actualStartedAt, 'MMM d, yyyy h:mm a')}">
+                    th:text="${timestampDisplay.format(record.actualStartedAt, 'MMM d, yyyy h:mm a')}">
 
                     Sep 7, 2026 9:03 AM
 
@@ -85,7 +85,7 @@
 
                 <strong
                     th:if="${record.actualEndedAt != null}"
-                    th:text="${#temporals.format(record.actualEndedAt, 'MMM d, yyyy h:mm a')}">
+                    th:text="${timestampDisplay.format(record.actualEndedAt, 'MMM d, yyyy h:mm a')}">
 
                     Sep 7, 2026 12:02 PM
 
