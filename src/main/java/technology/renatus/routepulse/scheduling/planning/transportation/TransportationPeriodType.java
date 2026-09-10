@@ -16,7 +16,7 @@ public enum TransportationPeriodType {
             "midday",
             "Midday Turnover",
             "Midday coverage",
-            "Clock-ins and clock-outs happening during the same part of the day.",
+            "Sporadic clock-ins and clock-outs; the assigned driver follows specific start/stop windows.",
             "↕",
             "transitions",
             "Peak turnover"

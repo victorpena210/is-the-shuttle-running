@@ -10,6 +10,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
+import technology.renatus.routepulse.assignments.model.PlannedDrivingWindow;
 import technology.renatus.routepulse.driver.model.Driver;
 
 class DriverScanAssignmentSelectorTests {
@@ -124,6 +125,32 @@ class DriverScanAssignmentSelectorTests {
                 LocalDateTime.of(2026, 9, 9, 10, 18));
 
         assertThat(selected).isSameAs(first);
+    }
+
+    @Test
+    void keepsMiddayAssignmentSelectableBetweenDetailedWindowsSoPolicyCanGiveNextStart() {
+        Driver driver = driver(10L);
+        DriverAssignment midday = assignment(
+                ShuttlePeriod.MIDDAY,
+                driver,
+                driver,
+                LocalTime.of(12, 0),
+                LocalTime.of(14, 30),
+                true);
+
+        when(midday.hasPlannedDrivingWindows()).thenReturn(true);
+        when(midday.hasRemainingPlannedDrivingWindowAtOrAfter(LocalTime.of(12, 45))).thenReturn(true);
+        when(midday.getPlannedDrivingWindows()).thenReturn(List.of(
+                new PlannedDrivingWindow(LocalTime.of(12, 0), LocalTime.of(12, 30)),
+                new PlannedDrivingWindow(LocalTime.of(13, 15), LocalTime.of(13, 30))
+        ));
+
+        DriverAssignment selected = selector.selectStartAssignment(
+                driver,
+                List.of(midday),
+                LocalDateTime.of(2026, 9, 9, 12, 45));
+
+        assertThat(selected).isSameAs(midday);
     }
 
     private Driver driver(Long id) {

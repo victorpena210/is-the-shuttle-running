@@ -101,6 +101,36 @@
 
             </div>
 
+            <div
+                class="coverage-driving-plan"
+                th:if="${assignment.hasPlannedDrivingWindows() and (assignment.period.name() == 'MIDDAY' or assignment.hasMultiplePlannedDrivingWindows())}">
+
+                <div th:if="${assignment.period.name() == 'MIDDAY'}">
+                    <span class="coverage-driving-plan__label">Driver-specific start / stop</span>
+                    <div class="coverage-driving-plan__windows">
+                        <span
+                            class="coverage-driving-plan__window"
+                            th:each="window : ${assignment.plannedDrivingWindows}"
+                            th:text="|Drive ${#temporals.format(window.startTime, 'h:mm a')}–${#temporals.format(window.endTime, 'h:mm a')}|">
+                            Drive 12:00 PM–12:30 PM
+                        </span>
+                    </div>
+                    <p>Only these midday windows are scheduled as driving time.</p>
+                </div>
+
+                <div
+                    th:if="${assignment.period.name() != 'MIDDAY' and !#lists.isEmpty(assignment.plannedBreakWindows)}">
+                    <span class="coverage-driving-plan__label">Protected break</span>
+                    <strong
+                        th:each="breakWindow : ${assignment.plannedBreakWindows}"
+                        th:text="|${#temporals.format(breakWindow.startTime, 'h:mm a')}–${#temporals.format(breakWindow.endTime, 'h:mm a')} · ${breakWindow.minutes} min water / restroom|">
+                        10:30 AM–10:45 AM · 15 min water / restroom
+                    </strong>
+                    <p>RoutePulse found a demand-free break window and removed it from scheduled driving time.</p>
+                </div>
+
+            </div>
+
             <!-- Work shift vs driving shift -->
 
             <th:block th:replace="~{fragments/driver-coverage/timeline :: timeline(${assignment}, ${assignedDriverSchedule})}"></th:block>

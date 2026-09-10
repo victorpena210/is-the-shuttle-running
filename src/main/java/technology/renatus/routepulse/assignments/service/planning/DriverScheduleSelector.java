@@ -4,8 +4,10 @@ import java.time.LocalTime;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import technology.renatus.routepulse.scheduling.domain.DriverSchedule;
 import technology.renatus.routepulse.scheduling.domain.MorningDrivingPlan;
+import technology.renatus.routepulse.scheduling.domain.TransportationDemandWindow;
 
 /** Chooses the most appropriate uploaded work-schedule row for a driver assignment. */
 public class DriverScheduleSelector {
@@ -77,6 +79,189 @@ public class DriverScheduleSelector {
                 )
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * Chooses the fairest driver schedule that overlaps a requested driving
+     * window. Drivers in avoidDriverIds are skipped when another eligible
+     * driver can cover the window, then considered as a fallback so a small
+     * team can still cover more than one period in the same day.
+     */
+    public DriverSchedule chooseForWindow(
+            List<DriverSchedule> fairestOrder,
+            Map<Long, List<DriverSchedule>> schedulesByDriverId,
+            LocalTime requestedStart,
+            LocalTime requestedEnd,
+            Set<Long> avoidDriverIds) {
+
+        if (fairestOrder == null
+                || fairestOrder.isEmpty()
+                || requestedStart == null
+                || requestedEnd == null) {
+            return null;
+        }
+
+        Set<Long> avoided = avoidDriverIds == null ? Set.of() : avoidDriverIds;
+
+        DriverSchedule preferred = findFirstOverlapping(
+                fairestOrder,
+                schedulesByDriverId,
+                requestedStart,
+                requestedEnd,
+                avoided,
+                true
+        );
+        if (preferred != null) {
+            return preferred;
+        }
+
+        return findFirstOverlapping(
+                fairestOrder,
+                schedulesByDriverId,
+                requestedStart,
+                requestedEnd,
+                avoided,
+                false
+        );
+    }
+
+    private DriverSchedule findFirstOverlapping(
+            List<DriverSchedule> fairestOrder,
+            Map<Long, List<DriverSchedule>> schedulesByDriverId,
+            LocalTime requestedStart,
+            LocalTime requestedEnd,
+            Set<Long> avoided,
+            boolean skipAvoided) {
+
+        for (DriverSchedule rankedDriver : fairestOrder) {
+            if (skipAvoided && avoided.contains(rankedDriver.driverId())) {
+                continue;
+            }
+
+            DriverSchedule overlapping = findBestOverlapping(
+                    schedulesByDriverId.getOrDefault(rankedDriver.driverId(), List.of()),
+                    rankedDriver.driverId(),
+                    requestedStart,
+                    requestedEnd
+            );
+            if (overlapping != null) {
+                return overlapping;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Midday selection is based on the actual sporadic demand windows instead
+     * of the broad first-to-last span. This prevents a driver who is only
+     * working during a quiet midday gap from being selected over a driver who
+     * can cover the real turnover windows.
+     */
+    public DriverSchedule chooseForDemandWindows(
+            List<DriverSchedule> fairestOrder,
+            Map<Long, List<DriverSchedule>> schedulesByDriverId,
+            List<TransportationDemandWindow> demandWindows,
+            Set<Long> avoidDriverIds) {
+
+        if (fairestOrder == null
+                || fairestOrder.isEmpty()
+                || demandWindows == null
+                || demandWindows.isEmpty()) {
+            return null;
+        }
+
+        Set<Long> avoided = avoidDriverIds == null ? Set.of() : avoidDriverIds;
+        return findFirstDemandOverlapping(
+                fairestOrder,
+                schedulesByDriverId,
+                demandWindows,
+                avoided,
+                true
+        );
+    }
+
+    private DriverSchedule findFirstDemandOverlapping(
+            List<DriverSchedule> fairestOrder,
+            Map<Long, List<DriverSchedule>> schedulesByDriverId,
+            List<TransportationDemandWindow> demandWindows,
+            Set<Long> avoided,
+            boolean skipAvoided) {
+
+        List<TransportationDemandWindow> activeDemandWindows = demandWindows.stream()
+                .filter(window -> window != null && window.getDemandCount() > 0)
+                .toList();
+        if (activeDemandWindows.isEmpty()) {
+            return null;
+        }
+
+        long totalDemandMinutes = activeDemandWindows.stream()
+                .mapToLong(window -> java.time.Duration.between(
+                        window.getWindowStart(),
+                        window.getWindowEnd()
+                ).toMinutes())
+                .sum();
+
+        DemandCoverage bestPartial = null;
+
+        for (int fairnessRank = 0; fairnessRank < fairestOrder.size(); fairnessRank++) {
+            DriverSchedule rankedDriver = fairestOrder.get(fairnessRank);
+            if (skipAvoided && avoided.contains(rankedDriver.driverId())) {
+                continue;
+            }
+
+            List<DriverSchedule> driverRows = schedulesByDriverId
+                    .getOrDefault(rankedDriver.driverId(), List.of());
+            if (driverRows.isEmpty()) {
+                continue;
+            }
+
+            long coverageMinutes = activeDemandWindows.stream()
+                    .mapToLong(window -> Math.min(
+                            java.time.Duration.between(
+                                    window.getWindowStart(),
+                                    window.getWindowEnd()
+                            ).toMinutes(),
+                            driverRows.stream()
+                                    .mapToLong(schedule -> schedule.overlapMinutes(
+                                            window.getWindowStart(),
+                                            window.getWindowEnd()))
+                                    .sum()
+                    ))
+                    .sum();
+
+            if (coverageMinutes <= 0) {
+                continue;
+            }
+
+            DriverSchedule representative = earliest(driverRows);
+
+            // Fairness wins immediately among drivers who can cover every
+            // real midday demand minute. If nobody can, retain the driver who
+            // covers the most demand, using fairness as the tie-breaker.
+            if (coverageMinutes >= totalDemandMinutes) {
+                return representative;
+            }
+
+            DemandCoverage candidate = new DemandCoverage(
+                    representative,
+                    coverageMinutes,
+                    fairnessRank
+            );
+            if (bestPartial == null
+                    || candidate.minutes() > bestPartial.minutes()
+                    || (candidate.minutes() == bestPartial.minutes()
+                            && candidate.fairnessRank() < bestPartial.fairnessRank())) {
+                bestPartial = candidate;
+            }
+        }
+
+        return bestPartial == null ? null : bestPartial.schedule();
+    }
+
+    private record DemandCoverage(
+            DriverSchedule schedule,
+            long minutes,
+            int fairnessRank) {
     }
 
     public DriverSchedule earliest(List<DriverSchedule> schedules) {

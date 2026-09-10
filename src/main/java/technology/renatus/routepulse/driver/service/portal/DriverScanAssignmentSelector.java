@@ -49,7 +49,7 @@ public class DriverScanAssignmentSelector {
                         .thenComparingLong(assignment ->
                                 distanceFromScheduledStart(
                                         now.toLocalTime(),
-                                        assignment.getScheduledStartTime()))
+                                        relevantScheduledStart(assignment, now.toLocalTime())))
                         .thenComparingInt(assignment -> assignment.getPeriod().ordinal()))
                 .orElseThrow(() -> new IllegalStateException(
                         "RoutePulse cannot determine which shift this scan belongs to "
@@ -68,6 +68,16 @@ public class DriverScanAssignmentSelector {
     private boolean isStartableOrResumable(
             DriverAssignment assignment,
             LocalTime now) {
+
+        if (assignment.hasPlannedDrivingWindows()) {
+            /*
+             * Detailed plans may contain a protected break or several midday
+             * windows. Keep the assignment selectable before the next planned
+             * window so DriverQrStartPolicy can give the driver the exact
+             * resume/start time, but drop it after all windows have ended.
+             */
+            return assignment.hasRemainingPlannedDrivingWindowAtOrAfter(now);
+        }
 
         if (!assignment.hasDrivingSessions()) {
             return true;
@@ -137,6 +147,20 @@ public class DriverScanAssignmentSelector {
         return first != null
                 && second != null
                 && Objects.equals(first.getId(), second.getId());
+    }
+
+    private LocalTime relevantScheduledStart(
+            DriverAssignment assignment,
+            LocalTime now) {
+        if (!assignment.hasPlannedDrivingWindows()) {
+            return assignment.getScheduledStartTime();
+        }
+
+        return assignment.getPlannedDrivingWindows().stream()
+                .filter(window -> window.contains(now) || window.getStartTime().isAfter(now))
+                .map(window -> window.contains(now) ? now : window.getStartTime())
+                .findFirst()
+                .orElse(assignment.getScheduledStartTime());
     }
 
     private long distanceFromScheduledStart(LocalTime now, LocalTime scheduledStartTime) {

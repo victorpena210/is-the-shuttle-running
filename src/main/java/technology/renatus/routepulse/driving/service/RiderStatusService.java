@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
+import technology.renatus.routepulse.assignments.model.PlannedDrivingWindow;
 import technology.renatus.routepulse.assignments.repository.DriverAssignmentRepository;
 import technology.renatus.routepulse.driving.model.DrivingSession;
 import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
@@ -116,7 +117,10 @@ public class RiderStatusService {
             LocalDateTime now) {
 
         if (activeSession != null) {
-            LocalDateTime scheduledEnd = scheduledEnd(activeSession.getAssignment());
+            LocalDateTime scheduledEnd = scheduledEndForCurrentWindow(
+                    activeSession.getAssignment(),
+                    now
+            );
             if (scheduledEnd != null
                     && endingSoonMinutes > 0
                     && !now.isAfter(scheduledEnd)
@@ -135,10 +139,26 @@ public class RiderStatusService {
         }
 
         boolean delayed = assignments.stream().anyMatch(assignment -> {
+            if (assignment.getAssignmentOutcome() == AssignmentOutcome.CANCELLED
+                    || assignment.getAssignmentOutcome() == AssignmentOutcome.EXCUSED
+                    || assignment.getAssignmentOutcome() == AssignmentOutcome.MISSED) {
+                return false;
+            }
+
+            if (assignment.hasPlannedDrivingWindows()) {
+                return assignment.getPlannedDrivingWindows().stream().anyMatch(window -> {
+                    LocalDateTime start = assignment.getAssignmentDate().atTime(window.getStartTime());
+                    LocalDateTime end = assignment.getAssignmentDate().atTime(window.getEndTime());
+                    LocalDateTime delayedAt = start.plusMinutes(startGraceMinutes);
+                    return !now.isBefore(delayedAt) && now.isBefore(end);
+                });
+            }
+
             if (assignment.getAssignmentOutcome() != AssignmentOutcome.PENDING
                     || assignment.hasDrivingSessions()) {
                 return false;
             }
+
             LocalDateTime start = scheduledStart(assignment);
             LocalDateTime end = scheduledEnd(assignment);
             if (start == null || end == null) {
@@ -151,6 +171,24 @@ public class RiderStatusService {
         return delayed
                 ? RiderOperationalStatus.DELAYED
                 : RiderOperationalStatus.NOT_RUNNING;
+    }
+
+    private LocalDateTime scheduledEndForCurrentWindow(
+            DriverAssignment assignment,
+            LocalDateTime now) {
+
+        if (assignment.hasPlannedDrivingWindows()) {
+            PlannedDrivingWindow activeWindow = assignment.getPlannedDrivingWindows().stream()
+                    .filter(window -> window.contains(now.toLocalTime()))
+                    .findFirst()
+                    .orElse(null);
+
+            return activeWindow == null
+                    ? null
+                    : assignment.getAssignmentDate().atTime(activeWindow.getEndTime());
+        }
+
+        return scheduledEnd(assignment);
     }
 
     private LocalDateTime scheduledStart(DriverAssignment assignment) {

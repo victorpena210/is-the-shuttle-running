@@ -2,11 +2,13 @@ package technology.renatus.routepulse.attention.service.checks;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
+import technology.renatus.routepulse.assignments.model.PlannedDrivingWindow;
 import technology.renatus.routepulse.attention.model.AttentionItem;
 import technology.renatus.routepulse.attention.model.AttentionSeverity;
 import technology.renatus.routepulse.attention.service.AttentionSupport;
@@ -50,8 +52,12 @@ public class LiveOperationsAttentionChecker {
             LocalDateTime now,
             List<AttentionItem> items) {
 
-        LocalDateTime scheduledStart =
-                AttentionSupport.scheduledStart(plan, assignment);
+        if (assignment.hasPlannedDrivingWindows()) {
+            addDetailedWindowNotRunningAlert(plan, assignment, now, items);
+            return;
+        }
+
+        LocalDateTime scheduledStart = AttentionSupport.scheduledStart(plan, assignment);
 
         if (scheduledStart == null
                 || assignment.getAssignmentOutcome() != AssignmentOutcome.PENDING
@@ -87,6 +93,69 @@ public class LiveOperationsAttentionChecker {
                 severity,
                 AttentionSupport.periodLabel(assignment.getPeriod())
                         + " shuttle has not started",
+                detail,
+                "Review shift",
+                AttentionSupport.dashboardHref(plan, "coverage")
+        ));
+    }
+
+    private void addDetailedWindowNotRunningAlert(
+            DashboardPlan plan,
+            DriverAssignment assignment,
+            LocalDateTime now,
+            List<AttentionItem> items) {
+
+        if (assignment.isDriving()
+                || assignment.getAssignmentOutcome() == AssignmentOutcome.CANCELLED
+                || assignment.getAssignmentOutcome() == AssignmentOutcome.EXCUSED
+                || assignment.getAssignmentOutcome() == AssignmentOutcome.MISSED) {
+            return;
+        }
+
+        PlannedDrivingWindow activeWindow = assignment.getPlannedDrivingWindows().stream()
+                .filter(window -> window.contains(now.toLocalTime()))
+                .findFirst()
+                .orElse(null);
+
+        if (activeWindow == null || !now.toLocalTime().isAfter(activeWindow.getStartTime())) {
+            return;
+        }
+
+        LocalDateTime scheduledStart = LocalDateTime.of(
+                assignment.getAssignmentDate(),
+                activeWindow.getStartTime()
+        );
+        LocalDateTime urgentAt = scheduledStart.plusMinutes(startGraceMinutes);
+        long minutesLate = Math.max(1, Duration.between(scheduledStart, now).toMinutes());
+        boolean graceExpired = startGraceMinutes == 0 || !now.isBefore(urgentAt);
+
+        String driverName = assignment.getScheduledDriver() == null
+                ? "The assigned driver"
+                : assignment.getScheduledDriver().getName();
+
+        String detail = driverName
+                + " should be driving during the planned window "
+                + AttentionSupport.formatTime(activeWindow.getStartTime())
+                + "–"
+                + AttentionSupport.formatTime(activeWindow.getEndTime())
+                + ". It is now "
+                + AttentionSupport.formatTime(now.toLocalTime())
+                + " and no driving session is active.";
+
+        if (!graceExpired && startGraceMinutes > 0) {
+            detail += " RoutePulse will mark this urgent at "
+                    + AttentionSupport.formatTime(urgentAt.toLocalTime())
+                    + " if driving does not resume.";
+        } else {
+            detail += " Manager review is required.";
+        }
+
+        items.add(new AttentionItem(
+                "driving-window-not-active-" + assignment.getId()
+                        + "-" + activeWindow.getStartTime(),
+                graceExpired ? AttentionSeverity.URGENT : AttentionSeverity.WARNING,
+                AttentionSupport.periodLabel(assignment.getPeriod())
+                        + " shuttle is not running",
                 detail,
                 "Review shift",
                 AttentionSupport.dashboardHref(plan, "coverage")
@@ -131,11 +200,40 @@ public class LiveOperationsAttentionChecker {
             LocalDateTime now,
             List<AttentionItem> items) {
 
-        LocalDateTime scheduledEnd =
-                AttentionSupport.scheduledEnd(plan, assignment);
+        if (!assignment.isDriving()) {
+            return;
+        }
+
+        LocalDateTime scheduledEnd;
+        if (assignment.hasPlannedDrivingWindows()) {
+            PlannedDrivingWindow currentWindow = assignment.getPlannedDrivingWindows().stream()
+                    .filter(window -> window.contains(now.toLocalTime()))
+                    .findFirst()
+                    .orElse(null);
+
+            // Driving is valid while the clock is inside any detailed window.
+            if (currentWindow != null) {
+                return;
+            }
+
+            PlannedDrivingWindow previousWindow = assignment.getPlannedDrivingWindows().stream()
+                    .filter(window -> !window.getEndTime().isAfter(now.toLocalTime()))
+                    .reduce((first, second) -> second)
+                    .orElse(null);
+
+            if (previousWindow == null) {
+                return;
+            }
+
+            scheduledEnd = LocalDateTime.of(
+                    assignment.getAssignmentDate(),
+                    previousWindow.getEndTime()
+            );
+        } else {
+            scheduledEnd = AttentionSupport.scheduledEnd(plan, assignment);
+        }
 
         if (scheduledEnd == null
-                || !assignment.isDriving()
                 || !now.isAfter(scheduledEnd.plusMinutes(overrunGraceMinutes))) {
             return;
         }

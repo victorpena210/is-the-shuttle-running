@@ -118,6 +118,14 @@ public final class AttentionSupport {
             return false;
         }
 
+        if (assignment.hasPlannedDrivingWindows()) {
+            return assignment.getPlannedDrivingWindows().stream()
+                    .allMatch(window -> driverSchedules.stream().anyMatch(schedule -> schedule.covers(
+                            window.getStartTime(),
+                            window.getEndTime()
+                    )));
+        }
+
         LocalTime requestedStart = effectiveStart(plan, assignment);
         LocalTime requestedEnd = effectiveEnd(plan, assignment);
 
@@ -140,6 +148,15 @@ public final class AttentionSupport {
             return false;
         }
 
+        if (!demandPeriod.getWindows().isEmpty()) {
+            return schedules.stream().anyMatch(schedule ->
+                    demandPeriod.getWindows().stream().anyMatch(window -> schedule.overlaps(
+                            window.getWindowStart(),
+                            window.getWindowEnd()
+                    ))
+            );
+        }
+
         if (!demandPeriod.hasRecommendedWindow()) {
             return true;
         }
@@ -154,6 +171,12 @@ public final class AttentionSupport {
     public static String requestedWindowLabel(
             DashboardPlan plan,
             DriverAssignment assignment) {
+
+        if (assignment.hasPlannedDrivingWindows()) {
+            return assignment.getPlannedDrivingWindows().stream()
+                    .map(window -> formatTime(window.getStartTime()) + "–" + formatTime(window.getEndTime()))
+                    .collect(java.util.stream.Collectors.joining(", "));
+        }
 
         LocalTime start = effectiveStart(plan, assignment);
         LocalTime end = effectiveEnd(plan, assignment);
