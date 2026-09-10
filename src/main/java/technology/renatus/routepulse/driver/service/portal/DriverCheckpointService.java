@@ -80,7 +80,7 @@ public class DriverCheckpointService {
                 driver,
                 assignment,
                 action,
-                !sameDriver(scheduledDriver, driver),
+                isCoverage(scheduledDriver, driver),
                 false,
                 scheduledDriver,
                 null,
@@ -127,6 +127,7 @@ public class DriverCheckpointService {
         CheckpointAction action = assignment.hasDrivingSessions()
                 ? CheckpointAction.RESUME
                 : CheckpointAction.START;
+        requireRequestedAction(requestedAction, action);
 
         drivingSessionService.startSession(
                 assignment,
@@ -138,7 +139,7 @@ public class DriverCheckpointService {
         return new CheckpointResult(
                 action,
                 assignment,
-                !sameDriver(scheduledDriver, driver),
+                isCoverage(scheduledDriver, driver),
                 false,
                 scheduledDriver,
                 null,
@@ -218,6 +219,8 @@ public class DriverCheckpointService {
                     method);
         }
 
+        requireRequestedAction(requestedAction, CheckpointAction.TAKEOVER);
+
         Driver previousActualDriver = activeSession.getDriver();
         drivingSessionService.takeOverActiveSession(
                 activeSession,
@@ -229,11 +232,27 @@ public class DriverCheckpointService {
         return new CheckpointResult(
                 CheckpointAction.TAKEOVER,
                 assignment,
-                !sameDriver(scheduledDriver, driver),
+                isCoverage(scheduledDriver, driver),
                 true,
                 scheduledDriver,
                 previousActualDriver,
                 method);
+    }
+
+    private void requireRequestedAction(
+            CheckpointAction requestedAction,
+            CheckpointAction expectedAction) {
+
+        // Older QR confirmation pages did not submit an explicit action. Keep
+        // those safe during a rolling deploy, but reject any explicit stale or
+        // tampered action after the server has re-evaluated the current state.
+        if (requestedAction == null || requestedAction == expectedAction) {
+            return;
+        }
+
+        throw new IllegalStateException(
+                "The driving state changed before this checkpoint was confirmed. "
+                        + "Tap the NFC tag or scan the QR code again to refresh the action.");
     }
 
     private CheckpointAction normalizeStopAction(CheckpointAction requestedAction) {
@@ -261,6 +280,10 @@ public class DriverCheckpointService {
 
     private LocalDateTime currentOperationsDateTime() {
         return LocalDateTime.now(operationsZone);
+    }
+
+    private boolean isCoverage(Driver scheduledDriver, Driver actualDriver) {
+        return scheduledDriver != null && !sameDriver(scheduledDriver, actualDriver);
     }
 
     private boolean sameDriver(Driver first, Driver second) {
