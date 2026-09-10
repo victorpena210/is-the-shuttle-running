@@ -1,6 +1,6 @@
 package technology.renatus.routepulse.organization.service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -97,8 +97,8 @@ public class CurrentOrganizationService {
     private void requireApplicationAccess(
             Organization organization) {
 
-        LocalDateTime now =
-                LocalDateTime.now();
+        Instant now =
+                Instant.now();
 
         if (organization.hasApplicationAccess(now)) {
             return;

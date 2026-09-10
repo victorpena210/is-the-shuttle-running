@@ -3,6 +3,9 @@ package technology.renatus.routepulse.regression;
 import org.junit.jupiter.api.Test;
 
 class CleanupRegressionTests {
+    @Test void utcAuditTimestampsDisplayInOperationsZone() {
+        CleanupRegressionChecks.timestampDisplayUsesOperationsZone();
+    }
     @Test void scheduledAndActualWorkStaySeparate() throws Exception {
         CleanupRegressionChecks.workloadAccounting();
     }

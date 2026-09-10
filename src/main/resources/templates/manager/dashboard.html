@@ -131,7 +131,7 @@
                             <span th:text="${calendarOverride.confirmedByName}">Victor Peña</span>
                             manually confirmed park operating
                             <span
-                                th:text="|at ${#temporals.format(calendarOverride.confirmedAt, 'h:mm a')}.|">
+                                th:text="|at ${timestampDisplay.format(calendarOverride.confirmedAt, 'h:mm a')}.|">
                                 at 8:04 AM.
                             </span>
                             <strong>Reason:</strong>

@@ -1,6 +1,7 @@
 package technology.renatus.routepulse.organization.service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Locale;
 import org.springframework.beans.factory.annotation.Value;
@@ -209,11 +210,9 @@ public class OrganizationInvitationService {
                                 rawToken
                         );
 
-        LocalDateTime expiresAt =
-                LocalDateTime.now()
-                        .plusHours(
-                                INVITATION_HOURS
-                        );
+        Instant expiresAt =
+                Instant.now()
+                        .plus(INVITATION_HOURS, ChronoUnit.HOURS);
 
         OrganizationInvitation invitation =
                 organizationInvitationRepository

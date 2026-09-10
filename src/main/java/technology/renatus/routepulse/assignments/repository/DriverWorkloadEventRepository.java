@@ -1,6 +1,6 @@
 package technology.renatus.routepulse.assignments.repository;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import technology.renatus.routepulse.assignments.domain.DriverWorkloadEventType;
@@ -12,7 +12,7 @@ public interface DriverWorkloadEventRepository
     List<DriverWorkloadEvent>
             findAllByOrganization_IdAndCreatedAtBeforeOrderByCreatedAtAsc(
                     Long organizationId,
-                    LocalDateTime before
+                    Instant before
             );
 
     List<DriverWorkloadEvent>

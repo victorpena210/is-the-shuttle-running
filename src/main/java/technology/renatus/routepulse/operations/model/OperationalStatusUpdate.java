@@ -8,7 +8,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import technology.renatus.routepulse.operations.domain.OperationalStatusOverride;
 
 @Entity
@@ -39,7 +39,7 @@ public class OperationalStatusUpdate {
     private String updatedByEmail;
 
     @Column(name = "updated_at", nullable = false, updatable = false)
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     protected OperationalStatusUpdate() {
     }
@@ -51,7 +51,7 @@ public class OperationalStatusUpdate {
             Long updatedByUserId,
             String updatedByName,
             String updatedByEmail,
-            LocalDateTime updatedAt) {
+            Instant updatedAt) {
         this.organizationId = organizationId;
         this.statusOverride = statusOverride;
         this.operationalMessage = operationalMessage;
@@ -68,5 +68,5 @@ public class OperationalStatusUpdate {
     public Long getUpdatedByUserId() { return updatedByUserId; }
     public String getUpdatedByName() { return updatedByName; }
     public String getUpdatedByEmail() { return updatedByEmail; }
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public Instant getUpdatedAt() { return updatedAt; }
 }

@@ -10,7 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.LocalTime;
 import technology.renatus.routepulse.organization.model.Organization;
 
@@ -101,7 +101,7 @@ public class UploadedShift {
             nullable = false,
             updatable = false
     )
-    private LocalDateTime importedAt;
+    private Instant importedAt;
 
     protected UploadedShift() {
     }
@@ -117,7 +117,7 @@ public class UploadedShift {
             LocalTime startTime,
             LocalTime endTime,
             String pickupLocation,
-            LocalDateTime importedAt) {
+            Instant importedAt) {
 
         this.organization = organization;
         this.scheduleImport = scheduleImport;
@@ -176,7 +176,7 @@ public class UploadedShift {
         return pickupLocation;
     }
 
-    public LocalDateTime getImportedAt() {
+    public Instant getImportedAt() {
         return importedAt;
     }
 }

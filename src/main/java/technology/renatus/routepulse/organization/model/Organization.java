@@ -10,7 +10,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 import technology.renatus.routepulse.organization.domain.OrganizationStatus;
 
@@ -51,10 +51,10 @@ public class Organization {
     private OrganizationStatus status;
 
     @Column(name = "trial_started_at")
-    private LocalDateTime trialStartedAt;
+    private Instant trialStartedAt;
 
     @Column(name = "trial_ends_at")
-    private LocalDateTime trialEndsAt;
+    private Instant trialEndsAt;
 
     @Column(
             name = "driving_qr_code",
@@ -69,13 +69,13 @@ public class Organization {
             nullable = false,
             updatable = false
     )
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     @Column(
             name = "updated_at",
             nullable = false
     )
-    private LocalDateTime updatedAt;
+    private Instant updatedAt;
 
     protected Organization() {
     }
@@ -85,8 +85,8 @@ public class Organization {
             String displayName,
             String slug,
             OrganizationStatus status,
-            LocalDateTime trialStartedAt,
-            LocalDateTime trialEndsAt) {
+            Instant trialStartedAt,
+            Instant trialEndsAt) {
 
         this.legalName = legalName;
         this.displayName = displayName;
@@ -99,7 +99,7 @@ public class Organization {
     @PrePersist
     void onCreate() {
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         if (drivingQrCode == null
                 || drivingQrCode.isBlank()) {
@@ -114,7 +114,7 @@ public class Organization {
 
     @PreUpdate
     void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        updatedAt = Instant.now();
     }
 
     public void regenerateDrivingQrCode() {
@@ -149,11 +149,11 @@ public class Organization {
         return status;
     }
 
-    public LocalDateTime getTrialStartedAt() {
+    public Instant getTrialStartedAt() {
         return trialStartedAt;
     }
 
-    public LocalDateTime getTrialEndsAt() {
+    public Instant getTrialEndsAt() {
         return trialEndsAt;
     }
 
@@ -161,16 +161,16 @@ public class Organization {
         return drivingQrCode;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 
-    public LocalDateTime getUpdatedAt() {
+    public Instant getUpdatedAt() {
         return updatedAt;
     }
 
     public boolean hasApplicationAccess(
-            LocalDateTime now) {
+            Instant now) {
 
         if (status == OrganizationStatus.ACTIVE) {
             return true;

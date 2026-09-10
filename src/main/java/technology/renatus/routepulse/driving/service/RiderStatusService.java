@@ -1,5 +1,6 @@
 package technology.renatus.routepulse.driving.service;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -53,14 +54,15 @@ public class RiderStatusService {
 
     public RiderStatus getStatus(String organizationSlug) {
         String slug = normalizeSlug(organizationSlug);
-        LocalDateTime now = LocalDateTime.now(operationsZone);
+        Instant eventNow = Instant.now();
+        LocalDateTime now = LocalDateTime.ofInstant(eventNow, operationsZone);
 
         Organization organization = organizationRepository
                 .findBySlug(slug)
                 .orElseThrow(() -> new RiderStatusNotFoundException(
                         "Rider status page was not found."));
 
-        if (!organization.hasApplicationAccess(now)) {
+        if (!organization.hasApplicationAccess(eventNow)) {
             throw new RiderStatusNotFoundException("Rider status page was not found.");
         }
 

@@ -185,7 +185,7 @@
 
                         <td
                             class="nowrap"
-                            th:text="${#temporals.format(invitation.createdAt, 'MMM d, yyyy h:mm a')}">
+                            th:text="${timestampDisplay.format(invitation.createdAt, 'MMM d, yyyy h:mm a')}">
 
                             Aug 26, 2026
 
@@ -193,7 +193,7 @@
 
                         <td
                             class="nowrap"
-                            th:text="${#temporals.format(invitation.expiresAt, 'MMM d, yyyy h:mm a')}">
+                            th:text="${timestampDisplay.format(invitation.expiresAt, 'MMM d, yyyy h:mm a')}">
 
                             Aug 28, 2026
 

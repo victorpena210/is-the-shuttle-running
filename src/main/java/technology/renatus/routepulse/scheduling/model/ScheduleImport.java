@@ -10,7 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import technology.renatus.routepulse.auth.model.UserAccount;
 import technology.renatus.routepulse.organization.model.Organization;
 
@@ -95,7 +95,7 @@ public class ScheduleImport {
             nullable = false,
             updatable = false
     )
-    private LocalDateTime uploadedAt;
+    private Instant uploadedAt;
 
     protected ScheduleImport() {
     }
@@ -109,7 +109,7 @@ public class ScheduleImport {
             LocalDate firstShiftDate,
             LocalDate lastShiftDate,
             String datesRepresented,
-            LocalDateTime uploadedAt) {
+            Instant uploadedAt) {
 
         this.organization = organization;
         this.uploadedBy = uploadedBy;
@@ -166,7 +166,7 @@ public class ScheduleImport {
         return datesRepresented;
     }
 
-    public LocalDateTime getUploadedAt() {
+    public Instant getUploadedAt() {
         return uploadedAt;
     }
 

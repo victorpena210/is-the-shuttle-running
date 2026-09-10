@@ -1,7 +1,8 @@
 package technology.renatus.routepulse.assignments.service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -9,6 +10,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import technology.renatus.routepulse.assignments.domain.DriverWorkloadEventType;
@@ -26,13 +28,16 @@ public class DriverWorkloadService {
 
     private final DrivingSessionRepository drivingSessionRepository;
     private final DriverWorkloadEventRepository workloadEventRepository;
+    private final ZoneId operationsZone;
 
     public DriverWorkloadService(
             DrivingSessionRepository drivingSessionRepository,
-            DriverWorkloadEventRepository workloadEventRepository) {
+            DriverWorkloadEventRepository workloadEventRepository,
+            @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
 
         this.drivingSessionRepository = drivingSessionRepository;
         this.workloadEventRepository = workloadEventRepository;
+        this.operationsZone = ZoneId.of(operationsZone);
     }
 
     @Transactional(readOnly = true)
@@ -85,7 +90,7 @@ public class DriverWorkloadService {
     public void recordSessionCompletion(
             DrivingSession session,
             UserAccount actor,
-            LocalDateTime recordedAt) {
+            Instant recordedAt) {
 
         Objects.requireNonNull(session, "Driving session is required.");
 
@@ -175,7 +180,7 @@ public class DriverWorkloadService {
             boolean makeupRequired,
             String reason,
             UserAccount actor,
-            LocalDateTime recordedAt) {
+            Instant recordedAt) {
 
         Objects.requireNonNull(assignment, "Assignment is required.");
         Objects.requireNonNull(actor, "Manager is required.");
@@ -257,7 +262,7 @@ public class DriverWorkloadService {
                 );
 
         Map<Long, Long> minutesByDriver = new HashMap<>();
-        Map<Long, LocalDateTime> lastDriveByDriver = new HashMap<>();
+        Map<Long, Instant> lastDriveByDriver = new HashMap<>();
 
         for (DrivingSession session : completedSessions) {
             Long driverId = session.getDriver().getId();
@@ -278,7 +283,7 @@ public class DriverWorkloadService {
         List<DriverWorkloadEvent> events = workloadEventRepository
                 .findAllByOrganization_IdAndCreatedAtBeforeOrderByCreatedAtAsc(
                         organizationId,
-                        beforeDate.atStartOfDay()
+                        beforeDate.atStartOfDay(operationsZone).toInstant()
                 );
 
         Map<Long, Map<Long, DriverWorkloadEvent>> outstandingByDriver =
@@ -374,7 +379,7 @@ public class DriverWorkloadService {
     public record WorkloadSnapshot(
             int outstandingMakeups,
             long actualMinutes,
-            LocalDateTime lastActualDrive) {
+            Instant lastActualDrive) {
 
         public double actualHours() {
             return actualMinutes / 60.0;

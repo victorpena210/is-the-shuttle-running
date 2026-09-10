@@ -1,7 +1,7 @@
 package technology.renatus.routepulse.scheduling.importing;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -53,7 +53,7 @@ public class ScheduleImportService {
                 .sorted()
                 .toList();
 
-        LocalDateTime uploadedAt = LocalDateTime.now();
+        Instant uploadedAt = Instant.now();
         ScheduleImport scheduleImport = new ScheduleImport(
                 organization,
                 uploadedBy,
@@ -92,7 +92,7 @@ public class ScheduleImportService {
             Organization organization,
             ScheduleImport scheduleImport,
             ShiftRecord shift,
-            LocalDateTime importedAt) {
+            Instant importedAt) {
         return new UploadedShift(
                 organization,
                 scheduleImport,

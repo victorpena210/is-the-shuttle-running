@@ -1,6 +1,7 @@
 package technology.renatus.routepulse.auth.service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -76,7 +77,7 @@ public class PasswordResetService {
             return;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         passwordResetTokenRepository
                 .findAllByUser_IdAndUsedAtIsNull(
@@ -91,7 +92,7 @@ public class PasswordResetService {
                 new PasswordResetToken(
                         user,
                         secureTokenService.hashToken(rawToken),
-                        now.plusHours(EXPIRATION_HOURS)
+                        now.plus(EXPIRATION_HOURS, ChronoUnit.HOURS)
                 );
 
         passwordResetTokenRepository.saveAndFlush(
@@ -129,7 +130,7 @@ public class PasswordResetService {
 
         return determineStatus(
                 token,
-                LocalDateTime.now()
+                Instant.now()
         );
     }
 
@@ -163,7 +164,7 @@ public class PasswordResetService {
 
         TokenStatus status = determineStatus(
                 token,
-                LocalDateTime.now()
+                Instant.now()
         );
 
         if (status == TokenStatus.INVALID) {
@@ -184,7 +185,7 @@ public class PasswordResetService {
                 passwordEncoder.encode(password)
         );
 
-        LocalDateTime usedAt = LocalDateTime.now();
+        Instant usedAt = Instant.now();
 
         passwordResetTokenRepository
                 .findAllByUser_IdAndUsedAtIsNull(
@@ -199,7 +200,7 @@ public class PasswordResetService {
 
     private TokenStatus determineStatus(
             PasswordResetToken token,
-            LocalDateTime now) {
+            Instant now) {
 
         if (token == null) {
             return TokenStatus.INVALID;

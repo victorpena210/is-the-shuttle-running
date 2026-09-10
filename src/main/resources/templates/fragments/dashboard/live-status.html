@@ -24,7 +24,7 @@
             <p th:if="${operationalStatusUpdate != null and operationalStatusUpdate.operationalMessage != null}"
                th:text="${operationalStatusUpdate.operationalMessage}">Vehicle issue</p>
             <small th:if="${operationalStatusUpdate != null}"
-                   th:text="|Last changed by ${operationalStatusUpdate.updatedByName} · ${#temporals.format(operationalStatusUpdate.updatedAt, 'MMM d, h:mm a')}|">
+                   th:text="|Last changed by ${operationalStatusUpdate.updatedByName} · ${timestampDisplay.format(operationalStatusUpdate.updatedAt, 'MMM d, h:mm a')}|">
                 Last changed by Manager
             </small>
         </div>

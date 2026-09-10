@@ -1,6 +1,6 @@
 package technology.renatus.routepulse.organization.service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Locale;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -171,7 +171,7 @@ public class InvitationAcceptanceService {
         }
 
         invitation.markAccepted(
-                LocalDateTime.now()
+                Instant.now()
         );
     }
 
@@ -226,8 +226,8 @@ public class InvitationAcceptanceService {
     private void requireUsableInvitation(
             OrganizationInvitation invitation) {
 
-        LocalDateTime now =
-                LocalDateTime.now();
+        Instant now =
+                Instant.now();
 
         if (invitation.isAccepted()) {
 

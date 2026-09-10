@@ -1,6 +1,6 @@
 package technology.renatus.routepulse.driving.service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.stereotype.Service;
@@ -38,7 +38,7 @@ public class DrivingSessionService {
             Long assignmentId,
             Driver actualDriver,
             UserAccount actor,
-            LocalDateTime startedAt,
+            Instant startedAt,
             DrivingActionMethod method) {
 
         DriverAssignment assignment = assignmentRepository
@@ -64,7 +64,7 @@ public class DrivingSessionService {
             DriverAssignment assignment,
             Driver actualDriver,
             UserAccount actor,
-            LocalDateTime startedAt,
+            Instant startedAt,
             DrivingActionMethod method) {
 
         Objects.requireNonNull(assignment, "Assignment is required.");
@@ -144,7 +144,7 @@ public class DrivingSessionService {
             DrivingSession activeSession,
             Driver newDriver,
             UserAccount actor,
-            LocalDateTime changedAt,
+            Instant changedAt,
             DrivingActionMethod method) {
 
         Objects.requireNonNull(activeSession, "Active driving session is required.");
@@ -223,7 +223,7 @@ public class DrivingSessionService {
             Long organizationId,
             Long assignmentId,
             UserAccount actor,
-            LocalDateTime endedAt,
+            Instant endedAt,
             DrivingActionMethod method) {
 
         DriverAssignment assignment = assignmentRepository
@@ -257,7 +257,7 @@ public class DrivingSessionService {
             DriverAssignment assignment,
             DrivingSession session,
             UserAccount actor,
-            LocalDateTime endedAt,
+            Instant endedAt,
             DrivingActionMethod method) {
 
         Objects.requireNonNull(assignment, "Assignment is required.");

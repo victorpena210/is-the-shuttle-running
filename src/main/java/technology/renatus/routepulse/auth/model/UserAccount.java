@@ -7,7 +7,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @Entity
 @Table(name = "users")
@@ -64,7 +64,7 @@ public class UserAccount {
             nullable = false,
             updatable = false
     )
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     protected UserAccount() {
     }
@@ -87,7 +87,7 @@ public class UserAccount {
 
     @PrePersist
     void onCreate() {
-        createdAt = LocalDateTime.now();
+        createdAt = Instant.now();
     }
 
     public Long getId() {
@@ -114,7 +114,7 @@ public class UserAccount {
         return emailVerified;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 

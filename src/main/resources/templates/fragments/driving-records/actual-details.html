@@ -62,7 +62,7 @@
                     </td>
 
                     <td
-                        th:text="${#temporals.format(record.scheduleReviewedAt, 'MMM d, yyyy h:mm a')}">
+                        th:text="${timestampDisplay.format(record.scheduleReviewedAt, 'MMM d, yyyy h:mm a')}">
 
                         Sep 7, 2026 8:45 AM
 
@@ -87,7 +87,7 @@
                     </td>
 
                     <td
-                        th:text="${#temporals.format(record.changedAt, 'MMM d, yyyy h:mm a')}">
+                        th:text="${timestampDisplay.format(record.changedAt, 'MMM d, yyyy h:mm a')}">
 
                         Sep 7, 2026 8:50 AM
 
@@ -115,7 +115,7 @@
                     </td>
 
                     <td
-                        th:text="${#temporals.format(record.outcomeReviewedAt, 'MMM d, yyyy h:mm a')}">
+                        th:text="${timestampDisplay.format(record.outcomeReviewedAt, 'MMM d, yyyy h:mm a')}">
 
                         Sep 7, 2026 12:10 PM
 
@@ -145,7 +145,7 @@
                         </td>
 
                         <td
-                            th:text="${#temporals.format(session.startedAt, 'MMM d, yyyy h:mm a')}">
+                            th:text="${timestampDisplay.format(session.startedAt, 'MMM d, yyyy h:mm a')}">
 
                             Sep 7, 2026 9:03 AM
 
@@ -173,7 +173,7 @@
                         </td>
 
                         <td
-                            th:text="${#temporals.format(session.endedAt, 'MMM d, yyyy h:mm a')}">
+                            th:text="${timestampDisplay.format(session.endedAt, 'MMM d, yyyy h:mm a')}">
 
                             Sep 7, 2026 12:02 PM
 

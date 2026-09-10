@@ -10,7 +10,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Objects;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.driver.model.Driver;
@@ -92,14 +92,14 @@ public class PassengerRideConfirmation {
             nullable = false,
             updatable = false
     )
-    private LocalDateTime rideWindowStart;
+    private Instant rideWindowStart;
 
     @Column(
             name = "submitted_at",
             nullable = false,
             updatable = false
     )
-    private LocalDateTime submittedAt;
+    private Instant submittedAt;
 
     protected PassengerRideConfirmation() {
     }
@@ -108,8 +108,8 @@ public class PassengerRideConfirmation {
             DriverAssignment assignment,
             Driver actualDriver,
             String deviceTokenHash,
-            LocalDateTime rideWindowStart,
-            LocalDateTime submittedAt) {
+            Instant rideWindowStart,
+            Instant submittedAt) {
 
         this.assignment =
                 Objects.requireNonNull(
@@ -199,11 +199,11 @@ public class PassengerRideConfirmation {
         return deviceTokenHash;
     }
 
-    public LocalDateTime getRideWindowStart() {
+    public Instant getRideWindowStart() {
         return rideWindowStart;
     }
 
-    public LocalDateTime getSubmittedAt() {
+    public Instant getSubmittedAt() {
         return submittedAt;
     }
 }

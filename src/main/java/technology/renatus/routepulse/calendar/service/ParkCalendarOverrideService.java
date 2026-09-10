@@ -1,12 +1,10 @@
 package technology.renatus.routepulse.calendar.service;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
+import java.time.Instant;
 import java.util.EnumSet;
 import java.util.Optional;
 import java.util.Set;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import technology.renatus.routepulse.auth.model.UserAccount;
@@ -33,17 +31,14 @@ public class ParkCalendarOverrideService {
     private final ParkCalendarOverrideRepository overrideRepository;
     private final UserAccountRepository userAccountRepository;
     private final OrganizationMembershipRepository membershipRepository;
-    private final ZoneId operationsZone;
 
     public ParkCalendarOverrideService(
             ParkCalendarOverrideRepository overrideRepository,
             UserAccountRepository userAccountRepository,
-            OrganizationMembershipRepository membershipRepository,
-            @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
+            OrganizationMembershipRepository membershipRepository) {
         this.overrideRepository = overrideRepository;
         this.userAccountRepository = userAccountRepository;
         this.membershipRepository = membershipRepository;
-        this.operationsZone = ZoneId.of(operationsZone);
     }
 
     public Optional<ParkCalendarOverride> findLatest(
@@ -119,7 +114,7 @@ public class ParkCalendarOverrideService {
                 actor.getId(),
                 displayName,
                 actor.getEmail(),
-                LocalDateTime.now(operationsZone));
+                Instant.now());
 
         return overrideRepository.save(override);
     }

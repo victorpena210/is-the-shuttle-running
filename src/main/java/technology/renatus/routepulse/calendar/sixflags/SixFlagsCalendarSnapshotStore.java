@@ -1,8 +1,7 @@
 package technology.renatus.routepulse.calendar.sixflags;
 
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
+import java.time.Instant;
 import java.time.format.DateTimeParseException;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -36,7 +35,7 @@ final class SixFlagsCalendarSnapshotStore {
             return;
         }
 
-        LocalDateTime fetchedAt = LocalDateTime.now(ZoneOffset.UTC);
+        Instant fetchedAt = Instant.now();
         for (SixFlagsCalendarDate calendarDate : response.dates()) {
             persistCalendarDate(calendarDate, fetchedAt);
         }
@@ -55,7 +54,7 @@ final class SixFlagsCalendarSnapshotStore {
 
     private void persistCalendarDate(
             SixFlagsCalendarDate calendarDate,
-            LocalDateTime fetchedAt) {
+            Instant fetchedAt) {
         if (calendarDate == null
                 || calendarDate.date() == null
                 || calendarDate.date().isBlank()) {

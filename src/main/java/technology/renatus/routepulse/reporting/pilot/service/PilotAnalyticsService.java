@@ -2,6 +2,7 @@ package technology.renatus.routepulse.reporting.pilot.service;
 
 import java.time.DayOfWeek;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -75,7 +76,8 @@ public class PilotAnalyticsService {
                 requestedWeek == null ? today : requestedWeek
         );
         LocalDate weekEnd = weekStart.plusDays(6);
-        LocalDateTime now = LocalDateTime.now(operationsZone);
+        Instant now = Instant.now();
+        LocalDateTime localNow = LocalDateTime.ofInstant(now, operationsZone);
 
         List<DriverAssignment> assignments = assignmentRepository
                 .findAllByOrganization_IdAndAssignmentDateBetween(
@@ -109,7 +111,7 @@ public class PilotAnalyticsService {
                 .count();
 
         int missedAssignments = (int) assignments.stream()
-                .filter(assignment -> isMissed(assignment, now))
+                .filter(assignment -> isMissed(assignment, localNow))
                 .count();
 
         int fillInAssignments = (int) assignments.stream()
@@ -119,8 +121,8 @@ public class PilotAnalyticsService {
         long passengerConfirmations = passengerConfirmationRepository
                 .countByOrganization_IdAndSubmittedAtGreaterThanEqualAndSubmittedAtLessThan(
                         organizationId,
-                        weekStart.atStartOfDay(),
-                        weekEnd.plusDays(1).atStartOfDay()
+                        weekStart.atStartOfDay(operationsZone).toInstant(),
+                        weekEnd.plusDays(1).atStartOfDay(operationsZone).toInstant()
                 );
 
         double averageStartDelayMinutes = averageStartDelayMinutes(assignments);
@@ -183,17 +185,23 @@ public class PilotAnalyticsService {
 
     private long actualMinutes(
             DrivingSession session,
-            LocalDateTime now) {
+            Instant now) {
 
-        LocalDateTime end = session.getEndedAt();
+        Instant end = session.getEndedAt();
         if (end == null) {
-            if (session.getStartedAt().toLocalDate().equals(now.toLocalDate())) {
+            LocalDate startDate = session.getStartedAt()
+                    .atZone(operationsZone)
+                    .toLocalDate();
+
+            if (startDate.equals(now.atZone(operationsZone).toLocalDate())) {
                 end = now;
             } else if (session.getAssignment().getScheduledEndTime() != null) {
                 end = LocalDateTime.of(
-                        session.getAssignment().getAssignmentDate(),
-                        session.getAssignment().getScheduledEndTime()
-                );
+                                session.getAssignment().getAssignmentDate(),
+                                session.getAssignment().getScheduledEndTime()
+                        )
+                        .atZone(operationsZone)
+                        .toInstant();
             } else {
                 end = session.getStartedAt();
             }
@@ -270,19 +278,21 @@ public class PilotAnalyticsService {
                 continue;
             }
 
-            LocalDateTime firstStart = assignment.getDrivingSessions().stream()
+            Instant firstStart = assignment.getDrivingSessions().stream()
                     .map(DrivingSession::getStartedAt)
-                    .min(LocalDateTime::compareTo)
+                    .min(Instant::compareTo)
                     .orElse(null);
 
             if (firstStart == null) {
                 continue;
             }
 
-            LocalDateTime scheduledStart = LocalDateTime.of(
-                    assignment.getAssignmentDate(),
-                    assignment.getScheduledStartTime()
-            );
+            Instant scheduledStart = LocalDateTime.of(
+                            assignment.getAssignmentDate(),
+                            assignment.getScheduledStartTime()
+                    )
+                    .atZone(operationsZone)
+                    .toInstant();
 
             long delay = Math.max(
                     0,
@@ -303,7 +313,7 @@ public class PilotAnalyticsService {
     private List<DriverFairnessRow> buildFairnessRows(
             Long organizationId,
             List<DriverAssignment> assignments,
-            LocalDateTime now) {
+            Instant now) {
 
         Map<Long, MutableFairness> byDriver = new LinkedHashMap<>();
 

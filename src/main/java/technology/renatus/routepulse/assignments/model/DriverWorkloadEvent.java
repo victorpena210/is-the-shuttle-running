@@ -12,7 +12,7 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.Objects;
 import technology.renatus.routepulse.assignments.domain.DriverWorkloadEventType;
 import technology.renatus.routepulse.auth.model.UserAccount;
@@ -56,7 +56,7 @@ public class DriverWorkloadEvent {
     private UserAccount recordedBy;
 
     @Column(name = "created_at", nullable = false, updatable = false)
-    private LocalDateTime createdAt;
+    private Instant createdAt;
 
     protected DriverWorkloadEvent() {
     }
@@ -68,7 +68,7 @@ public class DriverWorkloadEvent {
             DriverWorkloadEventType eventType,
             String reason,
             UserAccount recordedBy,
-            LocalDateTime createdAt) {
+            Instant createdAt) {
 
         this.driver = Objects.requireNonNull(
                 driver,
@@ -105,7 +105,7 @@ public class DriverWorkloadEvent {
     @PrePersist
     void ensureCreatedAt() {
         if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+            createdAt = Instant.now();
         }
     }
 
@@ -149,7 +149,7 @@ public class DriverWorkloadEvent {
         return recordedBy;
     }
 
-    public LocalDateTime getCreatedAt() {
+    public Instant getCreatedAt() {
         return createdAt;
     }
 }

@@ -1,6 +1,7 @@
 package technology.renatus.routepulse.auth.service;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Locale;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -49,7 +50,7 @@ public class EmailVerificationService {
     public void createAndSendVerificationEmail(
             UserAccount user) {
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         tokenRepository
                 .findAllByUser_IdAndUsedAtIsNull(
@@ -63,9 +64,9 @@ public class EmailVerificationService {
         String tokenHash =
                 secureTokenService.hashToken(rawToken);
 
-        LocalDateTime expiresAt =
+        Instant expiresAt =
                 now
-                        .plusHours(EXPIRATION_HOURS);
+                        .plus(EXPIRATION_HOURS, ChronoUnit.HOURS);
 
         EmailVerificationToken verificationToken =
                 new EmailVerificationToken(
@@ -144,7 +145,7 @@ public class EmailVerificationService {
             return VerificationResult.ALREADY_USED;
         }
 
-        LocalDateTime now = LocalDateTime.now();
+        Instant now = Instant.now();
 
         if (verificationToken.isExpired(now)) {
             return VerificationResult.EXPIRED;
