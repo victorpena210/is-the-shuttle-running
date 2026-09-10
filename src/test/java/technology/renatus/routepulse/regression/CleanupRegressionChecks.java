@@ -60,6 +60,8 @@ import technology.renatus.routepulse.organization.domain.OrganizationStatus;
 import technology.renatus.routepulse.organization.model.Organization;
 import technology.renatus.routepulse.organization.repository.OrganizationMembershipRepository;
 import technology.renatus.routepulse.organization.service.OrganizationActorService;
+import technology.renatus.routepulse.reporting.pilot.model.DriverFairnessRow;
+import technology.renatus.routepulse.reporting.pilot.model.PilotAnalyticsReport;
 import technology.renatus.routepulse.reporting.workload.model.WorkloadSummary;
 import technology.renatus.routepulse.reporting.workload.service.WorkloadCalculator;
 import technology.renatus.routepulse.scheduling.domain.DriverSchedule;
@@ -312,6 +314,42 @@ public final class CleanupRegressionChecks {
         Fixture f = fixture();
         WorkloadCalculator calculator = new WorkloadCalculator();
         SpringTemplateEngine engine = engine();
+        PilotAnalyticsReport pilotReport = new PilotAnalyticsReport(
+                DATE,
+                DATE.plusDays(6),
+                true,
+                525,
+                0,
+                1,
+                1,
+                100.0,
+                0,
+                0,
+                0,
+                0,
+                0.0,
+                0,
+                8.75,
+                1,
+                List.of(new DriverFairnessRow(
+                        1L,
+                        "Irons, Jody L",
+                        525,
+                        0,
+                        1,
+                        0
+                )),
+                List.of(),
+                "RoutePulse planned one assignment this week."
+        );
+        ExtendedModelMap pilotModel = managerModel();
+        pilotModel.addAttribute("report", pilotReport);
+        pilotModel.addAttribute("currentWeekStart", DATE);
+        String fairnessHtml = render(engine, "fragments/pilot-analytics/fairness", pilotModel);
+        check(fairnessHtml.contains("8.8h"), "pilot fairness scheduled hours");
+        check(fairnessHtml.contains("-8.8h"), "pilot fairness difference hours");
+        check(fairnessHtml.contains("analytics-table__negative"), "pilot fairness difference class");
+
         for (String view : List.of("summary", "records")) {
             for (Long driverId : new Long[] { null, 1L, 2L }) {
                 ExtendedModelMap model = managerModel();
