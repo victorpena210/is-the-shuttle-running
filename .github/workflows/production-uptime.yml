@@ -1,0 +1,76 @@
+name: RoutePulse Production Uptime
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  readiness-check:
+    # Add ROUTEPULSE_PRODUCTION_URL as a repository Actions variable.
+    # Until it exists, this workflow intentionally remains dormant.
+    if: ${{ vars.ROUTEPULSE_PRODUCTION_URL != '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 3
+
+    env:
+      ROUTEPULSE_PRODUCTION_URL: ${{ vars.ROUTEPULSE_PRODUCTION_URL }}
+      INCIDENT_TITLE: "[Uptime] RoutePulse production readiness check failed"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Make health check executable
+        run: chmod +x scripts/check-production-health.sh
+
+      - name: Check production readiness
+        id: health
+        continue-on-error: true
+        run: scripts/check-production-health.sh "$ROUTEPULSE_PRODUCTION_URL"
+
+      - name: Open one incident issue on failure
+        if: steps.health.outcome == 'failure'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const title = process.env.INCIDENT_TITLE;
+            const { owner, repo } = context.repo;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: 'open', per_page: 100
+            });
+            const existing = issues.find(issue => !issue.pull_request && issue.title === title);
+            if (!existing) {
+              await github.rest.issues.create({
+                owner, repo, title,
+                body: `The scheduled production readiness check failed at ${new Date().toISOString()}.\n\nEndpoint: ${process.env.ROUTEPULSE_PRODUCTION_URL.replace(/\/$/, '')}/actuator/health/readiness\n\nReview the Railway deployment/database logs and Sentry before managers are affected.`
+              });
+            }
+
+      - name: Close uptime incident after recovery
+        if: steps.health.outcome == 'success'
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const title = process.env.INCIDENT_TITLE;
+            const { owner, repo } = context.repo;
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner, repo, state: 'open', per_page: 100
+            });
+            for (const issue of issues.filter(issue => !issue.pull_request && issue.title === title)) {
+              await github.rest.issues.createComment({
+                owner, repo, issue_number: issue.number,
+                body: `Readiness recovered at ${new Date().toISOString()}. Closing this incident automatically.`
+              });
+              await github.rest.issues.update({
+                owner, repo, issue_number: issue.number, state: 'closed'
+              });
+            }
+
+      - name: Mark workflow failed when production is unhealthy
+        if: steps.health.outcome == 'failure'
+        run: exit 1

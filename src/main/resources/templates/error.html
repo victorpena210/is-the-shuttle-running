@@ -21,6 +21,11 @@
             contact RoutePulse support.
         </p>
         <p class="mono muted" th:if="${status}" th:text="|Error ${status}|">Error</p>
+        <p class="mono muted"
+           th:if="${routePulseRequestId}"
+           th:text="|Reference ${routePulseRequestId}|">
+            Reference
+        </p>
 
         <div class="button-row">
             <a class="button" th:href="@{/app}">Return to dashboard</a>

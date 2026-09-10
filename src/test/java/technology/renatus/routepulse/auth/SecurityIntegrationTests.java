@@ -6,6 +6,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDate;
@@ -80,6 +81,24 @@ void httpSecurityProtectsOrganizationRoutesAndPostRequests()
      */
     mockMvc.perform(
             get("/")
+    ).andExpect(
+            status().isOk()
+    ).andExpect(
+            header().exists("X-RoutePulse-Request-Id")
+    );
+
+    /*
+     * Health probes must remain public so Railway/GitHub/external uptime
+     * monitors can detect an outage before a manager has to report it.
+     */
+    mockMvc.perform(
+            get("/actuator/health/liveness")
+    ).andExpect(
+            status().isOk()
+    );
+
+    mockMvc.perform(
+            get("/actuator/health/readiness")
     ).andExpect(
             status().isOk()
     );

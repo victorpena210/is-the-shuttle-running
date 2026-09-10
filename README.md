@@ -11,6 +11,7 @@ assignments, driving, reporting, calendar, dashboard, marketing and shared code.
 - [Architecture](docs/architecture.md): backend boundaries, calendar provider and tests.
 - [Frontend organization](FRONTEND_ORGANIZATION.md): current CSS, JavaScript and Thymeleaf layout.
 - [Cleanup notes](docs/cleanup-notes.md): changes, verification and installation details.
+- [Production monitoring & recovery](docs/production-monitoring-and-recovery.md): Sentry, uptime, backups, and restore drills.
 
 The application entry point is
 `technology.renatus.routepulse.RoutePulseApplication`. After applying the cleanup,
@@ -28,7 +29,7 @@ reload the Maven project in your IDE, update any old run configuration, and run
 - scheduled-versus-actual driving records with the acting manager recorded;
 - Six Flags operating-calendar integration with caching, timeouts, and a manual fallback;
 - MySQL/Flyway integration tests and GitHub Actions CI;
-- production health endpoint at `/actuator/health`.
+- production readiness/liveness health probes, Sentry error reporting, and uptime monitoring;
 
 ## Requirements
 
@@ -104,6 +105,11 @@ The full integration suite still requires Docker and MySQL Testcontainers.
 | `MAIL_PASSWORD` | Yes | SMTP password |
 | `MAIL_FROM` | Yes | Verified sender address |
 | `APP_REGISTRATION_ENABLED` | No | Defaults to `false` in production |
+| `SENTRY_DSN` | Recommended | Enables production exception reporting; blank disables Sentry |
+| `SENTRY_ENVIRONMENT` | No | Defaults to `production` in the prod profile |
+| `SENTRY_RELEASE` | No | Deploy/release identifier for error correlation |
+| `SENTRY_ERROR_SAMPLE_RATE` | No | Error sample rate; defaults to `1.0` |
+| `SENTRY_TRACES_SAMPLE_RATE` | No | Performance trace rate; defaults to `0.0` |
 | `PORT` | No | Web port; defaults to `8080` |
 
 Never commit production credentials or employee schedule exports.
@@ -113,13 +119,18 @@ Never commit production credentials or employee schedule exports.
 1. Run `./mvnw clean verify` and confirm GitHub Actions is green.
 2. Use a dedicated production database and least-privilege database user.
 3. Set every required production environment variable.
-4. Confirm `/actuator/health` returns `UP` over HTTPS.
-5. Test registration/invitations, verification resend, password reset, CSV upload,
+4. Confirm `/actuator/health/readiness` returns `UP` over HTTPS.
+5. Set `SENTRY_DSN`, generate one controlled test exception in a non-production
+   environment, and confirm alert delivery before relying on it operationally.
+6. Set the GitHub Actions variable `ROUTEPULSE_PRODUCTION_URL` so the five-minute
+   uptime workflow is active.
+7. Test registration/invitations, verification resend, password reset, CSV upload,
    manual calendar fallback, driver override, and start/end driving.
-6. Keep production registration disabled for the controlled pilot.
-7. Configure encrypted database backups and test a restore before storing real data.
-8. Limit production access to authorized Six Flags pilot participants.
-9. Establish an approved retention period for employee names, IDs, and schedule history.
+8. Keep production registration disabled for the controlled pilot.
+9. Enable Railway daily/weekly/monthly database backups and run an isolated restore
+   drill before relying on the backup strategy.
+10. Limit production access to authorized pilot participants and keep backup files restricted.
+11. Keep the employee schedule retention policy and backup retention policy aligned.
 
 ## Flyway rule
 
