@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section th:fragment="pickupWindows" class="analytics-section" aria-labelledby="pickup-window-heading">
+    <div class="analytics-section__heading">
+        <div>
+            <p class="eyebrow">Demand evidence</p>
+            <h2 id="pickup-window-heading">Busiest pickup windows</h2>
+        </div>
+        <p>Aggregated scheduled departures by 15-minute clock window across the reporting week.</p>
+    </div>
+
+    <div class="pickup-ranking" th:if="${!report.busiestPickupWindows().isEmpty()}">
+        <article class="pickup-ranking__row" th:each="window, stat : ${report.busiestPickupWindows()}">
+            <span class="pickup-ranking__rank" th:text="${stat.count}">1</span>
+            <div class="pickup-ranking__copy">
+                <strong th:text="${window.timeLabel()}">8:00 PM–8:15 PM</strong>
+                <span>Scheduled pickup demand</span>
+            </div>
+            <strong class="pickup-ranking__count" th:text="${window.scheduledDepartures()}">0</strong>
+        </article>
+    </div>
+
+    <div class="analytics-empty" th:if="${report.busiestPickupWindows().isEmpty()}">
+        No pickup demand was available from uploaded schedules for this week.
+    </div>
+</section>
+</body>
+</html>

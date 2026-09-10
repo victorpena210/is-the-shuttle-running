@@ -38,7 +38,6 @@ public class DashboardController {
             Authentication authentication,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(defaultValue = "false") boolean allowUnverifiedCalendar,
             Model model) {
 
         Organization organization =
@@ -46,22 +45,21 @@ public class DashboardController {
 
         DashboardPlan plan = dashboardPlanningService.getReadOnlyPlan(
                 organization.getId(),
-                date,
-                allowUnverifiedCalendar
-        );
+                date);
 
         model.addAttribute(
                 "attentionCenter",
-                attentionCenterService.build(organization.getId(), plan)
-        );
+                attentionCenterService.build(organization.getId(), plan));
 
         return "fragments/dashboard/attention-center :: attentionCenter";
     }
 
     @GetMapping("/app")
-    public String showDashboard(Authentication authentication,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(defaultValue = "false") boolean allowUnverifiedCalendar, Model model) {
+    public String showDashboard(
+            Authentication authentication,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            Model model) {
         Organization organization = currentOrganizationService.requireOrganization(authentication);
         model.addAttribute("organizationName", organization.getDisplayName());
         model.addAttribute("organizationSlug", organization.getSlug());
@@ -69,15 +67,12 @@ public class DashboardController {
                 .anyMatch(authority -> authority.getAuthority().equals("ROLE_OWNER")));
         DashboardPlan plan = dashboardPlanningService.getPlan(
                 organization.getId(),
-                date,
-                allowUnverifiedCalendar
-        );
+                date);
 
         dashboardModelAssembler.populate(model, plan);
         model.addAttribute(
                 "attentionCenter",
-                attentionCenterService.build(organization.getId(), plan)
-        );
+                attentionCenterService.build(organization.getId(), plan));
         return "manager/dashboard";
     }
 }

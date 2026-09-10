@@ -31,34 +31,6 @@ final class SixFlagsCalendarSnapshotStore {
         this.calendarParser = calendarParser;
     }
 
-    void confirmOpenForDate(LocalDate operatingDate, String confirmedBy) {
-        if (snapshotRepository == null) {
-            throw new IllegalStateException("Persistent park calendar storage is unavailable.");
-        }
-
-        LocalDateTime confirmedAt = LocalDateTime.now(ZoneOffset.UTC);
-        ParkOperatingDaySnapshot snapshot = snapshotRepository
-                .findByParkIdAndOperatingDate(calendarClient.getParkId(), operatingDate)
-                .orElseGet(() -> new ParkOperatingDaySnapshot(
-                        calendarClient.getParkId(),
-                        operatingDate,
-                        ParkOperatingStatus.OPEN,
-                        null,
-                        null,
-                        false,
-                        "MANAGER_CONFIRMATION",
-                        confirmedAt));
-
-        snapshot.confirmOpen(confirmedBy, confirmedAt);
-        snapshotRepository.save(snapshot);
-
-        LOGGER.warn(
-                "Manager {} confirmed park {} open for {} after calendar verification could not be completed",
-                confirmedBy,
-                calendarClient.getParkId(),
-                operatingDate);
-    }
-
     void persistKnownOperatingDays(SixFlagsCalendarResponse response) {
         if (snapshotRepository == null || response == null || response.dates() == null) {
             return;
@@ -143,9 +115,16 @@ final class SixFlagsCalendarSnapshotStore {
                 requestedDate,
                 diagnosticCode);
 
-        String verificationSource = "MANAGER_CONFIRMATION".equals(saved.getSource())
-                ? "MANAGER_CONFIRMATION"
-                : "PERSISTED_SNAPSHOT";
+        if ("MANAGER_CONFIRMATION".equals(saved.getSource())) {
+            LOGGER.warn(
+                    "Ignoring legacy global manager calendar confirmation for park {} date {}. "
+                            + "A new organization-scoped override with a reason is required.",
+                    calendarClient.getParkId(),
+                    requestedDate);
+            return calendarParser.createUnknownDay(
+                    requestedDate,
+                    "LEGACY_MANAGER_CONFIRMATION_IGNORED");
+        }
 
         return new ParkOperatingDay(
                 requestedDate,
@@ -153,7 +132,7 @@ final class SixFlagsCalendarSnapshotStore {
                 saved.getOpeningTime(),
                 saved.getClosingTime(),
                 saved.isBuyout(),
-                verificationSource,
+                "PERSISTED_SNAPSHOT",
                 diagnosticCode);
     }
 }

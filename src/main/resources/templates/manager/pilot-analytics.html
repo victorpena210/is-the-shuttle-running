@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+
+    <title>Pilot Analytics | RoutePulse</title>
+
+    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/pilot-analytics.css}">
+</head>
+<body class="app-page pilot-analytics-page">
+
+<th:block th:replace="~{fragments/navigation :: managerNav('pilot-analytics')}"></th:block>
+
+<main id="main-content" class="app-main pilot-analytics-main">
+
+    <header class="page-header pilot-report-header">
+        <div>
+            <p class="eyebrow" th:text="${organizationName}">Organization</p>
+            <h1>Pilot analytics / ROI</h1>
+            <p>
+                Weekly evidence of what RoutePulse planned, what actually happened,
+                and where the system prevented transportation problems.
+            </p>
+        </div>
+
+        <button class="button button--secondary print-report-button" type="button" onclick="window.print()">
+            Print report
+        </button>
+    </header>
+
+    <section class="week-control" aria-label="Reporting week">
+        <a class="week-control__arrow"
+           th:href="@{/pilot-analytics(week=${report.previousWeekStart()})}"
+           aria-label="Previous week">←</a>
+
+        <div class="week-control__range">
+            <span class="week-control__label" th:text="${report.currentWeek() ? 'Current week' : 'Reporting week'}">
+                Reporting week
+            </span>
+            <strong>
+                <span th:text="${#temporals.format(report.weekStart(), 'MMM d')}">Sep 7</span>
+                –
+                <span th:text="${#temporals.format(report.weekEnd(), 'MMM d, yyyy')}">Sep 13, 2026</span>
+            </strong>
+        </div>
+
+        <a class="week-control__arrow"
+           th:href="@{/pilot-analytics(week=${report.nextWeekStart()})}"
+           aria-label="Next week">→</a>
+
+        <a class="week-control__current"
+           th:if="${report.weekStart() != currentWeekStart}"
+           th:href="@{/pilot-analytics(week=${currentWeekStart})}">
+            Current week
+        </a>
+    </section>
+
+    <th:block th:replace="~{fragments/pilot-analytics/executive-summary :: summary}"></th:block>
+    <th:block th:replace="~{fragments/pilot-analytics/metrics :: metrics}"></th:block>
+    <th:block th:replace="~{fragments/pilot-analytics/fairness :: fairness}"></th:block>
+    <th:block th:replace="~{fragments/pilot-analytics/pickup-windows :: pickupWindows}"></th:block>
+
+</main>
+
+<footer th:replace="~{fragments/footer :: footer('app')}"></footer>
+</body>
+</html>

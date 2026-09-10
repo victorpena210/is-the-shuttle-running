@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section th:fragment="metrics" class="analytics-section" aria-labelledby="pilot-kpis-heading">
+    <div class="analytics-section__heading">
+        <div>
+            <p class="eyebrow">Weekly scorecard</p>
+            <h2 id="pilot-kpis-heading">Operational ROI signals</h2>
+        </div>
+        <p>Planning automation, execution quality, exceptions, and proof of adoption.</p>
+    </div>
+
+    <div class="roi-metric-grid">
+        <article class="roi-metric-card roi-metric-card--wide">
+            <span class="roi-metric-card__label">Planned vs actual shuttle hours</span>
+            <strong class="roi-metric-card__value">
+                <span th:text="${#numbers.formatDecimal(report.plannedHours(), 1, 1)}">0.0</span>h
+                <span class="roi-metric-card__separator">/</span>
+                <span th:text="${#numbers.formatDecimal(report.actualHours(), 1, 1)}">0.0</span>h
+            </strong>
+            <span class="roi-metric-card__detail"
+                  th:text="${#numbers.formatDecimal(report.actualVsPlannedPercent(), 1, 0)} + '% of planned driving time recorded'">
+                0% of planned driving time recorded
+            </span>
+        </article>
+
+        <article class="roi-metric-card">
+            <span class="roi-metric-card__label">Automatically planned</span>
+            <strong class="roi-metric-card__value"
+                    th:text="${#numbers.formatDecimal(report.automaticCoveragePercent(), 1, 0)} + '%'">0%</strong>
+            <span class="roi-metric-card__detail"
+                  th:text="${report.automaticallyPlannedAssignments() + ' of ' + report.totalAssignments() + ' assignments'}">
+                0 of 0 assignments
+            </span>
+        </article>
+
+        <article class="roi-metric-card">
+            <span class="roi-metric-card__label">Manager overrides</span>
+            <strong class="roi-metric-card__value" th:text="${report.managerOverrides()}">0</strong>
+            <span class="roi-metric-card__detail">Planned driver changes made by management</span>
+        </article>
+
+        <article class="roi-metric-card">
+            <span class="roi-metric-card__label">Missed assignments</span>
+            <strong class="roi-metric-card__value" th:text="${report.missedAssignments()}">0</strong>
+            <span class="roi-metric-card__detail">Explicitly missed or past-due with no driving session</span>
+        </article>
+
+        <article class="roi-metric-card">
+            <span class="roi-metric-card__label">Fill-in coverage</span>
+            <strong class="roi-metric-card__value" th:text="${report.fillInAssignments()}">0</strong>
+            <span class="roi-metric-card__detail">Assignments actually driven by someone else</span>
+        </article>
+
+        <article class="roi-metric-card">
+            <span class="roi-metric-card__label">Passenger confirmations</span>
+            <strong class="roi-metric-card__value" th:text="${report.passengerConfirmations()}">0</strong>
+            <span class="roi-metric-card__detail">Rider confirmations recorded during the week</span>
+        </article>
+
+        <article class="roi-metric-card">
+            <span class="roi-metric-card__label">Average start delay</span>
+            <strong class="roi-metric-card__value">
+                <span th:text="${#numbers.formatDecimal(report.averageStartDelayMinutes(), 1, 1)}">0.0</span>m
+            </strong>
+            <span class="roi-metric-card__detail">Late minutes from scheduled start to first actual session</span>
+        </article>
+
+        <article class="roi-metric-card">
+            <span class="roi-metric-card__label">Schedule changes handled</span>
+            <strong class="roi-metric-card__value" th:text="${report.scheduleChangesHandled()}">0</strong>
+            <span class="roi-metric-card__detail">Reconciled against a newer upload before driving began</span>
+        </article>
+
+        <article class="roi-metric-card">
+            <span class="roi-metric-card__label">Fairness spread</span>
+            <strong class="roi-metric-card__value">
+                <span th:text="${#numbers.formatDecimal(report.fairnessSpreadHours(), 1, 1)}">0.0</span>h
+            </strong>
+            <span class="roi-metric-card__detail"
+                  th:text="${report.participatingDrivers()} + ' participating drivers'">
+                0 participating drivers
+            </span>
+        </article>
+    </div>
+</section>
+</body>
+</html>

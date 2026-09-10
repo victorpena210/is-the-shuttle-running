@@ -1,0 +1,36 @@
+@media print {
+    .app-topbar,
+    .app-footer,
+    .print-report-button,
+    .week-control__arrow,
+    .week-control__current {
+        display: none !important;
+    }
+
+    body,
+    .app-page,
+    .roi-metric-card,
+    .roi-summary-card,
+    .pickup-ranking__row {
+        background: #fff !important;
+        color: #111 !important;
+    }
+
+    .app-main {
+        max-width: none !important;
+        padding: 0 !important;
+    }
+
+    .roi-metric-card,
+    .roi-summary-card,
+    .analytics-table-shell,
+    .pickup-ranking__row,
+    .week-control {
+        border-color: #bbb !important;
+        break-inside: avoid;
+    }
+
+    .analytics-section {
+        break-inside: avoid;
+    }
+}

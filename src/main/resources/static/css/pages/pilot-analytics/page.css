@@ -1,0 +1,110 @@
+.pilot-analytics-main {
+    display: grid;
+    gap: 1.5rem;
+}
+
+.pilot-report-header {
+    align-items: flex-end;
+    gap: 1rem;
+}
+
+.print-report-button {
+    flex: 0 0 auto;
+}
+
+.week-control {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .8rem 1rem;
+    border: 1px solid var(--slate-200);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .82);
+}
+
+.week-control__arrow {
+    display: grid;
+    place-items: center;
+    width: 2.4rem;
+    height: 2.4rem;
+    border: 1px solid var(--slate-200);
+    border-radius: 10px;
+    text-decoration: none;
+    font-size: 1.2rem;
+}
+
+.week-control__range {
+    display: grid;
+    gap: .12rem;
+    min-width: 0;
+}
+
+.week-control__label,
+.roi-summary-card__eyebrow {
+    font-size: .73rem;
+    font-weight: 800;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+    opacity: .68;
+}
+
+.week-control__current {
+    margin-left: auto;
+    font-size: .9rem;
+    font-weight: 700;
+}
+
+.roi-summary-card {
+    padding: clamp(1.25rem, 3vw, 2rem);
+    border: 1px solid rgba(59, 130, 246, .24);
+    border-radius: 20px;
+    background:
+        linear-gradient(135deg, rgba(59, 130, 246, .10), rgba(255, 255, 255, .92));
+}
+
+.roi-summary-card h2 {
+    margin: .35rem 0 .7rem;
+}
+
+.roi-summary-card__statement {
+    max-width: 75rem;
+    margin: 0;
+    font-size: clamp(1.05rem, 2vw, 1.3rem);
+    line-height: 1.6;
+}
+
+.roi-summary-card__note {
+    margin: .8rem 0 0;
+    font-size: .88rem;
+    opacity: .72;
+}
+
+.analytics-section {
+    display: grid;
+    gap: 1rem;
+}
+
+.analytics-section__heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1.5rem;
+}
+
+.analytics-section__heading h2,
+.analytics-section__heading p {
+    margin-bottom: 0;
+}
+
+.analytics-section__heading > p {
+    max-width: 40rem;
+    text-align: right;
+    opacity: .72;
+}
+
+.analytics-empty {
+    padding: 1.1rem 1.2rem;
+    border: 1px dashed var(--slate-300);
+    border-radius: 14px;
+    opacity: .72;
+}
