@@ -2,3 +2,79 @@
 .driver-qr-setup-panel {
     margin-bottom: 1.5rem;
 }
+
+.driver-email-dialog {
+    width: min(34rem, calc(100% - 2rem));
+    max-width: none;
+    padding: 0;
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-lg);
+    background: var(--white);
+    box-shadow: var(--shadow-lg);
+}
+
+.driver-email-dialog::backdrop {
+    background: rgba(7, 17, 31, 0.58);
+    backdrop-filter: blur(3px);
+}
+
+.driver-email-dialog__form {
+    padding: 1.35rem;
+}
+
+.driver-email-dialog__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.driver-email-dialog__header h3 {
+    margin: 0.18rem 0 0.45rem;
+    color: var(--ink-950);
+    font-size: 1.35rem;
+}
+
+.driver-email-dialog__header p:last-child {
+    margin: 0;
+    color: var(--slate-600);
+}
+
+.driver-email-dialog__close {
+    display: grid;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: 0 0 auto;
+    place-items: center;
+    padding: 0;
+    border: 1px solid var(--slate-200);
+    border-radius: 999px;
+    color: var(--slate-600);
+    background: var(--white);
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.driver-email-dialog__close:hover {
+    color: var(--ink-950);
+    background: var(--slate-100);
+}
+
+.driver-email-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.7rem;
+    margin-top: 1.2rem;
+}
+
+@media (max-width: 640px) {
+    .driver-email-dialog__actions {
+        flex-direction: column-reverse;
+    }
+
+    .driver-email-dialog__actions .button {
+        width: 100%;
+    }
+}

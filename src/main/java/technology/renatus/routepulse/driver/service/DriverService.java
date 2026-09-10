@@ -197,6 +197,46 @@ public class DriverService {
     }
 
     @Transactional
+    public Driver updatePendingInvitationEmail(
+            Long organizationId,
+            Long id,
+            String email) {
+
+        Driver driver =
+                getDriver(
+                        organizationId,
+                        id
+                );
+
+        if (driver.hasAccount()) {
+            throw new IllegalStateException(
+                    "The driver's email cannot be changed here because their RoutePulse account is already active."
+            );
+        }
+
+        String cleanedEmail =
+                normalizeEmail(email);
+
+        if (driverRepository
+                .existsByOrganization_IdAndEmailIgnoreCaseAndIdNot(
+                        organizationId,
+                        cleanedEmail,
+                        id
+                )) {
+
+            throw new IllegalArgumentException(
+                    "A driver with that email address already exists in this organization."
+            );
+        }
+
+        driver.changeEmail(
+                cleanedEmail
+        );
+
+        return driver;
+    }
+
+    @Transactional
     public Driver updateActiveStatus(
             Long organizationId,
             Long id,

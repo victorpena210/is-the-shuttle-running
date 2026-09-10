@@ -144,6 +144,17 @@ public class Driver {
         return email;
     }
 
+    public void changeEmail(String email) {
+
+        if (hasAccount()) {
+            throw new IllegalStateException(
+                    "The driver's email cannot be changed here because their RoutePulse account is already active."
+            );
+        }
+
+        this.email = email;
+    }
+
     public UserAccount getUser() {
         return user;
     }

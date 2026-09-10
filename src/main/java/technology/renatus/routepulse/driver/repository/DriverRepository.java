@@ -18,6 +18,12 @@ public interface DriverRepository
             String email
     );
 
+    boolean existsByOrganization_IdAndEmailIgnoreCaseAndIdNot(
+            Long organizationId,
+            String email,
+            Long driverId
+    );
+
     List<Driver>
             findAllByOrganization_IdOrderByNameAsc(
                     Long organizationId
