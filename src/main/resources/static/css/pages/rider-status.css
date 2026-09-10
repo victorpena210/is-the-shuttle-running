@@ -37,6 +37,7 @@
 }
 
 .rider-status-indicator {
+    position: relative;
     width: 1rem;
     height: 1rem;
     margin: 0 auto 1.5rem;
@@ -47,6 +48,52 @@
     background: var(--green-600);
     box-shadow: 0 0 0 0.4rem rgba(22, 163, 74, 0.15),
                 0 0 2rem rgba(22, 163, 74, 0.55);
+    animation: rider-status-heartbeat 1.8s ease-in-out infinite;
+}
+
+.rider-status-card--running .rider-status-indicator::before,
+.rider-status-card--running .rider-status-indicator::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 2px solid rgba(34, 197, 94, 0.72);
+    border-radius: inherit;
+    pointer-events: none;
+    animation: rider-status-pulse-ring 1.8s ease-out infinite;
+}
+
+.rider-status-card--running .rider-status-indicator::after {
+    animation-delay: 0.42s;
+}
+
+@keyframes rider-status-heartbeat {
+    0%, 42%, 100% {
+        transform: scale(1);
+    }
+
+    10% {
+        transform: scale(1.22);
+    }
+
+    18% {
+        transform: scale(1);
+    }
+
+    27% {
+        transform: scale(1.12);
+    }
+}
+
+@keyframes rider-status-pulse-ring {
+    0% {
+        opacity: 0.72;
+        transform: scale(0.9);
+    }
+
+    70%, 100% {
+        opacity: 0;
+        transform: scale(3.25);
+    }
 }
 
 .rider-status-card--stopped .rider-status-indicator {
@@ -124,4 +171,13 @@
 .rider-status-card--scheduled-off .rider-status-indicator {
     background: var(--slate-500);
     box-shadow: 0 0 0 0.4rem rgba(100, 116, 139, 0.14);
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+    .rider-status-card--running .rider-status-indicator,
+    .rider-status-card--running .rider-status-indicator::before,
+    .rider-status-card--running .rider-status-indicator::after {
+        animation: none;
+    }
 }
