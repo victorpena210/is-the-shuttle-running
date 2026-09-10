@@ -15,7 +15,7 @@ All paths below are relative to `src/main/java/technology/renatus/routepulse/`.
 | `driver/` | Driver records, onboarding and the driver's portal |
 | `scheduling/` | Uploaded schedules, import history and demand/availability calculations |
 | `assignments/` | Planned coverage, fair recommendations, overrides, outcome reviews and make-up priority |
-| `driving/` | Actual driving sessions, QR actions, passenger confirmations and public rider status |
+| `driving/` | Actual driving sessions, NFC/QR checkpoint actions, passenger confirmations and public rider status |
 | `reporting/workload/` | Historical record queries and scheduled-versus-actual workload reports |
 | `calendar/` | Operating-calendar contract, configured provider, parsed values and saved snapshots |
 | `dashboard/` | Dashboard request handling, planning-date data and the template model |

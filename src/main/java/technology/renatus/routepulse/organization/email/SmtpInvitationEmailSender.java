@@ -101,7 +101,7 @@ public class SmtpInvitationEmailSender
                 + "Create your driver account using this link:\n\n"
                 + invitationUrl
                 + "\n\n"
-                + "After signing in, you will be able to see your own assignments and use the shuttle QR code to record when you start and stop driving.\n\n"
+                + "After signing in, you will be able to see your own assignments and use the shuttle NFC tag or QR code to record when you start, pause, resume, and end driving.\n\n"
                 + "This link expires in 48 hours."
         );
 

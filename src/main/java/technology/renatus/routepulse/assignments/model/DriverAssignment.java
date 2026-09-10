@@ -71,7 +71,7 @@ public class DriverAssignment {
     /*
      * IMPORTANT:
      * scheduled_driver_id is the permanent planned/scheduled driver.
-     * QR scans never rewrite this field. Actual drivers live in
+     * Driver checkpoint actions never rewrite this field. Actual drivers live in
      * driving_sessions.
      */
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
@@ -706,6 +706,10 @@ public class DriverAssignment {
 
     public boolean isDrivingCompleted() {
         return drivingHistory().isCompleted();
+    }
+
+    public boolean isDrivingPaused() {
+        return drivingHistory().isPaused();
     }
 
     public long getActualMinutes() {

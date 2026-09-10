@@ -159,7 +159,7 @@
             <version>${sentry.version}</version>
         </dependency>
 
-        <!-- QR-code generation for driver start/stop scanning. -->
+        <!-- QR-code generation for the backup driver checkpoint and passenger flows. -->
         <dependency>
             <groupId>com.google.zxing</groupId>
             <artifactId>core</artifactId>

@@ -13,27 +13,29 @@ import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.assignments.repository.DriverAssignmentRepository;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driver.service.portal.DriverPortalAccessService;
-import technology.renatus.routepulse.driver.service.portal.DriverQrScanService;
-import technology.renatus.routepulse.driver.service.portal.DriverQrScanService.ScanPreview;
-import technology.renatus.routepulse.driver.service.portal.DriverQrScanService.ScanResult;
+import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService;
+import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService.CheckpointAction;
+import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService.CheckpointPreview;
+import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService.CheckpointResult;
+import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
 
-/** Facade for the driver portal's profile, assignment history, and QR actions. */
+/** Facade for the driver portal's profile, assignment history, and physical checkpoint actions. */
 @Service
 @Transactional(readOnly = true)
 public class DriverPortalService {
 
     private final DriverPortalAccessService accessService;
-    private final DriverQrScanService qrScanService;
+    private final DriverCheckpointService checkpointService;
     private final DriverAssignmentRepository assignmentRepository;
     private final ZoneId operationsZone;
 
     public DriverPortalService(
             DriverPortalAccessService accessService,
-            DriverQrScanService qrScanService,
+            DriverCheckpointService checkpointService,
             DriverAssignmentRepository assignmentRepository,
             @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
         this.accessService = accessService;
-        this.qrScanService = qrScanService;
+        this.checkpointService = checkpointService;
         this.assignmentRepository = assignmentRepository;
         this.operationsZone = ZoneId.of(operationsZone);
     }
@@ -58,7 +60,7 @@ public class DriverPortalService {
      * Pick the assignment the driver should care about right now. Active driving
      * always wins; otherwise choose the earliest assignment with driving time
      * remaining today. This keeps the driver home screen action-first without
-     * changing any assignment or QR-session rules.
+     * changing any assignment or checkpoint-session rules.
      */
     public DriverAssignment selectPrimaryTodayAssignment(
             List<DriverAssignment> assignments) {
@@ -94,13 +96,26 @@ public class DriverPortalService {
                 .toList();
     }
 
-    public ScanPreview getScanPreview(Authentication authentication, String qrCode) {
-        return qrScanService.getScanPreview(authentication, qrCode);
+    public CheckpointPreview getCheckpointPreview(
+            Authentication authentication,
+            String checkpointCode,
+            DrivingActionMethod method) {
+
+        return checkpointService.getPreview(authentication, checkpointCode, method);
     }
 
     @Transactional
-    public ScanResult recordQrScan(Authentication authentication, String qrCode) {
-        return qrScanService.recordQrScan(authentication, qrCode);
+    public CheckpointResult recordCheckpoint(
+            Authentication authentication,
+            String checkpointCode,
+            DrivingActionMethod method,
+            CheckpointAction requestedAction) {
+
+        return checkpointService.recordCheckpoint(
+                authentication,
+                checkpointCode,
+                method,
+                requestedAction);
     }
 
     public LocalDate currentOperationsDate() {

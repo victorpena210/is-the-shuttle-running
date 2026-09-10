@@ -14,9 +14,9 @@ import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.assignments.model.PlannedDrivingWindow;
 import technology.renatus.routepulse.driver.model.Driver;
 
-class DriverQrStartPolicyTests {
+class DriverCheckpointStartPolicyTests {
 
-    private final DriverQrStartPolicy policy = new DriverQrStartPolicy();
+    private final DriverCheckpointStartPolicy policy = new DriverCheckpointStartPolicy();
 
     @Test
     void blocksScheduledDriverBeforeScheduledStart() {

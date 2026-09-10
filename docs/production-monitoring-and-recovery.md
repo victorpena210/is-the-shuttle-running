@@ -122,7 +122,7 @@ normal traffic.
 4. If the app is unhealthy but the database is healthy, redeploy/restart the app.
 5. If the database is damaged or data was deleted incorrectly, stop writes before
    attempting recovery. Prefer a restore into a separate recovery target first.
-6. Once recovered, verify manager login, driving QR flow, rider status, and the
+6. Once recovered, verify manager login, NFC/QR driver checkpoint flow, rider status, and the
    current operating-day assignments.
 7. Record what failed and what prevented a faster detection/recovery, then update
    this runbook.

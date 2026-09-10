@@ -61,16 +61,16 @@ public class DriverPortalAccessService {
         }
     }
 
-    public void validateQrCode(Organization organization, String qrCode) {
-        String activeQrCode = organization.getDrivingQrCode();
+    public void validateCheckpointCode(Organization organization, String checkpointCode) {
+        String activeCheckpointCode = organization.getDrivingQrCode();
 
-        if (qrCode == null
-                || qrCode.isBlank()
-                || activeQrCode == null
-                || activeQrCode.isBlank()
-                || !activeQrCode.equals(qrCode.trim())) {
+        if (checkpointCode == null
+                || checkpointCode.isBlank()
+                || activeCheckpointCode == null
+                || activeCheckpointCode.isBlank()
+                || !activeCheckpointCode.equals(checkpointCode.trim())) {
             throw new IllegalArgumentException(
-                    "This QR code is not valid for your organization.");
+                    "This shuttle checkpoint is not valid for your organization.");
         }
     }
 }

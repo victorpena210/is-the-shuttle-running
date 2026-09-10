@@ -12,6 +12,7 @@ import technology.renatus.routepulse.assignments.service.DriverWorkloadService;
 import technology.renatus.routepulse.auth.model.UserAccount;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
+import technology.renatus.routepulse.driving.domain.DrivingSessionEndReason;
 import technology.renatus.routepulse.driving.model.DrivingSession;
 import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
 
@@ -193,7 +194,8 @@ public class DrivingSessionService {
         activeSession.end(
                 changedAt,
                 actor,
-                method
+                method,
+                DrivingSessionEndReason.HANDOFF
         );
 
         updateDerivedOutcome(assignment);
@@ -248,7 +250,8 @@ public class DrivingSessionService {
                 session,
                 actor,
                 endedAt,
-                method
+                method,
+                DrivingSessionEndReason.COMPLETED
         );
     }
 
@@ -259,6 +262,25 @@ public class DrivingSessionService {
             UserAccount actor,
             Instant endedAt,
             DrivingActionMethod method) {
+
+        return endSession(
+                assignment,
+                session,
+                actor,
+                endedAt,
+                method,
+                DrivingSessionEndReason.COMPLETED
+        );
+    }
+
+    @Transactional
+    public DrivingSession endSession(
+            DriverAssignment assignment,
+            DrivingSession session,
+            UserAccount actor,
+            Instant endedAt,
+            DrivingActionMethod method,
+            DrivingSessionEndReason endReason) {
 
         Objects.requireNonNull(assignment, "Assignment is required.");
         Objects.requireNonNull(session, "Driving session is required.");
@@ -275,7 +297,8 @@ public class DrivingSessionService {
         session.end(
                 endedAt,
                 actor,
-                method
+                method,
+                endReason
         );
 
         updateDerivedOutcome(assignment);

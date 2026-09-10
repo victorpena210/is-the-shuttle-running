@@ -19,6 +19,7 @@ import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.auth.model.UserAccount;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
+import technology.renatus.routepulse.driving.domain.DrivingSessionEndReason;
 import technology.renatus.routepulse.organization.model.Organization;
 
 @Entity
@@ -62,6 +63,10 @@ public class DrivingSession {
     @Enumerated(EnumType.STRING)
     @Column(name = "end_method", length = 20)
     private DrivingActionMethod endMethod;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "end_reason", length = 20)
+    private DrivingSessionEndReason endReason;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
@@ -137,6 +142,20 @@ public class DrivingSession {
             UserAccount endedBy,
             DrivingActionMethod endMethod) {
 
+        end(
+                endedAt,
+                endedBy,
+                endMethod,
+                DrivingSessionEndReason.COMPLETED
+        );
+    }
+
+    public void end(
+            Instant endedAt,
+            UserAccount endedBy,
+            DrivingActionMethod endMethod,
+            DrivingSessionEndReason endReason) {
+
         Objects.requireNonNull(endedAt, "Driving end time is required.");
 
         if (this.endedAt != null) {
@@ -159,6 +178,10 @@ public class DrivingSession {
         this.endMethod = Objects.requireNonNull(
                 endMethod,
                 "Driving end method is required."
+        );
+        this.endReason = Objects.requireNonNull(
+                endReason,
+                "Driving end reason is required."
         );
     }
 
@@ -209,6 +232,10 @@ public class DrivingSession {
 
     public DrivingActionMethod getEndMethod() {
         return endMethod;
+    }
+
+    public DrivingSessionEndReason getEndReason() {
+        return endReason;
     }
 
     public Instant getCreatedAt() {

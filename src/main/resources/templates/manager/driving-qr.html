@@ -1,215 +1,160 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1">
-
-    <meta
-        name="theme-color"
-        content="#07111f">
-
-    <title>
-        Driving QR | RoutePulse
-    </title>
-
-    <link
-        rel="icon"
-        th:href="@{/images/routepulse-mark.svg}"
-        type="image/svg+xml">
-
-    <link
-        rel="stylesheet"
-        th:href="@{/css/site.css}">
-
-    <link
-        rel="stylesheet"
-        th:href="@{/css/pages/driving-qr.css}">
-
-    <script
-        type="module"
-        th:src="@{/js/pages/driving-qr.js}">
-    </script>
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <title>Driver Checkpoint | RoutePulse</title>
+    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/driving-qr.css}">
+    <script type="module" th:src="@{/js/pages/driving-qr.js}"></script>
 </head>
-
 <body class="app-page">
 
 <th:block th:replace="~{fragments/navigation :: managerNav('driving-qr')}"></th:block>
 
-<main
-    id="main-content"
-    class="app-main">
+<main id="main-content" class="app-main">
 
     <header class="page-header">
-
         <div>
-
-            <p
-                class="eyebrow"
-                th:text="${organizationName}">
-
-                Organization
-
-            </p>
-
-            <h1>
-                Shuttle driving QR
-            </h1>
-
+            <p class="eyebrow" th:text="${organizationName}">Organization</p>
+            <h1>Shuttle driver checkpoint</h1>
             <p>
-                Print this QR code and place it inside the shuttle.
-                Drivers scan this same code when they begin driving
-                and again when they finish.
+                Drivers can tap the NFC tag or scan the QR code. Both use the same
+                RoutePulse driving workflow and the signed-in account identifies the driver.
             </p>
-
         </div>
-
     </header>
 
-    <div
-        th:if="${successMessage}"
-        class="alert alert--success"
-        role="status"
-        th:text="${successMessage}">
-    </div>
+    <div th:if="${successMessage}"
+         class="alert alert--success"
+         role="status"
+         th:text="${successMessage}"></div>
 
-    <section
-        class="panel panel--raised"
-        aria-labelledby="qr-heading">
+    <section class="checkpoint-grid" aria-label="Shuttle driver checkpoint methods">
 
-        <div class="panel__header">
-
-            <div>
-
-                <h2 id="qr-heading">
-                    Current shuttle QR
-                </h2>
-
-                <p>
-                    The driver must be signed in to their own
-                    RoutePulse account for the scan to work.
-                </p>
-
+        <article class="panel panel--raised checkpoint-card checkpoint-card--nfc">
+            <div class="panel__header">
+                <div>
+                    <p class="eyebrow">Primary method</p>
+                    <h2>NFC tap</h2>
+                    <p>
+                        Program one NFC tag with this URL and place it inside the shuttle.
+                        A tap opens the same state-aware driver workflow as the QR code.
+                    </p>
+                </div>
             </div>
 
-        </div>
+            <div class="panel__body">
+                <div class="nfc-programming-card">
+                    <span class="field-label">URL to write to the NFC tag</span>
+                    <code class="nfc-url" data-nfc-url th:text="${nfcUrl}">
+                        https://routepulse.technology/driver/tap?code=example
+                    </code>
+                </div>
 
-        <div class="panel__body">
+                <div class="button-row">
+                    <button class="button" type="button" data-copy-nfc-url>
+                        Copy NFC URL
+                    </button>
+                </div>
 
-            <div class="driving-qr-display">
+                <div class="alert alert--info driving-qr-info" role="status">
+                    The tag identifies this organization's shuttle checkpoint. It does not
+                    authenticate a driver. The driver must still be signed in to their own
+                    RoutePulse account.
+                </div>
 
-                <img
-                    th:src="@{/driving-qr/image}"
-                    alt="RoutePulse shuttle driving QR code"
-                    class="driving-qr-image">
+                <ol class="checkpoint-steps">
+                    <li>Open your NFC-writing app.</li>
+                    <li>Write the URL above as a website/URL record.</li>
+                    <li>Test the tag with a driver phone before mounting it in the shuttle.</li>
+                </ol>
+            </div>
+        </article>
 
+        <article class="panel panel--raised checkpoint-card checkpoint-card--qr">
+            <div class="panel__header">
+                <div>
+                    <p class="eyebrow">Backup method</p>
+                    <h2>QR scan</h2>
+                    <p>
+                        Keep this QR posted next to the NFC tag. Drivers can scan it whenever
+                        NFC is unavailable or inconvenient.
+                    </p>
+                </div>
             </div>
 
-            <div
-                class="alert alert--info driving-qr-info"
-                role="status">
+            <div class="panel__body">
+                <div class="driving-qr-display">
+                    <img th:src="@{/driving-qr/image}"
+                         alt="RoutePulse shuttle driving QR code"
+                         class="driving-qr-image">
+                </div>
 
-                This QR belongs to this organization. It does not
-                identify a driver. RoutePulse identifies the driver
-                from the account that is signed in when the code is scanned.
-
+                <div class="button-row">
+                    <button class="button" type="button" data-print-driving-qr>
+                        Print QR
+                    </button>
+                    <a class="button button--secondary" th:href="@{/drivers}">
+                        Back to drivers
+                    </a>
+                </div>
             </div>
-
-            <div class="button-row">
-
-                <button
-                    class="button"
-                    type="button"
-                    data-print-driving-qr>
-
-                    Print QR
-
-                </button>
-
-                <a
-                    class="button button--secondary"
-                    th:href="@{/drivers}">
-
-                    Back to drivers
-
-                </a>
-
-            </div>
-
-        </div>
+        </article>
 
     </section>
 
-    <section
-        class="panel panel--raised driving-qr-regenerate-panel"
-        aria-labelledby="regenerate-heading">
-
+    <section class="panel panel--raised checkpoint-behavior-panel" aria-labelledby="behavior-heading">
         <div class="panel__header">
-
             <div>
-
-                <p class="eyebrow">
-                    Security control
-                </p>
-
-                <h2 id="regenerate-heading">
-                    Generate a new QR code
-                </h2>
-
+                <p class="eyebrow">One smart workflow</p>
+                <h2 id="behavior-heading">RoutePulse decides what the checkpoint means</h2>
                 <p>
-                    Use this if the current QR is lost, copied,
-                    damaged, or should no longer be accepted.
+                    The driver does not need separate NFC tags for starting, pausing,
+                    resuming, and ending.
                 </p>
-
             </div>
+        </div>
+        <div class="panel__body">
+            <div class="checkpoint-behavior-grid">
+                <div><strong>Not driving</strong><span>Start or resume the current assignment</span></div>
+                <div><strong>Already driving</strong><span>Choose Pause or End driving</span></div>
+                <div><strong>Another driver active</strong><span>Confirm a driver handoff</span></div>
+                <div><strong>Too early / off-window</strong><span>RoutePulse blocks the start and explains why</span></div>
+            </div>
+        </div>
+    </section>
 
+    <section class="panel panel--raised driving-qr-regenerate-panel" aria-labelledby="regenerate-heading">
+        <div class="panel__header">
+            <div>
+                <p class="eyebrow">Security control</p>
+                <h2 id="regenerate-heading">Generate a new checkpoint code</h2>
+                <p>
+                    Use this if the posted QR or NFC tag is lost, copied, or should no longer
+                    be accepted.
+                </p>
+            </div>
         </div>
 
         <div class="panel__body">
-
-            <div
-                class="alert alert--warning"
-                role="alert">
-
-                <strong>
-                    The old QR will stop working immediately.
-                </strong>
-
-                After generating a new code, print it and replace
-                every old copy posted in the shuttle.
-
+            <div class="alert alert--warning" role="alert">
+                <strong>The old QR and NFC URL will stop working immediately.</strong>
+                After regenerating, print the new QR and rewrite the NFC tag with the new URL.
             </div>
 
-            <form
-                th:action="@{/driving-qr/regenerate}"
-                method="post"
-                data-confirm-qr-regenerate>
-
-                <button
-                    class="button button--secondary"
-                    type="submit">
-
-                    Generate new QR
-
+            <form th:action="@{/driving-qr/regenerate}" method="post" data-confirm-qr-regenerate>
+                <button class="button button--secondary" type="submit">
+                    Generate new checkpoint code
                 </button>
-
             </form>
-
         </div>
-
     </section>
 
 </main>
 
-<footer
-    th:replace="~{fragments/footer :: footer('app')}">
-</footer>
-
+<footer th:replace="~{fragments/footer :: footer('app')}"></footer>
 </body>
-
 </html>

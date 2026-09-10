@@ -137,11 +137,14 @@
 
                     <tr>
 
-                        <td
-                            th:text="|Driving started · ${session.driver.name}|">
-
-                            Driving started · Driver
-
+                        <td>
+                            <span th:text="|Driving started · ${session.driver.name}|">
+                                Driving started · Driver
+                            </span>
+                            <small th:if="${session.startMethod != null}"
+                                   th:text="| · ${session.startMethod}|">
+                                · NFC
+                            </small>
                         </td>
 
                         <td
@@ -165,11 +168,23 @@
                     <tr
                         th:if="${session.endedAt != null}">
 
-                        <td
-                            th:text="|Driving ended · ${session.driver.name}|">
-
-                            Driving ended · Driver
-
+                        <td>
+                            <span th:if="${session.endReason != null and session.endReason.name() == 'PAUSE'}"
+                                  th:text="|Driving paused · ${session.driver.name}|">
+                                Driving paused · Driver
+                            </span>
+                            <span th:if="${session.endReason != null and session.endReason.name() == 'HANDOFF'}"
+                                  th:text="|Driver handoff · ${session.driver.name}|">
+                                Driver handoff · Driver
+                            </span>
+                            <span th:if="${session.endReason == null or session.endReason.name() == 'COMPLETED'}"
+                                  th:text="|Driving ended · ${session.driver.name}|">
+                                Driving ended · Driver
+                            </span>
+                            <small th:if="${session.endMethod != null}"
+                                   th:text="| · ${session.endMethod}|">
+                                · NFC
+                            </small>
                         </td>
 
                         <td

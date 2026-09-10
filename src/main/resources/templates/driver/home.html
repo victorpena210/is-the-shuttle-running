@@ -33,9 +33,9 @@
             </h1>
 
             <p>
-                Your next driving window is shown first. Use the permanent
-                RoutePulse QR posted in the shuttle when it is time to start
-                or stop driving.
+                Your next driving window is shown first. Tap the RoutePulse NFC tag
+                or scan the backup QR posted in the shuttle when it is time to
+                start, pause, resume, or end driving.
             </p>
         </div>
 
@@ -124,10 +124,8 @@
         </div>
 
         <div class="driver-focus__scan">
-            <span th:text="${primaryAssignment.driving ? 'SCAN QR TO STOP' : 'SCAN QR TO START'}">
-                SCAN QR TO START
-            </span>
-            <small>Use the QR posted inside the shuttle.</small>
+            <span>TAP NFC OR SCAN QR</span>
+            <small>Use the NFC tag first, or scan the QR as a backup.</small>
         </div>
 
     </section>
@@ -150,9 +148,9 @@
         <span class="driver-focus__eyebrow">Today</span>
         <h2 id="driver-empty-heading">No driving assignment scheduled.</h2>
         <p>
-            If you are filling in for another registered driver, scan the
-            shuttle QR. RoutePulse will show the coverage action before it
-            records a start time.
+            If you are filling in for another registered driver, tap the NFC tag
+            or scan the shuttle QR. RoutePulse will show the coverage action before
+            it records a start time.
         </p>
     </section>
 
@@ -239,7 +237,13 @@
 
                         <span
                             class="badge badge--inactive"
-                            th:if="${assignment.drivingCompleted}">
+                            th:if="${assignment.drivingPaused}">
+                            Paused
+                        </span>
+
+                        <span
+                            class="badge badge--inactive"
+                            th:if="${assignment.drivingCompleted and !assignment.drivingPaused}">
                             Stopped
                         </span>
 
@@ -267,14 +271,14 @@
     </section>
 
     <details class="driver-help panel panel--raised">
-        <summary>How QR start and stop records work</summary>
+        <summary>How NFC and QR driving records work</summary>
 
         <div class="driver-help__body">
             <p>
-                Scan when a driving stretch starts and scan again when that
-                stretch stops. If you resume later in the same assignment,
-                RoutePulse opens another actual driving session and keeps the
-                earlier one in the record.
+                Tap the NFC tag or scan the QR when a driving stretch starts. Use
+                either checkpoint method again when you need to pause or end. If
+                you resume later in the same assignment, RoutePulse opens another
+                actual driving session and keeps the earlier one in the record.
             </p>
 
             <p>
@@ -284,8 +288,9 @@
             </p>
 
             <div class="alert alert--info" role="status">
-                An active driver is never silently replaced. A manager must
-                resolve an active-session handoff when another driver takes over.
+                An active driver is never silently replaced. RoutePulse shows a
+                handoff confirmation before ending the previous actual session and
+                starting the replacement driver's session.
             </div>
         </div>
     </details>
