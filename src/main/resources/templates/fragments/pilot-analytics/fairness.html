@@ -46,24 +46,18 @@
                 </td>
 
                 <td data-label="Scheduled"
-                    th:text="${#numbers.formatDecimal(row.scheduledHours(), 1, 1) + 'h'}">
+                    th:text="${row.scheduledHoursLabel()}">
                     0.0h
                 </td>
 
                 <td data-label="Actual"
-                    th:text="${#numbers.formatDecimal(row.actualHours(), 1, 1) + 'h'}">
+                    th:text="${row.actualHoursLabel()}">
                     0.0h
                 </td>
 
                 <td data-label="Difference"
-                    th:classappend="${row.differenceHours() > 0
-                        ? 'analytics-table__positive'
-                        : (row.differenceHours() < 0
-                            ? 'analytics-table__negative'
-                            : '')}"
-                    th:text="${(row.differenceHours() > 0 ? '+' : '')
-                        + #numbers.formatDecimal(row.differenceHours(), 1, 1)
-                        + 'h'}">
+                    th:classappend="${row.differenceCssClass()}"
+                    th:text="${row.differenceHoursLabel()}">
                     0.0h
                 </td>
 
