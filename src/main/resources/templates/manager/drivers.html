@@ -26,6 +26,10 @@
         rel="stylesheet"
         th:href="@{/css/site.css}">
 
+    <link
+        rel="stylesheet"
+        th:href="@{/css/pages/drivers.css}">
+
 </head>
 
 <body class="app-page">
@@ -78,9 +82,8 @@
 
     <section
         th:if="${canManageDrivingQr}"
-        class="panel panel--raised"
-        aria-labelledby="driving-qr-setup-heading"
-        style="margin-bottom:1.5rem;">
+        class="panel panel--raised driver-qr-setup-panel"
+        aria-labelledby="driving-qr-setup-heading">
 
         <div class="panel__header">
 

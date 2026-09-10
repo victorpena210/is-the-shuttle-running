@@ -26,6 +26,15 @@
         rel="stylesheet"
         th:href="@{/css/site.css}">
 
+    <link
+        rel="stylesheet"
+        th:href="@{/css/pages/driving-qr.css}">
+
+    <script
+        type="module"
+        th:src="@{/js/pages/driving-qr.js}">
+    </script>
+
 </head>
 
 <body class="app-page">
@@ -92,30 +101,18 @@
 
         <div class="panel__body">
 
-            <div
-                style="
-                    display:flex;
-                    justify-content:center;
-                    padding:1rem;
-                    background:#ffffff;
-                    border-radius:16px;
-                ">
+            <div class="driving-qr-display">
 
                 <img
                     th:src="@{/driving-qr/image}"
                     alt="RoutePulse shuttle driving QR code"
-                    style="
-                        display:block;
-                        width:min(100%, 420px);
-                        height:auto;
-                    ">
+                    class="driving-qr-image">
 
             </div>
 
             <div
-                class="alert alert--info"
-                role="status"
-                style="margin-top:1rem;">
+                class="alert alert--info driving-qr-info"
+                role="status">
 
                 This QR belongs to this organization. It does not
                 identify a driver. RoutePulse identifies the driver
@@ -128,7 +125,7 @@
                 <button
                     class="button"
                     type="button"
-                    onclick="window.print()">
+                    data-print-driving-qr>
 
                     Print QR
 
@@ -149,9 +146,8 @@
     </section>
 
     <section
-        class="panel panel--raised"
-        aria-labelledby="regenerate-heading"
-        style="margin-top:1.5rem;">
+        class="panel panel--raised driving-qr-regenerate-panel"
+        aria-labelledby="regenerate-heading">
 
         <div class="panel__header">
 
@@ -192,10 +188,7 @@
             <form
                 th:action="@{/driving-qr/regenerate}"
                 method="post"
-                onsubmit="return window.confirm(
-                    'Generate a new shuttle QR code? '
-                    + 'The current QR will stop working immediately.'
-                );">
+                data-confirm-qr-regenerate>
 
                 <button
                     class="button button--secondary"

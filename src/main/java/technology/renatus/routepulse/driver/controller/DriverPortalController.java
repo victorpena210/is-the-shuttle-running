@@ -1,5 +1,6 @@
 package technology.renatus.routepulse.driver.controller;
 
+import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -7,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driver.service.DriverPortalService;
 import technology.renatus.routepulse.driver.service.portal.DriverQrScanService.ScanAction;
@@ -41,9 +43,13 @@ public class DriverPortalController {
                 "today",
                 driverPortalService.currentOperationsDate()
         );
+        List<DriverAssignment> todayAssignments =
+                driverPortalService.getTodayAssignments(authentication);
+
+        model.addAttribute("todayAssignments", todayAssignments);
         model.addAttribute(
-                "todayAssignments",
-                driverPortalService.getTodayAssignments(authentication)
+                "primaryAssignment",
+                driverPortalService.selectPrimaryTodayAssignment(todayAssignments)
         );
 
         return "driver/home";
