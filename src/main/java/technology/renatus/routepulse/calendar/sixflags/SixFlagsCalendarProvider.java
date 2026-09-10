@@ -88,8 +88,4 @@ public class SixFlagsCalendarProvider implements OperatingCalendarProvider {
             return snapshotStore.fallback(requestedDate, "CALENDAR_UNAVAILABLE");
         }
     }
-
-    public void confirmOpenForDate(LocalDate operatingDate, String confirmedBy) {
-        snapshotStore.confirmOpenForDate(operatingDate, confirmedBy);
-    }
 }

@@ -30,10 +30,12 @@ public class DashboardModelAssembler {
         model.addAttribute("activeDrivers", plan.activeDrivers());
         model.addAttribute("operatingDay", day);
         model.addAttribute("calendarMessage", plan.calendarMessage());
+        model.addAttribute("calendarOverride", plan.calendarOverride());
         model.addAttribute("calendarOverrideActive", plan.calendarOverrideActive());
         model.addAttribute("calendarDiagnosticCode", day == null ? null : day.diagnosticCode());
         model.addAttribute("calendarConfirmationRequired", plan.selectedDateAvailable() && day != null
-                && day.status() == ParkOperatingStatus.UNKNOWN && !plan.calendarOverrideActive());
+                && (day.status() == ParkOperatingStatus.UNKNOWN || day.status() == ParkOperatingStatus.CLOSED)
+                && !plan.calendarOverrideActive());
         model.addAttribute("showSchedule", plan.selectedDateAvailable() && day != null
                 && (day.shouldScheduleShuttle() || plan.calendarOverrideActive()));
         model.addAttribute("driverAssignments", plan.driverAssignments());

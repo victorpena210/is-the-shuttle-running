@@ -33,8 +33,10 @@ import technology.renatus.routepulse.auth.model.UserAccount;
 import technology.renatus.routepulse.auth.repository.UserAccountRepository;
 import technology.renatus.routepulse.calendar.domain.ParkOperatingDay;
 import technology.renatus.routepulse.calendar.domain.ParkOperatingStatus;
+import technology.renatus.routepulse.calendar.model.ParkCalendarOverride;
 import technology.renatus.routepulse.calendar.model.ParkOperatingDaySnapshot;
 import technology.renatus.routepulse.calendar.repository.ParkOperatingDaySnapshotRepository;
+import technology.renatus.routepulse.calendar.service.ParkCalendarOverrideService;
 import technology.renatus.routepulse.calendar.service.ParkOperatingDayService;
 import technology.renatus.routepulse.calendar.sixflags.SixFlagsCalendarClient;
 import technology.renatus.routepulse.calendar.sixflags.SixFlagsCalendarDate;
@@ -142,9 +144,6 @@ public final class CleanupRegressionChecks {
         client.fail = true;
         ParkOperatingDay saved = calendar(client, repository).getOperatingDay(DATE);
         equal("PERSISTED_SNAPSHOT", saved.verificationSource(), "persisted fallback");
-        ParkOperatingDayService manual = calendar(client, repository);
-        manual.confirmOpenForDate(DATE.plusDays(1), "manager@example.com");
-        equal("MANAGER_CONFIRMATION", manual.getOperatingDay(DATE.plusDays(1)).verificationSource(), "manual fallback");
         equal(ParkOperatingStatus.UNKNOWN, calendar(client, repository).getOperatingDay(DATE.plusDays(2)).status(), "unknown date");
         client.fail = false;
         client.response = response(true);
@@ -201,18 +200,27 @@ public final class CleanupRegressionChecks {
                     @Override public ParkOperatingDay getOperatingDay(LocalDate date) {
                         return new ParkOperatingDay(date, status, null, null, false, "NONE", null);
                     }
-                    @Override public void confirmOpenForDate(LocalDate date, String actor) {
-                        throw new AssertionError("Planning must not confirm a park opening");
+                };
+                ParkCalendarOverrideService overrideService = new ParkCalendarOverrideService(null, null, null, "UTC") {
+                    @Override
+                    public Optional<ParkCalendarOverride> findLatest(Long organizationId, LocalDate operatingDate) {
+                        if (!override || status == ParkOperatingStatus.OPEN) {
+                            return Optional.empty();
+                        }
+                        return Optional.of(new ParkCalendarOverride(
+                                organizationId, operatingDate, status, ParkOperatingStatus.OPEN,
+                                "TEST", null, "Employee event", 1L, "Test Manager",
+                                "manager@example.com", LocalDateTime.of(2026, 9, 7, 8, 4)));
                     }
                 };
                 DashboardPlanningService service = new DashboardPlanningService(demandService, schedules,
-                        driverSchedules, new ParkOperatingDayService(provider), assignments, drivers,
+                        driverSchedules, new ParkOperatingDayService(provider), overrideService, assignments, drivers,
                         reconciliationService);
                 assignmentCalls[0] = 0;
-                DashboardPlan plan = service.getPlan(10L, null, override);
+                DashboardPlan plan = service.getPlan(10L, null);
                 equal(DATE, plan.selectedDate(), "latest import date remains the default, including historical dates");
                 check(plan.transportationDemand().hasAnyDemand(), "calendar status must not hide schedule demand");
-                boolean allowed = status == ParkOperatingStatus.OPEN || (status == ParkOperatingStatus.UNKNOWN && override);
+                boolean allowed = status == ParkOperatingStatus.OPEN || (status != ParkOperatingStatus.OPEN && override);
                 equal(allowed ? 1 : 0, assignmentCalls[0], "planning assignment gate " + status);
             }
         }
@@ -228,7 +236,7 @@ public final class CleanupRegressionChecks {
                 LocalTime.of(9, 0), LocalTime.of(17, 0)));
         for (ParkOperatingStatus status : ParkOperatingStatus.values()) {
             for (boolean override : List.of(false, true)) {
-                boolean allowed = status == ParkOperatingStatus.OPEN || (status == ParkOperatingStatus.UNKNOWN && override);
+                boolean allowed = status == ParkOperatingStatus.OPEN || (status != ParkOperatingStatus.OPEN && override);
                 ParkOperatingDay day = new ParkOperatingDay(DATE, status, LocalTime.of(10, 0),
                         LocalTime.of(21, 0), false, "LIVE_API", null);
                 List<ScheduleReconciliation> reconciliations = allowed
@@ -250,10 +258,15 @@ public final class CleanupRegressionChecks {
                                 "Scheduled Driver no longer fully covers the morning driving window."
                         ))
                         : List.of();
+                ParkCalendarOverride calendarOverride = override && status != ParkOperatingStatus.OPEN
+                        ? new ParkCalendarOverride(10L, DATE, status, ParkOperatingStatus.OPEN, "TEST",
+                                "CALENDAR_TEST", "Employee event", 1L, "Test Manager",
+                                "manager@example.com", LocalDateTime.of(2026, 9, 7, 8, 4))
+                        : null;
                 DashboardPlan plan = new DashboardPlan(DATE, DATE, List.of(DATE), true, true, List.of(f.imported()),
                         demand(), schedules, List.of(f.drivers().get(1)), f.drivers(),
                         allowed ? List.of(f.assignment()) : List.of(), reconciliations, f.imported(), allowed, null, day,
-                        "Calendar status", status == ParkOperatingStatus.UNKNOWN && override);
+                        "Calendar status", calendarOverride, calendarOverride != null);
                 ExtendedModelMap model = managerModel();
                 new DashboardModelAssembler().populate(model, plan);
                 String html = render(engine, "manager/dashboard", model);
@@ -273,7 +286,7 @@ public final class CleanupRegressionChecks {
         ExtendedModelMap empty = managerModel();
         new DashboardModelAssembler().populate(empty, new DashboardPlan(DATE, DATE, List.of(), false,
                 false, List.of(), TransportationDemandAnalysis.empty(), List.of(), List.of(), List.of(),
-                List.of(), List.of(), null, false, null, null, null, false));
+                List.of(), List.of(), null, false, null, null, null, null, false));
         check(render(engine, "manager/dashboard", empty).contains("scheduleFile"), "empty dashboard still permits import");
     }
 

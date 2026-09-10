@@ -14,4 +14,10 @@ public interface PassengerRideConfirmationRepository
             String deviceTokenHash,
             LocalDateTime submittedAfter
     );
+
+    long countByOrganization_IdAndSubmittedAtGreaterThanEqualAndSubmittedAtLessThan(
+            Long organizationId,
+            LocalDateTime submittedAtStart,
+            LocalDateTime submittedAtEndExclusive
+    );
 }

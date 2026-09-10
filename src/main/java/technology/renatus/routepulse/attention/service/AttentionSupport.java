@@ -196,12 +196,6 @@ public final class AttentionSupport {
             return "/app#" + view;
         }
 
-        String href = "/app?date=" + date;
-
-        if (plan.calendarOverrideActive()) {
-            href += "&allowUnverifiedCalendar=true";
-        }
-
-        return href + "#" + view;
+        return "/app?date=" + date + "#" + view;
     }
 }

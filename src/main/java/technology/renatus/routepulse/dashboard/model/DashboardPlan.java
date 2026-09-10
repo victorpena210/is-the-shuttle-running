@@ -5,6 +5,7 @@ import java.util.List;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.assignments.model.ScheduleReconciliation;
 import technology.renatus.routepulse.calendar.domain.ParkOperatingDay;
+import technology.renatus.routepulse.calendar.model.ParkCalendarOverride;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.scheduling.domain.DriverSchedule;
 import technology.renatus.routepulse.scheduling.domain.TransportationDemandAnalysis;
@@ -21,5 +22,6 @@ public record DashboardPlan(
         List<ScheduleReconciliation> scheduleReconciliations,
         ScheduleImport latestScheduleImport, boolean assignmentReviewRequired,
         String assignmentMessage, ParkOperatingDay operatingDay,
-        String calendarMessage, boolean calendarOverrideActive) {
+        String calendarMessage, ParkCalendarOverride calendarOverride,
+        boolean calendarOverrideActive) {
 }

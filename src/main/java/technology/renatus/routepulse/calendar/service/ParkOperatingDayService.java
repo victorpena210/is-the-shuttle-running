@@ -19,8 +19,4 @@ public class ParkOperatingDayService {
     public ParkOperatingDay getOperatingDay(LocalDate date) {
         return calendarProvider.getOperatingDay(date);
     }
-
-    public void confirmOpenForDate(LocalDate date, String confirmedBy) {
-        calendarProvider.confirmOpenForDate(date, confirmedBy);
-    }
 }

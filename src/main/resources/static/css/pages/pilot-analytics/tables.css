@@ -1,0 +1,77 @@
+.analytics-table-shell {
+    overflow: hidden;
+    border: 1px solid var(--slate-200);
+    border-radius: 16px;
+}
+
+.analytics-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.analytics-table th,
+.analytics-table td {
+    padding: .9rem 1rem;
+    border-bottom: 1px solid var(--slate-200);
+    text-align: left;
+    white-space: nowrap;
+}
+
+.analytics-table th {
+    font-size: .72rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    opacity: .62;
+}
+
+.analytics-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.analytics-table__positive {
+    font-weight: 800;
+}
+
+.analytics-table__negative {
+    opacity: .68;
+}
+
+.pickup-ranking {
+    display: grid;
+    gap: .65rem;
+}
+
+.pickup-ranking__row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: .9rem;
+    padding: .9rem 1rem;
+    border: 1px solid var(--slate-200);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .88);
+}
+
+.pickup-ranking__rank {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 999px;
+    background: var(--blue-100);
+    font-weight: 800;
+}
+
+.pickup-ranking__copy {
+    display: grid;
+    gap: .1rem;
+}
+
+.pickup-ranking__copy span {
+    font-size: .8rem;
+    opacity: .62;
+}
+
+.pickup-ranking__count {
+    font-size: 1.5rem;
+}

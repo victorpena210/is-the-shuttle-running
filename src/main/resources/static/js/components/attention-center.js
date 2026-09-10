@@ -7,15 +7,8 @@ function attentionEndpoint() {
     const endpoint = new URL('/app/attention', window.location.origin);
 
     const date = currentUrl.searchParams.get('date');
-    const allowUnverifiedCalendar =
-        currentUrl.searchParams.get('allowUnverifiedCalendar');
-
     if (date) {
         endpoint.searchParams.set('date', date);
-    }
-
-    if (allowUnverifiedCalendar === 'true') {
-        endpoint.searchParams.set('allowUnverifiedCalendar', 'true');
     }
 
     return endpoint;

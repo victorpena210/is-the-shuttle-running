@@ -1,0 +1,36 @@
+.calendar-override-record,
+.calendar-override-prompt {
+    display: grid;
+    gap: 1rem;
+}
+
+.calendar-override-record p,
+.calendar-override-prompt p {
+    margin: 0.55rem 0 0;
+}
+
+.calendar-override-record__summary {
+    line-height: 1.55;
+}
+
+.calendar-override-record__diagnostic {
+    font-size: 0.78rem;
+}
+
+.calendar-override-form {
+    display: grid;
+    gap: 0.85rem;
+    width: min(100%, 44rem);
+}
+
+.calendar-override-form__reason {
+    margin: 0;
+}
+
+.calendar-override-form textarea {
+    min-height: 4.5rem;
+}
+
+.calendar-override-form .button {
+    justify-self: start;
+}

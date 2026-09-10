@@ -152,6 +152,7 @@ class LiveOperationsAttentionCheckerTests {
                         null
                 ),
                 "Open",
+                null,
                 false
         );
     }

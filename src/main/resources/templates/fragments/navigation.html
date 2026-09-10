@@ -58,6 +58,13 @@
 
                 <a
                     class="app-nav__link"
+                    th:href="@{/pilot-analytics}"
+                    th:attr="aria-current=${activePage == 'pilot-analytics' ? 'page' : null}">
+                    Pilot analytics
+                </a>
+
+                <a
+                    class="app-nav__link"
                     th:href="@{/drivers}"
                     th:attr="aria-current=${activePage == 'drivers' ? 'page' : null}">
                     Drivers

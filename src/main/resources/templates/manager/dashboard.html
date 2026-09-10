@@ -113,25 +113,75 @@
             <th:block th:replace="~{fragments/dashboard/transportation-demand :: demand}"></th:block>
 
                 <div
-                    class="alert alert--warning"
+                    class="alert alert--success calendar-override-record"
+                    th:if="${calendarOverrideActive and calendarOverride != null}"
+                    role="status">
+
+                    <div>
+                        <strong
+                            th:text="${calendarOverride.calendarStatus.name() == 'CLOSED'
+                                ? 'Calendar reported closed. Manager operating override active.'
+                                : 'Calendar unavailable. Manager operating override active.'}">
+                            Calendar unavailable. Manager operating override active.
+                        </strong>
+
+                        <p class="calendar-override-record__summary">
+                            <span th:text="${calendarOverride.confirmedByName}">Victor Peña</span>
+                            manually confirmed park operating
+                            <span
+                                th:text="|at ${#temporals.format(calendarOverride.confirmedAt, 'h:mm a')}.|">
+                                at 8:04 AM.
+                            </span>
+                            <strong>Reason:</strong>
+                            <span th:text="${calendarOverride.reason}">Employee event</span>.
+                        </p>
+
+                        <p
+                            class="mono calendar-override-record__diagnostic"
+                            th:if="${calendarOverride.diagnosticCode != null}"
+                            th:text="|Original calendar check: ${calendarOverride.diagnosticCode}.|">
+                            Original calendar check: DATE_MISSING_FROM_API.
+                        </p>
+                    </div>
+
+                </div>
+
+                <div
+                    class="alert alert--warning calendar-override-prompt"
                     th:if="${calendarConfirmationRequired}"
                     role="alert">
 
                     <div>
-                        <strong>Park calendar unverified.</strong>
-                        Transportation demand above still comes from the uploaded
-                        employee schedule. RoutePulse has not created driver
-                        coverage because the Six Flags calendar could not be verified.
+                        <strong
+                            th:text="${operatingDay.status.name() == 'CLOSED'
+                                ? 'The park calendar reports CLOSED.'
+                                : 'The park calendar could not be verified.'}">
+                            The park calendar could not be verified.
+                        </strong>
 
-                        <span
+                        <p th:if="${operatingDay.status.name() == 'UNKNOWN'}">
+                            Transportation demand still comes from the uploaded employee
+                            schedule, but RoutePulse is holding automatic driver coverage
+                            until an authorized manager confirms the park is operating.
+                        </p>
+
+                        <p th:if="${operatingDay.status.name() == 'CLOSED'}">
+                            RoutePulse is holding shuttle coverage because the external
+                            calendar says the park is closed. Override this only when you
+                            have direct operational confirmation of a special event,
+                            employee event, buyout, or other operating exception.
+                        </p>
+
+                        <p
                             class="mono"
                             th:if="${calendarDiagnosticCode != null}"
-                            th:text="| Calendar check: ${calendarDiagnosticCode}.|">
+                            th:text="|Calendar check: ${calendarDiagnosticCode}.|">
                             Calendar check: DATE_MISSING_FROM_API.
-                        </span>
+                        </p>
                     </div>
 
                     <form
+                        class="calendar-override-form"
                         th:action="@{/park-calendar/confirm-open}"
                         method="post">
 
@@ -140,23 +190,27 @@
                             name="operatingDate"
                             th:value="${selectedDate}">
 
+                        <div class="form-group calendar-override-form__reason">
+                            <label for="calendarOverrideReason">
+                                Required override reason
+                            </label>
+
+                            <textarea
+                                id="calendarOverrideReason"
+                                name="reason"
+                                maxlength="500"
+                                required
+                                placeholder="Example: Employee event confirmed by park operations"></textarea>
+                        </div>
+
                         <button
                             class="button"
                             type="submit">
-                            Confirm park is open and continue
+                            Confirm park is operating and record override
                         </button>
 
                     </form>
 
-                </div>
-
-                <div
-                    class="alert alert--info"
-                    th:if="${operatingDay != null and operatingDay.status.name() == 'CLOSED'}"
-                    role="status">
-                    <strong>Park closed — shuttle coverage is not scheduled.</strong>
-                    Transportation demand remains visible for schedule review, but
-                    RoutePulse will not create shuttle driver assignments for this date.
                 </div>
 
                 <th:block th:if="${showSchedule}">

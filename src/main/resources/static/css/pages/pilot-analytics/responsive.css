@@ -1,0 +1,83 @@
+@media (max-width: 1050px) {
+    .roi-metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 760px) {
+    .pilot-report-header,
+    .analytics-section__heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .analytics-section__heading > p {
+        text-align: left;
+    }
+
+    .print-report-button {
+        width: 100%;
+    }
+
+    .week-control {
+        flex-wrap: wrap;
+    }
+
+    .week-control__range {
+        flex: 1;
+    }
+
+    .week-control__current {
+        width: 100%;
+        margin-left: 0;
+        text-align: center;
+    }
+
+    .analytics-table thead {
+        display: none;
+    }
+
+    .analytics-table,
+    .analytics-table tbody,
+    .analytics-table tr,
+    .analytics-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .analytics-table tr {
+        padding: .5rem 0;
+        border-bottom: 1px solid var(--slate-200);
+    }
+
+    .analytics-table tbody tr:last-child {
+        border-bottom: 0;
+    }
+
+    .analytics-table td {
+        display: flex;
+        justify-content: space-between;
+        gap: 1rem;
+        border: 0;
+        white-space: normal;
+    }
+
+    .analytics-table td::before {
+        content: attr(data-label);
+        font-size: .74rem;
+        font-weight: 800;
+        letter-spacing: .05em;
+        text-transform: uppercase;
+        opacity: .55;
+    }
+}
+
+@media (max-width: 540px) {
+    .roi-metric-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .roi-metric-card--wide {
+        grid-column: auto;
+    }
+}

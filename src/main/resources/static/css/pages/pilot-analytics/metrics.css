@@ -1,0 +1,46 @@
+.roi-metric-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: .85rem;
+}
+
+.roi-metric-card {
+    display: grid;
+    align-content: start;
+    gap: .45rem;
+    min-height: 9.5rem;
+    padding: 1rem;
+    border: 1px solid var(--slate-200);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .88);
+}
+
+.roi-metric-card--wide {
+    grid-column: span 2;
+}
+
+.roi-metric-card__label {
+    font-size: .76rem;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    opacity: .66;
+}
+
+.roi-metric-card__value {
+    font-size: clamp(1.9rem, 4vw, 3rem);
+    line-height: 1;
+    letter-spacing: -.04em;
+}
+
+.roi-metric-card__separator {
+    margin: 0 .15rem;
+    opacity: .36;
+}
+
+.roi-metric-card__detail {
+    margin-top: auto;
+    font-size: .82rem;
+    line-height: 1.45;
+    opacity: .68;
+}

@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section th:fragment="summary" class="roi-summary-card">
+    <div class="roi-summary-card__eyebrow">Pilot story</div>
+    <h2>What RoutePulse can prove this week</h2>
+    <p class="roi-summary-card__statement" th:text="${report.executiveSummary()}">
+        RoutePulse automatically planned coverage and handled schedule changes before driving started.
+    </p>
+    <p class="roi-summary-card__note" th:if="${report.currentWeek()}">
+        This is a week-to-date report. Actual hours and operational events continue updating as the week progresses.
+    </p>
+</section>
+</body>
+</html>
