@@ -78,7 +78,7 @@ public class DriverPortalService {
                     return assignments.stream()
                             .filter(assignment -> hasDrivingTimeRemaining(assignment, now))
                             .min(Comparator
-                                    .comparing(assignment -> nextRelevantTime(assignment, now))
+                                    .comparing((DriverAssignment assignment) -> nextRelevantTime(assignment, now))
                                     .thenComparingInt(assignment -> assignment.getPeriod().ordinal()))
                             .orElse(null);
                 });

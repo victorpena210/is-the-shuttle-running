@@ -73,7 +73,7 @@
 
             <div th:if="${coverageRequired}" class="alert alert--info" role="status">
                 <strong>Fill-in driver detected.</strong>
-                <span th:text="${scheduledDriver.name}">Scheduled Driver</span>
+                <span th:text="${scheduledDriver != null ? scheduledDriver.name : 'No driver'}">Scheduled Driver</span>
                 is scheduled for this shift. Continuing keeps the original schedule intact and records
                 <strong th:text="${driver.name}">Fill-in Driver</strong>
                 separately as the actual driver.
@@ -86,7 +86,8 @@
 
             <div class="form-group">
                 <span class="field-label">Scheduled driver</span>
-                <div class="readonly-field" th:text="${scheduledDriver.name}">Driver Name</div>
+                <div class="readonly-field"
+                     th:text="${scheduledDriver != null ? scheduledDriver.name : 'Unassigned'}">Driver Name</div>
             </div>
 
             <div class="form-group">
