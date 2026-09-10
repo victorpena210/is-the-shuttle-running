@@ -60,7 +60,8 @@ import technology.renatus.routepulse.shared.security.DatabaseUserDetailsService;
 @SpringBootTest(properties = {
         "spring.jpa.hibernate.ddl-auto=validate",
         "app.base-url=http://localhost:8080",
-        "app.operations-zone=UTC"
+        "app.operations-zone=UTC",
+        "app.retention.enabled=false"
 })
 @ActiveProfiles("dev")
 @AutoConfigureMockMvc

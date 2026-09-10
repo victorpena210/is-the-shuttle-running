@@ -29,6 +29,8 @@ import technology.renatus.routepulse.reporting.pilot.model.PickupWindowStat;
 import technology.renatus.routepulse.reporting.pilot.model.PilotAnalyticsReport;
 import technology.renatus.routepulse.scheduling.domain.PickupWindow;
 import technology.renatus.routepulse.scheduling.planning.PickupPlanningService;
+import technology.renatus.routepulse.scheduling.planning.common.DemandPriorityClassifier;
+import technology.renatus.routepulse.scheduling.retention.repository.HistoricalDemandWindowRepository;
 
 /** Builds organization-scoped weekly analytics from RoutePulse operational records. */
 @Service
@@ -39,6 +41,8 @@ public class PilotAnalyticsService {
     private final DriverRepository driverRepository;
     private final PassengerRideConfirmationRepository passengerConfirmationRepository;
     private final PickupPlanningService pickupPlanningService;
+    private final HistoricalDemandWindowRepository historicalDemandWindowRepository;
+    private final DemandPriorityClassifier demandPriorityClassifier;
     private final ZoneId operationsZone;
 
     public PilotAnalyticsService(
@@ -46,12 +50,15 @@ public class PilotAnalyticsService {
             DriverRepository driverRepository,
             PassengerRideConfirmationRepository passengerConfirmationRepository,
             PickupPlanningService pickupPlanningService,
+            HistoricalDemandWindowRepository historicalDemandWindowRepository,
             @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
 
         this.assignmentRepository = assignmentRepository;
         this.driverRepository = driverRepository;
         this.passengerConfirmationRepository = passengerConfirmationRepository;
         this.pickupPlanningService = pickupPlanningService;
+        this.historicalDemandWindowRepository = historicalDemandWindowRepository;
+        this.demandPriorityClassifier = new DemandPriorityClassifier();
         this.operationsZone = ZoneId.of(operationsZone);
     }
 
@@ -371,6 +378,25 @@ public class PilotAnalyticsService {
 
             List<PickupWindow> windows = pickupPlanningService
                     .getPickupWindowsForDate(organizationId, date);
+
+            if (windows.isEmpty()) {
+                windows = historicalDemandWindowRepository
+                        .findAllBySnapshot_Organization_IdAndSnapshot_OperatingDateOrderByWindowStartAsc(
+                                organizationId,
+                                date
+                        )
+                        .stream()
+                        .filter(window -> window.getDepartures() > 0)
+                        .map(window -> new PickupWindow(
+                                window.getWindowStart(),
+                                window.getWindowEnd(),
+                                window.getDepartures(),
+                                demandPriorityClassifier.classify(
+                                        window.getDepartures()
+                                )
+                        ))
+                        .toList();
+            }
 
             for (PickupWindow window : windows) {
                 if (window.getTeamMemberCount() <= 0) {
