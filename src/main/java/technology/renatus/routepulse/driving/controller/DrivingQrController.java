@@ -75,6 +75,14 @@ public class DrivingQrController {
                 organization.getDisplayName()
         );
 
+        model.addAttribute(
+                "nfcUrl",
+                buildCheckpointUrl(
+                        "/driver/tap",
+                        organization.getDrivingQrCode()
+                )
+        );
+
         return "manager/driving-qr";
     }
 
@@ -91,9 +99,9 @@ public class DrivingQrController {
 
         redirectAttributes.addFlashAttribute(
                 "successMessage",
-                "A new shuttle QR code was generated. "
-                        + "The previous QR code is now invalid. "
-                        + "Print and replace the code posted in the shuttle."
+                "A new shuttle checkpoint code was generated. "
+                        + "The previous QR code and NFC URL are now invalid. "
+                        + "Print the new QR and reprogram the NFC tag with the new URL."
         );
 
         return "redirect:/driving-qr";
@@ -116,22 +124,10 @@ public class DrivingQrController {
                                 authentication
                         );
 
-        String scanUrl =
-                UriComponentsBuilder
-                        .fromUriString(
-                                applicationBaseUrl
-                        )
-                        .path(
-                                "/driver/scan"
-                        )
-                        .queryParam(
-                                "code",
-                                organization
-                                        .getDrivingQrCode()
-                        )
-                        .build()
-                        .encode()
-                        .toUriString();
+        String scanUrl = buildCheckpointUrl(
+                "/driver/scan",
+                organization.getDrivingQrCode()
+        );
 
         BitMatrix matrix =
                 new MultiFormatWriter()
@@ -194,5 +190,18 @@ public class DrivingQrController {
                 .body(
                         output.toByteArray()
                 );
+    }
+
+    private String buildCheckpointUrl(
+            String path,
+            String code) {
+
+        return UriComponentsBuilder
+                .fromUriString(applicationBaseUrl)
+                .path(path)
+                .queryParam("code", code)
+                .build()
+                .encode()
+                .toUriString();
     }
 }

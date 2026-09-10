@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Objects;
 import technology.renatus.routepulse.auth.model.UserAccount;
 import technology.renatus.routepulse.driver.model.Driver;
+import technology.renatus.routepulse.driving.domain.DrivingSessionEndReason;
 import technology.renatus.routepulse.driving.model.DrivingSession;
 
 /** Derived state calculated from an assignment's actual driving sessions. */
@@ -79,6 +80,20 @@ final class DriverAssignmentDrivingHistory {
 
     boolean isCompleted() {
         return hasSessions() && !isDriving();
+    }
+
+    boolean isPaused() {
+        if (isDriving() || !hasSessions()) {
+            return false;
+        }
+
+        return sessions.stream()
+                .filter(DrivingSession::isCompleted)
+                .max(Comparator.comparing(DrivingSession::getEndedAt))
+                .map(DrivingSession::getEndReason)
+                .filter(Objects::nonNull)
+                .map(reason -> reason == DrivingSessionEndReason.PAUSE)
+                .orElse(false);
     }
 
     long actualMinutes() {

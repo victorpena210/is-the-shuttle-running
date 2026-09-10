@@ -1,389 +1,183 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1">
-
-    <meta
-        name="theme-color"
-        content="#07111f">
-
-    <title>
-        Driving QR | RoutePulse
-    </title>
-
-    <link
-        rel="icon"
-        th:href="@{/images/routepulse-mark.svg}"
-        type="image/svg+xml">
-
-    <link
-        rel="stylesheet"
-        th:href="@{/css/site.css}">
-
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
+    <title>Driver Checkpoint | RoutePulse</title>
+    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/site.css}">
 </head>
-
 <body class="public-page">
 
 <main class="public-shell">
-
-    <section
-        class="public-story"
-        aria-labelledby="scan-story-heading">
-
-        <a
-            class="brand"
-            th:href="@{/driver}"
-            aria-label="RoutePulse driver home">
-
-            <img
-                class="brand-mark"
-                th:src="@{/images/routepulse-mark.svg}"
-                alt="">
-
+    <section class="public-story" aria-labelledby="scan-story-heading">
+        <a class="brand" th:href="@{/driver}" aria-label="RoutePulse driver home">
+            <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
             <span class="brand-copy">
-
-                <span class="brand-name">
-                    RoutePulse
-                </span>
-
-                <span class="brand-tagline">
-                    Driver check-in
-                </span>
-
+                <span class="brand-name">RoutePulse</span>
+                <span class="brand-tagline">Driver check-in</span>
             </span>
-
         </a>
 
-        <p class="public-kicker">
-            Shuttle QR
+        <p class="public-kicker"
+           th:text="${checkpointMethod != null and checkpointMethod.name() == 'NFC' ? 'Shuttle NFC' : 'Shuttle QR'}">
+            Shuttle checkpoint
         </p>
 
-        <h1 id="scan-story-heading">
-            Record the drive at the shuttle.
-        </h1>
-
+        <h1 id="scan-story-heading">Record the drive at the shuttle.</h1>
         <p>
-            RoutePulse uses your signed-in driver account
-            to identify who is actually driving. Scan this
-            same shuttle QR once to start and again when you
-            finish to record your actual end time.
+            RoutePulse uses your signed-in driver account to identify who is actually driving.
+            The NFC tag and QR code both use this same workflow, so you can use whichever is easier.
         </p>
-
     </section>
 
-    <section
-        class="auth-panel"
-        aria-labelledby="scan-heading">
-
-        <p class="eyebrow">
-            Driving record
-        </p>
-
+    <section class="auth-panel" aria-labelledby="scan-heading">
+        <p class="eyebrow">Driving record</p>
         <h1 id="scan-heading">
-            Confirm QR scan
+            Confirm <span th:text="${checkpointLabel != null ? checkpointLabel : 'checkpoint'}">checkpoint</span>
         </h1>
 
-        <div
-            th:if="${scanError}"
-            class="alert alert--error"
-            role="alert"
-            th:text="${scanError}">
-        </div>
+        <div th:if="${scanError}" class="alert alert--error" role="alert" th:text="${scanError}"></div>
 
         <div th:if="${scanError == null}">
-
             <p class="auth-panel__intro">
-
-                Signed in as
-
-                <strong th:text="${driver.name}">
-                    Driver Name
-                </strong>.
-
-                RoutePulse matched this scan to the
-
-                <strong th:text="${assignment.period}">
-                    MORNING
-                </strong>
-
-                shift for
-
-                <strong
-                    th:text="${#temporals.format(assignment.assignmentDate, 'MMMM d, yyyy')}">
+                Signed in as <strong th:text="${driver.name}">Driver Name</strong>.
+                RoutePulse matched this checkpoint to the
+                <strong th:text="${assignment.period}">MORNING</strong> shift for
+                <strong th:text="${#temporals.format(assignment.assignmentDate, 'MMMM d, yyyy')}">
                     September 4, 2026
                 </strong>.
-
             </p>
 
-            <div
-                th:if="${takeoverRequired}"
-                class="alert alert--info"
-                role="status">
-
-                <strong>
-                    Active-driver handoff detected.
-                </strong>
-
-                <span th:text="${currentActualDriver.name}">
-                    Current Driver
-                </span>
-
-                is currently recorded as driving. Continuing will end that
-                actual driving session at this scan time and immediately start
-                a new actual driving session for
-
-                <strong th:text="${driver.name}">
-                    New Driver
-                </strong>.
-
+            <div th:if="${takeoverRequired}" class="alert alert--info" role="status">
+                <strong>Active-driver handoff detected.</strong>
+                <span th:text="${currentActualDriver.name}">Current Driver</span>
+                is currently recorded as driving. Continuing will end that driver's current
+                session and immediately start a new session for
+                <strong th:text="${driver.name}">New Driver</strong>.
                 The scheduled assignment itself will not be rewritten.
-
             </div>
 
-
-            <div
-                th:if="${scanAction.name() == 'RESUME'}"
-                class="alert alert--info"
-                role="status">
-
-                <strong>
-                    Previous driving session found.
-                </strong>
-
-                RoutePulse will keep the earlier session in this assignment's
-                history and open a new actual driving session starting at this
-                scan time.
-
+            <div th:if="${checkpointAction.name() == 'RESUME'}" class="alert alert--info" role="status">
+                <strong>Previous driving session found.</strong>
+                RoutePulse will keep the earlier session in this assignment's history and open
+                a new actual driving session at this checkpoint time.
             </div>
 
-            <div
-                th:if="${coverageRequired}"
-                class="alert alert--info"
-                role="status">
+            <div th:if="${checkpointAction.name() == 'PAUSE_OR_END'}" class="alert alert--info" role="status">
+                <strong>You are currently driving.</strong>
+                Choose <strong>Pause driving</strong> for a break or temporary stop. Choose
+                <strong>End driving</strong> when this stretch of service is finished.
+            </div>
 
-                <strong>
-                    Fill-in driver detected.
-                </strong>
-
-                <span th:text="${scheduledDriver.name}">
-                    Scheduled Driver
-                </span>
-
-                is scheduled for this shift. Continuing will keep that
-                original schedule intact and record
-
-                <strong th:text="${driver.name}">
-                    Fill-in Driver
-                </strong>
-
+            <div th:if="${coverageRequired}" class="alert alert--info" role="status">
+                <strong>Fill-in driver detected.</strong>
+                <span th:text="${scheduledDriver.name}">Scheduled Driver</span>
+                is scheduled for this shift. Continuing keeps the original schedule intact and records
+                <strong th:text="${driver.name}">Fill-in Driver</strong>
                 separately as the actual driver.
-
             </div>
 
             <div class="form-group">
-
-                <span class="field-label">
-                    Scheduled driver
-                </span>
-
-                <div
-                    class="readonly-field"
-                    th:text="${scheduledDriver.name}">
-
-                    Driver Name
-
-                </div>
-
+                <span class="field-label">Checkpoint method</span>
+                <div class="readonly-field" th:text="${checkpointLabel}">NFC tap</div>
             </div>
 
             <div class="form-group">
-
-                <span class="field-label">
-                    Signed-in driver
-                </span>
-
-                <div
-                    class="readonly-field"
-                    th:text="${driver.name}">
-
-                    Driver Name
-
-                </div>
-
+                <span class="field-label">Scheduled driver</span>
+                <div class="readonly-field" th:text="${scheduledDriver.name}">Driver Name</div>
             </div>
 
             <div class="form-group">
+                <span class="field-label">Signed-in driver</span>
+                <div class="readonly-field" th:text="${driver.name}">Driver Name</div>
+            </div>
 
-                <span class="field-label">
-                    Scheduled time
-                </span>
-
+            <div class="form-group">
+                <span class="field-label">Scheduled time</span>
                 <div class="readonly-field">
-
                     <th:block th:if="${assignment.hasPlannedDrivingWindows()}">
-                        <div
-                            th:each="window : ${assignment.plannedDrivingWindows}"
-                            th:text="${#temporals.format(window.startTime, 'h:mm a') + ' – ' + #temporals.format(window.endTime, 'h:mm a')}">
+                        <div th:each="window : ${assignment.plannedDrivingWindows}"
+                             th:text="${#temporals.format(window.startTime, 'h:mm a') + ' – ' + #temporals.format(window.endTime, 'h:mm a')}">
                             9:00 AM – 10:30 AM
                         </div>
-
-                        <small
-                            th:if="${assignment.period.name() != 'MIDDAY' and !#lists.isEmpty(assignment.plannedBreakWindows)}"
-                            th:with="breakWindow=${assignment.plannedBreakWindows[0]}"
-                            th:text="|Break ${#temporals.format(breakWindow.startTime, 'h:mm a')}–${#temporals.format(breakWindow.endTime, 'h:mm a')} · ${breakWindow.minutes} min water / restroom|">
+                        <small th:if="${assignment.period.name() != 'MIDDAY' and !#lists.isEmpty(assignment.plannedBreakWindows)}"
+                               th:with="breakWindow=${assignment.plannedBreakWindows[0]}"
+                               th:text="|Break ${#temporals.format(breakWindow.startTime, 'h:mm a')}–${#temporals.format(breakWindow.endTime, 'h:mm a')} · ${breakWindow.minutes} min water / restroom|">
                             Break 10:30 AM–10:45 AM · 15 min water / restroom
                         </small>
                     </th:block>
-
-                    <span
-                        th:unless="${assignment.hasPlannedDrivingWindows()}"
-                        th:text="${#temporals.format(assignment.scheduledStartTime, 'h:mm a') + ' – ' + #temporals.format(assignment.scheduledEndTime, 'h:mm a')}">
+                    <span th:unless="${assignment.hasPlannedDrivingWindows()}"
+                          th:text="${#temporals.format(assignment.scheduledStartTime, 'h:mm a') + ' – ' + #temporals.format(assignment.scheduledEndTime, 'h:mm a')}">
                         9:00 AM – 12:00 PM
                     </span>
-
                 </div>
-
             </div>
 
             <div class="form-group">
-
-                <span class="field-label">
-                    Action
-                </span>
-
-                <div
-                    class="readonly-field"
-                    th:if="${scanAction.name() == 'END'}">
-
-                    End driving
-
-                </div>
-
-                <div
-                    class="readonly-field"
-                    th:if="${scanAction.name() == 'RESUME'}">
-
-                    Resume driving
-
-                </div>
-
-                <div
-                    class="readonly-field"
-                    th:if="${scanAction.name() == 'START' and takeoverRequired}">
-
-                    Take over active driving
-
-                </div>
-
-                <div
-                    class="readonly-field"
-                    th:if="${scanAction.name() == 'START' and !takeoverRequired and !coverageRequired}">
-
-                    Start driving
-
-                </div>
-
-                <div
-                    class="readonly-field"
-                    th:if="${scanAction.name() == 'START' and !takeoverRequired and coverageRequired}">
-
-                    Cover shift and start driving
-
-                </div>
-
+                <span class="field-label">Action</span>
+                <div class="readonly-field" th:if="${checkpointAction.name() == 'START'}">Start driving</div>
+                <div class="readonly-field" th:if="${checkpointAction.name() == 'RESUME'}">Resume driving</div>
+                <div class="readonly-field" th:if="${checkpointAction.name() == 'TAKEOVER'}">Take over active driving</div>
+                <div class="readonly-field" th:if="${checkpointAction.name() == 'PAUSE_OR_END'}">Pause or end driving</div>
             </div>
 
-            <form
-                th:action="@{/driver/scan}"
-                method="post">
+            <form th:action="@{${formAction}}" method="post">
+                <input type="hidden" name="code" th:value="${checkpointCode}">
 
-                <input
-                    type="hidden"
-                    name="code"
-                    th:value="${qrCode}">
-
-                <button
-                    class="button button--block"
-                    type="submit"
-                    th:if="${scanAction.name() == 'END'}">
-
-                    Confirm end driving
-
-                </button>
-
-                <button
-                    class="button button--block"
-                    type="submit"
-                    th:if="${scanAction.name() == 'RESUME'}">
-
-                    Confirm resume driving
-
-                </button>
-
-                <button
-                    class="button button--block"
-                    type="submit"
-                    th:if="${scanAction.name() == 'START' and takeoverRequired}">
-
-                    Confirm driving handoff
-
-                </button>
-
-                <button
-                    class="button button--block"
-                    type="submit"
-                    th:if="${scanAction.name() == 'START' and !takeoverRequired and !coverageRequired}">
-
+                <button class="button button--block"
+                        type="submit"
+                        name="action"
+                        value="START"
+                        th:if="${checkpointAction.name() == 'START'}">
                     Confirm start driving
-
                 </button>
 
-                <button
-                    class="button button--block"
-                    type="submit"
-                    th:if="${scanAction.name() == 'START' and !takeoverRequired and coverageRequired}">
-
-                    Cover shift and start driving
-
+                <button class="button button--block"
+                        type="submit"
+                        name="action"
+                        value="RESUME"
+                        th:if="${checkpointAction.name() == 'RESUME'}">
+                    Confirm resume driving
                 </button>
 
+                <button class="button button--block"
+                        type="submit"
+                        name="action"
+                        value="TAKEOVER"
+                        th:if="${checkpointAction.name() == 'TAKEOVER'}">
+                    Confirm driving handoff
+                </button>
+
+                <div class="button-row" th:if="${checkpointAction.name() == 'PAUSE_OR_END'}">
+                    <button class="button" type="submit" name="action" value="PAUSE">
+                        Pause driving
+                    </button>
+                    <button class="button button--secondary" type="submit" name="action" value="END">
+                        End driving
+                    </button>
+                </div>
             </form>
 
-            <p
-                class="auth-panel__footer"
-                th:if="${scanAction.name() == 'START' or scanAction.name() == 'RESUME'}">
-
-                When this stretch of driving stops, scan this same physical
-                QR code again to end the current session. If service resumes
-                later in the same scheduled assignment, another scan can open
-                a new session without erasing the earlier one.
-
+            <p class="auth-panel__footer"
+               th:if="${checkpointAction.name() == 'START' or checkpointAction.name() == 'RESUME' or checkpointAction.name() == 'TAKEOVER'}">
+                When this stretch of driving stops, tap the NFC tag or scan the QR code again.
+                RoutePulse will let you pause temporarily or end the driving segment.
             </p>
 
+            <p class="auth-panel__footer" th:if="${checkpointAction.name() == 'PAUSE_OR_END'}">
+                A paused session stays in the history. When service resumes during the same assignment,
+                another NFC tap or QR scan opens a new actual driving session without erasing the earlier one.
+            </p>
         </div>
 
         <p class="auth-panel__footer">
-
-            <a th:href="@{/driver}">
-                Back to my assignment
-            </a>
-
+            <a th:href="@{/driver}">Back to my assignment</a>
         </p>
-
     </section>
-
 </main>
 
-<footer
-    th:replace="~{fragments/footer :: footer('public')}">
-</footer>
-
+<footer th:replace="~{fragments/footer :: footer('public')}"></footer>
 </body>
-
 </html>

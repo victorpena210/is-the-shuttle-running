@@ -11,9 +11,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driver.service.DriverPortalService;
-import technology.renatus.routepulse.driver.service.portal.DriverQrScanService.ScanAction;
-import technology.renatus.routepulse.driver.service.portal.DriverQrScanService.ScanPreview;
-import technology.renatus.routepulse.driver.service.portal.DriverQrScanService.ScanResult;
+import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService.CheckpointAction;
+import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService.CheckpointPreview;
+import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService.CheckpointResult;
+import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
 
 @Controller
 public class DriverPortalController {
@@ -37,140 +38,202 @@ public class DriverPortalController {
         model.addAttribute("driver", driver);
         model.addAttribute(
                 "organizationName",
-                driver.getOrganization().getDisplayName()
-        );
+                driver.getOrganization().getDisplayName());
         model.addAttribute(
                 "today",
-                driverPortalService.currentOperationsDate()
-        );
+                driverPortalService.currentOperationsDate());
         List<DriverAssignment> todayAssignments =
                 driverPortalService.getTodayAssignments(authentication);
 
         model.addAttribute("todayAssignments", todayAssignments);
         model.addAttribute(
                 "primaryAssignment",
-                driverPortalService.selectPrimaryTodayAssignment(todayAssignments)
-        );
+                driverPortalService.selectPrimaryTodayAssignment(todayAssignments));
 
         return "driver/home";
     }
 
     @GetMapping("/driver/scan")
-    public String showQrScan(
+    public String showQrCheckpoint(
             Authentication authentication,
-            @RequestParam(name = "code", required = false)
+            @RequestParam(name = "code", required = false) String code,
+            Model model) {
+
+        return showCheckpoint(
+                authentication,
+                code,
+                DrivingActionMethod.QR,
+                "/driver/scan",
+                model);
+    }
+
+    @GetMapping("/driver/tap")
+    public String showNfcCheckpoint(
+            Authentication authentication,
+            @RequestParam(name = "code", required = false) String code,
+            Model model) {
+
+        return showCheckpoint(
+                authentication,
+                code,
+                DrivingActionMethod.NFC,
+                "/driver/tap",
+                model);
+    }
+
+    @PostMapping("/driver/scan")
+    public String recordQrCheckpoint(
+            Authentication authentication,
+            @RequestParam String code,
+            @RequestParam(name = "action", required = false) CheckpointAction action,
+            RedirectAttributes redirectAttributes) {
+
+        return recordCheckpoint(
+                authentication,
+                code,
+                DrivingActionMethod.QR,
+                action,
+                redirectAttributes);
+    }
+
+    @PostMapping("/driver/tap")
+    public String recordNfcCheckpoint(
+            Authentication authentication,
+            @RequestParam String code,
+            @RequestParam(name = "action", required = false) CheckpointAction action,
+            RedirectAttributes redirectAttributes) {
+
+        return recordCheckpoint(
+                authentication,
+                code,
+                DrivingActionMethod.NFC,
+                action,
+                redirectAttributes);
+    }
+
+    private String showCheckpoint(
+            Authentication authentication,
             String code,
+            DrivingActionMethod method,
+            String formAction,
             Model model) {
 
         try {
-            ScanPreview preview = driverPortalService
-                    .getScanPreview(authentication, code);
+            CheckpointPreview preview = driverPortalService
+                    .getCheckpointPreview(authentication, code, method);
 
-            model.addAttribute("qrCode", code);
+            model.addAttribute("checkpointCode", code);
+            model.addAttribute("checkpointMethod", method);
+            model.addAttribute("checkpointLabel", checkpointLabel(method));
+            model.addAttribute("formAction", formAction);
             model.addAttribute("driver", preview.driver());
             model.addAttribute("assignment", preview.assignment());
-            model.addAttribute("scanAction", preview.action());
+            model.addAttribute("checkpointAction", preview.action());
             model.addAttribute(
                     "coverageRequired",
-                    preview.coverageRequired()
-            );
+                    preview.coverageRequired());
             model.addAttribute(
                     "takeoverRequired",
-                    preview.takeoverRequired()
-            );
+                    preview.takeoverRequired());
             model.addAttribute(
                     "scheduledDriver",
-                    preview.scheduledDriver()
-            );
+                    preview.scheduledDriver());
             model.addAttribute(
                     "currentActualDriver",
-                    preview.currentActualDriver()
-            );
+                    preview.currentActualDriver());
             model.addAttribute(
                     "organizationName",
                     preview.driver()
                             .getOrganization()
-                            .getDisplayName()
-            );
+                            .getDisplayName());
 
         } catch (IllegalArgumentException | IllegalStateException exception) {
+            model.addAttribute("checkpointMethod", method);
+            model.addAttribute("checkpointLabel", checkpointLabel(method));
             model.addAttribute("scanError", exception.getMessage());
         }
 
         return "driver/scan";
     }
 
-    @PostMapping("/driver/scan")
-    public String recordQrScan(
+    private String recordCheckpoint(
             Authentication authentication,
-            @RequestParam String code,
+            String code,
+            DrivingActionMethod method,
+            CheckpointAction action,
             RedirectAttributes redirectAttributes) {
 
         try {
-            ScanResult result = driverPortalService
-                    .recordQrScan(authentication, code);
+            CheckpointResult result = driverPortalService
+                    .recordCheckpoint(authentication, code, method, action);
 
-            if (result.action() == ScanAction.RESUME) {
+            redirectAttributes.addFlashAttribute(
+                    "successMessage",
+                    successMessage(result));
+
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute(
+                    "errorMessage",
+                    exception.getMessage());
+        }
+
+        return "redirect:/driver";
+    }
+
+    private String successMessage(CheckpointResult result) {
+        String methodLabel = checkpointLabel(result.method());
+
+        return switch (result.action()) {
+            case RESUME -> {
                 String coverageMessage = result.coveragePerformed()
                         && result.scheduledDriver() != null
                                 ? " " + result.scheduledDriver().getName()
                                         + " remains the scheduled driver."
                                 : "";
 
-                redirectAttributes.addFlashAttribute(
-                        "successMessage",
-                        "Driving resumed. RoutePulse opened a new actual driving session on the same "
-                                + result.assignment().getPeriod()
-                                + " assignment and kept the earlier session in the record."
-                                + coverageMessage
-                );
-            } else if (result.action() == ScanAction.START) {
-                if (result.takeoverPerformed()
-                        && result.previousActualDriver() != null) {
-
-                    String coverageMessage = result.coveragePerformed()
-                            ? " " + result.scheduledDriver().getName()
-                                    + " remains the scheduled driver."
-                            : " You are also the scheduled driver for this shift.";
-
-                    redirectAttributes.addFlashAttribute(
-                            "successMessage",
-                            "Driving handoff recorded. "
-                                    + result.previousActualDriver().getName()
-                                    + "'s actual driving session ended and yours started."
-                                    + coverageMessage
-                    );
-                } else if (result.coveragePerformed()
-                        && result.scheduledDriver() != null) {
-
-                    redirectAttributes.addFlashAttribute(
-                            "successMessage",
-                            "Driving started. "
-                                    + result.scheduledDriver().getName()
-                                    + " remains the scheduled driver for the "
-                                    + result.assignment().getPeriod()
-                                    + " shift, and RoutePulse recorded you separately as the actual driver."
-                    );
-                } else {
-                    redirectAttributes.addFlashAttribute(
-                            "successMessage",
-                            "Driving started. RoutePulse recorded your actual start time."
-                    );
-                }
-            } else {
-                redirectAttributes.addFlashAttribute(
-                        "successMessage",
-                        "Driving session ended. RoutePulse saved this session. If service resumes during this assignment, scan the same QR again to open another session."
-                );
+                yield "Driving resumed by " + methodLabel
+                        + ". RoutePulse opened a new actual driving session on the same "
+                        + result.assignment().getPeriod()
+                        + " assignment and preserved the earlier session."
+                        + coverageMessage;
             }
+            case START -> {
+                if (result.coveragePerformed() && result.scheduledDriver() != null) {
+                    yield "Driving started by " + methodLabel + ". "
+                            + result.scheduledDriver().getName()
+                            + " remains the scheduled driver for the "
+                            + result.assignment().getPeriod()
+                            + " shift, and RoutePulse recorded you separately as the actual driver.";
+                }
 
-        } catch (IllegalArgumentException | IllegalStateException exception) {
-            redirectAttributes.addFlashAttribute(
-                    "errorMessage",
-                    exception.getMessage()
-            );
-        }
+                yield "Driving started by " + methodLabel
+                        + ". RoutePulse recorded your actual start time.";
+            }
+            case TAKEOVER -> {
+                String previousDriver = result.previousActualDriver() == null
+                        ? "The previous driver's"
+                        : result.previousActualDriver().getName() + "'s";
+                String coverageMessage = result.coveragePerformed()
+                        && result.scheduledDriver() != null
+                                ? " " + result.scheduledDriver().getName()
+                                        + " remains the scheduled driver."
+                                : "";
 
-        return "redirect:/driver";
+                yield "Driving handoff recorded by " + methodLabel + ". "
+                        + previousDriver
+                        + " actual driving session ended and yours started."
+                        + coverageMessage;
+            }
+            case PAUSE -> "Driving paused by " + methodLabel
+                    + ". RoutePulse saved this driving segment. Tap the NFC tag or scan the QR code when you are ready to resume.";
+            case END -> "Driving ended by " + methodLabel
+                    + ". RoutePulse saved the final actual end time for this driving segment.";
+        };
+    }
+
+    private String checkpointLabel(DrivingActionMethod method) {
+        return method == DrivingActionMethod.NFC
+                ? "NFC tap"
+                : "QR scan";
     }
 }

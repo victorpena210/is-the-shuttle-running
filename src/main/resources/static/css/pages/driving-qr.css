@@ -1,4 +1,42 @@
-/* Driving QR management page. */
+/* NFC + QR driver checkpoint management page. */
+.checkpoint-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.checkpoint-card {
+    min-width: 0;
+}
+
+.nfc-programming-card {
+    display: grid;
+    gap: 0.55rem;
+}
+
+.nfc-url {
+    display: block;
+    width: 100%;
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.26));
+    border-radius: 12px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    background: rgba(15, 23, 42, 0.55);
+    font-size: 0.86rem;
+    line-height: 1.55;
+}
+
+.checkpoint-steps {
+    margin: 1rem 0 0;
+    padding-left: 1.35rem;
+}
+
+.checkpoint-steps li + li {
+    margin-top: 0.45rem;
+}
+
 .driving-qr-display {
     display: flex;
     justify-content: center;
@@ -17,8 +55,34 @@
     margin-top: 1rem;
 }
 
+.checkpoint-behavior-panel,
 .driving-qr-regenerate-panel {
     margin-top: 1.5rem;
+}
+
+.checkpoint-behavior-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.85rem;
+}
+
+.checkpoint-behavior-grid > div {
+    display: grid;
+    gap: 0.25rem;
+    padding: 0.95rem 1rem;
+    border: 1px solid var(--border-color, rgba(148, 163, 184, 0.22));
+    border-radius: 12px;
+}
+
+.checkpoint-behavior-grid span {
+    opacity: 0.78;
+}
+
+@media (max-width: 850px) {
+    .checkpoint-grid,
+    .checkpoint-behavior-grid {
+        grid-template-columns: 1fr;
+    }
 }
 
 @media print {
@@ -26,9 +90,15 @@
     .page-header,
     .alert,
     .button-row,
+    .checkpoint-card--nfc,
+    .checkpoint-behavior-panel,
     .driving-qr-regenerate-panel,
     .site-footer {
         display: none !important;
+    }
+
+    .checkpoint-grid {
+        display: block;
     }
 
     .app-main {

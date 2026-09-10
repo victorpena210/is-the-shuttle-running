@@ -11,7 +11,7 @@ import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.driver.model.Driver;
 
-/** Selects the most appropriate startable or resumable assignment for a driver's QR scan. */
+/** Selects the most appropriate startable or resumable assignment for a driver's physical checkpoint action. */
 @Component
 public class DriverScanAssignmentSelector {
 
@@ -73,7 +73,7 @@ public class DriverScanAssignmentSelector {
             /*
              * Detailed plans may contain a protected break or several midday
              * windows. Keep the assignment selectable before the next planned
-             * window so DriverQrStartPolicy can give the driver the exact
+             * window so DriverCheckpointStartPolicy can give the driver the exact
              * resume/start time, but drop it after all windows have ended.
              */
             return assignment.hasRemainingPlannedDrivingWindowAtOrAfter(now);
@@ -84,10 +84,10 @@ public class DriverScanAssignmentSelector {
         }
 
         /*
-         * A QR END closes only the current actual DrivingSession. It does not
+         * A checkpoint END closes only the current actual DrivingSession. It does not
          * permanently close the scheduled DriverAssignment. While the current
          * time is still inside that assignment's scheduled driving window, the
-         * assignment remains eligible for a QR resume. Outside the window, a
+         * assignment remains eligible for a checkpoint resume. Outside the window, a
          * manager can still explicitly reopen it from coverage controls.
          */
         return hasScheduledTimes(assignment)

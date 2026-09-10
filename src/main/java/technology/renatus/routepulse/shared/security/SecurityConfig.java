@@ -73,7 +73,7 @@ public class SecurityConfig {
                                 /*
                                  * Owners and admins may view, print,
                                  * and regenerate the organization's
-                                 * shuttle driving QR code.
+                                 * shuttle NFC/QR driver checkpoint.
                                  */
                                 .requestMatchers(
                                         "/driving-qr",
@@ -91,7 +91,7 @@ public class SecurityConfig {
                                  *
                                  * This includes viewing today's own
                                  * assignment and recording start/end
-                                 * through the shuttle QR code.
+                                 * through the shuttle NFC/QR checkpoint.
                                  */
                                 .requestMatchers(
                                         "/driver/**"
@@ -146,9 +146,9 @@ public class SecurityConfig {
                                 /*
                                  * false matters here.
                                  *
-                                 * If a driver scanned the QR
+                                 * If a driver used the checkpoint
                                  * while signed out, Spring keeps
-                                 * the original /driver/scan URL
+                                 * the original /driver/scan or /driver/tap URL
                                  * and returns them there after login.
                                  */
                                 .defaultSuccessUrl(

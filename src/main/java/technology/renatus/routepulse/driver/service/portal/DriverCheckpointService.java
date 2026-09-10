@@ -14,25 +14,30 @@ import technology.renatus.routepulse.assignments.repository.DriverAssignmentRepo
 import technology.renatus.routepulse.auth.model.UserAccount;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
+import technology.renatus.routepulse.driving.domain.DrivingSessionEndReason;
 import technology.renatus.routepulse.driving.model.DrivingSession;
 import technology.renatus.routepulse.driving.service.DrivingSessionService;
 
-/** Coordinates driver QR previews and start/end/resume/takeover recording. */
+/**
+ * Coordinates the shared physical shuttle checkpoint used by both QR scans and
+ * NFC taps. The physical method is recorded on every session while all state
+ * decisions remain server-side.
+ */
 @Service
 @Transactional(readOnly = true)
-public class DriverQrScanService {
+public class DriverCheckpointService {
 
     private final DriverPortalAccessService accessService;
     private final DriverScanAssignmentSelector assignmentSelector;
-    private final DriverQrStartPolicy startPolicy;
+    private final DriverCheckpointStartPolicy startPolicy;
     private final DriverAssignmentRepository assignmentRepository;
     private final DrivingSessionService drivingSessionService;
     private final ZoneId operationsZone;
 
-    public DriverQrScanService(
+    public DriverCheckpointService(
             DriverPortalAccessService accessService,
             DriverScanAssignmentSelector assignmentSelector,
-            DriverQrStartPolicy startPolicy,
+            DriverCheckpointStartPolicy startPolicy,
             DriverAssignmentRepository assignmentRepository,
             DrivingSessionService drivingSessionService,
             @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
@@ -44,14 +49,19 @@ public class DriverQrScanService {
         this.operationsZone = ZoneId.of(operationsZone);
     }
 
-    public ScanPreview getScanPreview(Authentication authentication, String qrCode) {
-        Driver driver = prepareDriver(authentication, qrCode);
+    public CheckpointPreview getPreview(
+            Authentication authentication,
+            String checkpointCode,
+            DrivingActionMethod method) {
+
+        requirePhysicalMethod(method);
+        Driver driver = prepareDriver(authentication, checkpointCode);
         LocalDateTime now = currentOperationsDateTime();
         Long organizationId = driver.getOrganization().getId();
 
         DrivingSession activeSession = drivingSessionService.findActiveSession(organizationId);
         if (activeSession != null) {
-            return previewForActiveSession(driver, activeSession);
+            return previewForActiveSession(driver, activeSession, method);
         }
 
         List<DriverAssignment> assignments = assignmentRepository
@@ -62,36 +72,50 @@ public class DriverQrScanService {
         startPolicy.requireStartAllowed(driver, assignment, now);
 
         Driver scheduledDriver = assignment.getScheduledDriver();
-        ScanAction action = assignment.hasDrivingSessions()
-                ? ScanAction.RESUME
-                : ScanAction.START;
+        CheckpointPreviewAction action = assignment.hasDrivingSessions()
+                ? CheckpointPreviewAction.RESUME
+                : CheckpointPreviewAction.START;
 
-        return new ScanPreview(
+        return new CheckpointPreview(
                 driver,
                 assignment,
                 action,
                 !sameDriver(scheduledDriver, driver),
                 false,
                 scheduledDriver,
-                null);
+                null,
+                method);
     }
 
     @Transactional
-    public ScanResult recordQrScan(Authentication authentication, String qrCode) {
-        Driver driver = prepareDriver(authentication, qrCode);
+    public CheckpointResult recordCheckpoint(
+            Authentication authentication,
+            String checkpointCode,
+            DrivingActionMethod method,
+            CheckpointAction requestedAction) {
+
+        requirePhysicalMethod(method);
+        Driver driver = prepareDriver(authentication, checkpointCode);
         UserAccount user = accessService.requireCurrentUser(authentication);
         Instant eventNow = Instant.now();
         LocalDateTime now = LocalDateTime.ofInstant(eventNow, operationsZone);
         Long organizationId = driver.getOrganization().getId();
 
-        // Lock today's assignments so simultaneous scans cannot start separate shifts.
+        // Lock today's assignments so simultaneous NFC/QR actions cannot create
+        // competing active sessions.
         List<DriverAssignment> assignments = assignmentRepository
                 .findAllForUpdateByOrganizationAndDate(organizationId, now.toLocalDate());
         DrivingSession activeSession = drivingSessionService
                 .findActiveSessionForUpdate(organizationId);
 
         if (activeSession != null) {
-            return recordAgainstActiveSession(driver, user, activeSession, eventNow);
+            return recordAgainstActiveSession(
+                    driver,
+                    user,
+                    activeSession,
+                    eventNow,
+                    method,
+                    requestedAction);
         }
 
         DriverAssignment assignment = assignmentSelector
@@ -100,81 +124,98 @@ public class DriverQrScanService {
         startPolicy.requireStartAllowed(driver, assignment, now);
 
         Driver scheduledDriver = assignment.getScheduledDriver();
-        ScanAction action = assignment.hasDrivingSessions()
-                ? ScanAction.RESUME
-                : ScanAction.START;
+        CheckpointAction action = assignment.hasDrivingSessions()
+                ? CheckpointAction.RESUME
+                : CheckpointAction.START;
 
         drivingSessionService.startSession(
                 assignment,
                 driver,
                 user,
                 eventNow,
-                DrivingActionMethod.QR);
+                method);
 
-        return new ScanResult(
+        return new CheckpointResult(
                 action,
                 assignment,
                 !sameDriver(scheduledDriver, driver),
                 false,
                 scheduledDriver,
-                null);
+                null,
+                method);
     }
 
-    private Driver prepareDriver(Authentication authentication, String qrCode) {
+    private Driver prepareDriver(Authentication authentication, String checkpointCode) {
         Driver driver = accessService.requireCurrentDriver(authentication);
         accessService.requireActiveDriver(driver);
-        accessService.validateQrCode(driver.getOrganization(), qrCode);
+        accessService.validateCheckpointCode(driver.getOrganization(), checkpointCode);
         return driver;
     }
 
-    private ScanPreview previewForActiveSession(Driver driver, DrivingSession activeSession) {
+    private CheckpointPreview previewForActiveSession(
+            Driver driver,
+            DrivingSession activeSession,
+            DrivingActionMethod method) {
+
         DriverAssignment assignment = activeSession.getAssignment();
         Driver scheduledDriver = assignment.getScheduledDriver();
 
         if (sameDriver(activeSession.getDriver(), driver)) {
-            return new ScanPreview(
+            return new CheckpointPreview(
                     driver,
                     assignment,
-                    ScanAction.END,
+                    CheckpointPreviewAction.PAUSE_OR_END,
                     false,
                     false,
                     scheduledDriver,
-                    activeSession.getDriver());
+                    activeSession.getDriver(),
+                    method);
         }
 
-        return new ScanPreview(
+        return new CheckpointPreview(
                 driver,
                 assignment,
-                ScanAction.START,
+                CheckpointPreviewAction.TAKEOVER,
                 !sameDriver(scheduledDriver, driver),
                 true,
                 scheduledDriver,
-                activeSession.getDriver());
+                activeSession.getDriver(),
+                method);
     }
 
-    private ScanResult recordAgainstActiveSession(
+    private CheckpointResult recordAgainstActiveSession(
             Driver driver,
             UserAccount user,
             DrivingSession activeSession,
-            Instant now) {
+            Instant now,
+            DrivingActionMethod method,
+            CheckpointAction requestedAction) {
 
         DriverAssignment assignment = activeSession.getAssignment();
         Driver scheduledDriver = assignment.getScheduledDriver();
 
         if (sameDriver(activeSession.getDriver(), driver)) {
+            CheckpointAction stopAction = normalizeStopAction(requestedAction);
+            DrivingSessionEndReason endReason = stopAction == CheckpointAction.PAUSE
+                    ? DrivingSessionEndReason.PAUSE
+                    : DrivingSessionEndReason.COMPLETED;
+
             drivingSessionService.endSession(
                     assignment,
                     activeSession,
                     user,
                     now,
-                    DrivingActionMethod.QR);
-            return new ScanResult(
-                    ScanAction.END,
+                    method,
+                    endReason);
+
+            return new CheckpointResult(
+                    stopAction,
                     assignment,
                     false,
                     false,
                     scheduledDriver,
-                    null);
+                    null,
+                    method);
         }
 
         Driver previousActualDriver = activeSession.getDriver();
@@ -183,15 +224,39 @@ public class DriverQrScanService {
                 driver,
                 user,
                 now,
-                DrivingActionMethod.QR);
+                method);
 
-        return new ScanResult(
-                ScanAction.START,
+        return new CheckpointResult(
+                CheckpointAction.TAKEOVER,
                 assignment,
                 !sameDriver(scheduledDriver, driver),
                 true,
                 scheduledDriver,
-                previousActualDriver);
+                previousActualDriver,
+                method);
+    }
+
+    private CheckpointAction normalizeStopAction(CheckpointAction requestedAction) {
+        if (requestedAction == CheckpointAction.PAUSE
+                || requestedAction == CheckpointAction.END) {
+            return requestedAction;
+        }
+
+        // Preserve the old QR behavior for any already-open confirmation form
+        // that posts without an explicit action.
+        if (requestedAction == null) {
+            return CheckpointAction.END;
+        }
+
+        throw new IllegalStateException(
+                "Driving is already active. Choose Pause driving or End driving.");
+    }
+
+    private void requirePhysicalMethod(DrivingActionMethod method) {
+        if (method != DrivingActionMethod.QR && method != DrivingActionMethod.NFC) {
+            throw new IllegalArgumentException(
+                    "Driver checkpoints must be recorded as an NFC tap or QR scan.");
+        }
     }
 
     private LocalDateTime currentOperationsDateTime() {
@@ -204,28 +269,39 @@ public class DriverQrScanService {
                 && Objects.equals(first.getId(), second.getId());
     }
 
-    public enum ScanAction {
+    public enum CheckpointPreviewAction {
         START,
         RESUME,
+        TAKEOVER,
+        PAUSE_OR_END
+    }
+
+    public enum CheckpointAction {
+        START,
+        RESUME,
+        TAKEOVER,
+        PAUSE,
         END
     }
 
-    public record ScanPreview(
+    public record CheckpointPreview(
             Driver driver,
             DriverAssignment assignment,
-            ScanAction action,
+            CheckpointPreviewAction action,
             boolean coverageRequired,
             boolean takeoverRequired,
             Driver scheduledDriver,
-            Driver currentActualDriver) {
+            Driver currentActualDriver,
+            DrivingActionMethod method) {
     }
 
-    public record ScanResult(
-            ScanAction action,
+    public record CheckpointResult(
+            CheckpointAction action,
             DriverAssignment assignment,
             boolean coveragePerformed,
             boolean takeoverPerformed,
             Driver scheduledDriver,
-            Driver previousActualDriver) {
+            Driver previousActualDriver,
+            DrivingActionMethod method) {
     }
 }
