@@ -1,6 +1,7 @@
 package technology.renatus.routepulse.driver.service;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
@@ -53,6 +54,34 @@ public class DriverPortalService {
                 .toList();
     }
 
+    /**
+     * Pick the assignment the driver should care about right now. Active driving
+     * always wins; otherwise choose the earliest assignment with driving time
+     * remaining today. This keeps the driver home screen action-first without
+     * changing any assignment or QR-session rules.
+     */
+    public DriverAssignment selectPrimaryTodayAssignment(
+            List<DriverAssignment> assignments) {
+
+        if (assignments == null || assignments.isEmpty()) {
+            return null;
+        }
+
+        return assignments.stream()
+                .filter(DriverAssignment::isDriving)
+                .findFirst()
+                .orElseGet(() -> {
+                    LocalTime now = currentOperationsTime();
+
+                    return assignments.stream()
+                            .filter(assignment -> hasDrivingTimeRemaining(assignment, now))
+                            .min(Comparator
+                                    .comparing(assignment -> nextRelevantTime(assignment, now))
+                                    .thenComparingInt(assignment -> assignment.getPeriod().ordinal()))
+                            .orElse(null);
+                });
+    }
+
     public List<DriverAssignment> getRecentAssignments(Authentication authentication) {
         Driver driver = requireCurrentDriver(authentication);
         return assignmentRepository
@@ -76,5 +105,41 @@ public class DriverPortalService {
 
     public LocalDate currentOperationsDate() {
         return LocalDate.now(operationsZone);
+    }
+
+    public LocalTime currentOperationsTime() {
+        return LocalTime.now(operationsZone);
+    }
+
+    private boolean hasDrivingTimeRemaining(
+            DriverAssignment assignment,
+            LocalTime now) {
+
+        if (assignment.hasPlannedDrivingWindows()) {
+            return assignment.hasRemainingPlannedDrivingWindowAtOrAfter(now);
+        }
+
+        if (assignment.getScheduledEndTime() != null) {
+            return !now.isAfter(assignment.getScheduledEndTime());
+        }
+
+        return !assignment.isDrivingCompleted();
+    }
+
+    private LocalTime nextRelevantTime(
+            DriverAssignment assignment,
+            LocalTime now) {
+
+        if (assignment.hasPlannedDrivingWindows()) {
+            LocalTime nextStart = assignment.getNextPlannedDrivingStart(now);
+            return nextStart == null ? LocalTime.MAX : nextStart;
+        }
+
+        LocalTime start = assignment.getScheduledStartTime();
+        if (start == null || !now.isBefore(start)) {
+            return now;
+        }
+
+        return start;
     }
 }

@@ -2,70 +2,49 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#07111f">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1">
-
-    <meta
-        name="theme-color"
-        content="#07111f">
-
-    <title>
-        My Driving Assignment | RoutePulse
-    </title>
+    <title>My Driving Assignment | RoutePulse</title>
 
     <link
         rel="icon"
         th:href="@{/images/routepulse-mark.svg}"
         type="image/svg+xml">
 
-    <link
-        rel="stylesheet"
-        th:href="@{/css/site.css}">
-
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/driver-home.css}">
 </head>
 
 <body class="app-page">
 
 <th:block th:replace="~{fragments/navigation :: driverNav}"></th:block>
 
-<main
-    id="main-content"
-    class="app-main">
+<main id="main-content" class="app-main">
 
-    <header class="page-header">
-
+    <header class="page-header driver-page-header">
         <div>
-
-            <p
-                class="eyebrow"
-                th:text="${organizationName}">
-
-                Organization
-
-            </p>
+            <p class="eyebrow" th:text="${organizationName}">Organization</p>
 
             <h1>
-                My driving assignment
+                Welcome,
+                <span th:text="${driver.name}">Driver Name</span>
             </h1>
 
             <p>
-                Welcome,
-                <strong th:text="${driver.name}">
-                    Driver Name
-                </strong>.
-                Scan the RoutePulse QR posted in the shuttle
-                when you begin driving. Scan the same QR again
-                whenever that stretch of driving stops. If you resume
-                later in the same assignment, RoutePulse opens another
-                actual session instead of erasing the first one.
+                Your next driving window is shown first. Use the permanent
+                RoutePulse QR posted in the shuttle when it is time to start
+                or stop driving.
             </p>
-
         </div>
 
+        <div class="page-date">
+            Today
+            <span th:text="${#temporals.format(today, 'EEEE, MMMM d, yyyy')}">
+                Friday, September 4, 2026
+            </span>
+        </div>
     </header>
 
     <div
@@ -83,59 +62,131 @@
     </div>
 
     <section
-        aria-labelledby="today-heading">
+        class="driver-focus"
+        th:if="${primaryAssignment != null}"
+        aria-labelledby="driver-focus-heading">
 
-        <div class="section-heading">
+        <div class="driver-focus__topline">
+            <span
+                class="driver-focus__eyebrow"
+                th:text="${primaryAssignment.driving ? 'Driving now' : 'Next driving window'}">
+                Next driving window
+            </span>
 
-            <div>
+            <span
+                class="badge badge--active"
+                th:if="${primaryAssignment.driving}">
+                Active
+            </span>
+        </div>
 
-                <h2 id="today-heading">
-                    Today’s assignment
-                </h2>
+        <h2
+            id="driver-focus-heading"
+            th:text="${primaryAssignment.period.name() == 'MORNING'
+                ? 'Morning driving'
+                : (primaryAssignment.period.name() == 'MIDDAY'
+                    ? 'Midday driving'
+                    : 'Afternoon driving')}">
+            Morning driving
+        </h2>
 
-                <p
-                    th:text="${#temporals.format(today, 'EEEE, MMMM d, yyyy')}">
+        <div
+            class="driver-focus__span"
+            th:if="${primaryAssignment.scheduledStartTime != null and primaryAssignment.scheduledEndTime != null}"
+            th:text="${#temporals.format(primaryAssignment.scheduledStartTime, 'h:mm a') + ' – ' + #temporals.format(primaryAssignment.scheduledEndTime, 'h:mm a')}">
+            9:00 AM – 12:00 PM
+        </div>
 
-                    Friday, September 4, 2026
+        <div
+            class="driver-focus__break"
+            th:if="${primaryAssignment.period.name() != 'MIDDAY' and !#lists.isEmpty(primaryAssignment.plannedBreakWindows)}"
+            th:with="breakWindow=${primaryAssignment.plannedBreakWindows[0]}">
+            <span>Protected break</span>
+            <strong
+                th:text="${#temporals.format(breakWindow.startTime, 'h:mm a') + ' – ' + #temporals.format(breakWindow.endTime, 'h:mm a')}">
+                10:30 AM – 10:45 AM
+            </strong>
+            <small>Water / restroom</small>
+        </div>
 
-                </p>
+        <div
+            class="driver-focus__windows"
+            th:if="${primaryAssignment.period.name() == 'MIDDAY' and primaryAssignment.hasPlannedDrivingWindows()}">
+            <span class="driver-focus__windows-label">Drive only during these windows</span>
 
+            <div class="driver-focus__window-list">
+                <strong
+                    th:each="window : ${primaryAssignment.plannedDrivingWindows}"
+                    th:text="${#temporals.format(window.startTime, 'h:mm a') + ' – ' + #temporals.format(window.endTime, 'h:mm a')}">
+                    12:10 PM – 12:35 PM
+                </strong>
             </div>
+        </div>
 
+        <div class="driver-focus__scan">
+            <span th:text="${primaryAssignment.driving ? 'SCAN QR TO STOP' : 'SCAN QR TO START'}">
+                SCAN QR TO START
+            </span>
+            <small>Use the QR posted inside the shuttle.</small>
+        </div>
+
+    </section>
+
+    <section
+        class="driver-focus driver-focus--complete"
+        th:if="${primaryAssignment == null and !#lists.isEmpty(todayAssignments)}"
+        aria-labelledby="driver-complete-heading">
+
+        <span class="driver-focus__eyebrow">Today</span>
+        <h2 id="driver-complete-heading">No more scheduled driving windows.</h2>
+        <p>Your completed assignments are listed below for reference.</p>
+    </section>
+
+    <section
+        class="driver-focus driver-focus--empty"
+        th:if="${#lists.isEmpty(todayAssignments)}"
+        aria-labelledby="driver-empty-heading">
+
+        <span class="driver-focus__eyebrow">Today</span>
+        <h2 id="driver-empty-heading">No driving assignment scheduled.</h2>
+        <p>
+            If you are filling in for another registered driver, scan the
+            shuttle QR. RoutePulse will show the coverage action before it
+            records a start time.
+        </p>
+    </section>
+
+    <section aria-labelledby="today-heading" class="driver-schedule-section">
+        <div class="section-heading">
+            <div>
+                <h2 id="today-heading">Today’s schedule</h2>
+                <p>Detailed scheduled and actual driving activity.</p>
+            </div>
         </div>
 
         <div class="table-shell">
-
             <table>
-
                 <thead>
-
                 <tr>
-                    <th scope="col">Period</th>
+                    <th scope="col">Shift</th>
                     <th scope="col">Scheduled</th>
                     <th scope="col">Actual start</th>
                     <th scope="col">Actual end</th>
                     <th scope="col">Status</th>
                 </tr>
-
                 </thead>
 
                 <tbody>
-
-                <tr
-                    th:each="assignment : ${todayAssignments}">
-
+                <tr th:each="assignment : ${todayAssignments}">
                     <td
-                        th:text="${assignment.period}">
-
-                        MORNING
-
+                        th:text="${assignment.period.name() == 'MORNING'
+                            ? 'Morning'
+                            : (assignment.period.name() == 'MIDDAY' ? 'Midday' : 'Afternoon')}">
+                        Morning
                     </td>
 
                     <td>
-
                         <div th:if="${assignment.hasPlannedDrivingWindows()}">
-
                             <div
                                 th:each="window : ${assignment.plannedDrivingWindows}"
                                 th:text="${#temporals.format(window.startTime, 'h:mm a') + ' – ' + #temporals.format(window.endTime, 'h:mm a')}">
@@ -155,167 +206,93 @@
                                 th:if="${assignment.period.name() == 'MIDDAY' and assignment.hasMultiplePlannedDrivingWindows()}">
                                 Start/stop only at the listed midday windows
                             </small>
-
                         </div>
 
                         <span
                             th:if="${!assignment.hasPlannedDrivingWindows() and assignment.scheduledStartTime != null and assignment.scheduledEndTime != null}"
                             th:text="${#temporals.format(assignment.scheduledStartTime, 'h:mm a') + ' – ' + #temporals.format(assignment.scheduledEndTime, 'h:mm a')}">
-
                             9:00 AM – 12:00 PM
-
                         </span>
 
                         <span
                             th:if="${!assignment.hasPlannedDrivingWindows() and (assignment.scheduledStartTime == null or assignment.scheduledEndTime == null)}">
-
                             Not set
-
                         </span>
-
                     </td>
 
                     <td
                         th:text="${assignment.actualStartedAt != null ? timestampDisplay.format(assignment.actualStartedAt, 'h:mm a') : '—'}">
-
                         —
-
                     </td>
 
                     <td
                         th:text="${assignment.actualEndedAt != null ? timestampDisplay.format(assignment.actualEndedAt, 'h:mm a') : '—'}">
-
                         —
-
                     </td>
 
                     <td>
-
                         <span
                             class="badge badge--active"
                             th:if="${assignment.driving}">
-
                             Driving now
-
                         </span>
 
                         <span
                             class="badge badge--inactive"
                             th:if="${assignment.drivingCompleted}">
-
-                            Driving stopped
-
+                            Stopped
                         </span>
 
                         <span
                             class="muted"
                             th:if="${assignment.drivingCompleted and #lists.size(assignment.drivingSessions) > 1}"
                             th:text="| · ${#lists.size(assignment.drivingSessions)} sessions|">
-
                             · 2 sessions
-
                         </span>
 
                         <span
                             class="badge"
                             th:if="${!assignment.driving and !assignment.drivingCompleted}">
-
                             Not started
-
                         </span>
-
                     </td>
-
                 </tr>
 
-                <tr
-                    th:if="${#lists.isEmpty(todayAssignments)}">
-
-                    <td
-                        class="empty-cell"
-                        colspan="5">
-
-                        You are not currently assigned to a shift today.
-                        If you are filling in for another registered driver,
-                        you can still scan the shuttle QR. RoutePulse will
-                        show the shift you are about to cover before it
-                        records your start time.
-
-                    </td>
-
+                <tr th:if="${#lists.isEmpty(todayAssignments)}">
+                    <td class="empty-cell" colspan="5">No scheduled assignments today.</td>
                 </tr>
-
                 </tbody>
-
             </table>
-
         </div>
-
     </section>
 
-    <section
-        class="panel panel--raised"
-        aria-labelledby="qr-heading">
+    <details class="driver-help panel panel--raised">
+        <summary>How QR start and stop records work</summary>
 
-        <div class="panel__header">
+        <div class="driver-help__body">
+            <p>
+                Scan when a driving stretch starts and scan again when that
+                stretch stops. If you resume later in the same assignment,
+                RoutePulse opens another actual driving session and keeps the
+                earlier one in the record.
+            </p>
 
-            <div>
+            <p>
+                If you cover for another scheduled driver, RoutePulse keeps
+                the original schedule intact and records you separately as the
+                actual driver.
+            </p>
 
-                <h2 id="qr-heading">
-                    Start, cover, and end driving
-                </h2>
-
-                <p>
-                    Use the permanent QR code posted at the shuttle.
-                    RoutePulse identifies you from your signed-in account,
-                    not from the QR code itself.
-                </p>
-
+            <div class="alert alert--info" role="status">
+                An active driver is never silently replaced. A manager must
+                resolve an active-session handoff when another driver takes over.
             </div>
-
         </div>
-
-        <div class="panel__body">
-
-            <p>
-                <strong>Your first valid scan:</strong>
-                starts your assigned shift. If another driver was scheduled
-                but has not started, RoutePulse keeps the original assignment
-                intact and records you separately as the actual fill-in driver.
-            </p>
-
-            <p>
-                <strong>Your next valid scan while driving:</strong>
-                ends only the current actual driving session and saves its end time.
-            </p>
-
-            <p>
-                <strong>If service resumes during the same scheduled shift:</strong>
-                scan again. RoutePulse reopens that assignment with a new actual
-                driving session, so breaks, accidental END scans, and temporary
-                shuttle downtime remain visible in the history.
-            </p>
-
-            <div
-                class="alert alert--info"
-                role="status">
-
-                RoutePulse will never automatically replace a driver who
-                has already started driving. If another driver has an active
-                session, a manager must resolve it first.
-
-            </div>
-
-        </div>
-
-    </section>
+    </details>
 
 </main>
 
-<footer
-    th:replace="~{fragments/footer :: footer('app')}">
-</footer>
+<footer th:replace="~{fragments/footer :: footer('app')}"></footer>
 
 </body>
-
 </html>

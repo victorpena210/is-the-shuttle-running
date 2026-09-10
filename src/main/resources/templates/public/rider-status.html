@@ -235,24 +235,10 @@
 
 </main>
 
-<script th:if="${rideResult != null}">
-    (() => {
-        if (!window.history || !window.history.replaceState) {
-            return;
-        }
-
-        const url = new URL(window.location.href);
-
-        url.searchParams.delete("ride");
-
-        window.history.replaceState(
-            {},
-            document.title,
-            url.pathname
-                + url.search
-                + url.hash
-        );
-    })();
+<script
+    type="module"
+    th:if="${rideResult != null}"
+    th:src="@{/js/pages/rider-status.js}">
 </script>
 
 </body>

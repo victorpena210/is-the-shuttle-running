@@ -1,0 +1,191 @@
+/* Driver home: keep the next action visually dominant. */
+.driver-page-header {
+    margin-bottom: 1.35rem;
+}
+
+.driver-focus {
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 2rem;
+    padding: clamp(1.35rem, 4vw, 2.25rem);
+    border: 1px solid rgba(37, 99, 235, 0.22);
+    border-radius: var(--radius-xl);
+    background:
+        radial-gradient(circle at 100% 0%, rgba(34, 211, 238, 0.12), transparent 18rem),
+        linear-gradient(145deg, #07111f, #10233d);
+    box-shadow: var(--shadow-lg);
+    color: var(--white);
+}
+
+.driver-focus--complete,
+.driver-focus--empty {
+    border-color: var(--slate-200);
+    background: var(--white);
+    color: var(--ink-950);
+    box-shadow: var(--shadow-md);
+}
+
+.driver-focus__topline {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.85rem;
+}
+
+.driver-focus__eyebrow {
+    color: var(--cyan-400);
+    font-size: 0.74rem;
+    font-weight: 850;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.driver-focus--complete .driver-focus__eyebrow,
+.driver-focus--empty .driver-focus__eyebrow {
+    color: var(--blue-600);
+}
+
+.driver-focus h2 {
+    margin: 0;
+    color: inherit;
+    font-size: clamp(2rem, 7vw, 4.4rem);
+    line-height: 0.98;
+    letter-spacing: -0.045em;
+}
+
+.driver-focus--complete h2,
+.driver-focus--empty h2 {
+    max-width: 18ch;
+    font-size: clamp(1.75rem, 5vw, 3rem);
+    line-height: 1.04;
+}
+
+.driver-focus--complete p,
+.driver-focus--empty p {
+    max-width: 58ch;
+    margin: 0.75rem 0 0;
+    color: var(--slate-500);
+}
+
+.driver-focus__span {
+    margin-top: 0.7rem;
+    color: var(--slate-200);
+    font-size: clamp(1.35rem, 4vw, 2.3rem);
+    font-weight: 750;
+    letter-spacing: -0.025em;
+}
+
+.driver-focus__break {
+    display: inline-grid;
+    gap: 0.12rem;
+    margin-top: 1.25rem;
+    padding: 0.8rem 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius-md);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.driver-focus__break span,
+.driver-focus__break small,
+.driver-focus__windows-label {
+    color: var(--slate-300);
+    font-size: 0.76rem;
+}
+
+.driver-focus__break span,
+.driver-focus__windows-label {
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.driver-focus__break strong {
+    color: var(--white);
+    font-size: 1rem;
+}
+
+.driver-focus__windows {
+    margin-top: 1.25rem;
+}
+
+.driver-focus__window-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.5rem;
+}
+
+.driver-focus__window-list strong {
+    padding: 0.58rem 0.75rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--white);
+    font-size: 0.9rem;
+}
+
+.driver-focus__scan {
+    display: grid;
+    gap: 0.2rem;
+    margin-top: 1.65rem;
+    padding-top: 1.35rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.driver-focus__scan span {
+    color: var(--cyan-400);
+    font-size: clamp(1.25rem, 4vw, 2rem);
+    font-weight: 900;
+    letter-spacing: 0.035em;
+}
+
+.driver-focus__scan small {
+    color: var(--slate-300);
+}
+
+.driver-schedule-section {
+    margin-top: 0;
+}
+
+.driver-help {
+    margin-top: 2rem;
+}
+
+.driver-help > summary {
+    padding: 1.15rem 1.35rem;
+    color: var(--slate-700);
+    font-weight: 800;
+    cursor: pointer;
+}
+
+.driver-help[open] > summary {
+    border-bottom: 1px solid var(--slate-200);
+}
+
+.driver-help__body {
+    padding: 1.35rem;
+}
+
+.driver-help__body > p {
+    max-width: 72ch;
+    color: var(--slate-600);
+}
+
+.driver-help__body > p:last-of-type {
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 640px) {
+    .driver-focus__topline {
+        align-items: flex-start;
+    }
+
+    .driver-focus h2 {
+        font-size: clamp(2rem, 13vw, 3.5rem);
+    }
+
+    .driver-focus__span {
+        font-size: 1.35rem;
+    }
+}

@@ -1,0 +1,53 @@
+/* Driving QR management page. */
+.driving-qr-display {
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+    border-radius: 16px;
+    background: var(--white);
+}
+
+.driving-qr-image {
+    display: block;
+    width: min(100%, 420px);
+    height: auto;
+}
+
+.driving-qr-info {
+    margin-top: 1rem;
+}
+
+.driving-qr-regenerate-panel {
+    margin-top: 1.5rem;
+}
+
+@media print {
+    .app-topbar,
+    .page-header,
+    .alert,
+    .button-row,
+    .driving-qr-regenerate-panel,
+    .site-footer {
+        display: none !important;
+    }
+
+    .app-main {
+        width: 100%;
+        max-width: none;
+        padding: 0;
+    }
+
+    .panel {
+        border: 0;
+        box-shadow: none;
+    }
+
+    .panel__header {
+        border: 0;
+        text-align: center;
+    }
+
+    .driving-qr-image {
+        width: 420px;
+    }
+}
