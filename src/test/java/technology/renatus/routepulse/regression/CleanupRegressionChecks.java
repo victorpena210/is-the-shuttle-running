@@ -25,6 +25,7 @@ import org.thymeleaf.linkbuilder.StandardLinkBuilder;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.FileTemplateResolver;
 import technology.renatus.routepulse.shared.time.TimestampDisplay;
+import technology.renatus.routepulse.attention.model.AttentionCenter;
 import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
 import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
@@ -56,6 +57,8 @@ import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driver.service.DriverService;
 import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
 import technology.renatus.routepulse.driving.model.DrivingSession;
+import technology.renatus.routepulse.driving.service.RiderStatusService.RiderStatus;
+import technology.renatus.routepulse.operations.domain.RiderOperationalStatus;
 import technology.renatus.routepulse.organization.domain.OrganizationStatus;
 import technology.renatus.routepulse.organization.model.Organization;
 import technology.renatus.routepulse.organization.repository.OrganizationMembershipRepository;
@@ -381,6 +384,17 @@ public final class CleanupRegressionChecks {
         model.addAttribute("organizationSlug", "test");
         model.addAttribute("isOwner", true);
         model.addAttribute("canManageDrivingQr", true);
+        model.addAttribute("attentionCenter", new AttentionCenter(List.of()));
+        model.addAttribute("currentRiderStatus", new RiderStatus(
+                "Test Organization",
+                RiderOperationalStatus.NOT_RUNNING,
+                "The shuttle is not running.",
+                "No active driving session.",
+                null,
+                null,
+                false,
+                "stopped"
+        ));
         model.addAttribute("timestampDisplay", new TimestampDisplay("America/Chicago"));
         return model;
     }
