@@ -108,9 +108,64 @@ public class OrganizationInvitationService {
             Driver driver) {
 
         OrganizationMembership actorMembership =
-                invitationAccessService.requireOperationsMembership(
-                        authentication
+                requireDriverInvitationActor(
+                        authentication,
+                        driver
                 );
+
+        sendDriverInvitation(
+                actorMembership,
+                driver
+        );
+    }
+
+    @Transactional
+    public void replaceAndSendDriverInvitation(
+            Authentication authentication,
+            Driver driver) {
+
+        OrganizationMembership actorMembership =
+                requireDriverInvitationActor(
+                        authentication,
+                        driver
+                );
+
+        List<OrganizationInvitation> pendingInvitations =
+                organizationInvitationRepository
+                        .findAllByOrganization_IdAndDriver_IdAndAcceptedAtIsNull(
+                                actorMembership
+                                        .getOrganization()
+                                        .getId(),
+                                driver.getId()
+                        );
+
+        if (!pendingInvitations.isEmpty()) {
+            organizationInvitationRepository
+                    .deleteAll(
+                            pendingInvitations
+                    );
+
+            // Force the old token/email row out before a replacement
+            // invitation is inserted in the same transaction.
+            organizationInvitationRepository.flush();
+        }
+
+        sendDriverInvitation(
+                actorMembership,
+                driver
+        );
+    }
+
+    private OrganizationMembership
+    requireDriverInvitationActor(
+            Authentication authentication,
+            Driver driver) {
+
+        OrganizationMembership actorMembership =
+                invitationAccessService
+                        .requireOperationsMembership(
+                                authentication
+                        );
 
         if (driver == null
                 || driver.getOrganization() == null
@@ -129,7 +184,6 @@ public class OrganizationInvitationService {
         }
 
         if (driver.hasAccount()) {
-
             throw new IllegalArgumentException(
                     "That driver already has a RoutePulse account."
             );
@@ -144,6 +198,13 @@ public class OrganizationInvitationService {
                     "The driver needs an email address before an invitation can be sent."
             );
         }
+
+        return actorMembership;
+    }
+
+    private void sendDriverInvitation(
+            OrganizationMembership actorMembership,
+            Driver driver) {
 
         PreparedInvitation preparedInvitation =
                 createOrRefreshInvitation(

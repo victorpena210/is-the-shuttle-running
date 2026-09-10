@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driver.service.DriverOnboardingService;
 import technology.renatus.routepulse.driver.service.DriverService;
 import technology.renatus.routepulse.organization.model.Organization;
@@ -172,6 +173,50 @@ public class DriverController {
                     exception.getMessage()
             );
         }
+    }
+
+    @PostMapping(
+            "/drivers/{id}/email"
+    )
+    public String updateDriverEmail(
+            Authentication authentication,
+            @PathVariable
+            Long id,
+            @RequestParam
+            String email,
+            RedirectAttributes
+                    redirectAttributes) {
+
+        try {
+
+            Driver driver =
+                    driverOnboardingService
+                            .updateDriverEmailAndResendInvitation(
+                                    authentication,
+                                    id,
+                                    email
+                            );
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "successMessage",
+                            "Driver email was updated to "
+                                    + driver.getEmail()
+                                    + ". A new invitation email was sent."
+                    );
+
+        } catch (
+                IllegalArgumentException
+                | IllegalStateException exception) {
+
+            redirectAttributes
+                    .addFlashAttribute(
+                            "errorMessage",
+                            exception.getMessage()
+                    );
+        }
+
+        return "redirect:/drivers";
     }
 
     @PostMapping(

@@ -67,6 +67,35 @@ public class DriverOnboardingService {
     }
 
     @Transactional
+    public Driver updateDriverEmailAndResendInvitation(
+            Authentication authentication,
+            Long driverId,
+            String email) {
+
+        Long organizationId =
+                currentOrganizationService
+                        .requireOrganizationId(
+                                authentication
+                        );
+
+        Driver driver =
+                driverService
+                        .updatePendingInvitationEmail(
+                                organizationId,
+                                driverId,
+                                email
+                        );
+
+        organizationInvitationService
+                .replaceAndSendDriverInvitation(
+                        authentication,
+                        driver
+                );
+
+        return driver;
+    }
+
+    @Transactional
     public void resendDriverInvitation(
             Authentication authentication,
             Long driverId) {

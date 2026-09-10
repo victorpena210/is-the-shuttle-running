@@ -27,6 +27,12 @@ public interface OrganizationInvitationRepository
                     OrganizationRole role
             );
 
+    List<OrganizationInvitation>
+            findAllByOrganization_IdAndDriver_IdAndAcceptedAtIsNull(
+                    Long organizationId,
+                    Long driverId
+            );
+
     @Query("""
             SELECT invitation
             FROM OrganizationInvitation invitation

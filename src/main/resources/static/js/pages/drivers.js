@@ -89,12 +89,67 @@ function initializeDriverLookup() {
     });
 }
 
+function initializeEmailDialogs() {
+    document.querySelectorAll('[data-email-dialog-open]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const dialog = document.getElementById(
+                button.dataset.emailDialogOpen
+            );
+
+            if (!dialog || typeof dialog.showModal !== 'function') {
+                return;
+            }
+
+            dialog.showModal();
+
+            const emailInput = dialog.querySelector('input[name="email"]');
+            if (emailInput) {
+                emailInput.focus();
+                emailInput.select();
+            }
+        });
+    });
+
+    document.querySelectorAll('[data-email-dialog-close]').forEach((button) => {
+        button.addEventListener('click', () => {
+            const dialog = button.closest('dialog');
+            if (dialog) {
+                dialog.close();
+            }
+        });
+    });
+
+    document.querySelectorAll('.driver-email-dialog').forEach((dialog) => {
+        dialog.addEventListener('click', (event) => {
+            if (event.target !== dialog) {
+                return;
+            }
+
+            const bounds = dialog.getBoundingClientRect();
+            const insideDialog =
+                event.clientX >= bounds.left
+                && event.clientX <= bounds.right
+                && event.clientY >= bounds.top
+                && event.clientY <= bounds.bottom;
+
+            if (!insideDialog) {
+                dialog.close();
+            }
+        });
+    });
+}
+
+function initializeDriversPage() {
+    initializeDriverLookup();
+    initializeEmailDialogs();
+}
+
 if (document.readyState === 'loading') {
     document.addEventListener(
         'DOMContentLoaded',
-        initializeDriverLookup,
+        initializeDriversPage,
         { once: true }
     );
 } else {
-    initializeDriverLookup();
+    initializeDriversPage();
 }
