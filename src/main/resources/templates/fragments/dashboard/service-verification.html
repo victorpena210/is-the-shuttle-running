@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<section
+    th:fragment="verification"
+    class="section service-verification-section"
+    data-dashboard-section="demand"
+    aria-labelledby="service-verification-heading">
+
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Cross-signal check</p>
+            <h2 id="service-verification-heading">Service verification</h2>
+            <p>
+                RoutePulse compares scheduled transportation demand with actual driving
+                sessions and passenger QR confirmations. These signals support a service
+                review; they do not by themselves prove that a driver did or did not make a run.
+            </p>
+        </div>
+
+        <div
+            class="service-verification-summary"
+            th:if="${serviceVerificationReport != null and serviceVerificationReport.hasDemand}">
+            <strong th:text="${serviceVerificationReport.reviewCount}">0</strong>
+            <span th:text="${serviceVerificationReport.reviewCount == 1 ? 'period to review' : 'periods to review'}">
+                periods to review
+            </span>
+        </div>
+    </div>
+
+    <div
+        class="service-verification-grid"
+        th:if="${serviceVerificationReport != null and serviceVerificationReport.hasDemand}">
+
+        <article
+            class="service-verification-card"
+            th:each="period : ${serviceVerificationReport.periods}"
+            th:classappend="| service-verification-card--${period.confidence.cssModifier}|">
+
+            <header class="service-verification-card__header">
+                <div>
+                    <span class="service-verification-card__period" th:text="${period.title}">
+                        Morning driving
+                    </span>
+                    <strong
+                        class="service-verification-card__driver"
+                        th:text="${period.scheduledDriverName != null ? period.scheduledDriverName : 'No driver assignment'}">
+                        Driver
+                    </strong>
+                    <span
+                        class="service-verification-card__actual"
+                        th:if="${period.actualDriverNames != null}"
+                        th:text="|Actual driving: ${period.actualDriverNames}|">
+                        Actual driving: Driver
+                    </span>
+                </div>
+
+                <span
+                    class="service-verification-badge"
+                    th:classappend="| service-verification-badge--${period.confidence.cssModifier}|"
+                    th:text="${period.confidence.label}">
+                    Verified
+                </span>
+            </header>
+
+            <div class="service-verification-metrics">
+                <div>
+                    <span>Scheduled demand</span>
+                    <strong th:text="${period.expectedDemand}">86</strong>
+                </div>
+                <div>
+                    <span>Passenger QR</span>
+                    <strong th:text="${period.passengerConfirmations}">31</strong>
+                </div>
+                <div>
+                    <span>Driving evidence</span>
+                    <strong th:text="|${period.activeDrivingMinutes} min|">45 min</strong>
+                </div>
+            </div>
+
+            <div
+                class="service-verification-review"
+                th:if="${period.needsReview and period.reviewMessage != null}">
+                <strong>Review signal</strong>
+                <p th:text="${period.reviewMessage}">
+                    One completed demand window has no corroborating service evidence.
+                </p>
+            </div>
+
+            <details class="service-verification-details">
+                <summary>View 15-minute evidence</summary>
+
+                <div class="service-verification-table-wrap">
+                    <table class="service-verification-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Window</th>
+                                <th scope="col">Demand</th>
+                                <th scope="col">QR</th>
+                                <th scope="col">Driving</th>
+                                <th scope="col">Confidence</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="window : ${period.windows}">
+                                <td
+                                    th:text="|${#temporals.format(window.windowStart, 'h:mm a')}–${#temporals.format(window.windowEnd, 'h:mm a')}|">
+                                    5:00 PM–5:15 PM
+                                </td>
+                                <td th:text="${window.expectedDemand}">48</td>
+                                <td th:text="${window.passengerConfirmations}">17</td>
+                                <td>
+                                    <span th:text="|${window.activeDrivingMinutes} min|">15 min</span>
+                                    <small
+                                        th:if="${window.activeDrivingMinutes > 0}"
+                                        th:text="|${window.drivingCoveragePercent}%|">
+                                        100%
+                                    </small>
+                                </td>
+                                <td>
+                                    <span
+                                        class="service-verification-window-status"
+                                        th:classappend="| service-verification-window-status--${window.confidence.cssModifier}|"
+                                        th:text="${window.confidence.label}">
+                                        Verified
+                                    </span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </details>
+
+        </article>
+
+    </div>
+
+    <div
+        class="alert alert--info"
+        th:if="${serviceVerificationReport == null or !serviceVerificationReport.hasDemand}">
+        Service verification will appear when this date has transportation demand to compare.
+    </div>
+
+</section>
+</body>
+</html>

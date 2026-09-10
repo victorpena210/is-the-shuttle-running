@@ -12,6 +12,7 @@ import technology.renatus.routepulse.attention.model.AttentionItem;
 import technology.renatus.routepulse.attention.service.checks.CoverageAttentionChecker;
 import technology.renatus.routepulse.attention.service.checks.LiveOperationsAttentionChecker;
 import technology.renatus.routepulse.attention.service.checks.ScheduleAttentionChecker;
+import technology.renatus.routepulse.attention.service.checks.ServiceVerificationAttentionChecker;
 import technology.renatus.routepulse.dashboard.model.DashboardPlan;
 
 /** Coordinates the independent Needs Attention checks for the manager dashboard. */
@@ -22,16 +23,19 @@ public class AttentionCenterService {
     private final ScheduleAttentionChecker scheduleAttentionChecker;
     private final CoverageAttentionChecker coverageAttentionChecker;
     private final LiveOperationsAttentionChecker liveOperationsAttentionChecker;
+    private final ServiceVerificationAttentionChecker serviceVerificationAttentionChecker;
 
     public AttentionCenterService(
             ScheduleAttentionChecker scheduleAttentionChecker,
             CoverageAttentionChecker coverageAttentionChecker,
             LiveOperationsAttentionChecker liveOperationsAttentionChecker,
+            ServiceVerificationAttentionChecker serviceVerificationAttentionChecker,
             @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
 
         this.scheduleAttentionChecker = scheduleAttentionChecker;
         this.coverageAttentionChecker = coverageAttentionChecker;
         this.liveOperationsAttentionChecker = liveOperationsAttentionChecker;
+        this.serviceVerificationAttentionChecker = serviceVerificationAttentionChecker;
         this.operationsZone = ZoneId.of(operationsZone);
     }
 
@@ -47,9 +51,16 @@ public class AttentionCenterService {
 
         scheduleAttentionChecker.addAlerts(plan, items);
         coverageAttentionChecker.addAlerts(plan, items);
+        LocalDateTime now = LocalDateTime.now(operationsZone);
         liveOperationsAttentionChecker.addAlerts(
                 plan,
-                LocalDateTime.now(operationsZone),
+                now,
+                items
+        );
+        serviceVerificationAttentionChecker.addAlerts(
+                organizationId,
+                plan,
+                now,
                 items
         );
 

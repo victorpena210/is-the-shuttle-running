@@ -27,7 +27,7 @@ const viewCopy = {
     demand: {
         heading: 'Transportation demand',
         description:
-            'Review arrivals, midday turnover, evening pickups, and recommended shuttle windows for the selected planning day.',
+            'Review arrivals, midday turnover, evening pickups, service verification, and recommended shuttle windows for the selected planning day.',
         documentTitle: 'Transportation Demand | RoutePulse',
         showPlanningDate: true
     },

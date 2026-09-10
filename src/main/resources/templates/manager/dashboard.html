@@ -114,6 +114,8 @@
 
             <th:block th:replace="~{fragments/dashboard/transportation-demand :: demand}"></th:block>
 
+            <th:block th:replace="~{fragments/dashboard/service-verification :: verification}"></th:block>
+
                 <div
                     class="alert alert--success calendar-override-record"
                     th:if="${calendarOverrideActive and calendarOverride != null}"
