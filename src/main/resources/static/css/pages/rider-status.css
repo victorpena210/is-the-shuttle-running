@@ -71,3 +71,57 @@
     }
 }
 
+
+.rider-status-label {
+    margin: 0 0 0.75rem;
+    color: var(--slate-400);
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+.rider-status-detail {
+    max-width: 34rem;
+    margin: 1rem auto 0;
+    color: var(--slate-300);
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.rider-operational-message {
+    max-width: 36rem;
+    margin: 1.4rem auto 0;
+    padding: 1rem 1.1rem;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: var(--radius-md);
+    color: var(--white);
+    background: rgba(7, 17, 31, 0.45);
+    text-align: left;
+}
+
+.rider-operational-message strong {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.rider-operational-message p {
+    margin: 0;
+    color: var(--slate-200);
+}
+
+.rider-status-card--paused .rider-status-indicator,
+.rider-status-card--delayed .rider-status-indicator,
+.rider-status-card--ending .rider-status-indicator {
+    background: var(--amber-500);
+    box-shadow: 0 0 0 0.4rem rgba(245, 158, 11, 0.14),
+                0 0 2rem rgba(245, 158, 11, 0.34);
+}
+
+.rider-status-card--scheduled-off .rider-status-indicator {
+    background: var(--slate-500);
+    box-shadow: 0 0 0 0.4rem rgba(100, 116, 139, 0.14);
+}

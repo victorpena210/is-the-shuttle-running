@@ -41,9 +41,7 @@
 
     <section
         class="rider-status-card"
-        th:classappend="${status.running}
-            ? ' rider-status-card--running'
-            : ' rider-status-card--stopped'"
+        th:classappend="| rider-status-card--${status.tone}|"
         aria-live="polite">
 
         <div
@@ -51,28 +49,30 @@
             aria-hidden="true">
         </div>
 
-        <h1
-            th:text="${status.running}
-                ? 'The shuttle is running.'
-                : 'The shuttle is not running right now.'">
+        <p class="rider-status-label" th:text="${status.operationalStatus.label}">Running</p>
 
-            The shuttle is running.
+        <h1 th:text="${status.headline}">The shuttle is running.</h1>
 
-        </h1>
+        <p class="rider-status-detail" th:text="${status.detail}">Service is currently active.</p>
+
+        <div class="rider-operational-message"
+             th:if="${status.operationalMessage != null}"
+             role="status">
+            <strong>Operational update</strong>
+            <p th:text="${status.operationalMessage}">Shuttle temporarily unavailable — vehicle issue.</p>
+        </div>
 
         <p
             class="rider-status-driver"
-            th:if="${status.running}"
+            th:if="${status.confirmationAvailable and status.driverName != null}"
             th:text="|Driver: ${status.driverName}|">
-
             Driver: Driver name
-
         </p>
 
         <section
             id="confirm-ride"
             class="passenger-ride-section"
-            th:if="${status.running}">
+            th:if="${status.confirmationAvailable}">
 
             <div
                 class="passenger-ride-message passenger-ride-message--success"
@@ -225,10 +225,9 @@
 
         <div
             class="passenger-stopped-message"
-            th:if="${!status.running}">
+            th:if="${!status.confirmationAvailable}">
 
-            Ride confirmations will become available when a
-            driver starts the shuttle.
+            Ride confirmations are available only while shuttle service is actively running.
 
         </div>
 

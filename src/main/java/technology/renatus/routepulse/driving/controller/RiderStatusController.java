@@ -65,7 +65,7 @@ public class RiderStatusController {
             model.addAttribute("organizationSlug", organizationSlug);
             model.addAttribute("rideResult", rideResult);
 
-            if (status.running()) {
+            if (status.confirmationAvailable()) {
                 String deviceToken = riderDeviceCookieService.ensureDeviceToken(
                         existingDeviceToken,
                         request,

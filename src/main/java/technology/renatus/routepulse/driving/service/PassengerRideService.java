@@ -15,6 +15,7 @@ import technology.renatus.routepulse.driving.model.DrivingSession;
 import technology.renatus.routepulse.driving.model.PassengerRideConfirmation;
 import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
 import technology.renatus.routepulse.driving.repository.PassengerRideConfirmationRepository;
+import technology.renatus.routepulse.operations.service.OperationalStatusService;
 import technology.renatus.routepulse.organization.model.Organization;
 import technology.renatus.routepulse.organization.repository.OrganizationRepository;
 
@@ -24,6 +25,7 @@ public class PassengerRideService {
     private final OrganizationRepository organizationRepository;
     private final DrivingSessionRepository drivingSessionRepository;
     private final PassengerRideConfirmationRepository passengerRideConfirmationRepository;
+    private final OperationalStatusService operationalStatusService;
     private final ZoneId operationsZone;
     private final int cooldownMinutes;
 
@@ -31,6 +33,7 @@ public class PassengerRideService {
             OrganizationRepository organizationRepository,
             DrivingSessionRepository drivingSessionRepository,
             PassengerRideConfirmationRepository passengerRideConfirmationRepository,
+            OperationalStatusService operationalStatusService,
             @Value("${app.operations-zone:America/Chicago}")
             String operationsZone,
             @Value("${app.passenger-ride.cooldown-minutes:30}")
@@ -45,6 +48,7 @@ public class PassengerRideService {
         this.organizationRepository = organizationRepository;
         this.drivingSessionRepository = drivingSessionRepository;
         this.passengerRideConfirmationRepository = passengerRideConfirmationRepository;
+        this.operationalStatusService = operationalStatusService;
         this.operationsZone = ZoneId.of(operationsZone);
         this.cooldownMinutes = cooldownMinutes;
     }
@@ -62,7 +66,8 @@ public class PassengerRideService {
                 organization.getId()
         );
 
-        if (activeSession == null) {
+        if (activeSession == null
+                || operationalStatusService.blocksPassengerConfirmation(organization.getId())) {
             return new PassengerRideState(
                     false,
                     null,
@@ -102,7 +107,8 @@ public class PassengerRideService {
                 organization.getId()
         );
 
-        if (activeSession == null) {
+        if (activeSession == null
+                || operationalStatusService.blocksPassengerConfirmation(organization.getId())) {
             return ConfirmationResult.NO_ACTIVE_SHUTTLE;
         }
 

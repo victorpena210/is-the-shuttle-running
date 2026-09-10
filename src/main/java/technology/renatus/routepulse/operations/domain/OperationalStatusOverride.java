@@ -1,0 +1,19 @@
+package technology.renatus.routepulse.operations.domain;
+
+public enum OperationalStatusOverride {
+    AUTOMATIC("Automatic"),
+    TEMPORARILY_PAUSED("Temporarily paused"),
+    DELAYED("Delayed"),
+    NO_SERVICE_SCHEDULED("No service scheduled"),
+    SERVICE_ENDING_SOON("Service ending soon");
+
+    private final String label;
+
+    OperationalStatusOverride(String label) {
+        this.label = label;
+    }
+
+    public String getLabel() {
+        return label;
+    }
+}
