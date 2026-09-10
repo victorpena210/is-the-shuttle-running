@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 import technology.renatus.routepulse.assignments.domain.AssignmentSource;
 import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
+import technology.renatus.routepulse.assignments.model.PlannedDrivingWindow;
 import technology.renatus.routepulse.assignments.repository.DriverAssignmentRepository;
 import technology.renatus.routepulse.auth.model.UserAccount;
 import technology.renatus.routepulse.driver.model.Driver;
@@ -113,6 +114,9 @@ public class DriverAssignmentService {
                 scheduledStartTime,
                 scheduledEndTime
         );
+        assignment.replacePlannedDrivingWindows(
+                List.of(new PlannedDrivingWindow(scheduledStartTime, scheduledEndTime))
+        );
 
         return assignmentRepository.save(
                 assignment
@@ -187,6 +191,9 @@ public class DriverAssignmentService {
                 scheduledStartTime,
                 scheduledEndTime
         );
+        assignment.replacePlannedDrivingWindows(
+                List.of(new PlannedDrivingWindow(scheduledStartTime, scheduledEndTime))
+        );
 
         return assignment;
     }
@@ -231,24 +238,33 @@ public class DriverAssignmentService {
             );
         }
 
-        if (assignment.getScheduledStartTime() != null
-                && assignment.getScheduledEndTime() != null
-                && latestDriverShifts.stream().noneMatch(shift ->
-                        new DriverSchedule(
-                                recommendedDriver.getId(),
-                                recommendedDriver.getEmployeeId(),
-                                recommendedDriver.getName(),
-                                assignment.getAssignmentDate(),
-                                shift.getStartTime(),
-                                shift.getEndTime()
-                        ).covers(
+        List<DriverSchedule> recommendedSchedules = latestDriverShifts.stream()
+                .map(shift -> new DriverSchedule(
+                        recommendedDriver.getId(),
+                        recommendedDriver.getEmployeeId(),
+                        recommendedDriver.getName(),
+                        assignment.getAssignmentDate(),
+                        shift.getStartTime(),
+                        shift.getEndTime()
+                ))
+                .toList();
+
+        boolean recommendationStillCovers = assignment.hasPlannedDrivingWindows()
+                ? assignment.getPlannedDrivingWindows().stream()
+                        .allMatch(window -> recommendedSchedules.stream().anyMatch(schedule -> schedule.covers(
+                                window.getStartTime(),
+                                window.getEndTime()
+                        )))
+                : assignment.getScheduledStartTime() == null
+                        || assignment.getScheduledEndTime() == null
+                        || recommendedSchedules.stream().anyMatch(schedule -> schedule.covers(
                                 assignment.getScheduledStartTime(),
                                 assignment.getScheduledEndTime()
-                        )
-                )) {
+                        ));
 
+        if (!recommendationStillCovers) {
             throw new IllegalStateException(
-                    "That recommendation no longer covers the full driving window. Refresh coverage and review the latest schedule."
+                    "That recommendation no longer covers the required driving time. Refresh coverage and review the latest schedule."
             );
         }
 

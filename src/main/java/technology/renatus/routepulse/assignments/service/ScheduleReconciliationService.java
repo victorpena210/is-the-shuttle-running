@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import technology.renatus.routepulse.assignments.domain.AssignmentSource;
 import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
+import technology.renatus.routepulse.assignments.model.PlannedDrivingWindow;
 import technology.renatus.routepulse.assignments.model.ScheduleReconciliation;
 import technology.renatus.routepulse.assignments.model.ScheduleReconciliationStatus;
 import technology.renatus.routepulse.scheduling.domain.DriverSchedule;
@@ -132,7 +133,9 @@ public class ScheduleReconciliationService {
 
         LocalTime requestedStart = effectiveStart(assignment, transportationDemand);
         LocalTime requestedEnd = effectiveEnd(assignment, transportationDemand);
-        String drivingWindowLabel = formatWindow(requestedStart, requestedEnd);
+        String drivingWindowLabel = assignment.hasPlannedDrivingWindows()
+                ? formatPlannedWindows(assignment)
+                : formatWindow(requestedStart, requestedEnd);
         String previousScheduleLabel = baselineImport == null
                 ? "Previous imported shift unavailable"
                 : formatShifts(previousShifts);
@@ -164,6 +167,7 @@ public class ScheduleReconciliationService {
 
         boolean stillValid = latestShiftsCover(
                 latestShifts,
+                assignment,
                 requestedStart,
                 requestedEnd
         );
@@ -171,7 +175,7 @@ public class ScheduleReconciliationService {
         if (stillValid) {
             String detail = drivingWindowLabel == null
                     ? driverName + " still has a usable work shift in the latest schedule."
-                    : driverName + "'s work shift changed, but the latest schedule still fully covers "
+                    : driverName + "'s work shift changed, but the latest schedule still covers "
                             + drivingWindowLabel + " for " + periodLabel + " driving.";
 
             return new ScheduleReconciliation(
@@ -205,9 +209,9 @@ public class ScheduleReconciliationService {
             String detail = drivingWindowLabel == null
                     ? driverName + " no longer has a usable work shift in the latest schedule. "
                             + "RoutePulse recommends " + recommended.driverName() + "."
-                    : driverName + " no longer fully covers " + drivingWindowLabel + ". "
+                    : driverName + " no longer covers " + drivingWindowLabel + ". "
                             + "RoutePulse recommends " + recommended.driverName()
-                            + ", whose latest shift covers the full driving window.";
+                            + ", whose latest shift covers the required driving time.";
 
             return new ScheduleReconciliation(
                     assignment.getId(),
@@ -223,15 +227,15 @@ public class ScheduleReconciliationService {
                     ScheduleReconciliationStatus.REPLACEMENT_RECOMMENDED,
                     recommended.driverId(),
                     recommended.driverName(),
-                    formatWindow(recommended.startTime(), recommended.endTime()),
+                    formatDriverSchedules(currentDriverSchedules, recommended.driverId()),
                     detail
             );
         }
 
         String detail = drivingWindowLabel == null
                 ? driverName + " no longer has a usable work shift in the latest schedule, and no other scheduled driver is available."
-                : driverName + " no longer fully covers " + drivingWindowLabel
-                        + ", and no other scheduled RoutePulse driver fully covers that window.";
+                : driverName + " no longer covers " + drivingWindowLabel
+                        + ", and no other scheduled RoutePulse driver covers the required driving time.";
 
         return new ScheduleReconciliation(
                 assignment.getId(),
@@ -272,6 +276,7 @@ public class ScheduleReconciliationService {
         List<DriverSchedule> candidates = byDriver.values().stream()
                 .map(schedules -> bestCoveringSchedule(
                         schedules,
+                        assignment,
                         requestedStart,
                         requestedEnd
                 ))
@@ -295,6 +300,7 @@ public class ScheduleReconciliationService {
 
     private DriverSchedule bestCoveringSchedule(
             List<DriverSchedule> schedules,
+            DriverAssignment assignment,
             LocalTime requestedStart,
             LocalTime requestedEnd) {
 
@@ -302,25 +308,61 @@ public class ScheduleReconciliationService {
             return null;
         }
 
-        if (requestedStart == null || requestedEnd == null) {
-            return schedules.stream()
-                    .min(Comparator.comparing(DriverSchedule::startTime))
-                    .orElse(null);
+        if (!driverSchedulesCover(schedules, assignment, requestedStart, requestedEnd)) {
+            return null;
         }
 
         return schedules.stream()
-                .filter(schedule -> schedule.covers(requestedStart, requestedEnd))
                 .min(Comparator.comparing(DriverSchedule::startTime))
                 .orElse(null);
     }
 
+    private boolean driverSchedulesCover(
+            List<DriverSchedule> schedules,
+            DriverAssignment assignment,
+            LocalTime requestedStart,
+            LocalTime requestedEnd) {
+
+        if (schedules == null || schedules.isEmpty()) {
+            return false;
+        }
+
+        if (assignment.hasPlannedDrivingWindows()) {
+            return assignment.getPlannedDrivingWindows().stream()
+                    .allMatch(window -> schedules.stream().anyMatch(schedule -> schedule.covers(
+                            window.getStartTime(),
+                            window.getEndTime()
+                    )));
+        }
+
+        if (requestedStart == null || requestedEnd == null) {
+            return true;
+        }
+
+        return schedules.stream().anyMatch(schedule -> schedule.covers(
+                requestedStart,
+                requestedEnd
+        ));
+    }
+
     private boolean latestShiftsCover(
             List<UploadedShift> shifts,
+            DriverAssignment assignment,
             LocalTime requestedStart,
             LocalTime requestedEnd) {
 
         if (shifts == null || shifts.isEmpty()) {
             return false;
+        }
+
+        if (assignment.hasPlannedDrivingWindows()) {
+            return assignment.getPlannedDrivingWindows().stream()
+                    .allMatch(window -> shifts.stream().anyMatch(shift -> coversWindow(
+                            shift.getStartTime(),
+                            shift.getEndTime(),
+                            window.getStartTime(),
+                            window.getEndTime()
+                    )));
         }
 
         if (requestedStart == null || requestedEnd == null) {
@@ -426,6 +468,23 @@ public class ScheduleReconciliationService {
         };
     }
 
+    private String formatDriverSchedules(
+            List<DriverSchedule> schedules,
+            Long driverId) {
+
+        if (schedules == null || schedules.isEmpty() || driverId == null) {
+            return null;
+        }
+
+        String formatted = schedules.stream()
+                .filter(schedule -> driverId.equals(schedule.driverId()))
+                .sorted(Comparator.comparing(DriverSchedule::startTime))
+                .map(schedule -> formatWindow(schedule.startTime(), schedule.endTime()))
+                .collect(Collectors.joining(", "));
+
+        return formatted.isBlank() ? null : formatted;
+    }
+
     private String formatShifts(List<UploadedShift> shifts) {
         if (shifts == null || shifts.isEmpty()) {
             return "Not scheduled";
@@ -434,6 +493,21 @@ public class ScheduleReconciliationService {
         return shifts.stream()
                 .map(shift -> formatWindow(shift.getStartTime(), shift.getEndTime()))
                 .collect(Collectors.joining(", "));
+    }
+
+    private String formatPlannedWindows(DriverAssignment assignment) {
+        List<PlannedDrivingWindow> windows = assignment.getPlannedDrivingWindows();
+        if (windows.isEmpty()) {
+            return null;
+        }
+
+        String formatted = windows.stream()
+                .map(window -> formatWindow(window.getStartTime(), window.getEndTime()))
+                .collect(Collectors.joining(", "));
+
+        return assignment.getPeriod() == ShuttlePeriod.MIDDAY
+                ? "planned midday windows " + formatted
+                : formatted;
     }
 
     private String formatWindow(LocalTime start, LocalTime end) {

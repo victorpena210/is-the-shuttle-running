@@ -16,6 +16,7 @@ import org.junit.jupiter.api.Test;
 import technology.renatus.routepulse.assignments.domain.AssignmentSource;
 import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
+import technology.renatus.routepulse.assignments.model.PlannedDrivingWindow;
 import technology.renatus.routepulse.assignments.model.ScheduleReconciliation;
 import technology.renatus.routepulse.assignments.model.ScheduleReconciliationStatus;
 import technology.renatus.routepulse.driver.model.Driver;
@@ -143,6 +144,51 @@ class ScheduleReconciliationServiceTests {
     }
 
     @Test
+    void middayReconciliationChecksOnlySpecificDrivingWindowsNotQuietGaps() {
+        when(assignment.getPeriod()).thenReturn(ShuttlePeriod.MIDDAY);
+        when(assignment.getScheduledStartTime()).thenReturn(LocalTime.of(12, 0));
+        when(assignment.getScheduledEndTime()).thenReturn(LocalTime.of(14, 30));
+        when(assignment.hasPlannedDrivingWindows()).thenReturn(true);
+        when(assignment.getPlannedDrivingWindows()).thenReturn(List.of(
+                new PlannedDrivingWindow(LocalTime.of(12, 0), LocalTime.of(12, 30)),
+                new PlannedDrivingWindow(LocalTime.of(14, 0), LocalTime.of(14, 30))
+        ));
+
+        stubShiftVersion(baselineImport, "100", LocalTime.of(9, 0), LocalTime.of(17, 0));
+        stubShiftVersionList(
+                latestImport,
+                "100",
+                List.of(
+                        shift(LocalTime.of(12, 0), LocalTime.of(12, 30)),
+                        shift(LocalTime.of(14, 0), LocalTime.of(14, 30))
+                )
+        );
+
+        List<ScheduleReconciliation> results = service.reconcile(
+                ORGANIZATION_ID,
+                List.of(assignment),
+                List.of(
+                        new DriverSchedule(
+                                100L, "100", "Alex", DATE,
+                                LocalTime.of(12, 0), LocalTime.of(12, 30)
+                        ),
+                        new DriverSchedule(
+                                100L, "100", "Alex", DATE,
+                                LocalTime.of(14, 0), LocalTime.of(14, 30)
+                        )
+                ),
+                TransportationDemandAnalysis.empty(),
+                latestImport
+        );
+
+        assertThat(results).hasSize(1);
+        assertThat(results.get(0).status())
+                .isEqualTo(ScheduleReconciliationStatus.COVERAGE_STILL_VALID);
+        assertThat(results.get(0).drivingWindowLabel())
+                .isEqualTo("planned midday windows 12:00 PM–12:30 PM, 2:00 PM–2:30 PM");
+    }
+
+    @Test
     void scheduleChangeAfterDrivingStartedPreservesHistoryWithoutAction() {
         assignment = assignment(alex, baselineImport, true);
         stubShiftVersion(baselineImport, "100", LocalTime.of(9, 0), LocalTime.of(17, 0));
@@ -201,9 +247,24 @@ class ScheduleReconciliationServiceTests {
             LocalTime start,
             LocalTime end) {
 
+        stubShiftVersionList(
+                scheduleImport,
+                employeeId,
+                List.of(shift(start, end))
+        );
+    }
+
+    private UploadedShift shift(LocalTime start, LocalTime end) {
         UploadedShift shift = mock(UploadedShift.class);
         when(shift.getStartTime()).thenReturn(start);
         when(shift.getEndTime()).thenReturn(end);
+        return shift;
+    }
+
+    private void stubShiftVersionList(
+            ScheduleImport scheduleImport,
+            String employeeId,
+            List<UploadedShift> shifts) {
 
         when(uploadedShiftRepository
                 .findAllByOrganization_IdAndScheduleImport_IdAndShiftDateAndEmployeeIdOrderByStartTimeAsc(
@@ -212,6 +273,6 @@ class ScheduleReconciliationServiceTests {
                         DATE,
                         employeeId
                 ))
-                .thenReturn(List.of(shift));
+                .thenReturn(shifts);
     }
 }

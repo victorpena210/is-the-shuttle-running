@@ -3,6 +3,7 @@ package technology.renatus.routepulse.dashboard.service;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
+import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.assignments.model.ScheduleReconciliation;
 import technology.renatus.routepulse.assignments.service.DriverAssignmentService;
@@ -123,10 +124,30 @@ public class DashboardPlanningService {
                         latestImport);
                 reviewRequired = scheduleReconciliations.stream()
                         .anyMatch(ScheduleReconciliation::requiresAction);
-                if (assignments.isEmpty()) {
-                    assignmentMessage = "Manual morning and afternoon coverage required — no eligible drivers are working this date.";
-                } else if (assignments.size() == 1) {
+                int requiredPeriods = (demand.getMorning().hasDemand() ? 1 : 0)
+                        + (demand.getMidday().hasDemand() ? 1 : 0)
+                        + (demand.getEvening().hasDemand() ? 1 : 0);
+                int coveredRequiredPeriods = (assignments.stream()
+                        .anyMatch(assignment -> assignment.getPeriod()
+                                == ShuttlePeriod.MORNING)
+                        && demand.getMorning().hasDemand() ? 1 : 0)
+                        + (assignments.stream()
+                        .anyMatch(assignment -> assignment.getPeriod()
+                                == ShuttlePeriod.MIDDAY)
+                        && demand.getMidday().hasDemand() ? 1 : 0)
+                        + (assignments.stream()
+                        .anyMatch(assignment -> assignment.getPeriod()
+                                == ShuttlePeriod.AFTERNOON)
+                        && demand.getEvening().hasDemand() ? 1 : 0);
+                int missingRequiredPeriods = Math.max(0, requiredPeriods - coveredRequiredPeriods);
+
+                if (missingRequiredPeriods == requiredPeriods && requiredPeriods > 0) {
+                    assignmentMessage = "Manual coverage required — no eligible driver could cover the required driving windows.";
+                } else if (missingRequiredPeriods == 1) {
                     assignmentMessage = "One shuttle period still needs manual coverage.";
+                } else if (missingRequiredPeriods > 1) {
+                    assignmentMessage = missingRequiredPeriods
+                            + " shuttle periods still need manual coverage.";
                 }
             }
         }

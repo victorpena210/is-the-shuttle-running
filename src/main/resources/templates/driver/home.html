@@ -134,8 +134,32 @@
 
                     <td>
 
+                        <div th:if="${assignment.hasPlannedDrivingWindows()}">
+
+                            <div
+                                th:each="window : ${assignment.plannedDrivingWindows}"
+                                th:text="${#temporals.format(window.startTime, 'h:mm a') + ' – ' + #temporals.format(window.endTime, 'h:mm a')}">
+                                9:00 AM – 10:30 AM
+                            </div>
+
+                            <small
+                                class="muted"
+                                th:if="${assignment.period.name() != 'MIDDAY' and !#lists.isEmpty(assignment.plannedBreakWindows)}"
+                                th:with="breakWindow=${assignment.plannedBreakWindows[0]}"
+                                th:text="|Break ${#temporals.format(breakWindow.startTime, 'h:mm a')}–${#temporals.format(breakWindow.endTime, 'h:mm a')} · ${breakWindow.minutes} min water / restroom|">
+                                Break 10:30 AM–10:45 AM · 15 min water / restroom
+                            </small>
+
+                            <small
+                                class="muted"
+                                th:if="${assignment.period.name() == 'MIDDAY' and assignment.hasMultiplePlannedDrivingWindows()}">
+                                Start/stop only at the listed midday windows
+                            </small>
+
+                        </div>
+
                         <span
-                            th:if="${assignment.scheduledStartTime != null and assignment.scheduledEndTime != null}"
+                            th:if="${!assignment.hasPlannedDrivingWindows() and assignment.scheduledStartTime != null and assignment.scheduledEndTime != null}"
                             th:text="${#temporals.format(assignment.scheduledStartTime, 'h:mm a') + ' – ' + #temporals.format(assignment.scheduledEndTime, 'h:mm a')}">
 
                             9:00 AM – 12:00 PM
@@ -143,7 +167,7 @@
                         </span>
 
                         <span
-                            th:unless="${assignment.scheduledStartTime != null and assignment.scheduledEndTime != null}">
+                            th:if="${!assignment.hasPlannedDrivingWindows() and (assignment.scheduledStartTime == null or assignment.scheduledEndTime == null)}">
 
                             Not set
 

@@ -30,10 +30,17 @@
             </strong>
 
             <small
-                th:text="|${#numbers.formatDecimal(record.scheduledHours, 1, 2)} scheduled hours|">
+                th:text="|${#numbers.formatDecimal(record.scheduledHours, 1, 2)} scheduled driving hours|">
 
-                3.00 scheduled hours
+                3.00 scheduled driving hours
 
+            </small>
+
+            <small
+                th:if="${record.hasMultiplePlannedDrivingWindows()}"
+                th:each="window : ${record.plannedDrivingWindows}"
+                th:text="|Drive ${#temporals.format(window.startTime, 'h:mm a')}–${#temporals.format(window.endTime, 'h:mm a')}|">
+                Drive 12:00 PM–12:30 PM
             </small>
 
         </section>

@@ -1,6 +1,8 @@
 package technology.renatus.routepulse.assignments.model;
 
+import jakarta.persistence.CollectionTable;
 import jakarta.persistence.Column;
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -11,6 +13,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderColumn;
 import jakarta.persistence.OrderBy;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
@@ -99,6 +102,22 @@ public class DriverAssignment {
 
     @Column(name = "scheduled_end_time")
     private LocalTime scheduledEndTime;
+
+    /**
+     * Detailed planned driving intervals inside the broad scheduled window.
+     *
+     * A morning/afternoon break is represented by the gap between two
+     * intervals. Midday can contain several intervals because turnover demand
+     * is intentionally intermittent. Legacy/manual assignments may leave this
+     * collection empty and continue using scheduledStartTime/scheduledEndTime.
+     */
+    @ElementCollection(fetch = FetchType.EAGER)
+    @CollectionTable(
+            name = "assignment_planned_driving_windows",
+            joinColumns = @JoinColumn(name = "driver_assignment_id", nullable = false)
+    )
+    @OrderColumn(name = "window_order", nullable = false)
+    private List<PlannedDrivingWindow> plannedDrivingWindows = new java.util.ArrayList<>();
 
     @Enumerated(EnumType.STRING)
     @Column(name = "assignment_source", nullable = false, length = 20)
@@ -239,6 +258,61 @@ public class DriverAssignment {
 
         this.scheduledStartTime = scheduledStartTime;
         this.scheduledEndTime = scheduledEndTime;
+
+        // A manual broad-window edit invalidates any previously generated
+        // detailed windows. Automatic planning repopulates them immediately.
+        if (plannedDrivingWindows != null) {
+            plannedDrivingWindows.clear();
+        }
+    }
+
+    public void replacePlannedDrivingWindows(
+            List<PlannedDrivingWindow> windows) {
+
+        ensureDrivingHasNotStarted(
+                "Planned driving windows cannot be changed after driving has started."
+        );
+
+        if (plannedDrivingWindows == null) {
+            plannedDrivingWindows = new java.util.ArrayList<>();
+        } else {
+            plannedDrivingWindows.clear();
+        }
+
+        if (windows == null || windows.isEmpty()) {
+            return;
+        }
+
+        LocalTime previousEnd = null;
+        for (PlannedDrivingWindow window : windows.stream()
+                .sorted(java.util.Comparator.comparing(PlannedDrivingWindow::getStartTime))
+                .toList()) {
+
+            Objects.requireNonNull(window, "Planned driving window is required.");
+
+            if (scheduledStartTime != null
+                    && window.getStartTime().isBefore(scheduledStartTime)) {
+                throw new IllegalArgumentException(
+                        "A planned driving window cannot begin before the assignment start."
+                );
+            }
+
+            if (scheduledEndTime != null
+                    && window.getEndTime().isAfter(scheduledEndTime)) {
+                throw new IllegalArgumentException(
+                        "A planned driving window cannot end after the assignment end."
+                );
+            }
+
+            if (previousEnd != null && window.getStartTime().isBefore(previousEnd)) {
+                throw new IllegalArgumentException(
+                        "Planned driving windows cannot overlap."
+                );
+            }
+
+            plannedDrivingWindows.add(window);
+            previousEnd = window.getEndTime();
+        }
     }
 
     public boolean changeDriver(
@@ -469,7 +543,73 @@ public class DriverAssignment {
         return scheduledEndTime;
     }
 
+    public List<PlannedDrivingWindow> getPlannedDrivingWindows() {
+        return plannedDrivingWindows == null
+                ? List.of()
+                : List.copyOf(plannedDrivingWindows);
+    }
+
+    public boolean hasPlannedDrivingWindows() {
+        return plannedDrivingWindows != null && !plannedDrivingWindows.isEmpty();
+    }
+
+    public boolean hasMultiplePlannedDrivingWindows() {
+        return plannedDrivingWindows != null && plannedDrivingWindows.size() > 1;
+    }
+
+    public boolean isInsidePlannedDrivingWindow(LocalTime time) {
+        return getPlannedDrivingWindows().stream().anyMatch(window -> window.contains(time));
+    }
+
+    public LocalTime getNextPlannedDrivingStart(LocalTime time) {
+        if (time == null) {
+            return null;
+        }
+
+        return getPlannedDrivingWindows().stream()
+                .filter(window -> !window.getEndTime().isBefore(time))
+                .filter(window -> time.isBefore(window.getStartTime()) || window.contains(time))
+                .map(window -> window.contains(time) ? time : window.getStartTime())
+                .findFirst()
+                .orElse(null);
+    }
+
+    public boolean hasRemainingPlannedDrivingWindowAtOrAfter(LocalTime time) {
+        if (time == null) {
+            return false;
+        }
+        return getPlannedDrivingWindows().stream()
+                .anyMatch(window -> window.contains(time) || window.getStartTime().isAfter(time));
+    }
+
+    /**
+     * Gaps between generated driving windows. Morning/afternoon render these
+     * as protected breaks; midday treats them simply as off-driving time.
+     */
+    public List<PlannedDrivingWindow> getPlannedBreakWindows() {
+        List<PlannedDrivingWindow> windows = getPlannedDrivingWindows();
+        if (windows.size() < 2) {
+            return List.of();
+        }
+
+        List<PlannedDrivingWindow> gaps = new java.util.ArrayList<>();
+        for (int index = 0; index < windows.size() - 1; index++) {
+            LocalTime gapStart = windows.get(index).getEndTime();
+            LocalTime gapEnd = windows.get(index + 1).getStartTime();
+            if (gapEnd.isAfter(gapStart)) {
+                gaps.add(new PlannedDrivingWindow(gapStart, gapEnd));
+            }
+        }
+        return List.copyOf(gaps);
+    }
+
     public long getScheduledMinutes() {
+        if (hasPlannedDrivingWindows()) {
+            return getPlannedDrivingWindows().stream()
+                    .mapToLong(PlannedDrivingWindow::getMinutes)
+                    .sum();
+        }
+
         if (scheduledStartTime == null || scheduledEndTime == null) {
             return 0;
         }
