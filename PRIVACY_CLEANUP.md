@@ -33,3 +33,21 @@ will detect changed checksums if those migrations were already applied to an exi
 For this early-stage development project, the cleanest option is to recreate only the
 RoutePulse development database and let Flyway build it again from the sanitized migrations.
 Do not drop a shared or production database.
+
+## Automatic schedule retention for forecasting
+
+RoutePulse now treats uploaded employee schedules as temporary operational data.
+After an operating day is complete, the nightly retention job first creates an
+anonymous `historical_demand_snapshots` record plus 15-minute arrival/departure
+windows. Those records contain counts and demand timing only; they do not retain
+employee names, employee IDs, departments, jobs, or pickup locations.
+
+After the snapshot is safely persisted, every raw `uploaded_shifts` row for the
+completed date is permanently deleted, including superseded schedule-upload
+versions. Registered drivers, driver assignments, driving sessions, and schedule
+import audit metadata are stored separately and are not deleted by this job.
+
+Anonymous demand snapshots are retained for a rolling 12 months by default so a
+future forecasting engine can learn weekday, seasonal, peak-window, arrival, and
+departure patterns without requiring long-term storage of ordinary employees'
+schedule identities. Configure the window with `FORECAST_HISTORY_MONTHS`.

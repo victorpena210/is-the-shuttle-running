@@ -68,7 +68,8 @@ public class ScheduleImportService {
 
         scheduleImportRepository.save(scheduleImport);
 
-        // Historical versions remain stored. Current reads select the newest import for each date.
+        // Versions remain available through the operating day for reconciliation.
+        // Nightly retention later archives anonymous demand and purges the raw rows.
         List<UploadedShift> uploadedShifts = parsedShifts.stream()
                 .map(shift -> toUploadedShift(organization, scheduleImport, shift, uploadedAt))
                 .toList();

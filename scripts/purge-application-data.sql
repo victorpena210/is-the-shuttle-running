@@ -3,7 +3,7 @@
 -- This permanently deletes all organizations, users,
 -- invitations, tokens, drivers, assignments,
 -- passenger ride confirmations, schedule imports,
--- and uploaded employee shifts.
+-- uploaded employee shifts, and anonymous demand history.
 --
 -- It preserves the database schema and Flyway
 -- migration history.
@@ -11,6 +11,8 @@
 START TRANSACTION;
 
 DELETE FROM passenger_ride_confirmations;
+DELETE FROM historical_demand_windows;
+DELETE FROM historical_demand_snapshots;
 DELETE FROM uploaded_shifts;
 DELETE FROM driver_assignments;
 DELETE FROM schedule_imports;

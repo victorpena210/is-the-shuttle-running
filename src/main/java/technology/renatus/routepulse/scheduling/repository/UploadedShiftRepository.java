@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import technology.renatus.routepulse.scheduling.model.ScheduleImport;
@@ -21,9 +22,10 @@ public interface UploadedShiftRepository
     /*
      * Return only the newest stored version for this organization/date.
      *
-     * Older uploaded rows stay in the database permanently for history,
-     * but normal RoutePulse planning reads only the rows whose importedAt
-     * matches the newest import that contains this date.
+     * While a date is still operational, older uploaded versions remain
+     * available for schedule reconciliation. After the operating day closes,
+     * retention archives anonymous demand statistics and purges all raw rows.
+     * Normal planning reads only the newest import for the selected date.
      *
      * Using importedAt also keeps this compatible with uploaded_shifts
      * rows that existed before schedule_import_id was introduced in V14.
@@ -85,6 +87,37 @@ public interface UploadedShiftRepository
     Optional<LocalDate> findFirstDateOfLatestImport(
             @Param("organizationId")
             Long organizationId
+    );
+
+    @Query("""
+            select distinct uploadedShift.organization.id
+            from UploadedShift uploadedShift
+            where uploadedShift.shiftDate < :cutoffDate
+            order by uploadedShift.organization.id
+            """)
+    List<Long> findOrganizationIdsWithShiftDateBefore(
+            @Param("cutoffDate") LocalDate cutoffDate
+    );
+
+    @Query("""
+            select distinct uploadedShift.shiftDate
+            from UploadedShift uploadedShift
+            where uploadedShift.organization.id = :organizationId
+              and uploadedShift.shiftDate < :cutoffDate
+            order by uploadedShift.shiftDate
+            """)
+    List<LocalDate> findShiftDatesBefore(
+            @Param("organizationId") Long organizationId,
+            @Param("cutoffDate") LocalDate cutoffDate
+    );
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("""
+            delete from UploadedShift uploadedShift
+            where uploadedShift.shiftDate < :cutoffDate
+            """)
+    int deleteShiftRowsBefore(
+            @Param("cutoffDate") LocalDate cutoffDate
     );
 
     @Query("""
