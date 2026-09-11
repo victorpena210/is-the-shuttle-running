@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:fragment="seoMeta(pageTitle, description, canonicalUrl, socialTitle, socialDescription)">
+        <title th:text="${pageTitle}">RoutePulse</title>
+        <meta name="description" th:content="${description}">
+        <meta name="robots" content="index, follow, max-image-preview:large">
+        <link rel="canonical" th:href="${canonicalUrl}">
+
+        <meta property="og:type" content="website">
+        <meta property="og:site_name" content="RoutePulse">
+        <meta property="og:title" th:content="${socialTitle}">
+        <meta property="og:description" th:content="${socialDescription}">
+        <meta property="og:url" th:content="${canonicalUrl}">
+        <meta property="og:image" content="https://routepulse.technology/images/routepulse-og.png">
+        <meta property="og:image:width" content="1200">
+        <meta property="og:image:height" content="630">
+        <meta property="og:image:alt" content="RoutePulse employee shuttle operations software">
+
+        <meta name="twitter:card" content="summary_large_image">
+        <meta name="twitter:title" th:content="${socialTitle}">
+        <meta name="twitter:description" th:content="${socialDescription}">
+        <meta name="twitter:image" content="https://routepulse.technology/images/routepulse-og.png">
+        <meta name="twitter:image:alt" content="RoutePulse employee shuttle operations software">
+
+        <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+        <link rel="stylesheet" th:href="@{/css/site.css}">
+    </th:block>
+</head>
+<body>
+
+<header th:fragment="marketingNav" class="landing-nav seo-nav">
+    <div class="landing-nav__inner">
+        <a class="brand landing-brand" th:href="@{/}" aria-label="RoutePulse home">
+            <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+            <span class="brand-copy">
+                <span class="brand-name">RoutePulse</span>
+                <span class="brand-tagline">Shuttle operations</span>
+            </span>
+        </a>
+
+        <nav class="landing-nav__links" aria-label="Primary navigation">
+            <a href="/#product">Product</a>
+            <a href="/#how-it-works">Solutions</a>
+            <a th:href="@{/employee-shuttle-management-software}">Employee shuttle software</a>
+            <a href="/#demo-program">Demo program</a>
+        </nav>
+
+        <div class="landing-nav__actions">
+            <a class="landing-nav__signin" th:href="@{/login}">Sign in</a>
+            <a class="button landing-nav__demo" href="/#demo-request">
+                Get a demo
+                <span aria-hidden="true">→</span>
+            </a>
+        </div>
+    </div>
+</header>
+
+</body>
+</html>

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#06152a">
+    <th:block th:replace="~{fragments/public-marketing :: seoMeta(
+        'Shuttle Operations Verification Software | RoutePulse',
+        'Verify employee shuttle service with QR/NFC driver sessions, pauses and resumptions, live status, rider confirmations, schedule context, and management review.',
+        'https://routepulse.technology/shuttle-operations-verification',
+        'Shuttle Operations Verification Software | RoutePulse',
+        'Compare planned shuttle service with actual driver activity and preserve a clearer operating record with RoutePulse.'
+    )}"></th:block>
+    <script type="application/ld+json">
+    {
+      "@context":"https://schema.org",
+      "@graph":[
+        {"@type":"WebPage","@id":"https://routepulse.technology/shuttle-operations-verification#webpage","url":"https://routepulse.technology/shuttle-operations-verification","name":"Shuttle Operations Verification Software | RoutePulse","description":"Verify employee shuttle service with QR/NFC driver sessions, live status, rider confirmations, schedule context, and management review.","isPartOf":{"@id":"https://routepulse.technology/#website"},"about":{"@id":"https://routepulse.technology/#software"},"breadcrumb":{"@id":"https://routepulse.technology/shuttle-operations-verification#breadcrumb"},"inLanguage":"en-US"},
+        {"@type":"SoftwareApplication","@id":"https://routepulse.technology/#software","name":"RoutePulse","url":"https://routepulse.technology/","applicationCategory":"BusinessApplication","operatingSystem":"Web","description":"Employee shuttle operations software for schedule-driven demand, driver coverage, live operations, and verified driving records.","publisher":{"@id":"https://renatus.technology/#organization"}},
+        {"@type":"BreadcrumbList","@id":"https://routepulse.technology/shuttle-operations-verification#breadcrumb","itemListElement":[{"@type":"ListItem","position":1,"name":"Home","item":"https://routepulse.technology/"},{"@type":"ListItem","position":2,"name":"Shuttle Operations Verification","item":"https://routepulse.technology/shuttle-operations-verification"}]},
+        {"@type":"FAQPage","@id":"https://routepulse.technology/shuttle-operations-verification#faq","mainEntity":[
+          {"@type":"Question","name":"How does RoutePulse verify shuttle service?","acceptedAnswer":{"@type":"Answer","text":"RoutePulse combines planned assignments with authenticated driver sessions, QR or NFC checkpoint activity, schedule context, rider confirmations, and management review signals."}},
+          {"@type":"Question","name":"Can one scheduled assignment contain more than one actual driving session?","acceptedAnswer":{"@type":"Answer","text":"Yes. A driver can pause and resume service, and RoutePulse can preserve multiple actual driving sessions under the same scheduled assignment."}}
+        ]}
+      ]
+    }
+    </script>
+</head>
+<body class="seo-page">
+<a class="skip-link" href="#main-content">Skip to main content</a>
+<header th:replace="~{fragments/public-marketing :: marketingNav}"></header>
+<main id="main-content">
+    <section class="seo-hero"><div class="seo-shell">
+        <nav class="seo-breadcrumbs" aria-label="Breadcrumb"><a th:href="@{/}">RoutePulse</a><span aria-hidden="true">/</span><span>Shuttle operations verification</span></nav>
+        <div class="seo-hero__grid">
+            <div><p class="eyebrow">Planned vs. actual</p><h1>Know what the shuttle plan said—and what actually happened.</h1><p class="seo-hero__lead">RoutePulse keeps the operating plan connected to actual driver activity so managers can review exceptions, fill-ins, pauses, and completed service with more context.</p></div>
+            <aside class="seo-hero__summary"><strong>Verification model</strong><p>Assignment + driver session + checkpoint activity + schedule context + rider signal + management review.</p></aside>
+        </div>
+    </div></section>
+
+    <div class="seo-shell seo-main">
+        <section class="seo-answer"><p class="seo-answer__label">Direct answer</p><h2>How does RoutePulse verify employee shuttle service?</h2><p><strong>RoutePulse compares the planned assignment with evidence created during the operating day.</strong> That includes authenticated driver sessions, QR or NFC checkpoint activity, schedule context, rider confirmations, live operational status, and management review. The result is a service record that distinguishes a plan from actual execution.</p></section>
+
+        <section class="seo-section"><h2>Actual operations are more complicated than “started” and “ended.”</h2><div class="seo-card-grid">
+            <article class="seo-card"><h3>QR and NFC checkpoints</h3><p>Drivers can use the same checkpoint workflow through QR or NFC, reducing the number of separate operational steps they need to remember.</p></article>
+            <article class="seo-card"><h3>Pause and resume</h3><p>One scheduled assignment can contain multiple actual sessions when service stops for a break, vehicle issue, mistaken ending, or another real-world interruption.</p></article>
+            <article class="seo-card"><h3>Driver replacement</h3><p>When a different driver takes over, actual activity changes without rewriting the scheduled-driver history.</p></article>
+            <article class="seo-card"><h3>Rider-side confirmation</h3><p>Rider confirmations can provide an additional operational signal for management review rather than relying on one source of evidence alone.</p></article>
+        </div></section>
+
+        <section class="seo-section"><h2>Verification is not the same as continuous GPS fleet tracking</h2><p>RoutePulse's current verification model is centered on the operating workflow: authenticated checkpoints, driving sessions, workforce schedule context, rider signals, and manager review. It is designed to answer operational questions such as who was scheduled, who actually drove, when service was active, and where the plan changed.</p><p>That makes RoutePulse useful even when the organization already has a separate vehicle or fleet system and needs a stronger record of the employee-shuttle process itself.</p></section>
+
+        <section class="seo-faq" id="faq"><h2>Shuttle service verification FAQs</h2>
+            <div class="seo-faq__item"><h3>How does RoutePulse verify that somebody drove?</h3><p>RoutePulse records authenticated driving sessions and can compare them with the planned assignment, schedule context, QR/NFC activity, rider confirmations, and management review signals.</p></div>
+            <div class="seo-faq__item"><h3>Can a driver pause and resume?</h3><p>Yes. RoutePulse supports multiple actual sessions under one scheduled assignment, which allows service to stop and resume without pretending it was one uninterrupted block.</p></div>
+            <div class="seo-faq__item"><h3>What if the actual driver was not the scheduled driver?</h3><p>The scheduled driver remains part of the plan, while the actual session records the person who drove. This keeps accountability and workload reporting clearer.</p></div>
+            <div class="seo-faq__item"><h3>Does RoutePulse continuously track a vehicle by GPS?</h3><p>The current product is focused on operational verification rather than continuous GPS telematics. Its evidence comes from driver checkpoints, driving sessions, schedule context, rider signals, and manager review.</p></div>
+            <div class="seo-related"><a th:href="@{/shuttle-driver-scheduling}">Driver scheduling</a><a th:href="@{/employee-shuttle-management-software}">Employee shuttle software</a><a th:href="@{/employee-shuttle-software-vs-spreadsheets}">Software vs. spreadsheets</a></div>
+        </section>
+
+        <section class="seo-cta"><h2>Keep the plan and the operating record in the same system.</h2><p>RoutePulse is designed to make exceptions reviewable instead of disappearing into text messages, memory, or a manually edited spreadsheet.</p><a class="button" th:href="@{/#demo-request}">Request a demo</a></section>
+    </div>
+</main>
+<footer th:replace="~{fragments/footer :: footer('public')}"></footer>
+</body>
+</html>
