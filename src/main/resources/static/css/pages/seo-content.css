@@ -1,0 +1,282 @@
+/* =========================================================
+   ROUTEPULSE PUBLIC SEARCH / ANSWER PAGES
+
+   Long-form public content for SEO, answer engines, and buyers
+   researching employee shuttle operations software.
+   ========================================================= */
+
+.seo-page {
+    min-height: 100vh;
+    color: var(--ink-950);
+    background: #f6f9fd;
+}
+
+.seo-nav {
+    position: absolute;
+}
+
+.seo-hero {
+    padding: 9.75rem 0 5rem;
+    color: var(--white);
+    background:
+        radial-gradient(circle at 78% 18%, rgba(24, 141, 255, 0.24), transparent 34%),
+        radial-gradient(circle at 18% 34%, rgba(34, 211, 238, 0.12), transparent 32%),
+        linear-gradient(145deg, #03101f 0%, #071b34 48%, #08284a 100%);
+}
+
+.seo-shell {
+    width: min(calc(100% - 2.5rem), 1120px);
+    margin: 0 auto;
+}
+
+.seo-breadcrumbs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 1.5rem;
+    color: #a9c7e7;
+    font-size: 0.82rem;
+}
+
+.seo-breadcrumbs a {
+    color: #d9edff;
+    text-decoration: none;
+}
+
+.seo-breadcrumbs a:hover {
+    color: #74e7ff;
+}
+
+.seo-hero__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.35fr) minmax(19rem, 0.65fr);
+    align-items: center;
+    gap: clamp(2rem, 6vw, 5rem);
+}
+
+.seo-hero .eyebrow {
+    color: #6ee7f2;
+}
+
+.seo-hero h1 {
+    max-width: 880px;
+    margin: 0.55rem 0 1.25rem;
+    color: var(--white);
+    font-size: clamp(2.5rem, 5vw, 4.8rem);
+    line-height: 0.98;
+    letter-spacing: -0.055em;
+}
+
+.seo-hero__lead {
+    max-width: 760px;
+    margin: 0;
+    color: #c5dbef;
+    font-size: clamp(1.05rem, 1.8vw, 1.28rem);
+    line-height: 1.7;
+}
+
+.seo-hero__summary {
+    padding: 1.55rem;
+    border: 1px solid rgba(124, 203, 255, 0.22);
+    border-radius: 1.25rem;
+    background: rgba(4, 21, 40, 0.66);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(12px);
+}
+
+.seo-hero__summary strong {
+    display: block;
+    margin-bottom: 0.75rem;
+    color: #7cecff;
+    font-size: 0.78rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.seo-hero__summary p {
+    margin: 0;
+    color: #e5f2ff;
+    line-height: 1.7;
+}
+
+.seo-main {
+    padding: 4.5rem 0 5.5rem;
+}
+
+.seo-answer,
+.seo-section,
+.seo-faq,
+.seo-cta {
+    margin-bottom: 2rem;
+    border: 1px solid #dce7f3;
+    border-radius: 1.35rem;
+    background: var(--white);
+    box-shadow: 0 18px 55px rgba(18, 49, 83, 0.06);
+}
+
+.seo-answer {
+    padding: clamp(1.6rem, 4vw, 2.7rem);
+    border-left: 5px solid #159ee9;
+}
+
+.seo-answer__label {
+    margin: 0 0 0.6rem;
+    color: #0670b9;
+    font-size: 0.76rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.seo-answer h2,
+.seo-section h2,
+.seo-faq h2,
+.seo-cta h2 {
+    margin: 0 0 0.85rem;
+    color: #0b1f36;
+    font-size: clamp(1.7rem, 3vw, 2.45rem);
+    letter-spacing: -0.035em;
+}
+
+.seo-answer p,
+.seo-section p,
+.seo-faq p,
+.seo-cta p,
+.seo-section li {
+    color: #4a6078;
+    line-height: 1.75;
+}
+
+.seo-answer p:last-child,
+.seo-section p:last-child,
+.seo-cta p:last-child {
+    margin-bottom: 0;
+}
+
+.seo-section,
+.seo-faq,
+.seo-cta {
+    padding: clamp(1.6rem, 4vw, 2.7rem);
+}
+
+.seo-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.seo-card {
+    padding: 1.35rem;
+    border: 1px solid #dfebf6;
+    border-radius: 1rem;
+    background: #f8fbff;
+}
+
+.seo-card h3 {
+    margin: 0 0 0.55rem;
+    color: #123251;
+    font-size: 1.05rem;
+}
+
+.seo-card p {
+    margin: 0;
+    font-size: 0.94rem;
+}
+
+.seo-list {
+    margin: 1.25rem 0 0;
+    padding-left: 1.2rem;
+}
+
+.seo-list li + li {
+    margin-top: 0.65rem;
+}
+
+.seo-faq__item {
+    padding: 1.25rem 0;
+    border-top: 1px solid #e5edf5;
+}
+
+.seo-faq__item:first-of-type {
+    margin-top: 0.6rem;
+}
+
+.seo-faq__item h3 {
+    margin: 0 0 0.5rem;
+    color: #102c47;
+    font-size: 1.05rem;
+}
+
+.seo-faq__item p {
+    margin: 0;
+}
+
+.seo-related {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+    margin-top: 1.4rem;
+}
+
+.seo-related a {
+    display: inline-flex;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #cfe1f2;
+    border-radius: 999px;
+    color: #075ea8;
+    background: #f7fbff;
+    font-size: 0.86rem;
+    font-weight: 750;
+    text-decoration: none;
+}
+
+.seo-related a:hover {
+    border-color: #8dc9ee;
+    background: #edf8ff;
+}
+
+.seo-cta {
+    color: var(--white);
+    background: linear-gradient(145deg, #082443, #0b3a67);
+    border-color: rgba(93, 180, 242, 0.28);
+}
+
+.seo-cta h2,
+.seo-cta p {
+    color: var(--white);
+}
+
+.seo-cta p {
+    color: #cce1f4;
+}
+
+.seo-cta .button {
+    margin-top: 0.5rem;
+}
+
+@media (max-width: 900px) {
+    .seo-hero__grid,
+    .seo-card-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .seo-hero__summary {
+        max-width: 680px;
+    }
+}
+
+@media (max-width: 760px) {
+    .seo-hero {
+        padding-top: 8.25rem;
+    }
+
+    .seo-shell {
+        width: min(calc(100% - 1.5rem), 1120px);
+    }
+
+    .seo-nav .landing-nav__links {
+        display: none;
+    }
+}

@@ -88,6 +88,28 @@ void httpSecurityProtectsOrganizationRoutesAndPostRequests()
     );
 
     /*
+     * Public search/answer pages and crawler discovery files must also remain
+     * anonymous. They are deliberately outside the authenticated app shell.
+     */
+    mockMvc.perform(
+            get("/employee-shuttle-management-software")
+    ).andExpect(
+            status().isOk()
+    );
+
+    mockMvc.perform(
+            get("/robots.txt")
+    ).andExpect(
+            status().isOk()
+    );
+
+    mockMvc.perform(
+            get("/sitemap.xml")
+    ).andExpect(
+            status().isOk()
+    );
+
+    /*
      * Health probes must remain public so Railway/GitHub/external uptime
      * monitors can detect an outage before a manager has to report it.
      */

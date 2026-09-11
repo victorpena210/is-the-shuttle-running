@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#06152a">
+    <th:block th:replace="~{fragments/public-marketing :: seoMeta(
+        'Employee Shuttle Management Software | RoutePulse',
+        'RoutePulse turns workforce schedules into shuttle demand, driver coverage, live operations, and verified service records for employee transportation teams.',
+        'https://routepulse.technology/employee-shuttle-management-software',
+        'Employee Shuttle Management Software | RoutePulse',
+        'Plan employee shuttle demand, assign driver coverage, operate service, and verify what actually happened with RoutePulse.'
+    )}"></th:block>
+
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebPage",
+          "@id": "https://routepulse.technology/employee-shuttle-management-software#webpage",
+          "url": "https://routepulse.technology/employee-shuttle-management-software",
+          "name": "Employee Shuttle Management Software | RoutePulse",
+          "description": "RoutePulse turns workforce schedules into shuttle demand, driver coverage, live operations, and verified service records for employee transportation teams.",
+          "isPartOf": {"@id": "https://routepulse.technology/#website"},
+          "about": {"@id": "https://routepulse.technology/#software"},
+          "breadcrumb": {"@id": "https://routepulse.technology/employee-shuttle-management-software#breadcrumb"},
+          "inLanguage": "en-US"
+        },
+        {
+          "@type": "SoftwareApplication",
+          "@id": "https://routepulse.technology/#software",
+          "name": "RoutePulse",
+          "url": "https://routepulse.technology/",
+          "applicationCategory": "BusinessApplication",
+          "operatingSystem": "Web",
+          "description": "Employee shuttle operations software that turns workforce schedules into transportation demand, driver coverage, live operations, and verified driving records.",
+          "publisher": {"@id": "https://renatus.technology/#organization"}
+        },
+        {
+          "@type": "BreadcrumbList",
+          "@id": "https://routepulse.technology/employee-shuttle-management-software#breadcrumb",
+          "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "Home", "item": "https://routepulse.technology/"},
+            {"@type": "ListItem", "position": 2, "name": "Employee Shuttle Management Software", "item": "https://routepulse.technology/employee-shuttle-management-software"}
+          ]
+        },
+        {
+          "@type": "FAQPage",
+          "@id": "https://routepulse.technology/employee-shuttle-management-software#faq",
+          "mainEntity": [
+            {
+              "@type": "Question",
+              "name": "What is employee shuttle management software?",
+              "acceptedAnswer": {"@type": "Answer", "text": "Employee shuttle management software helps an organization plan and operate employee transportation. RoutePulse focuses on turning workforce schedules into transportation demand, driver coverage, live service status, and a verified record of actual driving."}
+            },
+            {
+              "@type": "Question",
+              "name": "Can RoutePulse use employee work schedules to plan shuttle demand?",
+              "acceptedAnswer": {"@type": "Answer", "text": "Yes. RoutePulse imports workforce schedule data and uses employee start and end times to show transportation demand across the operating day."}
+            },
+            {
+              "@type": "Question",
+              "name": "Does RoutePulse support QR and NFC driver checkpoints?",
+              "acceptedAnswer": {"@type": "Answer", "text": "Yes. RoutePulse supports QR and NFC checkpoints so authenticated drivers can start, pause, resume, and end actual driving sessions while preserving the planned assignment separately."}
+            }
+          ]
+        }
+      ]
+    }
+    </script>
+</head>
+<body class="seo-page">
+<a class="skip-link" href="#main-content">Skip to main content</a>
+<header th:replace="~{fragments/public-marketing :: marketingNav}"></header>
+
+<main id="main-content">
+    <section class="seo-hero">
+        <div class="seo-shell">
+            <nav class="seo-breadcrumbs" aria-label="Breadcrumb">
+                <a th:href="@{/}">RoutePulse</a><span aria-hidden="true">/</span><span>Employee shuttle management software</span>
+            </nav>
+            <div class="seo-hero__grid">
+                <div>
+                    <p class="eyebrow">Employee transportation operations</p>
+                    <h1>Employee shuttle management software built around workforce schedules.</h1>
+                    <p class="seo-hero__lead">RoutePulse helps operations teams turn employee shift data into transportation demand, assign driver coverage, manage live shuttle activity, and preserve a reliable record of what actually happened.</p>
+                </div>
+                <aside class="seo-hero__summary" aria-label="RoutePulse summary">
+                    <strong>In one sentence</strong>
+                    <p>RoutePulse connects the weekly workforce schedule to the daily shuttle operation—from planning through verification.</p>
+                </aside>
+            </div>
+        </div>
+    </section>
+
+    <div class="seo-shell seo-main">
+        <section class="seo-answer" aria-labelledby="direct-answer">
+            <p class="seo-answer__label">Direct answer</p>
+            <h2 id="direct-answer">What is RoutePulse?</h2>
+            <p><strong>RoutePulse is web-based employee shuttle operations software.</strong> It converts workforce schedules into expected transportation demand, helps managers plan driver coverage, records actual driving through operational checkpoints, and compares planned service with what occurred in the field.</p>
+        </section>
+
+        <section class="seo-section" aria-labelledby="manage-heading">
+            <h2 id="manage-heading">What RoutePulse manages</h2>
+            <p>RoutePulse is designed for the operational layer between an employee schedule and a completed shuttle day. Instead of keeping demand, driver assignments, service status, and records in separate tools, the product keeps those decisions connected.</p>
+            <div class="seo-card-grid">
+                <article class="seo-card"><h3>Plan from shift data</h3><p>Import the latest workforce schedule and turn employee start and end times into practical morning, midday, and evening transportation demand.</p></article>
+                <article class="seo-card"><h3>Build driver coverage</h3><p>Assign drivers using availability, planned demand, workload distribution, make-up priority, and manager overrides when real life changes the plan.</p></article>
+                <article class="seo-card"><h3>Operate the service</h3><p>Track whether service is running, paused, delayed, or unavailable while preserving the difference between the scheduled driver and the person who actually drove.</p></article>
+                <article class="seo-card"><h3>Verify the operation</h3><p>Use QR/NFC checkpoints, driving sessions, schedule context, rider confirmations, and management review to build an auditable service record.</p></article>
+            </div>
+        </section>
+
+        <section class="seo-section" aria-labelledby="fit-heading">
+            <h2 id="fit-heading">Who is RoutePulse for?</h2>
+            <p>RoutePulse is for organizations that operate employee shuttle service around scheduled work shifts and need better coordination between workforce planning and transportation operations. It is especially useful when service changes throughout the day, multiple employees can drive, coverage must be distributed fairly, or managers need to explain what happened after the fact.</p>
+            <p>RoutePulse is focused on <strong>internal shuttle operations</strong>. It is not positioned as a consumer ride-booking marketplace or a replacement for every fleet telematics platform.</p>
+        </section>
+
+        <section class="seo-faq" id="faq" aria-labelledby="faq-heading">
+            <h2 id="faq-heading">Employee shuttle software FAQs</h2>
+            <div class="seo-faq__item"><h3>What is employee shuttle management software?</h3><p>It is software that helps an organization plan, coordinate, and document transportation for employees. RoutePulse specifically connects employee work schedules to shuttle demand, driver coverage, live operations, and driving records.</p></div>
+            <div class="seo-faq__item"><h3>Can RoutePulse use workforce schedules to plan transportation demand?</h3><p>Yes. RoutePulse imports workforce schedule data and uses employee start and end times to show when transportation demand is expected during the operating day.</p></div>
+            <div class="seo-faq__item"><h3>Can a manager change a driver assignment?</h3><p>Yes. Managers can override planned coverage while RoutePulse preserves the original suggestion, the final scheduled driver, and the actual driver separately.</p></div>
+            <div class="seo-faq__item"><h3>Does RoutePulse support QR and NFC?</h3><p>Yes. The driver checkpoint supports QR and NFC workflows for recording actual driving activity, including starts, pauses, resumptions, and endings.</p></div>
+            <div class="seo-related" aria-label="Related RoutePulse pages">
+                <a th:href="@{/workforce-transportation-planning}">Workforce transportation planning</a>
+                <a th:href="@{/shuttle-driver-scheduling}">Shuttle driver scheduling</a>
+                <a th:href="@{/shuttle-operations-verification}">Operations verification</a>
+                <a th:href="@{/employee-shuttle-software-vs-spreadsheets}">Software vs. spreadsheets</a>
+            </div>
+        </section>
+
+        <section class="seo-cta" aria-labelledby="cta-heading">
+            <h2 id="cta-heading">See RoutePulse against a real shuttle workflow.</h2>
+            <p>Tell us how your employee transportation operation currently works and what you want to improve.</p>
+            <a class="button" th:href="@{/#demo-request}">Request RoutePulse demo access</a>
+        </section>
+    </div>
+</main>
+
+<footer th:replace="~{fragments/footer :: footer('public')}"></footer>
+</body>
+</html>

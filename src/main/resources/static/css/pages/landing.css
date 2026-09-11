@@ -1280,3 +1280,19 @@
         transition: none;
     }
 }
+
+/* Contextual search/education links inside the public workflow cards. */
+.landing-feature-link {
+    display: inline-flex;
+    margin-top: 1rem;
+    color: #0867c9;
+    font-size: 0.82rem;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.landing-feature-link:hover {
+    color: #034f9d;
+    text-decoration: underline;
+    text-underline-offset: 0.2em;
+}
