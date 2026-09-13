@@ -206,9 +206,9 @@
                         <span aria-hidden="true">→</span>
                     </a>
 
-                    <a class="landing-play-link" href="#how-it-works">
+                    <a class="landing-play-link" href="#product-demo">
                         <span class="landing-play-link__icon" aria-hidden="true">▶</span>
-                        See how it works
+                        Watch the product demo
                     </a>
                 </div>
 
@@ -419,6 +419,43 @@
                     <span class="operation-strip-icon" aria-hidden="true">◇</span>
                     <div><b>Verify</b><strong>Build an accurate service record.</strong><p>Capture actual driving, review exceptions, and preserve operating history.</p></div>
                 </article>
+            </div>
+        </div>
+    </section>
+
+    <section
+        class="landing-section landing-section--video-demo"
+        id="product-demo"
+        aria-labelledby="product-demo-heading">
+
+        <div class="landing-section__inner">
+            <div class="landing-video-demo__heading">
+                <p class="eyebrow">Product walkthrough</p>
+                <h2 id="product-demo-heading">See RoutePulse from every perspective.</h2>
+                <p>
+                    Follow one shuttle operation through the manager, driver, and passenger experience — from planning coverage to recording the ride and keeping passengers informed.
+                </p>
+            </div>
+
+            <div class="landing-video-demo__frame">
+                <video
+                    class="landing-video-demo__video"
+                    controls
+                    playsinline
+                    preload="metadata"
+                    th:poster="@{/images/routepulse-demo-poster.jpg}"
+                    aria-label="RoutePulse product demo showing the manager, driver, and passenger experience">
+                    <source
+                        th:src="@{/video/routepulse-manager-driver-passenger-demo.mp4}"
+                        type="video/mp4">
+                    Your browser does not support HTML5 video.
+                </video>
+            </div>
+
+            <div class="landing-video-demo__perspectives" aria-label="Perspectives shown in the RoutePulse demo">
+                <span><strong>Manager</strong> Plan and manage shuttle coverage</span>
+                <span><strong>Driver</strong> Start and record actual driving</span>
+                <span><strong>Passenger</strong> See current shuttle status</span>
             </div>
         </div>
     </section>
