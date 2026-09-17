@@ -20,6 +20,7 @@ import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import java.time.Duration;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.Instant;
 import java.time.LocalTime;
 import java.util.List;
@@ -356,6 +357,53 @@ public class DriverAssignment {
         changeReason = normalizeReason(reason);
 
         return true;
+    }
+
+    /** Manager time edits must survive later automatic planning, just like driver overrides. */
+    public void protectManualTimeEdit() {
+        ensureDrivingHasNotStarted("Scheduled times cannot be changed after driving has started.");
+        if (assignmentSource == AssignmentSource.AUTO) {
+            assignmentSource = AssignmentSource.OVERRIDE;
+            changedAt = Instant.now();
+            changeReason = "Manager edited scheduled driving times.";
+        }
+    }
+
+    public boolean canAutomaticallyRebalance(LocalDateTime now) {
+        return assignmentSource == AssignmentSource.AUTO
+                && assignmentOutcome == AssignmentOutcome.PENDING
+                && !hasDrivingSessions()
+                && scheduleReviewedAt == null
+                && outcomeReviewedAt == null
+                && changedBy == null
+                && !assignmentDate.isBefore(now.toLocalDate())
+                && (assignmentDate.isAfter(now.toLocalDate())
+                    || (scheduledStartTime != null && scheduledStartTime.isAfter(now.toLocalTime())));
+    }
+
+    /** Update in place: keep the assignment ID, original suggestion and all history. */
+    public void applyAutomaticPlan(DriverAssignment plan, LocalDateTime now, Instant changedAt) {
+        if (!canAutomaticallyRebalance(now)) {
+            throw new IllegalStateException("This assignment is protected from automatic rebalancing.");
+        }
+        if (!Objects.equals(organization.getId(), plan.getOrganization().getId())
+                || !assignmentDate.equals(plan.assignmentDate) || period != plan.period) {
+            throw new IllegalArgumentException("The plan must match the organization, date and period.");
+        }
+        if (Objects.equals(scheduledDriver.getId(), plan.scheduledDriver.getId())
+                && Objects.equals(scheduledStartTime, plan.scheduledStartTime)
+                && Objects.equals(scheduledEndTime, plan.scheduledEndTime)
+                && getPlannedDrivingWindows().equals(plan.getPlannedDrivingWindows())
+                && Objects.equals(sourceScheduleImport == null ? null : sourceScheduleImport.getId(),
+                        plan.sourceScheduleImport == null ? null : plan.sourceScheduleImport.getId())) {
+            return;
+        }
+        scheduledDriver = plan.scheduledDriver;
+        sourceScheduleImport = plan.sourceScheduleImport;
+        updateScheduledTimes(plan.scheduledStartTime, plan.scheduledEndTime);
+        replacePlannedDrivingWindows(plan.getPlannedDrivingWindows());
+        this.changedAt = changedAt;
+        changeReason = "Automatic rebalance using planned and actual driving workload.";
     }
 
     public void confirmScheduleReview(

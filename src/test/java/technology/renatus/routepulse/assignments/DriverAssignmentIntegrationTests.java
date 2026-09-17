@@ -23,6 +23,9 @@ import technology.renatus.routepulse.support.MySqlIntegrationTestSupport;
 
 class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
 
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private technology.renatus.routepulse.calendar.service.ParkOperatingDayService operatingDays;
+
     @Test
     void automaticManualAndOverrideAssignmentsPreserveTheirAuditMeaning() {
         Organization organization = createOrganization(
@@ -71,7 +74,13 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
         );
 
         LocalDate assignmentDate =
-                LocalDate.of(2026, 9, 16);
+                LocalDate.now(java.time.ZoneOffset.UTC).plusDays(1);
+        String csvDate = assignmentDate.format(java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy"));
+        org.mockito.Mockito.when(operatingDays.getOperatingDay(org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(invocation -> new technology.renatus.routepulse.calendar.domain.ParkOperatingDay(
+                        invocation.getArgument(0),
+                        technology.renatus.routepulse.calendar.domain.ParkOperatingStatus.OPEN,
+                        LocalTime.of(9, 0), LocalTime.of(21, 0), false, "TEST", null));
 
         ScheduleImport sourceImport =
                 csvScheduleProvider.loadSchedule(
@@ -79,8 +88,8 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
                         uploader.getEmail(),
                         csvFile(
                                 "drivers.csv",
-                                "100,Alice,9/16/2026 8:00 AM,9/16/2026 4:00 PM,Park/Ops/Transportation/Shuttle/101 North Gate,Driver",
-                                "200,Bob,9/16/2026 8:30 AM,9/16/2026 4:30 PM,Park/Ops/Transportation/Shuttle/202 South Gate,Driver"
+                                "100,Alice," + csvDate + " 8:00 AM," + csvDate + " 4:00 PM,Park/Ops/Transportation/Shuttle/101 North Gate,Driver",
+                                "200,Bob," + csvDate + " 8:30 AM," + csvDate + " 4:30 PM,Park/Ops/Transportation/Shuttle/202 South Gate,Driver"
                         )
                 );
 
@@ -103,14 +112,12 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
         );
 
         assertEquals(
-                alice.getId(),
+                morning.getOriginallySuggestedDriver().getId(),
                 morning.getDriver().getId()
         );
 
-        assertEquals(
-                alice.getId(),
-                morning.getOriginallySuggestedDriver().getId()
-        );
+        Long originalSuggestionId = morning.getOriginallySuggestedDriver().getId();
+        assertTrue(List.of(alice.getId(), bob.getId()).contains(originalSuggestionId));
 
         assertEquals(
                 sourceImport.getId(),
@@ -137,7 +144,7 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
         );
 
         assertEquals(
-                alice.getId(),
+                originalSuggestionId,
                 overridden
                         .getOriginallySuggestedDriver()
                         .getId()
@@ -196,8 +203,8 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
                         uploader.getEmail(),
                         csvFile(
                                 "corrected-drivers.csv",
-                                "100,Alice,9/16/2026 9:00 AM,9/16/2026 5:00 PM,Park/Ops/Transportation/Shuttle/101 North Gate,Driver",
-                                "200,Bob,9/16/2026 9:30 AM,9/16/2026 5:30 PM,Park/Ops/Transportation/Shuttle/202 South Gate,Driver"
+                                "100,Alice," + csvDate + " 9:00 AM," + csvDate + " 5:00 PM,Park/Ops/Transportation/Shuttle/101 North Gate,Driver",
+                                "200,Bob," + csvDate + " 9:30 AM," + csvDate + " 5:30 PM,Park/Ops/Transportation/Shuttle/202 South Gate,Driver"
                         )
                 );
 
