@@ -2,6 +2,31 @@
    ROUTEPULSE — COMPACT PLANNING DATE CONTROL
    ========================================================= */
 
+.coverage-date-control {
+    margin-top: 0.75rem;
+    text-align: left;
+    white-space: normal;
+}
+
+.coverage-date-control label {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.8rem;
+}
+
+.coverage-date-control__fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.coverage-date-control select {
+    flex: 1 1 14rem;
+    min-width: 0;
+    width: 100%;
+}
+
 .planning-date--enhanced {
     overflow: visible;
     margin-bottom: 1rem;

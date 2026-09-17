@@ -68,6 +68,36 @@
 		             Monday, August 10, 2026
 		         </span>
 
+                 <form
+                     class="coverage-date-control"
+                     data-dashboard-section="coverage"
+                     th:action="@{/app} + '#coverage'"
+                     method="get">
+
+                     <th:block th:if="${scheduleUploaded}">
+                         <label for="coveragePlanningDate">Choose an available planning date</label>
+                         <div class="coverage-date-control__fields">
+                             <select id="coveragePlanningDate" name="date" required>
+                                 <option th:unless="${selectedDateAvailable}" value="" selected disabled>
+                                     Choose a scheduled date
+                                 </option>
+                                 <option
+                                     th:each="availableDate : ${availableDates}"
+                                     th:value="${availableDate}"
+                                     th:selected="${availableDate.equals(selectedDate)}"
+                                     th:text="${#temporals.format(availableDate, 'EEEE, MMMM d, yyyy')}">
+                                     Friday, September 18, 2026
+                                 </option>
+                             </select>
+                             <button class="button" type="submit">View date</button>
+                         </div>
+                     </th:block>
+
+                     <p th:unless="${scheduleUploaded}">
+                         <a href="#schedules">Upload a schedule</a> to make planning dates available.
+                     </p>
+                 </form>
+
 		     </div>
 
 		 </header>
