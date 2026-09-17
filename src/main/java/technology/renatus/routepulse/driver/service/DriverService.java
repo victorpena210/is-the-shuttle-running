@@ -58,7 +58,7 @@ public class DriverService {
             Long driverId) {
 
         return driverRepository
-                .findByIdAndOrganization_Id(
+                .findByIdAndOrganization _Id(
                         driverId,
                         organizationId
                 )
