@@ -25,18 +25,8 @@ public class DriverScheduleSelector {
             return fairestOrder.get(0);
         }
 
-        for (DriverSchedule rankedDriver : fairestOrder) {
-            DriverSchedule overlappingSchedule = findBestOverlapping(
-                    schedulesByDriverId.getOrDefault(rankedDriver.driverId(), List.of()),
-                    rankedDriver.driverId(),
-                    morningPlan.getScheduledStartTime(),
-                    morningPlan.getScheduledEndTime()
-            );
-            if (overlappingSchedule != null) {
-                return overlappingSchedule;
-            }
-        }
-        return null;
+        return chooseForWindow(fairestOrder, schedulesByDriverId,
+                morningPlan.getScheduledStartTime(), morningPlan.getScheduledEndTime(), Set.of());
     }
 
     public DriverSchedule chooseAfternoon(
@@ -102,6 +92,17 @@ public class DriverScheduleSelector {
         }
 
         Set<Long> avoided = avoidDriverIds == null ? Set.of() : avoidDriverIds;
+
+        // Do not shorten coverage merely to select a driver with fewer hours.
+        for (boolean skipAvoided : List.of(true, false)) {
+            for (DriverSchedule driver : fairestOrder) {
+                if (skipAvoided && avoided.contains(driver.driverId())) continue;
+                DriverSchedule covering = schedulesByDriverId.getOrDefault(driver.driverId(), List.of()).stream()
+                        .filter(schedule -> schedule.covers(requestedStart, requestedEnd))
+                        .min(Comparator.comparing(DriverSchedule::startTime)).orElse(null);
+                if (covering != null) return covering;
+            }
+        }
 
         DriverSchedule preferred = findFirstOverlapping(
                 fairestOrder,

@@ -17,6 +17,8 @@ import technology.renatus.routepulse.assignments.domain.DriverWorkloadEventType;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.assignments.model.DriverWorkloadEvent;
 import technology.renatus.routepulse.assignments.repository.DriverWorkloadEventRepository;
+import technology.renatus.routepulse.assignments.repository.DriverAssignmentRepository;
+import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
 import technology.renatus.routepulse.auth.model.UserAccount;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driving.model.DrivingSession;
@@ -28,15 +30,18 @@ public class DriverWorkloadService {
 
     private final DrivingSessionRepository drivingSessionRepository;
     private final DriverWorkloadEventRepository workloadEventRepository;
+    private final DriverAssignmentRepository assignmentRepository;
     private final ZoneId operationsZone;
 
     public DriverWorkloadService(
             DrivingSessionRepository drivingSessionRepository,
             DriverWorkloadEventRepository workloadEventRepository,
+            DriverAssignmentRepository assignmentRepository,
             @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
 
         this.drivingSessionRepository = drivingSessionRepository;
         this.workloadEventRepository = workloadEventRepository;
+        this.assignmentRepository = assignmentRepository;
         this.operationsZone = ZoneId.of(operationsZone);
     }
 
@@ -45,6 +50,17 @@ public class DriverWorkloadService {
             Long organizationId,
             LocalDate assignmentDate,
             List<DriverSchedule> eligibleDrivers) {
+
+        return rankEligibleDrivers(organizationId, assignmentDate, eligibleDrivers, List.of());
+    }
+
+    /** Earlier planned days reserve work; the day being rebuilt is supplied explicitly. */
+    @Transactional(readOnly = true)
+    public List<DriverSchedule> rankEligibleDrivers(
+            Long organizationId,
+            LocalDate assignmentDate,
+            List<DriverSchedule> eligibleDrivers,
+            List<DriverAssignment> assignedToday) {
 
         if (eligibleDrivers == null || eligibleDrivers.isEmpty()) {
             return List.of();
@@ -55,35 +71,72 @@ public class DriverWorkloadService {
                 assignmentDate
         );
 
+        Map<Long, Long> plannedMinutes = new HashMap<>();
+        Map<Long, Integer> reservedMakeups = new HashMap<>();
+        LocalDate today = LocalDate.now(operationsZone);
+        if (assignmentDate.isAfter(today)) {
+            for (DriverAssignment assignment : assignmentRepository
+                    .findAllByOrganization_IdAndAssignmentDateBetween(
+                            organizationId, today, assignmentDate.minusDays(1))) {
+                reserveRemainingWork(assignment, plannedMinutes, reservedMakeups);
+            }
+        }
+        for (DriverAssignment assignment : assignedToday) {
+            // Today's completed sessions are not in buildSnapshots (strictly before date).
+            for (DrivingSession session : assignment.getDrivingSessions()) {
+                plannedMinutes.merge(session.getDriver().getId(), session.getActualMinutes(), Long::sum);
+            }
+            reserveRemainingWork(assignment, plannedMinutes, reservedMakeups);
+        }
+
+        // A stable daily cyclic tie-break replaces the permanent alphabetical winner.
+        List<Long> stableIds = eligibleDrivers.stream().map(DriverSchedule::driverId)
+                .distinct().sorted().toList();
+        int offset = Math.floorMod(assignmentDate.toEpochDay(), stableIds.size());
+        Map<Long, Integer> rotation = new HashMap<>();
+        for (int i = 0; i < stableIds.size(); i++) {
+            rotation.put(stableIds.get((i + offset) % stableIds.size()), i);
+        }
+
         return eligibleDrivers.stream()
                 .sorted(
                         Comparator
                                 .comparingInt(
-                                        (DriverSchedule schedule) -> snapshotFor(
+                                        (DriverSchedule schedule) -> Math.max(0, snapshotFor(
                                                 snapshots,
                                                 schedule.driverId()
                                         ).outstandingMakeups()
+                                                - reservedMakeups.getOrDefault(schedule.driverId(), 0))
                                 )
                                 .reversed()
                                 .thenComparingLong(
                                         schedule -> snapshotFor(
                                                 snapshots,
                                                 schedule.driverId()
-                                        ).actualMinutes()
+                                        ).actualMinutes() + plannedMinutes.getOrDefault(schedule.driverId(), 0L)
                                 )
-                                .thenComparing(
-                                        schedule -> snapshotFor(
-                                                snapshots,
-                                                schedule.driverId()
-                                        ).lastActualDrive(),
-                                        Comparator.nullsFirst(
-                                                Comparator.naturalOrder()
-                                        )
-                                )
+                                .thenComparingInt(schedule -> rotation.get(schedule.driverId()))
                                 .thenComparing(DriverSchedule::driverName)
                                 .thenComparing(DriverSchedule::employeeId)
                 )
                 .toList();
+    }
+
+    private void reserveRemainingWork(
+            DriverAssignment assignment,
+            Map<Long, Long> minutes,
+            Map<Long, Integer> makeups) {
+        if (assignment.getAssignmentOutcome() != AssignmentOutcome.PENDING
+                && assignment.getAssignmentOutcome() != AssignmentOutcome.IN_PROGRESS) {
+            return;
+        }
+        long remaining = Math.max(0, assignment.getScheduledMinutes() - assignment.getActualMinutes());
+        if (remaining > 0) {
+            Long driverId = assignment.getScheduledDriver().getId();
+            minutes.merge(driverId, remaining, Long::sum);
+            // Reserve priority without recording a make-up as completed before it is driven.
+            makeups.merge(driverId, 1, Integer::sum);
+        }
     }
 
     @Transactional

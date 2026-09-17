@@ -195,6 +195,8 @@ public class DriverAssignmentService {
                 List.of(new PlannedDrivingWindow(scheduledStartTime, scheduledEndTime))
         );
 
+        assignment.protectManualTimeEdit();
+
         return assignment;
     }
 
@@ -357,7 +359,7 @@ public class DriverAssignmentService {
 
         List<DriverAssignment> assignments =
                 assignmentRepository
-                        .findAllByOrganization_IdAndAssignmentDate(
+                        .findAllForUpdateByOrganizationAndDate(
                                 organizationId,
                                 assignmentDate
                         );
@@ -485,7 +487,7 @@ public class DriverAssignmentService {
             Long assignmentId) {
 
         return assignmentRepository
-                .findByIdAndOrganization_Id(
+                .findByIdAndOrganizationForUpdate(
                         assignmentId,
                         organizationId
                 )
