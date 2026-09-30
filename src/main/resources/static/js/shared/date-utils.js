@@ -29,7 +29,7 @@ export function parseIsoDate(value) {
 }
 
 /**
- * Convert a Date to RoutePulse's YYYY-MM-DD planning-date format.
+ * Convert a Date to Is the Shuttle Running's YYYY-MM-DD planning-date format.
  */
 export function toIsoDate(date) {
     const year = date.getFullYear();
@@ -49,7 +49,7 @@ export function addDays(date, amount) {
 }
 
 /**
- * RoutePulse planning weeks run Monday-Sunday.
+ * Is the Shuttle Running planning weeks run Monday-Sunday.
  */
 export function startOfWeek(date) {
     const result = new Date(date);

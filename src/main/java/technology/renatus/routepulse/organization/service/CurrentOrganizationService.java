@@ -110,19 +110,19 @@ public class CurrentOrganizationService {
         String message = switch (status) {
 
             case TRIAL ->
-                    "Your organization's RoutePulse trial has expired.";
+                    "Your organization's Is the Shuttle Running trial has expired.";
 
             case EXPIRED ->
-                    "Your organization's RoutePulse access has expired.";
+                    "Your organization's Is the Shuttle Running access has expired.";
 
             case SUSPENDED ->
-                    "Your organization's RoutePulse access is suspended.";
+                    "Your organization's Is the Shuttle Running access is suspended.";
 
             case CANCELLED ->
-                    "Your organization's RoutePulse subscription has been cancelled.";
+                    "Your organization's Is the Shuttle Running subscription has been cancelled.";
 
             case ACTIVE ->
-                    "Your organization is not currently allowed to use RoutePulse.";
+                    "Your organization is not currently allowed to use Is the Shuttle Running.";
         };
 
         throw new OrganizationAccessException(

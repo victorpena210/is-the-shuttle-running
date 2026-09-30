@@ -55,7 +55,7 @@ async function refreshAttentionCenter() {
         currentCenter.replaceWith(updatedCenter);
     } catch (error) {
         // A live refresh failure should never interrupt the manager dashboard.
-        console.debug('RoutePulse attention refresh skipped.', error);
+        console.debug('Is the Shuttle Running attention refresh skipped.', error);
     }
 }
 

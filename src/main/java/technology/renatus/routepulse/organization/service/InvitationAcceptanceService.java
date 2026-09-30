@@ -205,7 +205,7 @@ public class InvitationAcceptanceService {
         if (driver.hasAccount()) {
 
             throw new IllegalArgumentException(
-                    "This driver already has a RoutePulse account."
+                    "This driver already has a Is the Shuttle Running account."
             );
         }
 

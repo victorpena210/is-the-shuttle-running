@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#17201c">
+    <title>Sign In | Is the Shuttle Running</title>
+    <link rel="icon" type="image/svg+xml" href="../src/main/resources/static/images/shuttle-mark.svg">
+    <link rel="stylesheet" href="../src/main/resources/static/css/site.css">
+</head>
+
+<body class="public-page">
+<aside id="preview-note" style="background:#c8f36b;color:#17201c;padding:12px 20px;font:13px/1.6 sans-serif;text-align:center">Design preview · Example data · Forms disabled · <a href="preview.html">Homepage</a> / <a href="preview-login.html">Sign in</a> / <a href="preview-rider.html">Rider status</a></aside><main class="public-shell">
+    <section class="public-story" aria-labelledby="product-heading">
+        <a class="brand" aria-label="Is the Shuttle Running home" href="preview.html">
+            <img class="brand-mark" alt="" src="../src/main/resources/static/images/shuttle-mark.svg">
+            <span class="brand-copy">
+                <span class="brand-name">Is the shuttle<br>running?</span>
+                <span class="brand-tagline">istheshuttlerunning.com</span>
+            </span>
+        </a>
+
+        <p class="public-kicker">A clearer way to get there</p>
+        <h1 id="product-heading">Good shifts start with a clear plan.</h1>
+        <p>Keep your schedules, drivers, and shuttle service moving together. Your operations workspace is ready when you are.</p>
+
+        <div class="route-visual" aria-hidden="true">
+            <span class="route-stop"></span>
+            <span class="route-line"></span>
+            <span class="route-stop"></span>
+            <span class="route-line"></span>
+            <span class="route-stop"></span>
+        </div>
+    </section>
+
+    <section class="auth-panel" aria-labelledby="sign-in-heading">
+        <p class="eyebrow">Operations workspace</p>
+        <h1 id="sign-in-heading">Welcome back</h1>
+        <p class="auth-panel__intro">
+            Sign in to manage shuttle operations,
+            or view your driving assignment.
+        </p>
+
+        <form class="auth-form" method="post" action="/login" onsubmit="event.preventDefault(); alert('Design preview only. Run the Spring application to use this form.');">
+            <label for="email">Email address</label>
+            <input type="email" id="email" name="email" autocomplete="username" inputmode="email" required>
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" autocomplete="current-password" required>
+
+            <a class="auth-link" href="#preview-note">
+                Forgot your password?
+            </a>
+
+            <button class="button button--block" type="submit">Sign in</button>
+        </form>
+
+        <p class="auth-panel__footer">
+            Bringing a shuttle team on board?
+            <a href="preview.html#demo-request">Request demo access</a>.
+            <br>
+            <a href="#preview-note">Resend verification email</a>
+        </p>
+    </section>
+</main>
+<footer class="site-footer site-footer--public">
+
+    <div class="site-footer__inner">
+
+        <!-- Is the Shuttle Running -->
+        <div class="site-footer__identity">
+            <img class="site-footer__mark" alt="" src="../src/main/resources/static/images/shuttle-mark.svg">
+
+            <div>
+                <strong>Is the shuttle running?</strong>
+                <span>Clear answers. Better shuttle operations.</span>
+            </div>
+        </div>
+
+        <!-- Renatus -->
+        <div class="site-footer__renatus">
+
+            <span class="site-footer__renatus-label">
+                A product by
+            </span>
+
+            <a href="https://renatus.technology" aria-label="Visit Renatus Technology">
+
+                <img class="site-footer__renatus-logo" alt="Renatus Technology" src="../src/main/resources/static/images/renatus-technology-logo.png">
+            </a>
+
+        </div>
+
+        <!-- Copyright / Support -->
+        <div class="site-footer__meta">
+
+            <p>
+                ©
+                <span>
+                    2026
+                </span>
+                Is the Shuttle Running
+            </p>
+
+            <a href="mailto:victor@renatus.technology">
+                Support
+            </a>
+
+        </div>
+
+    </div>
+
+</footer>
+
+</body>
+</html>

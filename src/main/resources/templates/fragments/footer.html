@@ -9,16 +9,16 @@
 
     <div class="site-footer__inner">
 
-        <!-- RoutePulse -->
+        <!-- Is the Shuttle Running -->
         <div class="site-footer__identity">
             <img
                 class="site-footer__mark"
-                th:src="@{/images/routepulse-mark.svg}"
+                th:src="@{/images/shuttle-mark.svg}"
                 alt="">
 
             <div>
-                <strong>RoutePulse</strong>
-                <span>Shuttle operations planning</span>
+                <strong>Is the shuttle running?</strong>
+                <span>Clear answers. Better shuttle operations.</span>
             </div>
         </div>
 
@@ -49,7 +49,7 @@
                 <span th:text="${#temporals.format(#temporals.createNow(), 'yyyy')}">
                     2026
                 </span>
-                RoutePulse
+                Is the Shuttle Running
             </p>
 
             <a href="mailto:victor@renatus.technology">

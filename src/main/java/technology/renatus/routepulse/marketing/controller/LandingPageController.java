@@ -144,7 +144,7 @@ public class LandingPageController {
              * diagnostics and give the visitor a useful message.
              */
             LOGGER.error(
-                    "RoutePulse demo request failed for email {} and organization {}.",
+                    "Is the Shuttle Running demo request failed for email {} and organization {}.",
                     demoRequestForm.getEmail(),
                     demoRequestForm.getOrganizationName(),
                     exception

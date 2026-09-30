@@ -143,7 +143,7 @@ public class LiveOperationsAttentionChecker {
                 + " and no driving session is active.";
 
         if (!graceExpired && startGraceMinutes > 0) {
-            detail += " RoutePulse will mark this urgent at "
+            detail += " Is the Shuttle Running will mark this urgent at "
                     + AttentionSupport.formatTime(urgentAt.toLocalTime())
                     + " if driving does not resume.";
         } else {
@@ -189,7 +189,7 @@ public class LiveOperationsAttentionChecker {
         }
 
         return base
-                + " RoutePulse will mark this urgent at "
+                + " Is the Shuttle Running will mark this urgent at "
                 + AttentionSupport.formatTime(urgentAt.toLocalTime())
                 + " if no driving session starts.";
     }

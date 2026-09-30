@@ -55,7 +55,7 @@ async function lookupEmployee(employeeIdInput, employeeLookupResult) {
         showLookupResult(
             employeeLookupResult,
             'error',
-            'RoutePulse could not check that employee ID. Please try again.'
+            'Is the Shuttle Running could not check that employee ID. Please try again.'
         );
     }
 }

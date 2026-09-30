@@ -76,7 +76,7 @@ public class ServiceVerificationAttentionChecker {
                 "service-verification-gap-" + period.period().name().toLowerCase(),
                 AttentionSeverity.WARNING,
                 "Possible " + period.title().toLowerCase() + " service gap",
-                "RoutePulse found " + windowLabel
+                "Is the Shuttle Running found " + windowLabel
                         + " with meaningful scheduled demand but no recorded driving-session "
                         + "or passenger QR evidence. This does not prove the shuttle did not run; "
                         + "review the service evidence.",

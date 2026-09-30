@@ -10,7 +10,7 @@
 
     <meta
         name="theme-color"
-        content="#07111f">
+        content="#17201c">
 
     <meta
         http-equiv="refresh"
@@ -19,12 +19,12 @@
     <meta name="robots" content="noindex, nofollow">
     <title
         th:text="|Shuttle status · ${status.organizationName}|">
-        Shuttle status · RoutePulse
+        Shuttle status · Is the Shuttle Running
     </title>
 
     <link
         rel="icon"
-        th:href="@{/images/routepulse-mark.svg}"
+        th:href="@{/images/shuttle-mark.svg}"
         type="image/svg+xml">
 
     <link
@@ -48,7 +48,19 @@
 
 <body class="rider-status-page">
 
+<header class="rider-brand-header">
+    <a class="brand" th:href="@{/}" aria-label="Is the Shuttle Running home">
+        <img class="brand-mark" th:src="@{/images/shuttle-mark.svg}" alt="">
+        <span class="brand-copy"><span class="brand-name">Is the shuttle<br>running?</span></span>
+    </a>
+    <span>Shuttle status</span>
+</header>
 <main class="rider-status-shell rider-status-shell--passenger">
+    <div class="rider-location">
+        <p class="eyebrow">Your shuttle</p>
+        <h2 th:text="${status.organizationName}">Your organization</h2>
+        <p>Status refreshes every 20 seconds.</p>
+    </div>
 
     <section
         class="rider-status-card"
@@ -130,7 +142,7 @@
                 </h2>
 
                 <p>
-                    Confirm your ride so RoutePulse can record
+                    Confirm your ride so your organization can record
                     shuttle usage.
                 </p>
 
@@ -168,7 +180,7 @@
                 </form>
 
                 <p class="passenger-confirmation-help">
-                    RoutePulse will automatically record the current
+                    We’ll automatically record the current
                     driver and the time you submit.
                 </p>
 
@@ -244,6 +256,7 @@
 
     </section>
 
+    <p class="rider-status-footnote">Service status comes from driver activity and operational updates. For pickup locations or help, contact your organization.</p>
 </main>
 
 <script

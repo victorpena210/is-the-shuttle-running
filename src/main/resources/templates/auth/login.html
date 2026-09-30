@@ -4,32 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <meta name="theme-color" content="#07111f">
-    <title>Sign In | RoutePulse</title>
-    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+    <meta name="theme-color" content="#17201c">
+    <title>Sign In | Is the Shuttle Running</title>
+    <link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
     <link rel="stylesheet" th:href="@{/css/site.css}">
 </head>
 
 <body class="public-page">
 <main class="public-shell">
     <section class="public-story" aria-labelledby="product-heading">
-        <a class="brand" th:href="@{/}" aria-label="RoutePulse home">
-            <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+        <a class="brand" th:href="@{/}" aria-label="Is the Shuttle Running home">
+            <img class="brand-mark" th:src="@{/images/shuttle-mark.svg}" alt="">
             <span class="brand-copy">
-                <span class="brand-name">RoutePulse</span>
-                <span class="brand-tagline">Shuttle operations</span>
+                <span class="brand-name">Is the shuttle<br>running?</span>
+                <span class="brand-tagline">istheshuttlerunning.com</span>
             </span>
         </a>
 
-		<p class="public-kicker">Operate with clarity</p>
-		<h1 id="product-heading">
-		    RoutePulse leverages <strong>shuttle-based synergies</strong> to actualize cross-functional
-		    driving excellence.
-		</h1>
-		<p>
-		    Align schedules, drivers, and transportation demand into one vertically integrated mobility
-		    ecosystem.
-		</p>
+        <p class="public-kicker">A clearer way to get there</p>
+        <h1 id="product-heading">Good shifts start with a clear plan.</h1>
+        <p>Keep your schedules, drivers, and shuttle service moving together. Your operations workspace is ready when you are.</p>
 
         <div class="route-visual" aria-hidden="true">
             <span class="route-stop"></span>
@@ -44,7 +38,7 @@
         <p class="eyebrow">Operations workspace</p>
         <h1 id="sign-in-heading">Welcome back</h1>
         <p class="auth-panel__intro">
-            Sign in to access your RoutePulse workspace, manage shuttle operations,
+            Sign in to manage shuttle operations,
             or view your driving assignment.
         </p>
 
@@ -77,7 +71,7 @@
         </div>
 
 		<div th:if="${param.invitationAccepted}" class="alert alert--success" role="status">
-		    Your RoutePulse account was created. You can now sign in.
+		    Your Is the Shuttle Running account was created. You can now sign in.
 		</div>
 
 		<div th:if="${param.invitationError}" class="alert alert--error" role="alert">
@@ -126,7 +120,7 @@
         </form>
 
         <p class="auth-panel__footer">
-            Interested in RoutePulse?
+            Bringing a shuttle team on board?
             <a href="/#demo-request">Request demo access</a>.
             <br>
             <a th:href="@{/resend-verification}">Resend verification email</a>

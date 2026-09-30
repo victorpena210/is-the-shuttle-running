@@ -161,7 +161,7 @@ public class ScheduleReconciliationService {
                     null,
                     "The latest upload changed " + driverName
                             + "'s work schedule after driving activity was already recorded. "
-                            + "RoutePulse preserved the original assignment and actual driving history."
+                            + "Is the Shuttle Running preserved the original assignment and actual driving history."
             );
         }
 
@@ -208,9 +208,9 @@ public class ScheduleReconciliationService {
         if (recommended != null) {
             String detail = drivingWindowLabel == null
                     ? driverName + " no longer has a usable work shift in the latest schedule. "
-                            + "RoutePulse recommends " + recommended.driverName() + "."
+                            + "Is the Shuttle Running recommends " + recommended.driverName() + "."
                     : driverName + " no longer covers " + drivingWindowLabel + ". "
-                            + "RoutePulse recommends " + recommended.driverName()
+                            + "Is the Shuttle Running recommends " + recommended.driverName()
                             + ", whose latest shift covers the required driving time.";
 
             return new ScheduleReconciliation(
@@ -235,7 +235,7 @@ public class ScheduleReconciliationService {
         String detail = drivingWindowLabel == null
                 ? driverName + " no longer has a usable work shift in the latest schedule, and no other scheduled driver is available."
                 : driverName + " no longer covers " + drivingWindowLabel
-                        + ", and no other scheduled RoutePulse driver covers the required driving time.";
+                        + ", and no other scheduled Is the Shuttle Running driver covers the required driving time.";
 
         return new ScheduleReconciliation(
                 assignment.getId(),

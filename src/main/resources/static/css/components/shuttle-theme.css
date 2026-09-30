@@ -1,0 +1,52 @@
+/* Shared identity. Keep operational status colors and component behavior intact. */
+:root { --brand-lime: #c8f36b; --brand-forest: #17201c; --brand-paper: #f7f8f2; --blue-600: #396825; --blue-700: #2d541c; --blue-100: #eaf3dd; --cyan-400: #c8f36b; }
+.brand { min-width: 0; gap: .7rem; }
+.brand-mark { filter: none; }
+.brand-copy { min-width: 0; }
+.brand-name { line-height: 1.08; font-size: 1.05rem; letter-spacing: -.035em; }
+.brand-tagline { font-size: .54rem; letter-spacing: .015em; text-transform: none; margin-top: .32rem; overflow-wrap: anywhere; }
+.app-topbar { background: #17201c; }
+.app-topbar .brand-name { color: #f7f8f2; }
+.app-nav__link[aria-current="page"] { background: #c8f36b; color: #17201c; }
+.public-page { background: #17201c; }
+.public-story::before { border-color: #c8f36b22; }
+.public-story .public-kicker { color: #c8f36b; }
+.public-story .route-stop { background: #c8f36b; border-color: #c8f36b44; }
+.public-story .route-line { background: #c8f36b77; }
+.public-page .auth-panel { background: #f7f8f2; border-radius: 14px; }
+.public-page .auth-panel .button { color: #17201c; background: #c8f36b; border-color: #c8f36b; box-shadow: none; }
+.public-page .auth-panel .button:hover { background: #b9e951; }
+.seo-page { background: #f7f8f2; }
+.seo-nav { position: relative; }
+.seo-hero { background: #17201c; padding-top: 5rem; }
+.seo-hero .eyebrow { color: #c8f36b; }
+.seo-breadcrumbs, .seo-breadcrumbs a { color: #d4dfc9; }
+.site-footer { background: #17201c; }
+.site-footer--public { background: #111914; border-color: #344230; }
+.site-footer--public .site-footer__identity strong { color: #f7f8f2; }
+.site-footer--public .site-footer__identity span, .site-footer--public .site-footer__meta, .site-footer--public .site-footer__renatus-label { color: #b9c6b2; }
+.site-footer--public .site-footer__meta a { color: #c8f36b; }
+.site-footer__identity strong { font-size: 1rem; letter-spacing: -.035em; }
+.site-footer__identity span { font-size: .7rem; }
+.rider-status-page { background: #17201c; color: #f7f8f2; }
+.rider-brand-header { width: min(calc(100% - 2rem), 800px); margin: auto; padding: 1.5rem 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #3b4835; }
+.rider-brand-header > span { font: 600 .66rem Consolas, monospace; text-transform: uppercase; letter-spacing: .08em; color: #b6c2ad; }
+.rider-status-shell.rider-status-shell--passenger { min-height: auto; display: block; padding-top: 2rem; }
+.rider-location { text-align: center; margin-bottom: 1.7rem; }
+.rider-location .eyebrow { color: #c8f36b; font-size: .65rem; }
+.rider-location h2 { font-size: 1.1rem; margin-bottom: .5rem; }
+.rider-location > p:last-child { color: #becab4; font-size: .75rem; }
+.rider-status-card { background: #202c23; border-color: #45533d; border-radius: 16px; padding-top: 2.5rem; padding-bottom: 2.5rem; }
+.rider-status-card--running h1 { color: #c8f36b; }
+.rider-status-card--paused h1, .rider-status-card--delayed h1, .rider-status-card--ending h1 { color: #ffd580; }
+.rider-status-card h1 { font-size: clamp(2.2rem, 7vw, 3.6rem); max-width: 16ch; }
+.rider-status-card--running .rider-status-indicator { background: #c8f36b; box-shadow: 0 0 0 .4rem #c8f36b22; }
+.rider-status-card--running .rider-status-indicator::before, .rider-status-card--running .rider-status-indicator::after { border-color: #c8f36b77; }
+.rider-status-footnote { text-align: center; color: #b9c6b2; max-width: 540px; margin: 1.5rem auto 0; font-size: .72rem; line-height: 1.8; }
+@media (min-width: 961px) { .app-topbar .brand { padding-inline: .2rem; gap: .55rem; } .app-topbar .brand-mark { width: 2.4rem; height: 2.4rem; } }
+@media (max-width: 520px) { .rider-brand-header > span { font-size: .55rem; } .rider-brand-header .brand-name { font-size: .92rem; } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+/* High-contrast keyboard focus on both paper and forest surfaces. */
+:focus-visible { outline: 3px solid #537b2f; }
+.public-story :focus-visible, .rider-status-page :focus-visible, .app-topbar :focus-visible, .shuttle-demo__copy :focus-visible, .site-footer :focus-visible { outline-color: #c8f36b; }

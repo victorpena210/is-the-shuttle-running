@@ -236,7 +236,7 @@ public class RiderStatusService {
             case RUNNING -> "Service is currently active.";
             case TEMPORARILY_PAUSED -> "Service is expected to resume when the operational issue is resolved.";
             case DELAYED -> "The planned shuttle start has passed, but service has not started yet.";
-            case NO_SERVICE_SCHEDULED -> "RoutePulse does not have a shuttle driving assignment scheduled for today.";
+            case NO_SERVICE_SCHEDULED -> "Is the Shuttle Running does not have a shuttle driving assignment scheduled for today.";
             case SERVICE_ENDING_SOON -> "The current shuttle window is approaching its scheduled end.";
             case NOT_RUNNING -> "Check this page again when the next shuttle window begins.";
         };

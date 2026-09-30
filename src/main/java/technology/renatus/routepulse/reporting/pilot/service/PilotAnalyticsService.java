@@ -464,7 +464,7 @@ public class PilotAnalyticsService {
             return "No shuttle assignments were planned for this reporting week yet.";
         }
 
-        return "RoutePulse automatically planned "
+        return "Is the Shuttle Running automatically planned "
                 + Math.round(automaticCoveragePercent)
                 + "% of "
                 + totalAssignments

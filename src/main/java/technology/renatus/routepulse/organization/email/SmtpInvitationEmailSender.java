@@ -43,7 +43,7 @@ public class SmtpInvitationEmailSender
                         + invitation
                         .getOrganization()
                         .getDisplayName()
-                        + " in RoutePulse"
+                        + " in Is the Shuttle Running"
         );
 
         message.setText(
@@ -51,7 +51,7 @@ public class SmtpInvitationEmailSender
                 + invitation
                         .getOrganization()
                         .getDisplayName()
-                + " in RoutePulse.\n\n"
+                + " in Is the Shuttle Running.\n\n"
                 + "Create your manager account using this link:\n\n"
                 + invitationUrl
                 + "\n\n"
@@ -76,7 +76,7 @@ public class SmtpInvitationEmailSender
         );
 
         message.setSubject(
-                "You're invited to RoutePulse as a driver for "
+                "You're invited to Is the Shuttle Running as a driver for "
                         + invitation
                         .getOrganization()
                         .getDisplayName()
@@ -97,7 +97,7 @@ public class SmtpInvitationEmailSender
                 + invitation
                         .getOrganization()
                         .getDisplayName()
-                + " in RoutePulse.\n\n"
+                + " in Is the Shuttle Running.\n\n"
                 + "Create your driver account using this link:\n\n"
                 + invitationUrl
                 + "\n\n"

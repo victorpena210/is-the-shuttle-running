@@ -3,19 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#07111f">
-    <title>Driver Checkpoint | RoutePulse</title>
-    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+    <meta name="theme-color" content="#17201c">
+    <title>Driver Checkpoint | Is the Shuttle Running</title>
+    <link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
     <link rel="stylesheet" th:href="@{/css/site.css}">
 </head>
 <body class="public-page">
 
 <main class="public-shell">
     <section class="public-story" aria-labelledby="scan-story-heading">
-        <a class="brand" th:href="@{/driver}" aria-label="RoutePulse driver home">
-            <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+        <a class="brand" th:href="@{/driver}" aria-label="Is the Shuttle Running driver home">
+            <img class="brand-mark" th:src="@{/images/shuttle-mark.svg}" alt="">
             <span class="brand-copy">
-                <span class="brand-name">RoutePulse</span>
+                <span class="brand-name">Is the shuttle<br>running?</span>
                 <span class="brand-tagline">Driver check-in</span>
             </span>
         </a>
@@ -27,7 +27,7 @@
 
         <h1 id="scan-story-heading">Record the drive at the shuttle.</h1>
         <p>
-            RoutePulse uses your signed-in driver account to identify who is actually driving.
+            Is the Shuttle Running uses your signed-in driver account to identify who is actually driving.
             The NFC tag and QR code both use this same workflow, so you can use whichever is easier.
         </p>
     </section>
@@ -43,7 +43,7 @@
         <div th:if="${scanError == null}">
             <p class="auth-panel__intro">
                 Signed in as <strong th:text="${driver.name}">Driver Name</strong>.
-                RoutePulse matched this checkpoint to the
+                Is the Shuttle Running matched this checkpoint to the
                 <strong th:text="${assignment.period}">MORNING</strong> shift for
                 <strong th:text="${#temporals.format(assignment.assignmentDate, 'MMMM d, yyyy')}">
                     September 4, 2026
@@ -61,7 +61,7 @@
 
             <div th:if="${checkpointAction.name() == 'RESUME'}" class="alert alert--info" role="status">
                 <strong>Previous driving session found.</strong>
-                RoutePulse will keep the earlier session in this assignment's history and open
+                Is the Shuttle Running will keep the earlier session in this assignment's history and open
                 a new actual driving session at this checkpoint time.
             </div>
 
@@ -164,7 +164,7 @@
             <p class="auth-panel__footer"
                th:if="${checkpointAction.name() == 'START' or checkpointAction.name() == 'RESUME' or checkpointAction.name() == 'TAKEOVER'}">
                 When this stretch of driving stops, tap the NFC tag or scan the QR code again.
-                RoutePulse will let you pause temporarily or end the driving segment.
+                Is the Shuttle Running will let you pause temporarily or end the driving segment.
             </p>
 
             <p class="auth-panel__footer" th:if="${checkpointAction.name() == 'PAUSE_OR_END'}">
