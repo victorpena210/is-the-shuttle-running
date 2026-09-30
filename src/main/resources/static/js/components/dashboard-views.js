@@ -12,15 +12,15 @@ const viewCopy = {
         heading: 'Overview',
         description:
             'Review today’s transportation demand, driver coverage, and shuttle operations.',
-        documentTitle: 'Overview | RoutePulse',
+        documentTitle: 'Overview | Is the Shuttle Running',
         showPlanningDate: true
     },
 
     schedules: {
         heading: 'Schedules',
         description:
-            'Upload Dayforce schedules and review the imports RoutePulse uses for shuttle planning.',
-        documentTitle: 'Schedules | RoutePulse',
+            'Upload Dayforce schedules and review the imports Is the Shuttle Running uses for shuttle planning.',
+        documentTitle: 'Schedules | Is the Shuttle Running',
         showPlanningDate: false
     },
 
@@ -28,7 +28,7 @@ const viewCopy = {
         heading: 'Transportation demand',
         description:
             'Review arrivals, midday turnover, evening pickups, service verification, and recommended shuttle windows for the selected planning day.',
-        documentTitle: 'Transportation Demand | RoutePulse',
+        documentTitle: 'Transportation Demand | Is the Shuttle Running',
         showPlanningDate: true
     },
 
@@ -36,7 +36,7 @@ const viewCopy = {
         heading: 'Driver coverage',
         description:
             'Assign drivers to the morning and afternoon shuttle shifts for the selected date.',
-        documentTitle: 'Driver Coverage | RoutePulse',
+        documentTitle: 'Driver Coverage | Is the Shuttle Running',
         showPlanningDate: true
     }
 };

@@ -2,28 +2,28 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <th:block th:fragment="seoMeta(pageTitle, description, canonicalUrl, socialTitle, socialDescription)">
-        <title th:text="${pageTitle}">RoutePulse</title>
+        <title th:text="${pageTitle}">Is the Shuttle Running</title>
         <meta name="description" th:content="${description}">
         <meta name="robots" content="index, follow, max-image-preview:large">
         <link rel="canonical" th:href="${canonicalUrl}">
 
         <meta property="og:type" content="website">
-        <meta property="og:site_name" content="RoutePulse">
+        <meta property="og:site_name" content="Is the Shuttle Running">
         <meta property="og:title" th:content="${socialTitle}">
         <meta property="og:description" th:content="${socialDescription}">
         <meta property="og:url" th:content="${canonicalUrl}">
-        <meta property="og:image" content="https://routepulse.technology/images/routepulse-og.png">
+        <meta property="og:image" content="https://istheshuttlerunning.com/images/shuttle-og.png">
         <meta property="og:image:width" content="1200">
         <meta property="og:image:height" content="630">
-        <meta property="og:image:alt" content="RoutePulse employee shuttle operations software">
+        <meta property="og:image:alt" content="Is the Shuttle Running employee shuttle operations software">
 
         <meta name="twitter:card" content="summary_large_image">
         <meta name="twitter:title" th:content="${socialTitle}">
         <meta name="twitter:description" th:content="${socialDescription}">
-        <meta name="twitter:image" content="https://routepulse.technology/images/routepulse-og.png">
-        <meta name="twitter:image:alt" content="RoutePulse employee shuttle operations software">
+        <meta name="twitter:image" content="https://istheshuttlerunning.com/images/shuttle-og.png">
+        <meta name="twitter:image:alt" content="Is the Shuttle Running employee shuttle operations software">
 
-        <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+        <link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
         <link rel="stylesheet" th:href="@{/css/site.css}">
     </th:block>
 </head>
@@ -31,19 +31,18 @@
 
 <header th:fragment="marketingNav" class="landing-nav seo-nav">
     <div class="landing-nav__inner">
-        <a class="brand landing-brand" th:href="@{/}" aria-label="RoutePulse home">
-            <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+        <a class="brand landing-brand" th:href="@{/}" aria-label="Is the Shuttle Running home">
+            <img class="brand-mark" th:src="@{/images/shuttle-mark.svg}" alt="">
             <span class="brand-copy">
-                <span class="brand-name">RoutePulse</span>
-                <span class="brand-tagline">Shuttle operations</span>
+                <span class="brand-name">Is the shuttle<br>running?</span>
+                <span class="brand-tagline">istheshuttlerunning.com</span>
             </span>
         </a>
 
         <nav class="landing-nav__links" aria-label="Primary navigation">
-            <a href="/#product">Product</a>
-            <a href="/#how-it-works">Solutions</a>
-            <a th:href="@{/employee-shuttle-management-software}">Employee shuttle software</a>
-            <a href="/#demo-program">Demo program</a>
+            <a href="/#how-it-works">How it works</a>
+            <a href="/#operations">For your team</a>
+            <a href="/#riders">For riders</a>
         </nav>
 
         <div class="landing-nav__actions">

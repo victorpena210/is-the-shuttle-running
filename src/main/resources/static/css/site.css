@@ -34,3 +34,5 @@
 @import url("./layout/footer-branding.css");
 @import url("./pages/rider-status.css");
 @import url("./pages/demo-request.css");
+
+@import url("./components/shuttle-theme.css");

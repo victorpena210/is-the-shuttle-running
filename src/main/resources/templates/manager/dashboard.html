@@ -4,13 +4,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#07111f">
+    <meta name="theme-color" content="#17201c">
 
-    <title>Overview | RoutePulse</title>
+    <title>Overview | Is the Shuttle Running</title>
 
     <link
         rel="icon"
-        th:href="@{/images/routepulse-mark.svg}"
+        th:href="@{/images/shuttle-mark.svg}"
         type="image/svg+xml">
 
     <link
@@ -196,12 +196,12 @@
 
                         <p th:if="${operatingDay.status.name() == 'UNKNOWN'}">
                             Transportation demand still comes from the uploaded employee
-                            schedule, but RoutePulse is holding automatic driver coverage
+                            schedule, but Is the Shuttle Running is holding automatic driver coverage
                             until an authorized manager confirms the park is operating.
                         </p>
 
                         <p th:if="${operatingDay.status.name() == 'CLOSED'}">
-                            RoutePulse is holding shuttle coverage because the external
+                            Is the Shuttle Running is holding shuttle coverage because the external
                             calendar says the park is closed. Override this only when you
                             have direct operational confirmation of a special event,
                             employee event, buyout, or other operating exception.

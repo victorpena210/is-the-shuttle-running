@@ -36,12 +36,12 @@ public class SmtpVerificationEmailSender
         message.setTo(user.getEmail());
 
         message.setSubject(
-                "Verify your RoutePulse email address"
+                "Verify your Is the Shuttle Running email address"
         );
 
         message.setText(
                 "Hello " + user.getFirstName() + ",\n\n"
-                + "Verify your RoutePulse email address by "
+                + "Verify your Is the Shuttle Running email address by "
                 + "opening this link:\n\n"
                 + verificationUrl + "\n\n"
                 + "This link expires in 24 hours. If you did "

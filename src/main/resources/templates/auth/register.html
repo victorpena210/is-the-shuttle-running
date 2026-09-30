@@ -4,27 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <meta name="theme-color" content="#07111f">
-    <title>Organization Setup | RoutePulse</title>
-    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+    <meta name="theme-color" content="#17201c">
+    <title>Organization Setup | Is the Shuttle Running</title>
+    <link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
     <link rel="stylesheet" th:href="@{/css/site.css}">
 </head>
 
 <body class="public-page">
 <main class="public-shell">
     <section class="public-story" aria-labelledby="product-heading">
-        <a class="brand" th:href="@{/}" aria-label="RoutePulse home">
-            <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+        <a class="brand" th:href="@{/}" aria-label="Is the Shuttle Running home">
+            <img class="brand-mark" th:src="@{/images/shuttle-mark.svg}" alt="">
             <span class="brand-copy">
-                <span class="brand-name">RoutePulse</span>
-                <span class="brand-tagline">Shuttle operations</span>
+                <span class="brand-name">Is the shuttle<br>running?</span>
+                <span class="brand-tagline">istheshuttlerunning.com</span>
             </span>
         </a>
 
         <p class="public-kicker">Approved demo organization</p>
-        <h1 id="product-heading">Set up your RoutePulse workspace.</h1>
+        <h1 id="product-heading">Set up your shuttle workspace.</h1>
         <p>
-            This setup page is for organizations approved to participate in the RoutePulse demo.
+            This setup page is for organizations approved to participate in the Is the Shuttle Running demo.
             The first manager creates the organization workspace and becomes its owner.
         </p>
 
@@ -41,7 +41,7 @@
         <p class="eyebrow">Organization setup</p>
         <h1 id="register-heading">Register your organization</h1>
         <p class="auth-panel__intro">
-            Use the organization and work-email information you want associated with this RoutePulse demo workspace. The first manager becomes the organization owner and can invite additional managers.
+            Use the organization and work-email information you want associated with this demo workspace. The first manager becomes the organization owner and can invite additional managers.
         </p>
 
         <form
@@ -83,7 +83,7 @@
                         th:field="*{organizationDisplayName}"
                         maxlength="150"
                         required>
-                    <p class="help-text">The shorter name managers will see inside RoutePulse.</p>
+                    <p class="help-text">The shorter name managers will see inside Is the Shuttle Running.</p>
                     <p
                         th:if="${#fields.hasErrors('organizationDisplayName')}"
                         th:errors="*{organizationDisplayName}"

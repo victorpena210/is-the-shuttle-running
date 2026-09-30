@@ -310,7 +310,7 @@ public class DriverAssignmentController {
 
             redirectAttributes.addFlashAttribute(
                     "successMessage",
-                    "RoutePulse recommendation accepted and coverage was reconciled against the latest schedule."
+                    "Is the Shuttle Running recommendation accepted and coverage was reconciled against the latest schedule."
             );
         } catch (IllegalArgumentException | IllegalStateException exception) {
             redirectAttributes.addFlashAttribute(

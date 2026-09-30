@@ -45,7 +45,7 @@
                 <select id="operational-status" name="status" required>
                     <option value="AUTOMATIC"
                             th:selected="${operationalStatusUpdate == null or operationalStatusUpdate.statusOverride.name() == 'AUTOMATIC'}">
-                        Automatic — use RoutePulse activity
+                        Automatic — use Is the Shuttle Running activity
                     </option>
                     <option value="TEMPORARILY_PAUSED"
                             th:selected="${operationalStatusUpdate != null and operationalStatusUpdate.statusOverride.name() == 'TEMPORARILY_PAUSED'}">

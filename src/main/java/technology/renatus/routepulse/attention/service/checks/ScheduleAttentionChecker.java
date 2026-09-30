@@ -21,7 +21,7 @@ public class ScheduleAttentionChecker {
                     "schedule-not-uploaded",
                     AttentionSeverity.WARNING,
                     "No employee schedule is uploaded",
-                    "Upload the current Dayforce schedule before RoutePulse can calculate demand or driver coverage.",
+                    "Upload the current Dayforce schedule before Is the Shuttle Running can calculate demand or driver coverage.",
                     "Upload schedule",
                     "#schedules"
             ));
@@ -48,7 +48,7 @@ public class ScheduleAttentionChecker {
                     "calendar-unverified",
                     AttentionSeverity.WARNING,
                     "Park calendar could not be verified",
-                    "Transportation demand is available, but RoutePulse is holding automatic driver coverage until a manager confirms the park is open.",
+                    "Transportation demand is available, but Is the Shuttle Running is holding automatic driver coverage until a manager confirms the park is open.",
                     "Review calendar",
                     AttentionSupport.dashboardHref(plan, "demand")
             ));

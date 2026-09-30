@@ -118,8 +118,8 @@ public class CoverageAttentionChecker {
                         AttentionSeverity.URGENT,
                         periodLabel + " coverage has no eligible driver",
                         requestedWindow == null
-                                ? "No active RoutePulse driver has an uploaded work shift that can cover this transportation period."
-                                : "No active RoutePulse driver has an uploaded work shift overlapping "
+                                ? "No active Is the Shuttle Running driver has an uploaded work shift that can cover this transportation period."
+                                : "No active Is the Shuttle Running driver has an uploaded work shift overlapping "
                                         + requestedWindow + ".",
                         "Resolve coverage",
                         AttentionSupport.dashboardHref(plan, "coverage")

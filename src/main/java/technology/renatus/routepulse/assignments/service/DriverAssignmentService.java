@@ -277,7 +277,7 @@ public class DriverAssignmentService {
 
         boolean changed = assignment.changeDriver(
                 recommendedDriver,
-                "Accepted RoutePulse recommendation after schedule change",
+                "Accepted Is the Shuttle Running recommendation after schedule change",
                 actor
         );
 

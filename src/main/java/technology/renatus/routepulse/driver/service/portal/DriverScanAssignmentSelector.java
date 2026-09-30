@@ -52,7 +52,7 @@ public class DriverScanAssignmentSelector {
                                         relevantScheduledStart(assignment, now.toLocalTime())))
                         .thenComparingInt(assignment -> assignment.getPeriod().ordinal()))
                 .orElseThrow(() -> new IllegalStateException(
-                        "RoutePulse cannot determine which shift this scan belongs to "
+                        "Is the Shuttle Running cannot determine which shift this scan belongs to "
                                 + "because today's remaining assignments do not have "
                                 + "scheduled times. A manager must set the scheduled times first."));
     }

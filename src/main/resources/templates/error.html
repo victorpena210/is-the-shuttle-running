@@ -4,22 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow">
-    <meta name="theme-color" content="#07111f">
-    <title>Something Went Wrong | RoutePulse</title>
-    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+    <meta name="theme-color" content="#17201c">
+    <title>Something Went Wrong | Is the Shuttle Running</title>
+    <link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
     <link rel="stylesheet" th:href="@{/css/site.css}">
 </head>
 
 <body class="app-page">
 <main class="blocked-shell">
     <section class="blocked-panel" aria-labelledby="error-heading">
-        <img class="brand-mark" th:src="@{/images/routepulse-mark.svg}" alt="">
+        <img class="brand-mark" th:src="@{/images/shuttle-mark.svg}" alt="">
         <div class="blocked-icon" aria-hidden="true">!</div>
         <p class="eyebrow">Request not completed</p>
-        <h1 id="error-heading">RoutePulse could not complete that request.</h1>
+        <h1 id="error-heading">Is the Shuttle Running could not complete that request.</h1>
         <p class="muted">
             Return to the dashboard and try again. If the problem continues,
-            contact RoutePulse support.
+            contact Is the Shuttle Running support.
         </p>
         <p class="mono muted" th:if="${status}" th:text="|Error ${status}|">Error</p>
         <p class="mono muted"

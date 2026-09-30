@@ -52,7 +52,7 @@ public class ParkCalendarController {
 
             redirectAttributes.addFlashAttribute(
                     "successMessage",
-                    "Park operating status confirmed. The calendar override was recorded in the audit history, and RoutePulse can now generate coverage for this date.");
+                    "Park operating status confirmed. The calendar override was recorded in the audit history, and Is the Shuttle Running can now generate coverage for this date.");
 
         } catch (IllegalArgumentException | IllegalStateException exception) {
             redirectAttributes.addFlashAttribute(

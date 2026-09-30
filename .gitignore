@@ -53,3 +53,6 @@ src/main/resources/data/
 *.jks
 backups/
 *.sql.gz.sha256
+
+# macOS
+.DS_Store
