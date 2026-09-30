@@ -53,7 +53,7 @@ function getSelectedIsoDate(originalLinks) {
 
     /*
      * Preserve a manually requested date even when it is not in the
-     * uploaded schedule. RoutePulse can then explain that it is unavailable.
+     * uploaded schedule. Is the Shuttle Running can then explain that it is unavailable.
      */
     const requestedDate = new URLSearchParams(window.location.search)
         .get('date');
@@ -233,7 +233,7 @@ function renameDemandHeading() {
 
 /**
  * Enhance the server-rendered planning date list into the interactive
- * RoutePulse Monday-Sunday planning calendar.
+ * Is the Shuttle Running Monday-Sunday planning calendar.
  */
 export function initializePlanningCalendar() {
     const section = document.querySelector(

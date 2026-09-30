@@ -79,7 +79,8 @@
     border: 0;
     border-radius: var(--radius-md);
     color: var(--white);
-    background: var(--green-600);
+    background: var(--brand-lime);
+    color: var(--brand-forest);
     font: inherit;
     font-weight: 800;
     cursor: pointer;
@@ -89,7 +90,7 @@
 }
 
 .passenger-confirmation-button:hover {
-    background: var(--green-700);
+    background: #b9e951;
 }
 
 .passenger-confirmation-button:active {

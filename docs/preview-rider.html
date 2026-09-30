@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <meta name="theme-color" content="#17201c">
+
+    <meta name="robots" content="noindex, nofollow">
+    <title>
+        Shuttle status · Is the Shuttle Running
+    </title>
+
+    <link rel="icon" type="image/svg+xml" href="../src/main/resources/static/images/shuttle-mark.svg">
+
+    <link rel="stylesheet" href="../src/main/resources/static/css/site.css">
+
+    <link rel="stylesheet" href="../src/main/resources/static/css/pages/passenger-ride.css">
+		
+		<!-- Google tag (gtag.js) -->
+		</head>
+
+<body class="rider-status-page">
+
+<aside id="preview-note" style="background:#c8f36b;color:#17201c;padding:12px 20px;font:13px/1.6 sans-serif;text-align:center">Design preview · Example data · Forms disabled · <a href="preview.html">Homepage</a> / <a href="preview-login.html">Sign in</a> / <a href="preview-rider.html">Rider status</a></aside><header class="rider-brand-header">
+    <a class="brand" aria-label="Is the Shuttle Running home" href="preview.html">
+        <img class="brand-mark" alt="" src="../src/main/resources/static/images/shuttle-mark.svg">
+        <span class="brand-copy"><span class="brand-name">Is the shuttle<br>running?</span></span>
+    </a>
+    <span>Shuttle status</span>
+</header>
+<main class="rider-status-shell rider-status-shell--passenger">
+    <div class="rider-location">
+        <p class="eyebrow">Your shuttle</p>
+        <h2>Example organization</h2>
+        <p>Status refreshes every 20 seconds.</p>
+    </div>
+
+    <section class="rider-status-card rider-status-card--running" aria-live="polite">
+
+        <div class="rider-status-indicator" aria-hidden="true">
+        </div>
+
+        <p class="rider-status-label">Running</p>
+
+        <h1>The shuttle is running.</h1>
+
+        <p class="rider-status-detail">Service is currently active.</p>
+
+        <p class="rider-status-driver">
+            Driver: Driver name
+        </p>
+
+        <section id="confirm-ride" class="passenger-ride-section">
+
+            <div class="passenger-ride-heading">
+
+                <p class="passenger-ride-eyebrow">
+                    Passenger confirmation
+                </p>
+
+                <h2>
+                    Did you ride the shuttle?
+                </h2>
+
+                <p>
+                    Confirm your ride so your organization can record
+                    shuttle usage.
+                </p>
+
+            </div>
+
+            <div class="passenger-current-driver">
+
+                <span>
+                    Current driver
+                </span>
+
+                <strong>
+                    Driver name
+                </strong>
+
+            </div>
+
+            <div>
+
+                <form class="passenger-confirmation-form" method="post" onsubmit="event.preventDefault(); alert('Design preview only. Run the Spring application to use this form.');">
+
+                    <button class="passenger-confirmation-button" type="submit">
+
+                        Confirm my ride
+
+                    </button>
+
+                </form>
+
+                <p class="passenger-confirmation-help">
+                    We’ll automatically record the current
+                    driver and the time you submit.
+                </p>
+
+            </div>
+
+            <p class="passenger-privacy-note">
+                No passenger name, employee ID, email address,
+                phone number, or GPS location is required.
+                A random browser identifier is used only to
+                reduce duplicate submissions.
+            </p>
+
+        </section>
+
+        </section>
+
+    <p class="rider-status-footnote">Service status comes from driver activity and operational updates. For pickup locations or help, contact your organization.</p>
+</main>
+
+</body>
+</html>

@@ -35,13 +35,13 @@ public class SmtpPasswordResetEmailSender
         message.setFrom(fromAddress);
         message.setTo(user.getEmail());
         message.setSubject(
-                "Reset your RoutePulse password"
+                "Reset your Is the Shuttle Running password"
         );
 
         message.setText(
                 "Hello " + user.getFirstName() + ",\n\n"
                 + "A password reset was requested for your "
-                + "RoutePulse account. Open this link to choose "
+                + "Is the Shuttle Running account. Open this link to choose "
                 + "a new password:\n\n"
                 + resetUrl
                 + "\n\nThis link expires in one hour and can "

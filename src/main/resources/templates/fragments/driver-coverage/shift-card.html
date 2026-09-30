@@ -126,7 +126,7 @@
                         th:text="|${#temporals.format(breakWindow.startTime, 'h:mm a')}–${#temporals.format(breakWindow.endTime, 'h:mm a')} · ${breakWindow.minutes} min water / restroom|">
                         10:30 AM–10:45 AM · 15 min water / restroom
                     </strong>
-                    <p>RoutePulse found a demand-free break window and removed it from scheduled driving time.</p>
+                    <p>Is the Shuttle Running found a demand-free break window and removed it from scheduled driving time.</p>
                 </div>
 
             </div>
@@ -158,9 +158,9 @@
                                     : ' badge--manual')"
                             th:text="${assignment.assignmentSource.name() == 'OVERRIDE' ? 'Manager override' : assignment.assignmentSource}"
                             th:title="${assignment.assignmentSource.name() == 'AUTO'
-                                ? 'AUTO means RoutePulse created this assignment from the scheduling and fairness rules.'
+                                ? 'AUTO means Is the Shuttle Running created this assignment from the scheduling and fairness rules.'
                                 : (assignment.assignmentSource.name() == 'OVERRIDE'
-                                    ? 'Manager override means a manager changed the RoutePulse-selected driver.'
+                                    ? 'Manager override means a manager changed the Is the Shuttle Running-selected driver.'
                                     : 'MANUAL means a manager created this coverage directly.')} ">
                             AUTO
                         </span>
@@ -194,7 +194,7 @@
                 </div>
 
                 <div th:if="${assignment.originallySuggestedDriver != null}">
-                    <dt>RoutePulse recommendation</dt>
+                    <dt>Is the Shuttle Running recommendation</dt>
                     <dd th:text="${assignment.originallySuggestedDriver.name}">
                         Demo Driver 2
                     </dd>

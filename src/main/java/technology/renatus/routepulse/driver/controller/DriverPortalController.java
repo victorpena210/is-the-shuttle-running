@@ -192,7 +192,7 @@ public class DriverPortalController {
                                 : "";
 
                 yield "Driving resumed by " + methodLabel
-                        + ". RoutePulse opened a new actual driving session on the same "
+                        + ". Is the Shuttle Running opened a new actual driving session on the same "
                         + result.assignment().getPeriod()
                         + " assignment and preserved the earlier session."
                         + coverageMessage;
@@ -203,11 +203,11 @@ public class DriverPortalController {
                             + result.scheduledDriver().getName()
                             + " remains the scheduled driver for the "
                             + result.assignment().getPeriod()
-                            + " shift, and RoutePulse recorded you separately as the actual driver.";
+                            + " shift, and Is the Shuttle Running recorded you separately as the actual driver.";
                 }
 
                 yield "Driving started by " + methodLabel
-                        + ". RoutePulse recorded your actual start time.";
+                        + ". Is the Shuttle Running recorded your actual start time.";
             }
             case TAKEOVER -> {
                 String previousDriver = result.previousActualDriver() == null
@@ -225,9 +225,9 @@ public class DriverPortalController {
                         + coverageMessage;
             }
             case PAUSE -> "Driving paused by " + methodLabel
-                    + ". RoutePulse saved this driving segment. Tap the NFC tag or scan the QR code when you are ready to resume.";
+                    + ". Is the Shuttle Running saved this driving segment. Tap the NFC tag or scan the QR code when you are ready to resume.";
             case END -> "Driving ended by " + methodLabel
-                    + ". RoutePulse saved the final actual end time for this driving segment.";
+                    + ". Is the Shuttle Running saved the final actual end time for this driving segment.";
         };
     }
 

@@ -59,7 +59,7 @@ public class DrivingActionController {
             redirectAttributes
                     .addFlashAttribute(
                             "successMessage",
-                            "Driving started. RoutePulse recorded "
+                            "Driving started. Is the Shuttle Running recorded "
                                     + "the actual start time."
                     );
 
@@ -117,7 +117,7 @@ public class DrivingActionController {
             redirectAttributes
                     .addFlashAttribute(
                             "successMessage",
-                            "Driving session ended. RoutePulse recorded "
+                            "Driving session ended. Is the Shuttle Running recorded "
                                     + "the actual end time. This assignment can be resumed if service continues."
                     );
 

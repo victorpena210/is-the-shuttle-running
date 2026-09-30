@@ -1,6 +1,8 @@
-# RoutePulse
+# Is the Shuttle Running?
 
-RoutePulse converts Dayforce schedule exports into shuttle-demand windows,
+Formerly RoutePulse. Public brand: **istheshuttlerunning.com**. See [the rebrand and launch notes](docs/REBRAND.md) before switching the production domain.
+
+The platform converts Dayforce schedule exports into shuttle-demand windows,
 driver recommendations, manager-approved coverage, and actual driving records.
 
 ## Project organization

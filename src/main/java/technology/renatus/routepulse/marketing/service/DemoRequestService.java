@@ -40,7 +40,7 @@ public class DemoRequestService {
 
         if (!environment.acceptsProfiles(Profiles.of("prod"))) {
             LOGGER.info(
-                    "RoutePulse demo request received from {} <{}> for {}.",
+                    "Is the Shuttle Running demo request received from {} <{}> for {}.",
                     form.getName(),
                     form.getEmail(),
                     form.getOrganizationName()
@@ -53,12 +53,12 @@ public class DemoRequestService {
         message.setTo(recipientAddress);
         message.setReplyTo(form.getEmail());
         message.setSubject(
-                "RoutePulse demo request — "
+                "Is the Shuttle Running demo request — "
                         + form.getOrganizationName()
         );
 
         message.setText(
-                "A new RoutePulse demo request was submitted.\n\n"
+                "A new Is the Shuttle Running demo request was submitted.\n\n"
                 + "Name: " + form.getName() + "\n"
                 + "Email: " + form.getEmail() + "\n"
                 + "Organization: " + form.getOrganizationName() + "\n"

@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#07111f">
-    <title>Driver Checkpoint | RoutePulse</title>
-    <link rel="icon" th:href="@{/images/routepulse-mark.svg}" type="image/svg+xml">
+    <meta name="theme-color" content="#17201c">
+    <title>Driver Checkpoint | Is the Shuttle Running</title>
+    <link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
     <link rel="stylesheet" th:href="@{/css/site.css}">
     <link rel="stylesheet" th:href="@{/css/pages/driving-qr.css}">
     <script type="module" th:src="@{/js/pages/driving-qr.js}"></script>
@@ -22,7 +22,7 @@
             <h1>Shuttle driver checkpoint</h1>
             <p>
                 Drivers can tap the NFC tag or scan the QR code. Both use the same
-                RoutePulse driving workflow and the signed-in account identifies the driver.
+                Is the Shuttle Running driving workflow and the signed-in account identifies the driver.
             </p>
         </div>
     </header>
@@ -50,7 +50,7 @@
                 <div class="nfc-programming-card">
                     <span class="field-label">URL to write to the NFC tag</span>
                     <code class="nfc-url" data-nfc-url th:text="${nfcUrl}">
-                        https://routepulse.technology/driver/tap?code=example
+                        https://istheshuttlerunning.com/driver/tap?code=example
                     </code>
                 </div>
 
@@ -63,7 +63,7 @@
                 <div class="alert alert--info driving-qr-info" role="status">
                     The tag identifies this organization's shuttle checkpoint. It does not
                     authenticate a driver. The driver must still be signed in to their own
-                    RoutePulse account.
+                    Is the Shuttle Running account.
                 </div>
 
                 <ol class="checkpoint-steps">
@@ -89,7 +89,7 @@
             <div class="panel__body">
                 <div class="driving-qr-display">
                     <img th:src="@{/driving-qr/image}"
-                         alt="RoutePulse shuttle driving QR code"
+                         alt="Is the Shuttle Running shuttle driving QR code"
                          class="driving-qr-image">
                 </div>
 
@@ -110,7 +110,7 @@
         <div class="panel__header">
             <div>
                 <p class="eyebrow">One smart workflow</p>
-                <h2 id="behavior-heading">RoutePulse decides what the checkpoint means</h2>
+                <h2 id="behavior-heading">Is the Shuttle Running decides what the checkpoint means</h2>
                 <p>
                     The driver does not need separate NFC tags for starting, pausing,
                     resuming, and ending.
@@ -122,7 +122,7 @@
                 <div><strong>Not driving</strong><span>Start or resume the current assignment</span></div>
                 <div><strong>Already driving</strong><span>Choose Pause or End driving</span></div>
                 <div><strong>Another driver active</strong><span>Confirm a driver handoff</span></div>
-                <div><strong>Too early / off-window</strong><span>RoutePulse blocks the start and explains why</span></div>
+                <div><strong>Too early / off-window</strong><span>Is the Shuttle Running blocks the start and explains why</span></div>
             </div>
         </div>
     </section>

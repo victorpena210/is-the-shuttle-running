@@ -210,7 +210,7 @@ public class DriverService {
 
         if (driver.hasAccount()) {
             throw new IllegalStateException(
-                    "The driver's email cannot be changed here because their RoutePulse account is already active."
+                    "The driver's email cannot be changed here because their Is the Shuttle Running account is already active."
             );
         }
 

@@ -185,7 +185,7 @@ public class OrganizationInvitationService {
 
         if (driver.hasAccount()) {
             throw new IllegalArgumentException(
-                    "That driver already has a RoutePulse account."
+                    "That driver already has a Is the Shuttle Running account."
             );
         }
 
@@ -257,7 +257,7 @@ public class OrganizationInvitationService {
                 )) {
 
             throw new IllegalArgumentException(
-                    "That email address already has a RoutePulse account."
+                    "That email address already has a Is the Shuttle Running account."
             );
         }
 
@@ -296,7 +296,7 @@ public class OrganizationInvitationService {
                                     != role) {
 
                                 throw new IllegalArgumentException(
-                                        "That email already has a different pending RoutePulse invitation."
+                                        "That email already has a different pending Is the Shuttle Running invitation."
                                 );
                             }
 

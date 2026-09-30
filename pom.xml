@@ -16,7 +16,7 @@
     <artifactId>routepulse</artifactId>
     <version>0.0.1-SNAPSHOT</version>
 
-    <name>RoutePulse</name>
+    <name>Is the Shuttle Running</name>
 
     <description>
         Shuttle demand planning dashboard based on employee shift schedules
