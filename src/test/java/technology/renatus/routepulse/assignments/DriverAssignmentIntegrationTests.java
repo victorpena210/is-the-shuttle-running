@@ -82,6 +82,9 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
                         technology.renatus.routepulse.calendar.domain.ParkOperatingStatus.OPEN,
                         LocalTime.of(9, 0), LocalTime.of(21, 0), false, "TEST", null));
 
+        // The drivers clock in before the 09:00 morning-demand analysis window.
+        // Include an employee arrival inside that window so the real planner
+        // has demand to cover; driver availability alone is not demand.
         ScheduleImport sourceImport =
                 csvScheduleProvider.loadSchedule(
                         organization.getId(),
@@ -89,7 +92,8 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
                         csvFile(
                                 "drivers.csv",
                                 "100,Alice," + csvDate + " 8:00 AM," + csvDate + " 4:00 PM,Park/Ops/Transportation/Shuttle/101 North Gate,Driver",
-                                "200,Bob," + csvDate + " 8:30 AM," + csvDate + " 4:30 PM,Park/Ops/Transportation/Shuttle/202 South Gate,Driver"
+                                "200,Bob," + csvDate + " 8:30 AM," + csvDate + " 4:30 PM,Park/Ops/Transportation/Shuttle/202 South Gate,Driver",
+                                "400,Rider," + csvDate + " 9:00 AM," + csvDate + " 5:00 PM,Park/Ops/Rides/101 North Gate,Operator"
                         )
                 );
 
@@ -101,6 +105,11 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
 
         // The number of automatically-created periods is demand-dependent.
         // This test verifies the audit semantics of the morning automatic assignment.
+        assertTrue(
+                automaticAssignments.stream().anyMatch(assignment ->
+                        assignment.getPeriod() == ShuttlePeriod.MORNING),
+                "The 9:00 AM employee arrival and available drivers must produce morning coverage."
+        );
         DriverAssignment morning = assignmentFor(
                 automaticAssignments,
                 ShuttlePeriod.MORNING
@@ -204,7 +213,8 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
                         csvFile(
                                 "corrected-drivers.csv",
                                 "100,Alice," + csvDate + " 9:00 AM," + csvDate + " 5:00 PM,Park/Ops/Transportation/Shuttle/101 North Gate,Driver",
-                                "200,Bob," + csvDate + " 9:30 AM," + csvDate + " 5:30 PM,Park/Ops/Transportation/Shuttle/202 South Gate,Driver"
+                                "200,Bob," + csvDate + " 9:30 AM," + csvDate + " 5:30 PM,Park/Ops/Transportation/Shuttle/202 South Gate,Driver",
+                                "400,Rider," + csvDate + " 9:00 AM," + csvDate + " 5:00 PM,Park/Ops/Rides/101 North Gate,Operator"
                         )
                 );
 
