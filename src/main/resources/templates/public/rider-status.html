@@ -256,6 +256,23 @@
 
     </section>
 
+    <section class="rider-day-schedule" aria-labelledby="schedule-heading">
+        <p class="eyebrow">Plan your ride</p>
+        <h2 id="schedule-heading">Today’s shuttle schedule</h2>
+        <p><span th:text="${status.scheduleDate}"></span> · <span th:text="${status.scheduleZone}"></span></p>
+        <p class="rider-schedule-help">These are planned driving times. Check the live status above to see whether the shuttle is running.</p>
+        <p th:if="${#lists.isEmpty(status.schedule)}">No driving windows are scheduled for today.</p>
+        <ul class="rider-schedule-list" th:if="${!#lists.isEmpty(status.schedule)}">
+            <li th:each="window : ${status.schedule}" class="rider-schedule-window"
+                th:classappend="| rider-schedule-window--${window.tone}|">
+                <div class="rider-schedule-top"><strong th:text="${window.driverName}">Driver</strong>
+                    <span class="rider-schedule-label" th:text="${window.label}">Upcoming</span></div>
+                <p><span th:text="${window.timeRange}">2:00 PM – 4:00 PM</span>
+                    · <span th:text="${window.duration}">2 hr</span></p>
+            </li>
+        </ul>
+    </section>
+
     <p class="rider-status-footnote">Service status comes from driver activity and operational updates. For pickup locations or help, contact your organization.</p>
 </main>
 

@@ -393,7 +393,10 @@ public final class CleanupRegressionChecks {
                 null,
                 null,
                 false,
-                "stopped"
+                "stopped",
+                List.of(),
+                "Wednesday, September 30",
+                "America/Chicago"
         ));
         model.addAttribute("timestampDisplay", new TimestampDisplay("America/Chicago"));
         return model;

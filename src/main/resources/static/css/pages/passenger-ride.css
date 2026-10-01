@@ -219,3 +219,15 @@
         margin: 0 auto;
     }
 }
+/* Public daily schedule: planned windows remain separate from live service. */
+.rider-day-schedule { margin-top: 1.5rem; padding: clamp(1rem, 4vw, 2rem); border: 1px solid #d4ddd7; border-radius: 20px; background: #fff; color: #17201c; }
+.rider-day-schedule h2 { margin: .25rem 0 .75rem; }
+.rider-schedule-help { color: #526359; line-height: 1.5; }
+.rider-schedule-list { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .75rem; }
+.rider-schedule-window { padding: 1rem; border: 1px solid #d4ddd7; border-radius: 12px; background: #f5f8f6; }
+.rider-schedule-top { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
+.rider-schedule-label { font-size: .8rem; font-weight: 600; }
+.rider-schedule-window p { margin: .5rem 0 0; }
+.rider-schedule-window--current { border-color: #27754a; background: #edf8f0; }
+.rider-schedule-window--cancelled { background: #fff3ef; }
+.rider-schedule-window--completed { color: #526359; }

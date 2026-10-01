@@ -1,6 +1,10 @@
 package technology.renatus.routepulse.driving.service;
 
 import java.time.Instant;
+import java.time.Duration;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -108,8 +112,69 @@ public class RiderStatusService {
                 operationalMessage,
                 driverName,
                 confirmationAvailable,
-                tone(effectiveStatus));
+                tone(effectiveStatus),
+                dailySchedule(organization.getId(), now),
+                now.format(DateTimeFormatter.ofPattern("EEEE, MMMM d", Locale.US)),
+                operationsZone.getId());
     }
+
+    private List<RiderScheduleWindow> dailySchedule(Long organizationId, LocalDateTime now) {
+        List<RiderScheduleWindow> result = new ArrayList<>();
+        // Include an overnight window that began yesterday and still overlaps today.
+        for (LocalDate date : List.of(now.toLocalDate().minusDays(1), now.toLocalDate())) {
+            for (DriverAssignment assignment : driverAssignmentRepository
+                    .findAllByOrganization_IdAndAssignmentDate(organizationId, date)) {
+                if (assignment.hasPlannedDrivingWindows()) {
+                    for (PlannedDrivingWindow window : assignment.getPlannedDrivingWindows()) {
+                        addScheduleWindow(result, assignment, window.getStartTime(), window.getEndTime(), now);
+                    }
+                } else {
+                    addScheduleWindow(result, assignment, assignment.getScheduledStartTime(),
+                            assignment.getScheduledEndTime(), now);
+                }
+            }
+        }
+        result.sort(Comparator.comparing(RiderScheduleWindow::start));
+        return List.copyOf(result);
+    }
+
+    private void addScheduleWindow(List<RiderScheduleWindow> result, DriverAssignment assignment,
+            LocalTime startTime, LocalTime endTime, LocalDateTime now) {
+        if (startTime == null || endTime == null) return;
+        LocalDateTime start = assignment.getAssignmentDate().atTime(startTime);
+        LocalDateTime end = assignment.getAssignmentDate().atTime(endTime);
+        if (!end.isAfter(start)) end = end.plusDays(1);
+        if (!start.isBefore(now.toLocalDate().plusDays(1).atStartOfDay())
+                || !end.isAfter(now.toLocalDate().atStartOfDay())) return;
+        String label;
+        String tone;
+        AssignmentOutcome outcome = assignment.getAssignmentOutcome();
+        if (outcome == AssignmentOutcome.CANCELLED || outcome == AssignmentOutcome.EXCUSED) {
+            label = "Cancelled"; tone = "cancelled";
+        } else if (outcome == AssignmentOutcome.MISSED) {
+            label = "Missed"; tone = "cancelled";
+        } else if (!now.isBefore(end)) {
+            label = "Scheduled window ended"; tone = "completed";
+        } else if (now.isBefore(start)) {
+            label = "Upcoming"; tone = "upcoming";
+        } else {
+            label = "Current scheduled window"; tone = "current";
+        }
+        long minutes = Duration.between(start, end).toMinutes();
+        String duration = (minutes / 60 > 0 ? minutes / 60 + " hr" : "")
+                + (minutes % 60 > 0 ? (minutes / 60 > 0 ? " " : "") + minutes % 60 + " min" : "");
+        DateTimeFormatter time = DateTimeFormatter.ofPattern("h:mm a", Locale.US);
+        String range = start.format(time) + " – " + end.format(time);
+        if (!start.toLocalDate().equals(now.toLocalDate())) range = "Yesterday " + range;
+        if (end.toLocalDate().isAfter(now.toLocalDate())) range += " (next day)";
+        result.add(new RiderScheduleWindow(
+                assignment.getScheduledDriver() == null ? "Driver to be assigned"
+                        : assignment.getScheduledDriver().getName(),
+                start, range, duration, label, tone));
+    }
+
+    public record RiderScheduleWindow(String driverName, LocalDateTime start,
+            String timeRange, String duration, String label, String tone) {}
 
     private RiderOperationalStatus inferAutomaticStatus(
             Long organizationId,
@@ -268,7 +333,10 @@ public class RiderStatusService {
             String operationalMessage,
             String driverName,
             boolean confirmationAvailable,
-            String tone) {
+            String tone,
+            List<RiderScheduleWindow> schedule,
+            String scheduleDate,
+            String scheduleZone) {
 
         public boolean running() {
             return operationalStatus == RiderOperationalStatus.RUNNING
