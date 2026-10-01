@@ -105,6 +105,13 @@
 .walkthrough-frame { max-width: 960px; margin: auto; background: #17201c; border-radius: 14px; overflow: hidden; border: 1px solid #ccd6c4; }
 .walkthrough-frame video { display: block; width: 100%; aspect-ratio: 16/9; }
 .walkthrough-note { margin: 1rem auto 0; text-align: center; color: #64705e; font-size: .72rem; }
+.walkthrough-transcript { max-width: 960px; margin: 1.25rem auto 0; border-top: 1px solid #dce1d6; color: #586359; font-size: .9rem; line-height: 1.7; }
+.walkthrough-transcript summary { padding-block: 1rem; cursor: pointer; font-weight: 700; color: #17201c; }
+.walkthrough-transcript summary:focus-visible { outline: 3px solid #526d29; outline-offset: 4px; }
+.walkthrough-transcript ol { padding-left: 1.4rem; }
+.walkthrough-transcript li { margin-bottom: .85rem; }
+.walkthrough-transcript strong { color: #17201c; }
+
 .shuttle-faq { border-top: 1px solid #dce1d6; }
 .shuttle-faq__grid { display: grid; grid-template-columns: .8fr 1.2fr; gap: 4rem; }
 .faq-items details { border-bottom: 1px solid #d4ddcc; padding: .25rem 0; }

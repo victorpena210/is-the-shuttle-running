@@ -15,7 +15,7 @@ The design uses charcoal, warm white, signal green, a transit-style shuttle mark
 - New SVG shuttle mark, social sharing PNG with editable SVG source, and video poster.
 - Updated public canonicals, structured data, social URLs, sitemap, and robots sitemap reference to the new domain.
 - Preserved the working demo-request form's binding, validation, CSRF-enabled action, and success state.
-- Retained the existing product video with a visible note that it was recorded as RoutePulse.
+- Replaced the former-brand video with an 80-second illustrated Is the Shuttle Running? walkthrough, a matching poster, and an accessible transcript. See `docs/video/README.md` for reproduction and integration notes.
 
 ## Technical compatibility
 
@@ -31,7 +31,7 @@ The Spring production profile already requires `APP_BASE_URL`. It remains requir
 4. Keep the existing verified `MAIL_FROM`, SMTP configuration, and `DEMO_REQUEST_RECIPIENT` unless you separately configure a new sender. Send a test verification, invitation, and reset message to confirm their links use the new hostname.
 5. Verify sign-in, manager navigation, driver checkpoint scans, every real rider status, ride confirmations, and the demo request against a non-production organization. Test mobile widths and keyboard navigation, including reduced-motion settings.
 6. Update external links and QR/NFC destinations as practical. Preserve redirects for previously printed or distributed links. Review analytics host settings, external monitoring targets, and search-engine domain migration after cutover.
-7. Record a new walkthrough when convenient; the current video deliberately retains a former-name note.
+7. Confirm the new walkthrough and poster load after deployment. The video uses illustrated screens and labeled example data; it does not require a database connection.
 
 DNS, hosting changes, redirects, and sending test emails were not performed by this source-code change.
 

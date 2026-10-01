@@ -1,0 +1,14 @@
+Changed files
+docs/REBRAND.md
+docs/preview.html
+src/main/resources/static/css/pages/landing.css
+src/main/resources/templates/public/landing.html
+
+New files
+src/main/resources/static/images/istheshuttlerunning-demo-poster.png
+src/main/resources/static/video/istheshuttlerunning-manager-driver-rider-demo.mp4
+docs/video/render.mjs
+docs/video/README.md
+
+Omitted obsolete video
+src/main/resources/static/video/routepulse-manager-driver-passenger-demo.mp4
