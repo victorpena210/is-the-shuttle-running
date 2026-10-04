@@ -12,6 +12,9 @@ public interface PassengerRideConfirmationRepository
                 PassengerRideConfirmation,
                 Long> {
 
+    boolean existsByDrivingSession_IdAndDeviceTokenHashAndSubmittedAtAfter(
+            Long sessionId, String deviceTokenHash, Instant submittedAfter);
+
     boolean existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
             Long assignmentId,
             String deviceTokenHash,

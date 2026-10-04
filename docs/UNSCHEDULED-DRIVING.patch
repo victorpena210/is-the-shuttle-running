@@ -1,0 +1,1642 @@
+diff --git a/src/main/java/technology/renatus/routepulse/assignments/service/DriverWorkloadService.java b/src/main/java/technology/renatus/routepulse/assignments/service/DriverWorkloadService.java
+index 505552a..ccf832a 100644
+--- a/src/main/java/technology/renatus/routepulse/assignments/service/DriverWorkloadService.java
++++ b/src/main/java/technology/renatus/routepulse/assignments/service/DriverWorkloadService.java
+@@ -153,6 +153,9 @@ public class DriverWorkloadService {
+             );
+         }
+ 
++        // Unscheduled time counts toward actual workload, but cannot satisfy a scheduled makeup duty.
++        if (session.isUnscheduled()) return;
++
+         Long sessionId = session.getId();
+ 
+         if (sessionId != null
+@@ -308,11 +311,14 @@ public class DriverWorkloadService {
+             Long organizationId,
+             LocalDate beforeDate) {
+ 
+-        List<DrivingSession> completedSessions = drivingSessionRepository
++        List<DrivingSession> completedSessions = new ArrayList<>(drivingSessionRepository
+                 .findAllByOrganization_IdAndEndedAtIsNotNullAndAssignment_AssignmentDateBefore(
+                         organizationId,
+                         beforeDate
+-                );
++                ));
++        completedSessions.addAll(drivingSessionRepository
++                .findAllByOrganization_IdAndAssignmentIsNullAndEndedAtIsNotNullAndStartedAtBefore(
++                        organizationId, beforeDate.atStartOfDay(operationsZone).toInstant()));
+ 
+         Map<Long, Long> minutesByDriver = new HashMap<>();
+         Map<Long, Instant> lastDriveByDriver = new HashMap<>();
+diff --git a/src/main/java/technology/renatus/routepulse/driver/controller/DriverPortalController.java b/src/main/java/technology/renatus/routepulse/driver/controller/DriverPortalController.java
+index d89088e..81a76d6 100644
+--- a/src/main/java/technology/renatus/routepulse/driver/controller/DriverPortalController.java
++++ b/src/main/java/technology/renatus/routepulse/driver/controller/DriverPortalController.java
+@@ -45,6 +45,9 @@ public class DriverPortalController {
+         List<DriverAssignment> todayAssignments =
+                 driverPortalService.getTodayAssignments(authentication);
+ 
++        var unscheduledRecords = driverPortalService.getRecentUnscheduledRecords(authentication);
++        model.addAttribute("unscheduledRecords", unscheduledRecords);
++        model.addAttribute("unscheduledActive", unscheduledRecords.stream().anyMatch(record -> record.active()));
+         model.addAttribute("todayAssignments", todayAssignments);
+         model.addAttribute(
+                 "primaryAssignment",
+@@ -184,6 +187,8 @@ public class DriverPortalController {
+         String methodLabel = checkpointLabel(result.method());
+ 
+         return switch (result.action()) {
++            case START_UNSCHEDULED -> "Unscheduled driving started by " + methodLabel
++                    + ". Your name and actual start time have been saved in the driving records.";
+             case RESUME -> {
+                 String coverageMessage = result.coveragePerformed()
+                         && result.scheduledDriver() != null
+diff --git a/src/main/java/technology/renatus/routepulse/driver/service/DriverPortalService.java b/src/main/java/technology/renatus/routepulse/driver/service/DriverPortalService.java
+index 5a70874..c623ac8 100644
+--- a/src/main/java/technology/renatus/routepulse/driver/service/DriverPortalService.java
++++ b/src/main/java/technology/renatus/routepulse/driver/service/DriverPortalService.java
+@@ -18,6 +18,8 @@ import technology.renatus.routepulse.driver.service.portal.DriverCheckpointServi
+ import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService.CheckpointPreview;
+ import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService.CheckpointResult;
+ import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
++import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
++import technology.renatus.routepulse.driving.model.UnscheduledDrivingRecord;
+ 
+ /** Facade for the driver portal's profile, assignment history, and physical checkpoint actions. */
+ @Service
+@@ -28,12 +30,15 @@ public class DriverPortalService {
+     private final DriverCheckpointService checkpointService;
+     private final DriverAssignmentRepository assignmentRepository;
+     private final ZoneId operationsZone;
++    private final DrivingSessionRepository drivingSessionRepository;
+ 
+     public DriverPortalService(
+             DriverPortalAccessService accessService,
+             DriverCheckpointService checkpointService,
+             DriverAssignmentRepository assignmentRepository,
++            DrivingSessionRepository drivingSessionRepository,
+             @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
++        this.drivingSessionRepository = drivingSessionRepository;
+         this.accessService = accessService;
+         this.checkpointService = checkpointService;
+         this.assignmentRepository = assignmentRepository;
+@@ -44,6 +49,14 @@ public class DriverPortalService {
+         return accessService.requireCurrentDriver(authentication);
+     }
+ 
++    public List<UnscheduledDrivingRecord> getRecentUnscheduledRecords(Authentication authentication) {
++        Driver driver = requireCurrentDriver(authentication);
++        return drivingSessionRepository
++                .findTop20ByOrganization_IdAndDriver_IdAndAssignmentIsNullOrderByStartedAtDesc(
++                        driver.getOrganization().getId(), driver.getId())
++                .stream().map(session -> UnscheduledDrivingRecord.from(session, operationsZone)).toList();
++    }
++
+     public List<DriverAssignment> getTodayAssignments(Authentication authentication) {
+         Driver driver = requireCurrentDriver(authentication);
+         return assignmentRepository
+diff --git a/src/main/java/technology/renatus/routepulse/driver/service/portal/DriverCheckpointService.java b/src/main/java/technology/renatus/routepulse/driver/service/portal/DriverCheckpointService.java
+index 8d47c2c..922e6a5 100644
+--- a/src/main/java/technology/renatus/routepulse/driver/service/portal/DriverCheckpointService.java
++++ b/src/main/java/technology/renatus/routepulse/driver/service/portal/DriverCheckpointService.java
+@@ -66,12 +66,17 @@ public class DriverCheckpointService {
+ 
+         List<DriverAssignment> assignments = assignmentRepository
+                 .findAllByOrganization_IdAndAssignmentDate(organizationId, now.toLocalDate());
+-        DriverAssignment assignment = assignmentSelector
+-                .selectStartAssignment(driver, assignments, now);
++        DriverAssignment assignment;
++        try {
++            assignment = assignmentSelector.selectStartAssignment(driver, assignments, now);
++        } catch (DriverScanAssignmentSelector.NoStartableAssignmentException exception) {
++            return new CheckpointPreview(driver, null, CheckpointPreviewAction.START_UNSCHEDULED,
++                    false, false, null, null, method);
++        }
+         assignmentSelector.requireScheduledTimes(assignment);
+         startPolicy.requireStartAllowed(driver, assignment, now);
+ 
+-        Driver scheduledDriver = assignment.getScheduledDriver();
++        Driver scheduledDriver = assignment == null ? null : assignment.getScheduledDriver();
+         CheckpointPreviewAction action = assignment.hasDrivingSessions()
+                 ? CheckpointPreviewAction.RESUME
+                 : CheckpointPreviewAction.START;
+@@ -101,8 +106,8 @@ public class DriverCheckpointService {
+         LocalDateTime now = LocalDateTime.ofInstant(eventNow, operationsZone);
+         Long organizationId = driver.getOrganization().getId();
+ 
+-        // Lock today's assignments so simultaneous NFC/QR actions cannot create
+-        // competing active sessions.
++        // An organization lock also protects days with no assignment rows.
++        drivingSessionService.lockOrganization(organizationId);
+         List<DriverAssignment> assignments = assignmentRepository
+                 .findAllForUpdateByOrganizationAndDate(organizationId, now.toLocalDate());
+         DrivingSession activeSession = drivingSessionService
+@@ -118,12 +123,22 @@ public class DriverCheckpointService {
+                     requestedAction);
+         }
+ 
+-        DriverAssignment assignment = assignmentSelector
+-                .selectStartAssignment(driver, assignments, now);
++        DriverAssignment assignment;
++        try {
++            assignment = assignmentSelector.selectStartAssignment(driver, assignments, now);
++        } catch (DriverScanAssignmentSelector.NoStartableAssignmentException exception) {
++            // Require explicit consent: an old scheduled-start form must never become unplanned work.
++            if (requestedAction != CheckpointAction.START_UNSCHEDULED) {
++                throw new IllegalStateException("No assignment is available. Tap again and confirm Start unscheduled driving.");
++            }
++            drivingSessionService.startUnscheduledSession(driver, user, eventNow, method);
++            return new CheckpointResult(CheckpointAction.START_UNSCHEDULED, null,
++                    false, false, null, null, method);
++        }
+         assignmentSelector.requireScheduledTimes(assignment);
+         startPolicy.requireStartAllowed(driver, assignment, now);
+ 
+-        Driver scheduledDriver = assignment.getScheduledDriver();
++        Driver scheduledDriver = assignment == null ? null : assignment.getScheduledDriver();
+         CheckpointAction action = assignment.hasDrivingSessions()
+                 ? CheckpointAction.RESUME
+                 : CheckpointAction.START;
+@@ -159,7 +174,7 @@ public class DriverCheckpointService {
+             DrivingActionMethod method) {
+ 
+         DriverAssignment assignment = activeSession.getAssignment();
+-        Driver scheduledDriver = assignment.getScheduledDriver();
++        Driver scheduledDriver = assignment == null ? null : assignment.getScheduledDriver();
+ 
+         if (sameDriver(activeSession.getDriver(), driver)) {
+             return new CheckpointPreview(
+@@ -177,7 +192,7 @@ public class DriverCheckpointService {
+                 driver,
+                 assignment,
+                 CheckpointPreviewAction.TAKEOVER,
+-                !sameDriver(scheduledDriver, driver),
++                isCoverage(scheduledDriver, driver),
+                 true,
+                 scheduledDriver,
+                 activeSession.getDriver(),
+@@ -193,7 +208,7 @@ public class DriverCheckpointService {
+             CheckpointAction requestedAction) {
+ 
+         DriverAssignment assignment = activeSession.getAssignment();
+-        Driver scheduledDriver = assignment.getScheduledDriver();
++        Driver scheduledDriver = assignment == null ? null : assignment.getScheduledDriver();
+ 
+         if (sameDriver(activeSession.getDriver(), driver)) {
+             CheckpointAction stopAction = normalizeStopAction(requestedAction);
+@@ -293,6 +308,7 @@ public class DriverCheckpointService {
+     }
+ 
+     public enum CheckpointPreviewAction {
++        START_UNSCHEDULED,
+         START,
+         RESUME,
+         TAKEOVER,
+@@ -300,6 +316,7 @@ public class DriverCheckpointService {
+     }
+ 
+     public enum CheckpointAction {
++        START_UNSCHEDULED,
+         START,
+         RESUME,
+         TAKEOVER,
+diff --git a/src/main/java/technology/renatus/routepulse/driver/service/portal/DriverScanAssignmentSelector.java b/src/main/java/technology/renatus/routepulse/driver/service/portal/DriverScanAssignmentSelector.java
+index e29cae1..831b23c 100644
+--- a/src/main/java/technology/renatus/routepulse/driver/service/portal/DriverScanAssignmentSelector.java
++++ b/src/main/java/technology/renatus/routepulse/driver/service/portal/DriverScanAssignmentSelector.java
+@@ -30,10 +30,10 @@ public class DriverScanAssignmentSelector {
+ 
+         if (candidates.isEmpty()) {
+             if (assignments.isEmpty()) {
+-                throw new IllegalStateException(
++                throw new NoStartableAssignmentException(
+                         "There are no driving assignments scheduled for today.");
+             }
+-            throw new IllegalStateException(
++            throw new NoStartableAssignmentException(
+                     "There is no startable or resumable driving assignment right now. A manager can reopen an ended assignment if service needs to continue outside its scheduled window.");
+         }
+ 
+@@ -57,6 +57,10 @@ public class DriverScanAssignmentSelector {
+                                 + "scheduled times. A manager must set the scheduled times first."));
+     }
+ 
++    public static class NoStartableAssignmentException extends IllegalStateException {
++        public NoStartableAssignmentException(String message) { super(message); }
++    }
++
+     public void requireScheduledTimes(DriverAssignment assignment) {
+         if (!hasScheduledTimes(assignment)) {
+             throw new IllegalStateException(
+diff --git a/src/main/java/technology/renatus/routepulse/driving/model/DrivingSession.java b/src/main/java/technology/renatus/routepulse/driving/model/DrivingSession.java
+index 3dfd424..3a066bd 100644
+--- a/src/main/java/technology/renatus/routepulse/driving/model/DrivingSession.java
++++ b/src/main/java/technology/renatus/routepulse/driving/model/DrivingSession.java
+@@ -34,8 +34,8 @@ public class DrivingSession {
+     @JoinColumn(name = "organization_id", nullable = false, updatable = false)
+     private Organization organization;
+ 
+-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+-    @JoinColumn(name = "assignment_id", nullable = false, updatable = false)
++    @ManyToOne(fetch = FetchType.LAZY)
++    @JoinColumn(name = "assignment_id", updatable = false)
+     private DriverAssignment assignment;
+ 
+     @ManyToOne(fetch = FetchType.EAGER, optional = false)
+@@ -75,21 +75,15 @@ public class DrivingSession {
+     }
+ 
+     private DrivingSession(
++            Organization organization,
+             DriverAssignment assignment,
+             Driver driver,
+             Instant startedAt,
+             UserAccount startedBy,
+             DrivingActionMethod startMethod) {
+ 
+-        this.assignment = Objects.requireNonNull(
+-                assignment,
+-                "Driving assignment is required."
+-        );
+-
+-        this.organization = Objects.requireNonNull(
+-                assignment.getOrganization(),
+-                "Driving assignment organization is required."
+-        );
++        this.assignment = assignment;
++        this.organization = Objects.requireNonNull(organization, "Organization is required.");
+ 
+         this.driver = Objects.requireNonNull(
+                 driver,
+@@ -129,6 +123,7 @@ public class DrivingSession {
+             DrivingActionMethod startMethod) {
+ 
+         return new DrivingSession(
++                Objects.requireNonNull(assignment, "Assignment is required.").getOrganization(),
+                 assignment,
+                 driver,
+                 startedAt,
+@@ -137,6 +132,16 @@ public class DrivingSession {
+         );
+     }
+ 
++    public static DrivingSession startUnscheduled(
++            Organization organization, Driver driver, Instant startedAt,
++            UserAccount startedBy, DrivingActionMethod startMethod) {
++        return new DrivingSession(organization, null, driver, startedAt, startedBy, startMethod);
++    }
++
++    public boolean isUnscheduled() {
++        return assignment == null;
++    }
++
+     public void end(
+             Instant endedAt,
+             UserAccount endedBy,
+diff --git a/src/main/java/technology/renatus/routepulse/driving/model/PassengerRideConfirmation.java b/src/main/java/technology/renatus/routepulse/driving/model/PassengerRideConfirmation.java
+index 270841f..d59a808 100644
+--- a/src/main/java/technology/renatus/routepulse/driving/model/PassengerRideConfirmation.java
++++ b/src/main/java/technology/renatus/routepulse/driving/model/PassengerRideConfirmation.java
+@@ -49,17 +49,17 @@ public class PassengerRideConfirmation {
+     )
+     private Organization organization;
+ 
+-    @ManyToOne(
+-            fetch = FetchType.LAZY,
+-            optional = false
+-    )
++    @ManyToOne(fetch = FetchType.LAZY)
+     @JoinColumn(
+             name = "assignment_id",
+-            nullable = false,
+             updatable = false
+     )
+     private DriverAssignment assignment;
+ 
++    @ManyToOne(fetch = FetchType.LAZY)
++    @JoinColumn(name = "driving_session_id", updatable = false)
++    private DrivingSession drivingSession;
++
+     @ManyToOne(
+             fetch = FetchType.EAGER,
+             optional = false
+@@ -111,17 +111,21 @@ public class PassengerRideConfirmation {
+             Instant rideWindowStart,
+             Instant submittedAt) {
+ 
+-        this.assignment =
+-                Objects.requireNonNull(
+-                        assignment,
+-                        "Driving assignment is required."
+-                );
++        this(Objects.requireNonNull(assignment, "Assignment is required.").getOrganization(),
++                assignment, actualDriver, deviceTokenHash, rideWindowStart, submittedAt);
++    }
+ 
+-        this.organization =
+-                Objects.requireNonNull(
+-                        assignment.getOrganization(),
+-                        "Driving assignment organization is required."
+-                );
++    public PassengerRideConfirmation(DrivingSession session, String deviceTokenHash,
++            Instant rideWindowStart, Instant submittedAt) {
++        this(session.getOrganization(), session.getAssignment(), session.getDriver(),
++                deviceTokenHash, rideWindowStart, submittedAt);
++        this.drivingSession = session;
++    }
++
++    private PassengerRideConfirmation(Organization organization, DriverAssignment assignment,
++            Driver actualDriver, String deviceTokenHash, Instant rideWindowStart, Instant submittedAt) {
++        this.assignment = assignment;
++        this.organization = Objects.requireNonNull(organization, "Organization is required.");
+ 
+         this.driver =
+                 Objects.requireNonNull(
+diff --git a/src/main/java/technology/renatus/routepulse/driving/repository/DrivingSessionRepository.java b/src/main/java/technology/renatus/routepulse/driving/repository/DrivingSessionRepository.java
+index 88ebb6b..86e82a6 100644
+--- a/src/main/java/technology/renatus/routepulse/driving/repository/DrivingSessionRepository.java
++++ b/src/main/java/technology/renatus/routepulse/driving/repository/DrivingSessionRepository.java
+@@ -2,6 +2,7 @@ package technology.renatus.routepulse.driving.repository;
+ 
+ import jakarta.persistence.LockModeType;
+ import java.time.LocalDate;
++import java.time.Instant;
+ import java.util.List;
+ import java.util.Optional;
+ import org.springframework.data.jpa.repository.JpaRepository;
+@@ -13,6 +14,23 @@ import technology.renatus.routepulse.driving.model.DrivingSession;
+ public interface DrivingSessionRepository
+         extends JpaRepository<DrivingSession, Long> {
+ 
++    List<DrivingSession> findAllByOrganization_IdAndAssignmentIsNullAndEndedAtIsNotNullAndStartedAtBefore(
++            Long organizationId, Instant before);
++
++    @Query("""
++            SELECT session FROM DrivingSession session
++            WHERE session.organization.id = :organizationId AND session.assignment IS NULL
++              AND session.startedAt >= :start AND session.startedAt < :end
++              AND (:driverId IS NULL OR session.driver.id = :driverId)
++            ORDER BY session.startedAt DESC
++            """)
++    List<DrivingSession> findUnscheduledRecords(
++            @Param("organizationId") Long organizationId, @Param("driverId") Long driverId,
++            @Param("start") Instant start, @Param("end") Instant end);
++
++    List<DrivingSession> findTop20ByOrganization_IdAndDriver_IdAndAssignmentIsNullOrderByStartedAtDesc(
++            Long organizationId, Long driverId);
++
+     List<DrivingSession> findAllByAssignment_IdOrderByStartedAtAsc(
+             Long assignmentId
+     );
+diff --git a/src/main/java/technology/renatus/routepulse/driving/repository/PassengerRideConfirmationRepository.java b/src/main/java/technology/renatus/routepulse/driving/repository/PassengerRideConfirmationRepository.java
+index 246e973..5630204 100644
+--- a/src/main/java/technology/renatus/routepulse/driving/repository/PassengerRideConfirmationRepository.java
++++ b/src/main/java/technology/renatus/routepulse/driving/repository/PassengerRideConfirmationRepository.java
+@@ -12,6 +12,9 @@ public interface PassengerRideConfirmationRepository
+                 PassengerRideConfirmation,
+                 Long> {
+ 
++    boolean existsByDrivingSession_IdAndDeviceTokenHashAndSubmittedAtAfter(
++            Long sessionId, String deviceTokenHash, Instant submittedAfter);
++
+     boolean existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
+             Long assignmentId,
+             String deviceTokenHash,
+diff --git a/src/main/java/technology/renatus/routepulse/driving/service/DrivingActionService.java b/src/main/java/technology/renatus/routepulse/driving/service/DrivingActionService.java
+index 69bef60..b698cb0 100644
+--- a/src/main/java/technology/renatus/routepulse/driving/service/DrivingActionService.java
++++ b/src/main/java/technology/renatus/routepulse/driving/service/DrivingActionService.java
+@@ -101,6 +101,17 @@ public class DrivingActionService {
+         return assignment;
+     }
+ 
++    @Transactional
++    public void endUnscheduledDriving(Long organizationId, Long sessionId, String actorEmail) {
++        drivingSessionService.lockOrganization(organizationId);
++        var actor = organizationActorService.loadActor(organizationId, actorEmail);
++        var active = drivingSessionService.findActiveSessionForUpdate(organizationId);
++        if (active == null || !active.isUnscheduled() || !active.getId().equals(sessionId)) {
++            throw new IllegalStateException("This unscheduled driving session is no longer active.");
++        }
++        drivingSessionService.endSession(null, active, actor, Instant.now(), DrivingActionMethod.MANAGER);
++    }
++
+     private DriverAssignment loadAssignment(
+             Long organizationId,
+             Long assignmentId) {
+diff --git a/src/main/java/technology/renatus/routepulse/driving/service/DrivingSessionService.java b/src/main/java/technology/renatus/routepulse/driving/service/DrivingSessionService.java
+index 849c159..5969374 100644
+--- a/src/main/java/technology/renatus/routepulse/driving/service/DrivingSessionService.java
++++ b/src/main/java/technology/renatus/routepulse/driving/service/DrivingSessionService.java
+@@ -15,10 +15,13 @@ import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
+ import technology.renatus.routepulse.driving.domain.DrivingSessionEndReason;
+ import technology.renatus.routepulse.driving.model.DrivingSession;
+ import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
++import technology.renatus.routepulse.organization.model.Organization;
++import technology.renatus.routepulse.organization.repository.OrganizationRepository;
+ 
+ @Service
+ public class DrivingSessionService {
+ 
++    private final OrganizationRepository organizationRepository;
+     private final DriverAssignmentRepository assignmentRepository;
+     private final DrivingSessionRepository drivingSessionRepository;
+     private final DriverWorkloadService driverWorkloadService;
+@@ -26,8 +29,10 @@ public class DrivingSessionService {
+     public DrivingSessionService(
+             DriverAssignmentRepository assignmentRepository,
+             DrivingSessionRepository drivingSessionRepository,
+-            DriverWorkloadService driverWorkloadService) {
++            DriverWorkloadService driverWorkloadService,
++            OrganizationRepository organizationRepository) {
+ 
++        this.organizationRepository = organizationRepository;
+         this.assignmentRepository = assignmentRepository;
+         this.drivingSessionRepository = drivingSessionRepository;
+         this.driverWorkloadService = driverWorkloadService;
+@@ -42,6 +47,7 @@ public class DrivingSessionService {
+             Instant startedAt,
+             DrivingActionMethod method) {
+ 
++        lockOrganization(organizationId);
+         DriverAssignment assignment = assignmentRepository
+                 .findByIdAndOrganizationForUpdate(
+                         assignmentId,
+@@ -103,6 +109,7 @@ public class DrivingSessionService {
+             );
+         }
+ 
++        lockOrganization(assignment.getOrganization().getId());
+         List<DrivingSession> activeSessions = drivingSessionRepository
+                 .findActiveForUpdateByOrganization(
+                         assignment.getOrganization().getId()
+@@ -111,7 +118,7 @@ public class DrivingSessionService {
+         if (!activeSessions.isEmpty()) {
+             DrivingSession active = activeSessions.get(0);
+ 
+-            if (Objects.equals(
++            if (active.getAssignment() != null && Objects.equals(
+                     active.getAssignment().getId(),
+                     assignment.getId()
+             )) {
+@@ -140,6 +147,28 @@ public class DrivingSessionService {
+         return session;
+     }
+ 
++    /** Serialize starts even when no assignment or active session row exists to lock. */
++    @Transactional
++    public Organization lockOrganization(Long organizationId) {
++        return organizationRepository.findByIdForUpdate(organizationId)
++                .orElseThrow(() -> new IllegalStateException("Organization was not found."));
++    }
++
++    @Transactional
++    public DrivingSession startUnscheduledSession(
++            Driver driver, UserAccount actor, Instant startedAt, DrivingActionMethod method) {
++        Objects.requireNonNull(driver, "Driver is required.");
++        Organization organization = lockOrganization(driver.getOrganization().getId());
++        if (!driver.isActive()) {
++            throw new IllegalStateException("The driver must be active before driving can be recorded.");
++        }
++        if (findActiveSessionForUpdate(organization.getId()) != null) {
++            throw new IllegalStateException("Another driving session is already active. Tap again to refresh.");
++        }
++        return drivingSessionRepository.save(
++                DrivingSession.startUnscheduled(organization, driver, startedAt, actor, method));
++    }
++
+     @Transactional
+     public DrivingSession takeOverActiveSession(
+             DrivingSession activeSession,
+@@ -154,7 +183,9 @@ public class DrivingSessionService {
+         Objects.requireNonNull(changedAt, "Takeover time is required.");
+         Objects.requireNonNull(method, "Driving action method is required.");
+ 
+-        if (!activeSession.isActive()) {
++        lockOrganization(activeSession.getOrganization().getId());
++        DrivingSession current = findActiveSessionForUpdate(activeSession.getOrganization().getId());
++        if (current == null || !Objects.equals(current.getId(), activeSession.getId()) || !activeSession.isActive()) {
+             throw new IllegalStateException(
+                     "The driving session being replaced is no longer active."
+             );
+@@ -163,7 +194,7 @@ public class DrivingSessionService {
+         DriverAssignment assignment = activeSession.getAssignment();
+ 
+         if (!Objects.equals(
+-                assignment.getOrganization().getId(),
++                activeSession.getOrganization().getId(),
+                 newDriver.getOrganization().getId()
+         )) {
+             throw new IllegalArgumentException(
+@@ -188,8 +219,8 @@ public class DrivingSessionService {
+ 
+         /*
+          * Close the previous driver's real-world session at the exact takeover
+-         * time, then open a second session on the SAME assignment. The planned
+-         * scheduled driver on DriverAssignment is never rewritten.
++         * time, then open a second session with the same assignment (or no
++         * assignment for an unscheduled drive). The planned driver is never rewritten.
+          */
+         activeSession.end(
+                 changedAt,
+@@ -205,7 +236,9 @@ public class DrivingSessionService {
+                 changedAt
+         );
+ 
+-        DrivingSession replacement = DrivingSession.start(
++        DrivingSession replacement = assignment == null
++                ? DrivingSession.startUnscheduled(activeSession.getOrganization(), newDriver, changedAt, actor, method)
++                : DrivingSession.start(
+                 assignment,
+                 newDriver,
+                 changedAt,
+@@ -214,8 +247,10 @@ public class DrivingSessionService {
+         );
+ 
+         drivingSessionRepository.save(replacement);
+-        assignment.registerDrivingSession(replacement);
+-        assignment.markDrivingInProgress();
++        if (assignment != null) {
++            assignment.registerDrivingSession(replacement);
++            assignment.markDrivingInProgress();
++        }
+ 
+         return replacement;
+     }
+@@ -228,6 +263,7 @@ public class DrivingSessionService {
+             Instant endedAt,
+             DrivingActionMethod method) {
+ 
++        lockOrganization(organizationId);
+         DriverAssignment assignment = assignmentRepository
+                 .findByIdAndOrganizationForUpdate(
+                         assignmentId,
+@@ -282,12 +318,11 @@ public class DrivingSessionService {
+             DrivingActionMethod method,
+             DrivingSessionEndReason endReason) {
+ 
+-        Objects.requireNonNull(assignment, "Assignment is required.");
+         Objects.requireNonNull(session, "Driving session is required.");
+ 
+         if (!Objects.equals(
+-                assignment.getId(),
+-                session.getAssignment().getId()
++                assignment == null ? null : assignment.getId(),
++                session.getAssignment() == null ? null : session.getAssignment().getId()
+         )) {
+             throw new IllegalArgumentException(
+                     "Driving session does not belong to this assignment."
+@@ -335,6 +370,7 @@ public class DrivingSessionService {
+     }
+ 
+     private void updateDerivedOutcome(DriverAssignment assignment) {
++        if (assignment == null) return;
+         List<DrivingSession> sessions = assignment.getDrivingSessions();
+ 
+         if (sessions.isEmpty()) {
+diff --git a/src/main/java/technology/renatus/routepulse/driving/service/PassengerRideService.java b/src/main/java/technology/renatus/routepulse/driving/service/PassengerRideService.java
+index 300b0ec..e2324a3 100644
+--- a/src/main/java/technology/renatus/routepulse/driving/service/PassengerRideService.java
++++ b/src/main/java/technology/renatus/routepulse/driving/service/PassengerRideService.java
+@@ -75,12 +75,7 @@ public class PassengerRideService {
+         Instant now = Instant.now();
+         String deviceTokenHash = hashDeviceToken(deviceToken);
+ 
+-        boolean alreadyConfirmedRecently = passengerRideConfirmationRepository
+-                .existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
+-                        activeSession.getAssignment().getId(),
+-                        deviceTokenHash,
+-                        now.minus(cooldownMinutes, ChronoUnit.MINUTES)
+-                );
++        boolean alreadyConfirmedRecently = alreadyConfirmed(activeSession, deviceTokenHash, now);
+ 
+         return new PassengerRideState(
+                 true,
+@@ -111,12 +106,7 @@ public class PassengerRideService {
+         Instant now = Instant.now();
+         String deviceTokenHash = hashDeviceToken(deviceToken);
+ 
+-        boolean alreadyConfirmedRecently = passengerRideConfirmationRepository
+-                .existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
+-                        activeSession.getAssignment().getId(),
+-                        deviceTokenHash,
+-                        now.minus(cooldownMinutes, ChronoUnit.MINUTES)
+-                );
++        boolean alreadyConfirmedRecently = alreadyConfirmed(activeSession, deviceTokenHash, now);
+ 
+         if (alreadyConfirmedRecently) {
+             return ConfirmationResult.ALREADY_CONFIRMED;
+@@ -124,8 +114,7 @@ public class PassengerRideService {
+ 
+         PassengerRideConfirmation confirmation =
+                 new PassengerRideConfirmation(
+-                        activeSession.getAssignment(),
+-                        activeSession.getDriver(),
++                        activeSession,
+                         deviceTokenHash,
+                         calculateWindowStart(now),
+                         now
+@@ -174,6 +163,15 @@ public class PassengerRideService {
+                 .orElse(null);
+     }
+ 
++    private boolean alreadyConfirmed(DrivingSession session, String deviceTokenHash, Instant now) {
++        Instant since = now.minus(cooldownMinutes, ChronoUnit.MINUTES);
++        return session.isUnscheduled()
++                ? passengerRideConfirmationRepository.existsByDrivingSession_IdAndDeviceTokenHashAndSubmittedAtAfter(
++                        session.getId(), deviceTokenHash, since)
++                : passengerRideConfirmationRepository.existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
++                        session.getAssignment().getId(), deviceTokenHash, since);
++    }
++
+     private Instant calculateWindowStart(Instant submittedAt) {
+         long windowSeconds = cooldownMinutes * 60L;
+         long epochSecond = submittedAt.getEpochSecond();
+diff --git a/src/main/java/technology/renatus/routepulse/driving/service/RiderStatusService.java b/src/main/java/technology/renatus/routepulse/driving/service/RiderStatusService.java
+index b429859..a0e5f78 100644
+--- a/src/main/java/technology/renatus/routepulse/driving/service/RiderStatusService.java
++++ b/src/main/java/technology/renatus/routepulse/driving/service/RiderStatusService.java
+@@ -242,6 +242,7 @@ public class RiderStatusService {
+             DriverAssignment assignment,
+             LocalDateTime now) {
+ 
++        if (assignment == null) return null;
+         if (assignment.hasPlannedDrivingWindows()) {
+             PlannedDrivingWindow activeWindow = assignment.getPlannedDrivingWindows().stream()
+                     .filter(window -> window.contains(now.toLocalTime()))
+diff --git a/src/main/java/technology/renatus/routepulse/reporting/pilot/service/PilotAnalyticsService.java b/src/main/java/technology/renatus/routepulse/reporting/pilot/service/PilotAnalyticsService.java
+index 6dd2b19..b737cf1 100644
+--- a/src/main/java/technology/renatus/routepulse/reporting/pilot/service/PilotAnalyticsService.java
++++ b/src/main/java/technology/renatus/routepulse/reporting/pilot/service/PilotAnalyticsService.java
+@@ -25,6 +25,7 @@ import technology.renatus.routepulse.driver.model.Driver;
+ import technology.renatus.routepulse.driver.repository.DriverRepository;
+ import technology.renatus.routepulse.driving.model.DrivingSession;
+ import technology.renatus.routepulse.driving.repository.PassengerRideConfirmationRepository;
++import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
+ import technology.renatus.routepulse.reporting.pilot.model.DriverFairnessRow;
+ import technology.renatus.routepulse.reporting.pilot.model.PickupWindowStat;
+ import technology.renatus.routepulse.reporting.pilot.model.PilotAnalyticsReport;
+@@ -40,6 +41,7 @@ public class PilotAnalyticsService {
+ 
+     private final DriverAssignmentRepository assignmentRepository;
+     private final DriverRepository driverRepository;
++    private final DrivingSessionRepository drivingSessionRepository;
+     private final PassengerRideConfirmationRepository passengerConfirmationRepository;
+     private final PickupPlanningService pickupPlanningService;
+     private final HistoricalDemandWindowRepository historicalDemandWindowRepository;
+@@ -49,6 +51,7 @@ public class PilotAnalyticsService {
+     public PilotAnalyticsService(
+             DriverAssignmentRepository assignmentRepository,
+             DriverRepository driverRepository,
++            DrivingSessionRepository drivingSessionRepository,
+             PassengerRideConfirmationRepository passengerConfirmationRepository,
+             PickupPlanningService pickupPlanningService,
+             HistoricalDemandWindowRepository historicalDemandWindowRepository,
+@@ -56,6 +59,7 @@ public class PilotAnalyticsService {
+ 
+         this.assignmentRepository = assignmentRepository;
+         this.driverRepository = driverRepository;
++        this.drivingSessionRepository = drivingSessionRepository;
+         this.passengerConfirmationRepository = passengerConfirmationRepository;
+         this.pickupPlanningService = pickupPlanningService;
+         this.historicalDemandWindowRepository = historicalDemandWindowRepository;
+@@ -90,7 +94,11 @@ public class PilotAnalyticsService {
+                 .mapToLong(DriverAssignment::getScheduledMinutes)
+                 .sum();
+ 
+-        long actualMinutes = assignments.stream()
++        List<DrivingSession> unscheduledSessions = drivingSessionRepository.findUnscheduledRecords(
++                organizationId, null, weekStart.atStartOfDay(operationsZone).toInstant(),
++                weekEnd.plusDays(1).atStartOfDay(operationsZone).toInstant());
++        long actualMinutes = unscheduledSessions.stream().mapToLong(session -> actualMinutes(session, now)).sum()
++                + assignments.stream()
+                 .flatMap(assignment -> assignment.getDrivingSessions().stream())
+                 .mapToLong(session -> actualMinutes(session, now))
+                 .sum();
+@@ -134,6 +142,7 @@ public class PilotAnalyticsService {
+         List<DriverFairnessRow> fairnessRows = buildFairnessRows(
+                 organizationId,
+                 assignments,
++                unscheduledSessions,
+                 now
+         );
+ 
+@@ -187,6 +196,8 @@ public class PilotAnalyticsService {
+             DrivingSession session,
+             Instant now) {
+ 
++        // Unscheduled records have no planned end to infer; only completed durations are final.
++        if (session.isUnscheduled()) return session.getActualMinutes();
+         Instant end = session.getEndedAt();
+         if (end == null) {
+             LocalDate startDate = session.getStartedAt()
+@@ -313,6 +324,7 @@ public class PilotAnalyticsService {
+     private List<DriverFairnessRow> buildFairnessRows(
+             Long organizationId,
+             List<DriverAssignment> assignments,
++            List<DrivingSession> unscheduledSessions,
+             Instant now) {
+ 
+         Map<Long, MutableFairness> byDriver = new LinkedHashMap<>();
+@@ -347,6 +359,12 @@ public class PilotAnalyticsService {
+             );
+         }
+ 
++        for (DrivingSession session : unscheduledSessions) {
++            Driver driver = session.getDriver();
++            byDriver.computeIfAbsent(driver.getId(), ignored -> new MutableFairness(driver))
++                    .actualMinutes += actualMinutes(session, now);
++        }
++
+         return byDriver.values().stream()
+                 .filter(row -> row.scheduledMinutes > 0 || row.actualMinutes > 0)
+                 .map(MutableFairness::toRow)
+diff --git a/src/main/java/technology/renatus/routepulse/reporting/workload/controller/DrivingRecordController.java b/src/main/java/technology/renatus/routepulse/reporting/workload/controller/DrivingRecordController.java
+index 18ab3ad..b1689e7 100644
+--- a/src/main/java/technology/renatus/routepulse/reporting/workload/controller/DrivingRecordController.java
++++ b/src/main/java/technology/renatus/routepulse/reporting/workload/controller/DrivingRecordController.java
+@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
+ import org.springframework.web.bind.annotation.RequestParam;
+ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+ import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
++import technology.renatus.routepulse.driving.service.DrivingActionService;
+ import technology.renatus.routepulse.assignments.service.AssignmentReviewService;
+ import technology.renatus.routepulse.organization.service.CurrentOrganizationService;
+ import technology.renatus.routepulse.reporting.workload.model.DrivingRecordPage;
+@@ -20,6 +21,7 @@ import technology.renatus.routepulse.reporting.workload.view.DrivingRecordModelA
+ @Controller
+ public class DrivingRecordController {
+ 
++    private final DrivingActionService drivingActionService;
+     private final AssignmentReviewService assignmentReviewService;
+     private final CurrentOrganizationService currentOrganizationService;
+     private final DrivingRecordPageService pageService;
+@@ -27,9 +29,11 @@ public class DrivingRecordController {
+ 
+     public DrivingRecordController(
+             AssignmentReviewService assignmentReviewService,
++            DrivingActionService drivingActionService,
+             CurrentOrganizationService currentOrganizationService,
+             DrivingRecordPageService pageService,
+             DrivingRecordModelAssembler modelAssembler) {
++        this.drivingActionService = drivingActionService;
+         this.assignmentReviewService = assignmentReviewService;
+         this.currentOrganizationService = currentOrganizationService;
+         this.pageService = pageService;
+@@ -96,6 +100,19 @@ public class DrivingRecordController {
+         return "redirect:/driving-records#record-" + assignmentId;
+     }
+ 
++    @PostMapping("/driving-records/unscheduled/{sessionId}/end")
++    public String endUnscheduledDriving(Authentication authentication, @PathVariable Long sessionId,
++            RedirectAttributes redirectAttributes) {
++        Long organizationId = currentOrganizationService.requireOrganizationId(authentication);
++        try {
++            drivingActionService.endUnscheduledDriving(organizationId, sessionId, authentication.getName());
++            redirectAttributes.addFlashAttribute("successMessage", "Unscheduled driving ended. The end time and your account were recorded.");
++        } catch (IllegalArgumentException | IllegalStateException exception) {
++            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
++        }
++        return "redirect:/driving-records?view=records";
++    }
++
+     private void preserveFilters(
+             RedirectAttributes redirectAttributes,
+             LocalDate fromDate,
+diff --git a/src/main/java/technology/renatus/routepulse/reporting/workload/model/DrivingRecordPage.java b/src/main/java/technology/renatus/routepulse/reporting/workload/model/DrivingRecordPage.java
+index 6af816a..e35439b 100644
+--- a/src/main/java/technology/renatus/routepulse/reporting/workload/model/DrivingRecordPage.java
++++ b/src/main/java/technology/renatus/routepulse/reporting/workload/model/DrivingRecordPage.java
+@@ -3,6 +3,7 @@ package technology.renatus.routepulse.reporting.workload.model;
+ import java.time.LocalDate;
+ import java.util.List;
+ import java.util.Map;
++import technology.renatus.routepulse.driving.model.UnscheduledDrivingRecord;
+ import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
+ import technology.renatus.routepulse.assignments.model.DriverAssignment;
+ import technology.renatus.routepulse.driver.model.Driver;
+@@ -13,6 +14,7 @@ public record DrivingRecordPage(
+         boolean owner,
+         List<Driver> drivers,
+         List<DriverAssignment> records,
++        List<UnscheduledDrivingRecord> unscheduledRecords,
+         WorkloadSummary workloadSummary,
+         DriverWorkloadRow selectedDriverSummary,
+         Map<Long, Boolean> makeupStatus,
+diff --git a/src/main/java/technology/renatus/routepulse/reporting/workload/service/DrivingRecordPageService.java b/src/main/java/technology/renatus/routepulse/reporting/workload/service/DrivingRecordPageService.java
+index 51206fa..a301e88 100644
+--- a/src/main/java/technology/renatus/routepulse/reporting/workload/service/DrivingRecordPageService.java
++++ b/src/main/java/technology/renatus/routepulse/reporting/workload/service/DrivingRecordPageService.java
+@@ -2,6 +2,7 @@ package technology.renatus.routepulse.reporting.workload.service;
+ 
+ import java.time.LocalDate;
+ import java.util.List;
++import technology.renatus.routepulse.driving.model.UnscheduledDrivingRecord;
+ import org.springframework.security.core.Authentication;
+ import org.springframework.stereotype.Service;
+ import org.springframework.transaction.annotation.Transactional;
+@@ -45,6 +46,7 @@ public class DrivingRecordPageService {
+         String selectedView = "records".equalsIgnoreCase(view) ? "records" : "summary";
+ 
+         List<DriverAssignment> records = List.of();
++        List<UnscheduledDrivingRecord> unscheduledRecords = List.of();
+         WorkloadSummary workloadSummary = WorkloadSummary.empty(range.fromDate(), range.toDate());
+         String filterError = null;
+ 
+@@ -54,6 +56,8 @@ public class DrivingRecordPageService {
+                     range.fromDate(),
+                     range.toDate(),
+                     driverId);
++            unscheduledRecords = drivingRecordService.getUnscheduledRecords(
++                    organizationId, range.fromDate(), range.toDate(), driverId);
+             workloadSummary = drivingRecordService.getWorkloadSummary(
+                     organizationId,
+                     range.fromDate(),
+@@ -73,6 +77,7 @@ public class DrivingRecordPageService {
+                 hasOwnerRole(authentication),
+                 driverService.getAllDrivers(organizationId),
+                 records,
++                unscheduledRecords,
+                 workloadSummary,
+                 selectedDriverSummary,
+                 drivingRecordService.getMakeupStatusMap(organizationId, records),
+diff --git a/src/main/java/technology/renatus/routepulse/reporting/workload/service/DrivingRecordService.java b/src/main/java/technology/renatus/routepulse/reporting/workload/service/DrivingRecordService.java
+index eb3c1bc..176f125 100644
+--- a/src/main/java/technology/renatus/routepulse/reporting/workload/service/DrivingRecordService.java
++++ b/src/main/java/technology/renatus/routepulse/reporting/workload/service/DrivingRecordService.java
+@@ -15,12 +15,15 @@ import technology.renatus.routepulse.assignments.repository.DriverAssignmentRepo
+ import technology.renatus.routepulse.assignments.service.DriverWorkloadService;
+ import technology.renatus.routepulse.driver.repository.DriverRepository;
+ import technology.renatus.routepulse.reporting.workload.model.WorkloadSummary;
++import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
++import technology.renatus.routepulse.driving.model.UnscheduledDrivingRecord;
+ 
+ /** Loads organization-scoped records and assembles workload reports in a read transaction. */
+ @Service
+ @Transactional(readOnly = true)
+ public class DrivingRecordService {
+ 
++    private final DrivingSessionRepository drivingSessionRepository;
+     private final ZoneId operationsZone;
+     private final DriverAssignmentRepository assignmentRepository;
+     private final DriverRepository driverRepository;
+@@ -32,7 +35,9 @@ public class DrivingRecordService {
+             DriverRepository driverRepository,
+             DriverWorkloadService driverWorkloadService,
+             WorkloadCalculator workloadCalculator,
++            DrivingSessionRepository drivingSessionRepository,
+             @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
++        this.drivingSessionRepository = drivingSessionRepository;
+         this.assignmentRepository = assignmentRepository;
+         this.driverRepository = driverRepository;
+         this.driverWorkloadService = driverWorkloadService;
+@@ -87,6 +92,16 @@ public class DrivingRecordService {
+                 .toList();
+     }
+ 
++    public List<UnscheduledDrivingRecord> getUnscheduledRecords(Long organizationId,
++            LocalDate fromDate, LocalDate toDate, Long driverId) {
++        validateDateRange(organizationId, fromDate, toDate);
++        validateDriverIfPresent(organizationId, driverId);
++        return drivingSessionRepository.findUnscheduledRecords(organizationId, driverId,
++                        fromDate.atStartOfDay(operationsZone).toInstant(),
++                        toDate.plusDays(1).atStartOfDay(operationsZone).toInstant())
++                .stream().map(session -> UnscheduledDrivingRecord.from(session, operationsZone)).toList();
++    }
++
+     public Map<Long, Boolean> getMakeupStatusMap(
+             Long organizationId,
+             List<DriverAssignment> records) {
+@@ -208,6 +223,9 @@ public class DrivingRecordService {
+         return workloadCalculator.calculate(fromDate, toDate, driverId,
+                 driverRepository.findAllByOrganization_IdOrderByNameAsc(organizationId),
+                 assignmentRepository.findAllByOrganization_IdAndAssignmentDateBetween(
+-                        organizationId, fromDate, toDate));
++                        organizationId, fromDate, toDate),
++                drivingSessionRepository.findUnscheduledRecords(organizationId, driverId,
++                        fromDate.atStartOfDay(operationsZone).toInstant(),
++                        toDate.plusDays(1).atStartOfDay(operationsZone).toInstant()));
+     }
+ }
+diff --git a/src/main/java/technology/renatus/routepulse/reporting/workload/service/WorkloadCalculator.java b/src/main/java/technology/renatus/routepulse/reporting/workload/service/WorkloadCalculator.java
+index 72a71fa..bfc7dd2 100644
+--- a/src/main/java/technology/renatus/routepulse/reporting/workload/service/WorkloadCalculator.java
++++ b/src/main/java/technology/renatus/routepulse/reporting/workload/service/WorkloadCalculator.java
+@@ -21,6 +21,13 @@ public class WorkloadCalculator {
+     public WorkloadSummary calculate(
+             LocalDate fromDate, LocalDate toDate, Long driverId,
+             List<Driver> organizationDrivers, List<DriverAssignment> assignments) {
++        return calculate(fromDate, toDate, driverId, organizationDrivers, assignments, List.of());
++    }
++
++    public WorkloadSummary calculate(
++            LocalDate fromDate, LocalDate toDate, Long driverId,
++            List<Driver> organizationDrivers, List<DriverAssignment> assignments,
++            List<DrivingSession> unscheduledSessions) {
+ 
+         Map<Long, MutableDriverWorkload> workloadByDriver =
+                 new LinkedHashMap<>();
+@@ -176,6 +183,14 @@ public class WorkloadCalculator {
+             }
+         }
+ 
++        // Unscheduled segments add actual time; scheduled shifts and coverage counts remain unchanged.
++        for (DrivingSession session : unscheduledSessions) {
++            MutableDriverWorkload workload = workloadByDriver.get(session.getDriver().getId());
++            if (workload != null && session.isCompleted()) {
++                workload.actualMinutes += session.getActualMinutes();
++            }
++        }
++
+         List<DriverWorkloadRow> rows =
+                 workloadByDriver
+                         .values()
+diff --git a/src/main/java/technology/renatus/routepulse/reporting/workload/view/DrivingRecordModelAssembler.java b/src/main/java/technology/renatus/routepulse/reporting/workload/view/DrivingRecordModelAssembler.java
+index acfda43..bdeb266 100644
+--- a/src/main/java/technology/renatus/routepulse/reporting/workload/view/DrivingRecordModelAssembler.java
++++ b/src/main/java/technology/renatus/routepulse/reporting/workload/view/DrivingRecordModelAssembler.java
+@@ -13,6 +13,7 @@ public class DrivingRecordModelAssembler {
+         model.addAttribute("isOwner", page.owner());
+         model.addAttribute("drivers", page.drivers());
+         model.addAttribute("records", page.records());
++        model.addAttribute("unscheduledRecords", page.unscheduledRecords());
+         model.addAttribute("workloadSummary", page.workloadSummary());
+         model.addAttribute("selectedDriverSummary", page.selectedDriverSummary());
+         model.addAttribute("makeupStatus", page.makeupStatus());
+diff --git a/src/main/resources/templates/driver/home.html b/src/main/resources/templates/driver/home.html
+index c0db177..c5eadbd 100644
+--- a/src/main/resources/templates/driver/home.html
++++ b/src/main/resources/templates/driver/home.html
+@@ -61,6 +61,12 @@
+         th:text="${errorMessage}">
+     </div>
+ 
++    <section class="driver-focus" th:if="${unscheduledActive}" aria-labelledby="unscheduled-active-heading">
++        <span class="driver-focus__eyebrow">Driving now</span>
++        <h2 id="unscheduled-active-heading">Unscheduled driving is active.</h2>
++        <p>Your start time has been recorded. Tap the NFC tag or scan the QR again to pause or end driving.</p>
++    </section>
++
+     <section
+         class="driver-focus"
+         th:if="${primaryAssignment != null}"
+@@ -132,7 +138,7 @@
+ 
+     <section
+         class="driver-focus driver-focus--complete"
+-        th:if="${primaryAssignment == null and !#lists.isEmpty(todayAssignments)}"
++        th:if="${!unscheduledActive and primaryAssignment == null and !#lists.isEmpty(todayAssignments)}"
+         aria-labelledby="driver-complete-heading">
+ 
+         <span class="driver-focus__eyebrow">Today</span>
+@@ -142,15 +148,14 @@
+ 
+     <section
+         class="driver-focus driver-focus--empty"
+-        th:if="${#lists.isEmpty(todayAssignments)}"
++        th:if="${!unscheduledActive and #lists.isEmpty(todayAssignments)}"
+         aria-labelledby="driver-empty-heading">
+ 
+         <span class="driver-focus__eyebrow">Today</span>
+         <h2 id="driver-empty-heading">No driving assignment scheduled.</h2>
+         <p>
+-            If you are filling in for another registered driver, tap the NFC tag
+-            or scan the shuttle QR. Is the Shuttle Running will show the coverage action before
+-            it records a start time.
++            Asked to drive anyway? Tap the NFC tag or scan the shuttle QR.
++            You can cover an available assignment or start an unscheduled driving record.
+         </p>
+     </section>
+ 
+@@ -295,6 +300,11 @@
+         </div>
+     </details>
+ 
++    <section class="driver-schedule-section" th:if="${!#lists.isEmpty(unscheduledRecords)}">
++        <h2>My recent unscheduled driving</h2>
++        <p>Your latest 20 unscheduled driving segments. Completed durations count toward actual driving time.</p>
++        <th:block th:replace="~{fragments/driving-records/unscheduled :: table}"></th:block>
++    </section>
+ </main>
+ 
+ <footer th:replace="~{fragments/footer :: footer('app')}"></footer>
+diff --git a/src/main/resources/templates/driver/scan.html b/src/main/resources/templates/driver/scan.html
+index 2ecfc16..b4b5ec5 100644
+--- a/src/main/resources/templates/driver/scan.html
++++ b/src/main/resources/templates/driver/scan.html
+@@ -43,13 +43,20 @@
+         <div th:if="${scanError == null}">
+             <p class="auth-panel__intro">
+                 Signed in as <strong th:text="${driver.name}">Driver Name</strong>.
+-                Is the Shuttle Running matched this checkpoint to the
++                <span th:if="${assignment != null}">Is the Shuttle Running matched this checkpoint to the
+                 <strong th:text="${assignment.period}">MORNING</strong> shift for
+                 <strong th:text="${#temporals.format(assignment.assignmentDate, 'MMMM d, yyyy')}">
+                     September 4, 2026
+-                </strong>.
++                </strong>.</span>
++                <span th:if="${assignment == null}">This is an unscheduled driving record.</span>
+             </p>
+ 
++            <div th:if="${checkpointAction.name() == 'START_UNSCHEDULED'}" class="alert alert--info" role="status">
++                <strong>No scheduled assignment is available.</strong>
++                If you have been asked to drive, confirm below. Your name, start time and checkpoint
++                method will be saved as unscheduled driving. Tap again when you stop.
++            </div>
++
+             <div th:if="${takeoverRequired}" class="alert alert--info" role="status">
+                 <strong>Active-driver handoff detected.</strong>
+                 <span th:text="${currentActualDriver.name}">Current Driver</span>
+@@ -84,7 +91,7 @@
+                 <div class="readonly-field" th:text="${checkpointLabel}">NFC tap</div>
+             </div>
+ 
+-            <div class="form-group">
++            <div class="form-group" th:if="${assignment != null}">
+                 <span class="field-label">Scheduled driver</span>
+                 <div class="readonly-field"
+                      th:text="${scheduledDriver != null ? scheduledDriver.name : 'Unassigned'}">Driver Name</div>
+@@ -95,7 +102,7 @@
+                 <div class="readonly-field" th:text="${driver.name}">Driver Name</div>
+             </div>
+ 
+-            <div class="form-group">
++            <div class="form-group" th:if="${assignment != null}">
+                 <span class="field-label">Scheduled time</span>
+                 <div class="readonly-field">
+                     <th:block th:if="${assignment.hasPlannedDrivingWindows()}">
+@@ -118,6 +125,7 @@
+ 
+             <div class="form-group">
+                 <span class="field-label">Action</span>
++                <div class="readonly-field" th:if="${checkpointAction.name() == 'START_UNSCHEDULED'}">Start unscheduled driving</div>
+                 <div class="readonly-field" th:if="${checkpointAction.name() == 'START'}">Start driving</div>
+                 <div class="readonly-field" th:if="${checkpointAction.name() == 'RESUME'}">Resume driving</div>
+                 <div class="readonly-field" th:if="${checkpointAction.name() == 'TAKEOVER'}">Take over active driving</div>
+@@ -127,6 +135,11 @@
+             <form th:action="@{${formAction}}" method="post">
+                 <input type="hidden" name="code" th:value="${checkpointCode}">
+ 
++                <button class="button button--block" type="submit" name="action"
++                        value="START_UNSCHEDULED" th:if="${checkpointAction.name() == 'START_UNSCHEDULED'}">
++                    Start unscheduled driving
++                </button>
++
+                 <button class="button button--block"
+                         type="submit"
+                         name="action"
+@@ -162,14 +175,14 @@
+             </form>
+ 
+             <p class="auth-panel__footer"
+-               th:if="${checkpointAction.name() == 'START' or checkpointAction.name() == 'RESUME' or checkpointAction.name() == 'TAKEOVER'}">
++               th:if="${checkpointAction.name() == 'START_UNSCHEDULED' or checkpointAction.name() == 'START' or checkpointAction.name() == 'RESUME' or checkpointAction.name() == 'TAKEOVER'}">
+                 When this stretch of driving stops, tap the NFC tag or scan the QR code again.
+                 Is the Shuttle Running will let you pause temporarily or end the driving segment.
+             </p>
+ 
+             <p class="auth-panel__footer" th:if="${checkpointAction.name() == 'PAUSE_OR_END'}">
+-                A paused session stays in the history. When service resumes during the same assignment,
+-                another NFC tap or QR scan opens a new actual driving session without erasing the earlier one.
++                A paused session stays in your driving history. Tap or scan again when service resumes
++                to record the next driving segment.
+             </p>
+         </div>
+ 
+diff --git a/src/main/resources/templates/manager/driving-records.html b/src/main/resources/templates/manager/driving-records.html
+index d08a117..eee8df7 100644
+--- a/src/main/resources/templates/manager/driving-records.html
++++ b/src/main/resources/templates/manager/driving-records.html
+@@ -100,6 +100,18 @@
+ 
+     <th:block th:replace="~{fragments/driving-records/records :: records}"></th:block>
+ 
++    <section th:if="${selectedView == 'records'}" aria-labelledby="unscheduled-heading">
++        <h2 id="unscheduled-heading">Unscheduled driving</h2>
++        <p>Recorded without a scheduled assignment. Dates use each segment's start date in the operations time zone.
++            Completed minutes are included in actual hours; these records do not add scheduled shifts or makeup credit.</p>
++        <th:block th:replace="~{fragments/driving-records/unscheduled :: table}"></th:block>
++        <form th:each="record : ${unscheduledRecords}" th:if="${record.active}" method="post"
++              th:action="@{/driving-records/unscheduled/{id}/end(id=${record.id})}">
++            <button class="button button--secondary" type="submit"
++                    th:text="${'End unscheduled driving for ' + record.driverName}">End unscheduled driving</button>
++        </form>
++    </section>
++
+ </main>
+ 
+ <footer
+diff --git a/src/test/java/technology/renatus/routepulse/assignments/service/FairnessPlanningChecks.java b/src/test/java/technology/renatus/routepulse/assignments/service/FairnessPlanningChecks.java
+index f44b802..0da0b46 100644
+--- a/src/test/java/technology/renatus/routepulse/assignments/service/FairnessPlanningChecks.java
++++ b/src/test/java/technology/renatus/routepulse/assignments/service/FairnessPlanningChecks.java
+@@ -252,7 +252,9 @@ public class FairnessPlanningChecks {
+         });
+         final DrivingSessionRepository sessionRepository = repository(DrivingSessionRepository.class, (method, args) -> sessions.stream()
+                 .filter(s -> s.getOrganization().getId().equals(args[0]) && s.isCompleted()
+-                        && s.getAssignment().getAssignmentDate().isBefore((LocalDate) args[1])).toList());
++                        && (method.contains("AssignmentIsNull")
++                            ? s.isUnscheduled() && s.getStartedAt().isBefore((Instant) args[1])
++                            : !s.isUnscheduled() && s.getAssignment().getAssignmentDate().isBefore((LocalDate) args[1]))).toList());
+         final DriverWorkloadEventRepository eventRepository = repository(DriverWorkloadEventRepository.class, (method, args) -> events.stream()
+                 .filter(e -> e.getOrganization().getId().equals(args[0]) && e.getCreatedAt().isBefore((Instant) args[1])).toList());
+         final DriverWorkloadService workload = new DriverWorkloadService(sessionRepository, eventRepository, assignmentRepository, ZONE.getId());
+diff --git a/src/test/java/technology/renatus/routepulse/driver/service/portal/DriverCheckpointServiceTests.java b/src/test/java/technology/renatus/routepulse/driver/service/portal/DriverCheckpointServiceTests.java
+index 4b4b662..a1faa1f 100644
+--- a/src/test/java/technology/renatus/routepulse/driver/service/portal/DriverCheckpointServiceTests.java
++++ b/src/test/java/technology/renatus/routepulse/driver/service/portal/DriverCheckpointServiceTests.java
+@@ -74,6 +74,62 @@ class DriverCheckpointServiceTests {
+                 .thenReturn(List.of(assignment));
+     }
+ 
++    private void noAvailableAssignment() {
++        when(assignmentSelector.selectStartAssignment(eq(driver), any(), any()))
++                .thenThrow(new DriverScanAssignmentSelector.NoStartableAssignmentException("No assignment"));
++    }
++
++    @Test
++    void previewOffersExplicitUnscheduledStartWithoutWriting() {
++        noAvailableAssignment();
++        var preview = service.getPreview(authentication, "checkpoint-code", DrivingActionMethod.NFC);
++        assertThat(preview.action()).isEqualTo(DriverCheckpointService.CheckpointPreviewAction.START_UNSCHEDULED);
++        assertThat(preview.assignment()).isNull();
++        assertThat(preview.coverageRequired()).isFalse();
++        verify(drivingSessionService, never()).startUnscheduledSession(any(), any(), any(), any());
++    }
++
++    @Test
++    void confirmedUnscheduledStartRecordsDriverAndMethod() {
++        noAvailableAssignment();
++        var result = service.recordCheckpoint(authentication, "checkpoint-code", DrivingActionMethod.NFC,
++                DriverCheckpointService.CheckpointAction.START_UNSCHEDULED);
++        assertThat(result.assignment()).isNull();
++        assertThat(result.action()).isEqualTo(DriverCheckpointService.CheckpointAction.START_UNSCHEDULED);
++        verify(drivingSessionService).lockOrganization(100L);
++        verify(drivingSessionService).startUnscheduledSession(eq(driver), eq(user), any(Instant.class), eq(DrivingActionMethod.NFC));
++    }
++
++    @Test
++    void oldScheduledStartCannotSilentlyBecomeUnscheduled() {
++        noAvailableAssignment();
++        for (var action : java.util.Arrays.asList(null, DriverCheckpointService.CheckpointAction.START)) {
++            assertThatThrownBy(() -> service.recordCheckpoint(authentication, "checkpoint-code",
++                    DrivingActionMethod.NFC, action)).isInstanceOf(IllegalStateException.class);
++        }
++        verify(drivingSessionService, never()).startUnscheduledSession(any(), any(), any(), any());
++    }
++
++    @Test
++    void scheduledAssignmentAppearingAfterPreviewRejectsUnscheduledConfirmation() {
++        assertThatThrownBy(() -> service.recordCheckpoint(authentication, "checkpoint-code",
++                DrivingActionMethod.NFC, DriverCheckpointService.CheckpointAction.START_UNSCHEDULED))
++                .isInstanceOf(IllegalStateException.class).hasMessageContaining("driving state changed");
++        verify(drivingSessionService, never()).startUnscheduledSession(any(), any(), any(), any());
++    }
++
++    @Test
++    void repeatedUnscheduledStartDoesNotEndAnActiveDrive() {
++        var active = mock(technology.renatus.routepulse.driving.model.DrivingSession.class);
++        when(active.getDriver()).thenReturn(driver);
++        when(drivingSessionService.findActiveSessionForUpdate(100L)).thenReturn(active);
++        assertThatThrownBy(() -> service.recordCheckpoint(authentication, "checkpoint-code",
++                DrivingActionMethod.NFC, DriverCheckpointService.CheckpointAction.START_UNSCHEDULED))
++                .isInstanceOf(IllegalStateException.class).hasMessageContaining("already active");
++        verify(drivingSessionService, never()).startUnscheduledSession(any(), any(), any(), any());
++        verify(drivingSessionService, never()).endSession(any(), any(), any(), any(), any(), any());
++    }
++
+     @Test
+     void confirmedNfcStartRecordsSignedInDriverAndPhysicalMethod() {
+         DriverCheckpointService.CheckpointResult result = service.recordCheckpoint(
+diff --git a/src/test/java/technology/renatus/routepulse/migration/MigrationIntegrationTests.java b/src/test/java/technology/renatus/routepulse/migration/MigrationIntegrationTests.java
+index d98d72f..849ab6d 100644
+--- a/src/test/java/technology/renatus/routepulse/migration/MigrationIntegrationTests.java
++++ b/src/test/java/technology/renatus/routepulse/migration/MigrationIntegrationTests.java
+@@ -13,7 +13,7 @@ class MigrationIntegrationTests extends MySqlIntegrationTestSupport {
+         assertNotNull(flyway.info().current());
+ 
+         assertEquals(
+-                "33",
++                "34",
+                 flyway.info().current().getVersion().getVersion()
+         );
+ 
+@@ -35,7 +35,7 @@ class MigrationIntegrationTests extends MySqlIntegrationTestSupport {
+                 Integer.class
+         );
+ 
+-        assertEquals(33, successfulMigrations);
++        assertEquals(34, successfulMigrations);
+         assertEquals(0, failedMigrations);
+     }
+ }
+diff --git a/docs/UNSCHEDULED-DRIVING.md b/docs/UNSCHEDULED-DRIVING.md
+new file mode 100644
+index 0000000..1f20e4b
+--- /dev/null
++++ b/docs/UNSCHEDULED-DRIVING.md
+@@ -0,0 +1,69 @@
++# Unscheduled driving via NFC or QR
++
++## What drivers will see
++
++Keep using the existing NFC tag and QR code. The driver signs in using their linked, active driver account.
++
++- If a scheduled assignment is available, the existing start/resume/coverage workflow applies.
++- If no startable assignment is available and nobody is driving, the checkpoint offers **Start unscheduled driving**.
++- Confirming records the actual driver, account, UTC start timestamp, organization, and NFC/QR method without creating a scheduled assignment.
++- Tap or scan again to pause or end. A handoff closes the previous driver's segment and starts a new segment for the replacement driver.
++- After a pause, the next confirmed start creates another segment; previous segments remain in history.
++
++The driver home page shows active unscheduled driving and the latest 20 unscheduled segments. Managers can use **Driving records → Records → Unscheduled driving**, including the existing date and driver filters. Managers can end an active unscheduled segment there if necessary; that action records the manager's account and the MANAGER method.
++
++Completed unscheduled minutes count in actual driving hours, weekly actual-time analytics, and historical workload balancing. They do not create scheduled hours, scheduled shifts, coverage counts, or makeup credits. Open durations are shown as in progress. Date-range reports use the segment's start date in the configured operations time zone.
++
++The public rider page and passenger confirmations support unscheduled service. Existing manual operational-status overrides still apply.
++
++## Install and deploy
++
++1. Copy this project's updated `src` and `docs` files into your existing Git checkout, preserving your current `.git` folder and local configuration. Alternatively apply the included patch from your existing repository root:
++
++   ```bash
++   git apply --check /path/to/docs/UNSCHEDULED-DRIVING.patch
++   git apply /path/to/docs/UNSCHEDULED-DRIVING.patch
++   ```
++
++   Choose either file replacement or patch application, not both. The patch applies to the source version in the ZIP supplied for this change. If `--check` fails, resolve the source-version difference before applying.
++
++2. With Docker running (the project's integration tests use MySQL Testcontainers), run:
++
++   ```bash
++   ./mvnw test
++   ```
++
++3. After tests pass, commit and push from the project folder:
++
++   ```bash
++   git add src docs
++   git commit -m "Allow unscheduled NFC and QR driving records"
++   git pull --rebase origin main
++   git push origin main
++   ```
++
++   If the rebase reports conflicts, resolve them before pushing. Do not force-push.
++
++4. Railway deploys the pushed code. Confirm the latest deployment is active and its startup logs report migration **34** successfully applied.
++
++No new environment variables or NFC programming are required. Keep the existing production `REMEMBER_ME_KEY`; the long-login feature is unchanged.
++
++## Database and safety behavior
++
++`V34__allow_unscheduled_driving.sql` makes `driving_sessions.assignment_id` nullable and allows passenger confirmations to reference a driving session without an assignment. Existing records keep their assignment links. No existing migration was edited.
++
++Starts are serialized using the organization row, including when there are no assignment rows to lock. A repeated explicit start cannot turn into a stop or a handoff. Only an explicit **START_UNSCHEDULED** confirmation can create an unscheduled record; a stale scheduled-start form is rejected. GET requests remain read-only, and POST requests retain CSRF protection. Active-account, driver membership, organization checkpoint code, and manager permissions still apply.
++
++The fallback is for unavailable assignments. It does not bypass scheduled-start timing rules, protected breaks, or missing scheduled-time validation for an assignment that is available.
++
++## Verification performed
++
++- Passed executable domain checks for actual driver/account/method audit data, 45-minute duration, pause/end lifecycle, organization isolation, local timestamp presentation, passenger confirmation data, actual totals, no-assignment selection, and scheduled-session regression. These compiled real domain code with temporary annotation-only framework declarations; they do not validate JPA or Spring behavior.
++- Parsed all Java sources with the Java 17 parser and checked the patch for whitespace errors.
++- Added checkpoint unit tests for explicit unscheduled confirmation, read-only preview, stale actions, and repeated starts.
++- Added MySQL integration tests for NFC/QR start/pause/end, stored audit data, CSRF, rendered driver/manager views, public rider status, passenger confirmation cooldown, reporting and organization isolation, handoff, invalid tags, and inactive drivers. Updated the migration test to expect version 34.
++- The full Maven build and Spring/MySQL tests could not run in this workspace because Maven Central DNS resolution failed while downloading the Spring Boot parent. Run `./mvnw test` locally before deploying.
++
++## Quick check after deployment
++
++Using an organization with no scheduled assignments and no current drive, sign in on the driver's phone, tap the existing tag, and confirm **Start unscheduled driving**. Check that the driver home says driving is active, then tap again and end it. The two timestamps should appear under **Unscheduled driving** in the manager's driving records. Test records remain in the audit history.
+diff --git a/src/main/java/technology/renatus/routepulse/driving/model/UnscheduledDrivingRecord.java b/src/main/java/technology/renatus/routepulse/driving/model/UnscheduledDrivingRecord.java
+new file mode 100644
+index 0000000..6fc5387
+--- /dev/null
++++ b/src/main/java/technology/renatus/routepulse/driving/model/UnscheduledDrivingRecord.java
+@@ -0,0 +1,25 @@
++package technology.renatus.routepulse.driving.model;
++
++import java.time.ZoneId;
++import java.time.ZonedDateTime;
++
++/** A recorded drive, without an invented scheduled driver or scheduled hours. */
++public record UnscheduledDrivingRecord(Long id, String driverName,
++        ZonedDateTime startedAt, ZonedDateTime endedAt, String startMethod,
++        String endMethod, String status, long actualMinutes, boolean active) {
++    public static UnscheduledDrivingRecord from(DrivingSession session, ZoneId zone) {
++        return new UnscheduledDrivingRecord(session.getId(), session.getDriver().getName(),
++                session.getStartedAt().atZone(zone),
++                session.getEndedAt() == null ? null : session.getEndedAt().atZone(zone),
++                session.getStartMethod().name(),
++                session.getEndMethod() == null ? null : session.getEndMethod().name(),
++                session.isActive() ? "Driving now"
++                        : session.getEndReason() == null ? "Ended"
++                        : switch (session.getEndReason()) {
++                            case PAUSE -> "Paused";
++                            case HANDOFF -> "Handed off";
++                            case COMPLETED -> "Ended";
++                        },
++                session.getActualMinutes(), session.isActive());
++    }
++}
+diff --git a/src/main/resources/db/migration/V34__allow_unscheduled_driving.sql b/src/main/resources/db/migration/V34__allow_unscheduled_driving.sql
+new file mode 100644
+index 0000000..071982e
+--- /dev/null
++++ b/src/main/resources/db/migration/V34__allow_unscheduled_driving.sql
+@@ -0,0 +1,10 @@
++-- Actual driving can occur without a planned assignment. Existing records retain their links.
++ALTER TABLE driving_sessions MODIFY COLUMN assignment_id BIGINT NULL;
++
++ALTER TABLE passenger_ride_confirmations
++    MODIFY COLUMN assignment_id BIGINT NULL,
++    ADD COLUMN driving_session_id BIGINT NULL,
++    ADD CONSTRAINT fk_passenger_ride_session FOREIGN KEY (driving_session_id)
++        REFERENCES driving_sessions (id),
++    ADD CONSTRAINT uk_passenger_ride_session_device_window
++        UNIQUE (driving_session_id, device_token_hash, ride_window_start);
+diff --git a/src/main/resources/templates/fragments/driving-records/unscheduled.html b/src/main/resources/templates/fragments/driving-records/unscheduled.html
+new file mode 100644
+index 0000000..bf716d0
+--- /dev/null
++++ b/src/main/resources/templates/fragments/driving-records/unscheduled.html
+@@ -0,0 +1,21 @@
++<!DOCTYPE html>
++<html lang="en" xmlns:th="http://www.thymeleaf.org">
++<body>
++<div th:fragment="table" class="table-shell">
++    <table>
++        <thead><tr><th>Driver</th><th>Started</th><th>Ended</th><th>Actual minutes</th><th>Status</th><th>Recorded via</th></tr></thead>
++        <tbody>
++        <tr th:each="record : ${unscheduledRecords}">
++            <td th:text="${record.driverName}">Driver</td>
++            <td th:text="${#temporals.format(record.startedAt, 'MMM d, yyyy h:mm a z')}">Start</td>
++            <td th:text="${record.endedAt == null ? '—' : #temporals.format(record.endedAt, 'MMM d, yyyy h:mm a z')}">End</td>
++            <td th:text="${record.active ? 'In progress' : record.actualMinutes}">0</td>
++            <td th:text="${record.status}">Ended</td>
++            <td th:text="${record.startMethod + (record.endMethod == null ? '' : ' / ' + record.endMethod)}">NFC / NFC</td>
++        </tr>
++        <tr th:if="${#lists.isEmpty(unscheduledRecords)}"><td colspan="6">No unscheduled driving records in this date range.</td></tr>
++        </tbody>
++    </table>
++</div>
++</body>
++</html>
+diff --git a/src/test/java/technology/renatus/routepulse/driving/UnscheduledDrivingChecks.java b/src/test/java/technology/renatus/routepulse/driving/UnscheduledDrivingChecks.java
+new file mode 100644
+index 0000000..62f0f09
+--- /dev/null
++++ b/src/test/java/technology/renatus/routepulse/driving/UnscheduledDrivingChecks.java
+@@ -0,0 +1,82 @@
++package technology.renatus.routepulse.driving;
++
++import java.time.*;
++import java.util.List;
++import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
++import technology.renatus.routepulse.assignments.model.DriverAssignment;
++import technology.renatus.routepulse.auth.model.UserAccount;
++import technology.renatus.routepulse.driver.model.Driver;
++import technology.renatus.routepulse.driver.service.portal.DriverScanAssignmentSelector;
++import technology.renatus.routepulse.driving.domain.*;
++import technology.renatus.routepulse.driving.model.*;
++import technology.renatus.routepulse.organization.domain.OrganizationStatus;
++import technology.renatus.routepulse.organization.model.Organization;
++import technology.renatus.routepulse.reporting.workload.service.WorkloadCalculator;
++
++/** Framework-independent domain checks, also run by the JUnit suite. */
++public final class UnscheduledDrivingChecks {
++    public static void main(String[] args) throws Exception {
++        runAll();
++        System.out.println("Unscheduled driving domain checks passed: audit data, duration, lifecycle, organization isolation, reporting, selector and scheduled regression.");
++    }
++
++    static void runAll() throws Exception {
++        Instant start = Instant.parse("2026-10-04T15:00:00Z");
++        Organization org = new Organization("Test", "Test", "test", OrganizationStatus.ACTIVE, null, null);
++        id(org, 1L);
++        Driver driver = new Driver(org, "100", "Test Driver", true);
++        id(driver, 10L);
++        UserAccount user = new UserAccount("driver@example.com", "hash", "Test", "Driver", true, true);
++        id(user, 100L);
++        DrivingSession session = DrivingSession.startUnscheduled(org, driver, start, user, DrivingActionMethod.NFC);
++        require(session.isUnscheduled() && session.getAssignment() == null, "Unscheduled session must not invent an assignment");
++        require(session.getOrganization() == org && session.getDriver() == driver && session.getStartedBy() == user,
++                "The organization, actual driver and actor must be preserved");
++        require(session.getStartMethod() == DrivingActionMethod.NFC && session.isActive(), "NFC start must remain active");
++        require(session.getActualMinutes() == 0, "Active duration must not be reported as final");
++        expect(IllegalStateException.class, () -> session.end(start.minusSeconds(1), user, DrivingActionMethod.NFC));
++        session.end(start.plusSeconds(2700), user, DrivingActionMethod.QR, DrivingSessionEndReason.PAUSE);
++        require(session.getActualMinutes() == 45 && session.getEndReason() == DrivingSessionEndReason.PAUSE,
++                "Pause must retain its completed duration");
++        require(session.getEndMethod() == DrivingActionMethod.QR && session.getEndedBy() == user, "End audit must be recorded");
++        expect(IllegalStateException.class, () -> session.end(start.plusSeconds(3600), user, DrivingActionMethod.NFC));
++        var record = UnscheduledDrivingRecord.from(session, ZoneId.of("America/Chicago"));
++        require(record.startedAt().getHour() == 10 && record.actualMinutes() == 45 && record.status().equals("Paused"),
++                "History must use the operations time zone and actual duration");
++        var confirmation = new PassengerRideConfirmation(session, "test-device-hash", start, start.plusSeconds(60));
++        require(confirmation.getAssignment() == null && confirmation.getOrganization() == org
++                && confirmation.getDriver() == driver, "Unscheduled passenger confirmation must retain organization and driver");
++        Organization other = new Organization("Other", "Other", "other", OrganizationStatus.ACTIVE, null, null);
++        id(other, 2L);
++        expect(IllegalArgumentException.class, () -> DrivingSession.startUnscheduled(other, driver, start, user, DrivingActionMethod.NFC));
++        LocalDate date = LocalDate.of(2026, 10, 4);
++        var summary = new WorkloadCalculator().calculate(date, date, null, List.of(driver), List.of(), List.of(session));
++        require(summary.getActualMinutes() == 45 && summary.getScheduledMinutes() == 0
++                && summary.getScheduledShifts() == 0 && summary.getShiftsDriven() == 0,
++                "Unscheduled work adds actual time without fabricating scheduled assignments or shifts");
++        var selector = new DriverScanAssignmentSelector();
++        expect(DriverScanAssignmentSelector.NoStartableAssignmentException.class,
++                () -> selector.selectStartAssignment(driver, List.of(), date.atTime(10, 0)));
++        DriverAssignment assignment = DriverAssignment.automatic(date, ShuttlePeriod.MORNING, driver);
++        DrivingSession scheduled = DrivingSession.start(assignment, driver, start, user, DrivingActionMethod.QR);
++        require(!scheduled.isUnscheduled() && scheduled.getAssignment() == assignment, "Scheduled sessions must keep their assignment");
++        require(selector.selectStartAssignment(driver, List.of(assignment), date.atTime(10, 0)) == assignment,
++                "An available scheduled assignment must still be selected");
++    }
++
++    private static void id(Object target, Long value) throws Exception {
++        var field = target.getClass().getDeclaredField("id");
++        field.setAccessible(true);
++        field.set(target, value);
++    }
++    private static void require(boolean value, String message) {
++        if (!value) throw new AssertionError(message);
++    }
++    private static void expect(Class<? extends RuntimeException> type, Runnable action) {
++        try { action.run(); } catch (RuntimeException exception) {
++            if (type.isInstance(exception)) return;
++            throw new AssertionError("Unexpected exception", exception);
++        }
++        throw new AssertionError("Expected " + type.getSimpleName());
++    }
++}
+diff --git a/src/test/java/technology/renatus/routepulse/driving/UnscheduledDrivingIntegrationTests.java b/src/test/java/technology/renatus/routepulse/driving/UnscheduledDrivingIntegrationTests.java
+new file mode 100644
+index 0000000..ae558a2
+--- /dev/null
++++ b/src/test/java/technology/renatus/routepulse/driving/UnscheduledDrivingIntegrationTests.java
+@@ -0,0 +1,150 @@
++package technology.renatus.routepulse.driving;
++
++import static org.assertj.core.api.Assertions.*;
++import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.*;
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
++
++import java.time.Instant;
++import java.time.LocalDate;
++import java.time.ZoneOffset;
++import org.junit.jupiter.api.Test;
++import org.springframework.beans.factory.annotation.Autowired;
++import technology.renatus.routepulse.auth.model.UserAccount;
++import technology.renatus.routepulse.driver.model.Driver;
++import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService;
++import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService.CheckpointAction;
++import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
++import technology.renatus.routepulse.driving.domain.DrivingSessionEndReason;
++import technology.renatus.routepulse.driving.model.DrivingSession;
++import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
++import technology.renatus.routepulse.driving.service.DrivingSessionService;
++import technology.renatus.routepulse.driving.service.PassengerRideService;
++import technology.renatus.routepulse.driving.service.RiderStatusService;
++import technology.renatus.routepulse.organization.domain.OrganizationRole;
++import technology.renatus.routepulse.organization.model.Organization;
++import technology.renatus.routepulse.organization.model.OrganizationMembership;
++import technology.renatus.routepulse.reporting.workload.service.DrivingRecordService;
++import technology.renatus.routepulse.support.MySqlIntegrationTestSupport;
++
++class UnscheduledDrivingIntegrationTests extends MySqlIntegrationTestSupport {
++    @Autowired DriverCheckpointService checkpoints;
++    @Autowired DrivingSessionService sessions;
++    @Autowired DrivingSessionRepository sessionRepository;
++    @Autowired DrivingRecordService records;
++    @Autowired PassengerRideService rides;
++    @Autowired RiderStatusService riderStatus;
++
++    private Fixture fixture(String suffix) {
++        Organization org = createOrganization("Unscheduled " + suffix, "unscheduled-" + suffix);
++        UserAccount user = createUser("unscheduled-" + suffix + "@example.com", true);
++        membershipRepository.save(new OrganizationMembership(org, user, OrganizationRole.DRIVER));
++        Driver driver = new Driver(org, "100", "Driver " + suffix, true);
++        driver.linkUser(user);
++        driverRepository.saveAndFlush(driver);
++        return new Fixture(org, user, driver);
++    }
++
++    @Test
++    void noAssignmentFlowPersistsAndRendersStartPauseAndHistory() throws Exception {
++        Fixture f = fixture("flow");
++        long initialCount = sessionRepository.count();
++        var auth = user(f.user().getEmail()).roles("DRIVER");
++        mockMvc.perform(get("/driver/tap").with(auth).param("code", f.org().getDrivingQrCode()))
++                .andExpect(status().isOk())
++                .andExpect(content().string(org.hamcrest.Matchers.containsString("Start unscheduled driving")));
++        assertThat(sessionRepository.count()).isEqualTo(initialCount); // GET is read-only
++        mockMvc.perform(post("/driver/tap").with(auth).param("code", f.org().getDrivingQrCode())
++                .param("action", "START_UNSCHEDULED")).andExpect(status().isForbidden());
++        mockMvc.perform(post("/driver/tap").with(auth).with(csrf()).param("code", f.org().getDrivingQrCode())
++                .param("action", "START_UNSCHEDULED")).andExpect(status().is3xxRedirection());
++        entityManager.flush();
++        DrivingSession active = sessions.findActiveSession(f.org().getId());
++        assertThat(active).isNotNull();
++        assertThat(active.getAssignment()).isNull();
++        assertThat(active.getDriver().getId()).isEqualTo(f.driver().getId());
++        assertThat(active.getStartedBy().getId()).isEqualTo(f.user().getId());
++        assertThat(active.getStartMethod()).isEqualTo(DrivingActionMethod.NFC);
++        assertThat(assignmentRepository.findAllByOrganization_IdAndAssignmentDate(f.org().getId(), LocalDate.now(ZoneOffset.UTC))).isEmpty();
++        mockMvc.perform(get("/driver").with(auth)).andExpect(status().isOk())
++                .andExpect(content().string(org.hamcrest.Matchers.containsString("Unscheduled driving is active")));
++        assertThat(riderStatus.getStatus(f.org().getSlug()).confirmationAvailable()).isTrue();
++        assertThat(rides.confirmRide(f.org().getSlug(), "test-device")).isEqualTo(PassengerRideService.ConfirmationResult.RECORDED);
++        assertThat(rides.confirmRide(f.org().getSlug(), "test-device")).isEqualTo(PassengerRideService.ConfirmationResult.ALREADY_CONFIRMED);
++        checkpoints.recordCheckpoint(authenticationFor(f.user(), OrganizationRole.DRIVER), f.org().getDrivingQrCode(),
++                DrivingActionMethod.NFC, CheckpointAction.PAUSE);
++        assertThat(active.getEndReason()).isEqualTo(DrivingSessionEndReason.PAUSE);
++        assertThat(sessions.findActiveSession(f.org().getId())).isNull();
++        checkpoints.recordCheckpoint(authenticationFor(f.user(), OrganizationRole.DRIVER), f.org().getDrivingQrCode(),
++                DrivingActionMethod.QR, CheckpointAction.START_UNSCHEDULED);
++        DrivingSession second = sessions.findActiveSession(f.org().getId());
++        assertThat(second.getId()).isNotEqualTo(active.getId());
++        checkpoints.recordCheckpoint(authenticationFor(f.user(), OrganizationRole.DRIVER), f.org().getDrivingQrCode(),
++                DrivingActionMethod.QR, CheckpointAction.END);
++        assertThat(second.getEndReason()).isEqualTo(DrivingSessionEndReason.COMPLETED);
++    }
++
++    @Test
++    void reportingIncludesActualMinutesWithoutScheduledWorkAndIsOrganizationScoped() throws Exception {
++        Fixture f = fixture("reports");
++        Fixture other = fixture("other");
++        Instant start = LocalDate.now(ZoneOffset.UTC).atStartOfDay(ZoneOffset.UTC).toInstant();
++        DrivingSession session = sessions.startUnscheduledSession(f.driver(), f.user(), start, DrivingActionMethod.NFC);
++        sessions.endSession(null, session, f.user(), start.plusSeconds(2700), DrivingActionMethod.NFC);
++        entityManager.flush();
++        LocalDate date = start.atZone(ZoneOffset.UTC).toLocalDate();
++        var summary = records.getWorkloadSummary(f.org().getId(), date, date, f.driver().getId());
++        assertThat(summary.getActualMinutes()).isEqualTo(45);
++        assertThat(summary.getScheduledMinutes()).isZero();
++        assertThat(summary.getScheduledShifts()).isZero();
++        assertThat(records.getUnscheduledRecords(f.org().getId(), date, date, f.driver().getId())).hasSize(1);
++        assertThat(records.getUnscheduledRecords(other.org().getId(), date, date, null)).isEmpty();
++        assertThatThrownBy(() -> records.getUnscheduledRecords(other.org().getId(), date, date, f.driver().getId()))
++                .isInstanceOf(IllegalArgumentException.class);
++        UserAccount admin = createUser("unscheduled-admin@example.com", true);
++        membershipRepository.save(new OrganizationMembership(f.org(), admin, OrganizationRole.ADMIN));
++        mockMvc.perform(get("/driving-records").with(user(admin.getEmail()).roles("ADMIN"))
++                .param("view", "records")).andExpect(status().isOk())
++                .andExpect(content().string(org.hamcrest.Matchers.containsString("Driver reports")));
++    }
++
++    @Test
++    void handoffPreservesBothUnscheduledSessionsAndRejectsOtherOrganizations() {
++        Fixture f = fixture("handoff");
++        Fixture other = fixture("foreign");
++        Driver replacement = driverRepository.save(new Driver(f.org(), "200", "Replacement Driver", true));
++        Instant start = Instant.now().minusSeconds(3600);
++        DrivingSession first = sessions.startUnscheduledSession(f.driver(), f.user(), start, DrivingActionMethod.NFC);
++        assertThatThrownBy(() -> sessions.startUnscheduledSession(replacement, f.user(), start, DrivingActionMethod.NFC))
++                .isInstanceOf(IllegalStateException.class);
++        assertThatThrownBy(() -> sessions.takeOverActiveSession(first, other.driver(), f.user(), start.plusSeconds(1800), DrivingActionMethod.NFC))
++                .isInstanceOf(IllegalArgumentException.class);
++        DrivingSession second = sessions.takeOverActiveSession(first, replacement, f.user(), start.plusSeconds(1800), DrivingActionMethod.QR);
++        assertThat(first.getEndReason()).isEqualTo(DrivingSessionEndReason.HANDOFF);
++        assertThat(first.getActualMinutes()).isEqualTo(30);
++        assertThat(second.isUnscheduled()).isTrue();
++        assertThat(second.getStartedAt()).isEqualTo(first.getEndedAt());
++        assertThat(second.isActive()).isTrue();
++    }
++
++    @Test
++    void invalidTagDoesNotAllowAnUnscheduledStart() {
++        Fixture f = fixture("invalid");
++        assertThatThrownBy(() -> checkpoints.recordCheckpoint(authenticationFor(f.user(), OrganizationRole.DRIVER),
++                "another-organizations-tag", DrivingActionMethod.NFC, CheckpointAction.START_UNSCHEDULED))
++                .isInstanceOf(IllegalArgumentException.class);
++        assertThat(sessions.findActiveSession(f.org().getId())).isNull();
++    }
++
++    @Test
++    void inactiveDriverCannotStartWithoutAnAssignment() {
++        Fixture f = fixture("inactive");
++        f.driver().setActive(false);
++        assertThatThrownBy(() -> checkpoints.recordCheckpoint(authenticationFor(f.user(), OrganizationRole.DRIVER),
++                f.org().getDrivingQrCode(), DrivingActionMethod.NFC, CheckpointAction.START_UNSCHEDULED))
++                .isInstanceOf(IllegalStateException.class).hasMessageContaining("inactive");
++        assertThat(sessions.findActiveSession(f.org().getId())).isNull();
++    }
++
++    private record Fixture(Organization org, UserAccount user, Driver driver) {}
++}
+diff --git a/src/test/java/technology/renatus/routepulse/driving/UnscheduledDrivingModelTests.java b/src/test/java/technology/renatus/routepulse/driving/UnscheduledDrivingModelTests.java
+new file mode 100644
+index 0000000..370f834
+--- /dev/null
++++ b/src/test/java/technology/renatus/routepulse/driving/UnscheduledDrivingModelTests.java
+@@ -0,0 +1,10 @@
++package technology.renatus.routepulse.driving;
++
++import org.junit.jupiter.api.Test;
++
++class UnscheduledDrivingModelTests {
++    @Test
++    void unscheduledDomainRulesAndScheduledRegression() throws Exception {
++        UnscheduledDrivingChecks.runAll();
++    }
++}

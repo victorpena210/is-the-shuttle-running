@@ -66,12 +66,17 @@ public class DriverCheckpointService {
 
         List<DriverAssignment> assignments = assignmentRepository
                 .findAllByOrganization_IdAndAssignmentDate(organizationId, now.toLocalDate());
-        DriverAssignment assignment = assignmentSelector
-                .selectStartAssignment(driver, assignments, now);
+        DriverAssignment assignment;
+        try {
+            assignment = assignmentSelector.selectStartAssignment(driver, assignments, now);
+        } catch (DriverScanAssignmentSelector.NoStartableAssignmentException exception) {
+            return new CheckpointPreview(driver, null, CheckpointPreviewAction.START_UNSCHEDULED,
+                    false, false, null, null, method);
+        }
         assignmentSelector.requireScheduledTimes(assignment);
         startPolicy.requireStartAllowed(driver, assignment, now);
 
-        Driver scheduledDriver = assignment.getScheduledDriver();
+        Driver scheduledDriver = assignment == null ? null : assignment.getScheduledDriver();
         CheckpointPreviewAction action = assignment.hasDrivingSessions()
                 ? CheckpointPreviewAction.RESUME
                 : CheckpointPreviewAction.START;
@@ -101,8 +106,8 @@ public class DriverCheckpointService {
         LocalDateTime now = LocalDateTime.ofInstant(eventNow, operationsZone);
         Long organizationId = driver.getOrganization().getId();
 
-        // Lock today's assignments so simultaneous NFC/QR actions cannot create
-        // competing active sessions.
+        // An organization lock also protects days with no assignment rows.
+        drivingSessionService.lockOrganization(organizationId);
         List<DriverAssignment> assignments = assignmentRepository
                 .findAllForUpdateByOrganizationAndDate(organizationId, now.toLocalDate());
         DrivingSession activeSession = drivingSessionService
@@ -118,12 +123,22 @@ public class DriverCheckpointService {
                     requestedAction);
         }
 
-        DriverAssignment assignment = assignmentSelector
-                .selectStartAssignment(driver, assignments, now);
+        DriverAssignment assignment;
+        try {
+            assignment = assignmentSelector.selectStartAssignment(driver, assignments, now);
+        } catch (DriverScanAssignmentSelector.NoStartableAssignmentException exception) {
+            // Require explicit consent: an old scheduled-start form must never become unplanned work.
+            if (requestedAction != CheckpointAction.START_UNSCHEDULED) {
+                throw new IllegalStateException("No assignment is available. Tap again and confirm Start unscheduled driving.");
+            }
+            drivingSessionService.startUnscheduledSession(driver, user, eventNow, method);
+            return new CheckpointResult(CheckpointAction.START_UNSCHEDULED, null,
+                    false, false, null, null, method);
+        }
         assignmentSelector.requireScheduledTimes(assignment);
         startPolicy.requireStartAllowed(driver, assignment, now);
 
-        Driver scheduledDriver = assignment.getScheduledDriver();
+        Driver scheduledDriver = assignment == null ? null : assignment.getScheduledDriver();
         CheckpointAction action = assignment.hasDrivingSessions()
                 ? CheckpointAction.RESUME
                 : CheckpointAction.START;
@@ -159,7 +174,7 @@ public class DriverCheckpointService {
             DrivingActionMethod method) {
 
         DriverAssignment assignment = activeSession.getAssignment();
-        Driver scheduledDriver = assignment.getScheduledDriver();
+        Driver scheduledDriver = assignment == null ? null : assignment.getScheduledDriver();
 
         if (sameDriver(activeSession.getDriver(), driver)) {
             return new CheckpointPreview(
@@ -177,7 +192,7 @@ public class DriverCheckpointService {
                 driver,
                 assignment,
                 CheckpointPreviewAction.TAKEOVER,
-                !sameDriver(scheduledDriver, driver),
+                isCoverage(scheduledDriver, driver),
                 true,
                 scheduledDriver,
                 activeSession.getDriver(),
@@ -193,7 +208,7 @@ public class DriverCheckpointService {
             CheckpointAction requestedAction) {
 
         DriverAssignment assignment = activeSession.getAssignment();
-        Driver scheduledDriver = assignment.getScheduledDriver();
+        Driver scheduledDriver = assignment == null ? null : assignment.getScheduledDriver();
 
         if (sameDriver(activeSession.getDriver(), driver)) {
             CheckpointAction stopAction = normalizeStopAction(requestedAction);
@@ -293,6 +308,7 @@ public class DriverCheckpointService {
     }
 
     public enum CheckpointPreviewAction {
+        START_UNSCHEDULED,
         START,
         RESUME,
         TAKEOVER,
@@ -300,6 +316,7 @@ public class DriverCheckpointService {
     }
 
     public enum CheckpointAction {
+        START_UNSCHEDULED,
         START,
         RESUME,
         TAKEOVER,

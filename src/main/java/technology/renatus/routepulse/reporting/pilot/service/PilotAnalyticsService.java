@@ -25,6 +25,7 @@ import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driver.repository.DriverRepository;
 import technology.renatus.routepulse.driving.model.DrivingSession;
 import technology.renatus.routepulse.driving.repository.PassengerRideConfirmationRepository;
+import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
 import technology.renatus.routepulse.reporting.pilot.model.DriverFairnessRow;
 import technology.renatus.routepulse.reporting.pilot.model.PickupWindowStat;
 import technology.renatus.routepulse.reporting.pilot.model.PilotAnalyticsReport;
@@ -40,6 +41,7 @@ public class PilotAnalyticsService {
 
     private final DriverAssignmentRepository assignmentRepository;
     private final DriverRepository driverRepository;
+    private final DrivingSessionRepository drivingSessionRepository;
     private final PassengerRideConfirmationRepository passengerConfirmationRepository;
     private final PickupPlanningService pickupPlanningService;
     private final HistoricalDemandWindowRepository historicalDemandWindowRepository;
@@ -49,6 +51,7 @@ public class PilotAnalyticsService {
     public PilotAnalyticsService(
             DriverAssignmentRepository assignmentRepository,
             DriverRepository driverRepository,
+            DrivingSessionRepository drivingSessionRepository,
             PassengerRideConfirmationRepository passengerConfirmationRepository,
             PickupPlanningService pickupPlanningService,
             HistoricalDemandWindowRepository historicalDemandWindowRepository,
@@ -56,6 +59,7 @@ public class PilotAnalyticsService {
 
         this.assignmentRepository = assignmentRepository;
         this.driverRepository = driverRepository;
+        this.drivingSessionRepository = drivingSessionRepository;
         this.passengerConfirmationRepository = passengerConfirmationRepository;
         this.pickupPlanningService = pickupPlanningService;
         this.historicalDemandWindowRepository = historicalDemandWindowRepository;
@@ -90,7 +94,11 @@ public class PilotAnalyticsService {
                 .mapToLong(DriverAssignment::getScheduledMinutes)
                 .sum();
 
-        long actualMinutes = assignments.stream()
+        List<DrivingSession> unscheduledSessions = drivingSessionRepository.findUnscheduledRecords(
+                organizationId, null, weekStart.atStartOfDay(operationsZone).toInstant(),
+                weekEnd.plusDays(1).atStartOfDay(operationsZone).toInstant());
+        long actualMinutes = unscheduledSessions.stream().mapToLong(session -> actualMinutes(session, now)).sum()
+                + assignments.stream()
                 .flatMap(assignment -> assignment.getDrivingSessions().stream())
                 .mapToLong(session -> actualMinutes(session, now))
                 .sum();
@@ -134,6 +142,7 @@ public class PilotAnalyticsService {
         List<DriverFairnessRow> fairnessRows = buildFairnessRows(
                 organizationId,
                 assignments,
+                unscheduledSessions,
                 now
         );
 
@@ -187,6 +196,8 @@ public class PilotAnalyticsService {
             DrivingSession session,
             Instant now) {
 
+        // Unscheduled records have no planned end to infer; only completed durations are final.
+        if (session.isUnscheduled()) return session.getActualMinutes();
         Instant end = session.getEndedAt();
         if (end == null) {
             LocalDate startDate = session.getStartedAt()
@@ -313,6 +324,7 @@ public class PilotAnalyticsService {
     private List<DriverFairnessRow> buildFairnessRows(
             Long organizationId,
             List<DriverAssignment> assignments,
+            List<DrivingSession> unscheduledSessions,
             Instant now) {
 
         Map<Long, MutableFairness> byDriver = new LinkedHashMap<>();
@@ -345,6 +357,12 @@ public class PilotAnalyticsService {
             drivenThisAssignment.keySet().forEach(driverId ->
                     byDriver.get(driverId).assignmentsDriven++
             );
+        }
+
+        for (DrivingSession session : unscheduledSessions) {
+            Driver driver = session.getDriver();
+            byDriver.computeIfAbsent(driver.getId(), ignored -> new MutableFairness(driver))
+                    .actualMinutes += actualMinutes(session, now);
         }
 
         return byDriver.values().stream()

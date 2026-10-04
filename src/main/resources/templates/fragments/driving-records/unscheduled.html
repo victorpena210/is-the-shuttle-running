@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="table" class="table-shell">
+    <table>
+        <thead><tr><th>Driver</th><th>Started</th><th>Ended</th><th>Actual minutes</th><th>Status</th><th>Recorded via</th></tr></thead>
+        <tbody>
+        <tr th:each="record : ${unscheduledRecords}">
+            <td th:text="${record.driverName}">Driver</td>
+            <td th:text="${#temporals.format(record.startedAt, 'MMM d, yyyy h:mm a z')}">Start</td>
+            <td th:text="${record.endedAt == null ? '—' : #temporals.format(record.endedAt, 'MMM d, yyyy h:mm a z')}">End</td>
+            <td th:text="${record.active ? 'In progress' : record.actualMinutes}">0</td>
+            <td th:text="${record.status}">Ended</td>
+            <td th:text="${record.startMethod + (record.endMethod == null ? '' : ' / ' + record.endMethod)}">NFC / NFC</td>
+        </tr>
+        <tr th:if="${#lists.isEmpty(unscheduledRecords)}"><td colspan="6">No unscheduled driving records in this date range.</td></tr>
+        </tbody>
+    </table>
+</div>
+</body>
+</html>

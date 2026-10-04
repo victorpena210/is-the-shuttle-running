@@ -34,8 +34,8 @@ public class DrivingSession {
     @JoinColumn(name = "organization_id", nullable = false, updatable = false)
     private Organization organization;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "assignment_id", nullable = false, updatable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "assignment_id", updatable = false)
     private DriverAssignment assignment;
 
     @ManyToOne(fetch = FetchType.EAGER, optional = false)
@@ -75,21 +75,15 @@ public class DrivingSession {
     }
 
     private DrivingSession(
+            Organization organization,
             DriverAssignment assignment,
             Driver driver,
             Instant startedAt,
             UserAccount startedBy,
             DrivingActionMethod startMethod) {
 
-        this.assignment = Objects.requireNonNull(
-                assignment,
-                "Driving assignment is required."
-        );
-
-        this.organization = Objects.requireNonNull(
-                assignment.getOrganization(),
-                "Driving assignment organization is required."
-        );
+        this.assignment = assignment;
+        this.organization = Objects.requireNonNull(organization, "Organization is required.");
 
         this.driver = Objects.requireNonNull(
                 driver,
@@ -129,12 +123,23 @@ public class DrivingSession {
             DrivingActionMethod startMethod) {
 
         return new DrivingSession(
+                Objects.requireNonNull(assignment, "Assignment is required.").getOrganization(),
                 assignment,
                 driver,
                 startedAt,
                 startedBy,
                 startMethod
         );
+    }
+
+    public static DrivingSession startUnscheduled(
+            Organization organization, Driver driver, Instant startedAt,
+            UserAccount startedBy, DrivingActionMethod startMethod) {
+        return new DrivingSession(organization, null, driver, startedAt, startedBy, startMethod);
+    }
+
+    public boolean isUnscheduled() {
+        return assignment == null;
     }
 
     public void end(

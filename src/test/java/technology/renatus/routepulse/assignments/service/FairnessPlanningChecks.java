@@ -252,7 +252,9 @@ public class FairnessPlanningChecks {
         });
         final DrivingSessionRepository sessionRepository = repository(DrivingSessionRepository.class, (method, args) -> sessions.stream()
                 .filter(s -> s.getOrganization().getId().equals(args[0]) && s.isCompleted()
-                        && s.getAssignment().getAssignmentDate().isBefore((LocalDate) args[1])).toList());
+                        && (method.contains("AssignmentIsNull")
+                            ? s.isUnscheduled() && s.getStartedAt().isBefore((Instant) args[1])
+                            : !s.isUnscheduled() && s.getAssignment().getAssignmentDate().isBefore((LocalDate) args[1]))).toList());
         final DriverWorkloadEventRepository eventRepository = repository(DriverWorkloadEventRepository.class, (method, args) -> events.stream()
                 .filter(e -> e.getOrganization().getId().equals(args[0]) && e.getCreatedAt().isBefore((Instant) args[1])).toList());
         final DriverWorkloadService workload = new DriverWorkloadService(sessionRepository, eventRepository, assignmentRepository, ZONE.getId());

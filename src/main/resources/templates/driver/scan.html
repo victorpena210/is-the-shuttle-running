@@ -43,12 +43,19 @@
         <div th:if="${scanError == null}">
             <p class="auth-panel__intro">
                 Signed in as <strong th:text="${driver.name}">Driver Name</strong>.
-                Is the Shuttle Running matched this checkpoint to the
+                <span th:if="${assignment != null}">Is the Shuttle Running matched this checkpoint to the
                 <strong th:text="${assignment.period}">MORNING</strong> shift for
                 <strong th:text="${#temporals.format(assignment.assignmentDate, 'MMMM d, yyyy')}">
                     September 4, 2026
-                </strong>.
+                </strong>.</span>
+                <span th:if="${assignment == null}">This is an unscheduled driving record.</span>
             </p>
+
+            <div th:if="${checkpointAction.name() == 'START_UNSCHEDULED'}" class="alert alert--info" role="status">
+                <strong>No scheduled assignment is available.</strong>
+                If you have been asked to drive, confirm below. Your name, start time and checkpoint
+                method will be saved as unscheduled driving. Tap again when you stop.
+            </div>
 
             <div th:if="${takeoverRequired}" class="alert alert--info" role="status">
                 <strong>Active-driver handoff detected.</strong>
@@ -84,7 +91,7 @@
                 <div class="readonly-field" th:text="${checkpointLabel}">NFC tap</div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" th:if="${assignment != null}">
                 <span class="field-label">Scheduled driver</span>
                 <div class="readonly-field"
                      th:text="${scheduledDriver != null ? scheduledDriver.name : 'Unassigned'}">Driver Name</div>
@@ -95,7 +102,7 @@
                 <div class="readonly-field" th:text="${driver.name}">Driver Name</div>
             </div>
 
-            <div class="form-group">
+            <div class="form-group" th:if="${assignment != null}">
                 <span class="field-label">Scheduled time</span>
                 <div class="readonly-field">
                     <th:block th:if="${assignment.hasPlannedDrivingWindows()}">
@@ -118,6 +125,7 @@
 
             <div class="form-group">
                 <span class="field-label">Action</span>
+                <div class="readonly-field" th:if="${checkpointAction.name() == 'START_UNSCHEDULED'}">Start unscheduled driving</div>
                 <div class="readonly-field" th:if="${checkpointAction.name() == 'START'}">Start driving</div>
                 <div class="readonly-field" th:if="${checkpointAction.name() == 'RESUME'}">Resume driving</div>
                 <div class="readonly-field" th:if="${checkpointAction.name() == 'TAKEOVER'}">Take over active driving</div>
@@ -126,6 +134,11 @@
 
             <form th:action="@{${formAction}}" method="post">
                 <input type="hidden" name="code" th:value="${checkpointCode}">
+
+                <button class="button button--block" type="submit" name="action"
+                        value="START_UNSCHEDULED" th:if="${checkpointAction.name() == 'START_UNSCHEDULED'}">
+                    Start unscheduled driving
+                </button>
 
                 <button class="button button--block"
                         type="submit"
@@ -162,14 +175,14 @@
             </form>
 
             <p class="auth-panel__footer"
-               th:if="${checkpointAction.name() == 'START' or checkpointAction.name() == 'RESUME' or checkpointAction.name() == 'TAKEOVER'}">
+               th:if="${checkpointAction.name() == 'START_UNSCHEDULED' or checkpointAction.name() == 'START' or checkpointAction.name() == 'RESUME' or checkpointAction.name() == 'TAKEOVER'}">
                 When this stretch of driving stops, tap the NFC tag or scan the QR code again.
                 Is the Shuttle Running will let you pause temporarily or end the driving segment.
             </p>
 
             <p class="auth-panel__footer" th:if="${checkpointAction.name() == 'PAUSE_OR_END'}">
-                A paused session stays in the history. When service resumes during the same assignment,
-                another NFC tap or QR scan opens a new actual driving session without erasing the earlier one.
+                A paused session stays in your driving history. Tap or scan again when service resumes
+                to record the next driving segment.
             </p>
         </div>
 

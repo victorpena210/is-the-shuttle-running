@@ -61,6 +61,12 @@
         th:text="${errorMessage}">
     </div>
 
+    <section class="driver-focus" th:if="${unscheduledActive}" aria-labelledby="unscheduled-active-heading">
+        <span class="driver-focus__eyebrow">Driving now</span>
+        <h2 id="unscheduled-active-heading">Unscheduled driving is active.</h2>
+        <p>Your start time has been recorded. Tap the NFC tag or scan the QR again to pause or end driving.</p>
+    </section>
+
     <section
         class="driver-focus"
         th:if="${primaryAssignment != null}"
@@ -132,7 +138,7 @@
 
     <section
         class="driver-focus driver-focus--complete"
-        th:if="${primaryAssignment == null and !#lists.isEmpty(todayAssignments)}"
+        th:if="${!unscheduledActive and primaryAssignment == null and !#lists.isEmpty(todayAssignments)}"
         aria-labelledby="driver-complete-heading">
 
         <span class="driver-focus__eyebrow">Today</span>
@@ -142,15 +148,14 @@
 
     <section
         class="driver-focus driver-focus--empty"
-        th:if="${#lists.isEmpty(todayAssignments)}"
+        th:if="${!unscheduledActive and #lists.isEmpty(todayAssignments)}"
         aria-labelledby="driver-empty-heading">
 
         <span class="driver-focus__eyebrow">Today</span>
         <h2 id="driver-empty-heading">No driving assignment scheduled.</h2>
         <p>
-            If you are filling in for another registered driver, tap the NFC tag
-            or scan the shuttle QR. Is the Shuttle Running will show the coverage action before
-            it records a start time.
+            Asked to drive anyway? Tap the NFC tag or scan the shuttle QR.
+            You can cover an available assignment or start an unscheduled driving record.
         </p>
     </section>
 
@@ -295,6 +300,11 @@
         </div>
     </details>
 
+    <section class="driver-schedule-section" th:if="${!#lists.isEmpty(unscheduledRecords)}">
+        <h2>My recent unscheduled driving</h2>
+        <p>Your latest 20 unscheduled driving segments. Completed durations count toward actual driving time.</p>
+        <th:block th:replace="~{fragments/driving-records/unscheduled :: table}"></th:block>
+    </section>
 </main>
 
 <footer th:replace="~{fragments/footer :: footer('app')}"></footer>

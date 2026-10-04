@@ -30,10 +30,10 @@ public class DriverScanAssignmentSelector {
 
         if (candidates.isEmpty()) {
             if (assignments.isEmpty()) {
-                throw new IllegalStateException(
+                throw new NoStartableAssignmentException(
                         "There are no driving assignments scheduled for today.");
             }
-            throw new IllegalStateException(
+            throw new NoStartableAssignmentException(
                     "There is no startable or resumable driving assignment right now. A manager can reopen an ended assignment if service needs to continue outside its scheduled window.");
         }
 
@@ -55,6 +55,10 @@ public class DriverScanAssignmentSelector {
                         "Is the Shuttle Running cannot determine which shift this scan belongs to "
                                 + "because today's remaining assignments do not have "
                                 + "scheduled times. A manager must set the scheduled times first."));
+    }
+
+    public static class NoStartableAssignmentException extends IllegalStateException {
+        public NoStartableAssignmentException(String message) { super(message); }
     }
 
     public void requireScheduledTimes(DriverAssignment assignment) {

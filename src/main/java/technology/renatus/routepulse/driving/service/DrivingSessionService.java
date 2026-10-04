@@ -15,10 +15,13 @@ import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
 import technology.renatus.routepulse.driving.domain.DrivingSessionEndReason;
 import technology.renatus.routepulse.driving.model.DrivingSession;
 import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
+import technology.renatus.routepulse.organization.model.Organization;
+import technology.renatus.routepulse.organization.repository.OrganizationRepository;
 
 @Service
 public class DrivingSessionService {
 
+    private final OrganizationRepository organizationRepository;
     private final DriverAssignmentRepository assignmentRepository;
     private final DrivingSessionRepository drivingSessionRepository;
     private final DriverWorkloadService driverWorkloadService;
@@ -26,8 +29,10 @@ public class DrivingSessionService {
     public DrivingSessionService(
             DriverAssignmentRepository assignmentRepository,
             DrivingSessionRepository drivingSessionRepository,
-            DriverWorkloadService driverWorkloadService) {
+            DriverWorkloadService driverWorkloadService,
+            OrganizationRepository organizationRepository) {
 
+        this.organizationRepository = organizationRepository;
         this.assignmentRepository = assignmentRepository;
         this.drivingSessionRepository = drivingSessionRepository;
         this.driverWorkloadService = driverWorkloadService;
@@ -42,6 +47,7 @@ public class DrivingSessionService {
             Instant startedAt,
             DrivingActionMethod method) {
 
+        lockOrganization(organizationId);
         DriverAssignment assignment = assignmentRepository
                 .findByIdAndOrganizationForUpdate(
                         assignmentId,
@@ -103,6 +109,7 @@ public class DrivingSessionService {
             );
         }
 
+        lockOrganization(assignment.getOrganization().getId());
         List<DrivingSession> activeSessions = drivingSessionRepository
                 .findActiveForUpdateByOrganization(
                         assignment.getOrganization().getId()
@@ -111,7 +118,7 @@ public class DrivingSessionService {
         if (!activeSessions.isEmpty()) {
             DrivingSession active = activeSessions.get(0);
 
-            if (Objects.equals(
+            if (active.getAssignment() != null && Objects.equals(
                     active.getAssignment().getId(),
                     assignment.getId()
             )) {
@@ -140,6 +147,28 @@ public class DrivingSessionService {
         return session;
     }
 
+    /** Serialize starts even when no assignment or active session row exists to lock. */
+    @Transactional
+    public Organization lockOrganization(Long organizationId) {
+        return organizationRepository.findByIdForUpdate(organizationId)
+                .orElseThrow(() -> new IllegalStateException("Organization was not found."));
+    }
+
+    @Transactional
+    public DrivingSession startUnscheduledSession(
+            Driver driver, UserAccount actor, Instant startedAt, DrivingActionMethod method) {
+        Objects.requireNonNull(driver, "Driver is required.");
+        Organization organization = lockOrganization(driver.getOrganization().getId());
+        if (!driver.isActive()) {
+            throw new IllegalStateException("The driver must be active before driving can be recorded.");
+        }
+        if (findActiveSessionForUpdate(organization.getId()) != null) {
+            throw new IllegalStateException("Another driving session is already active. Tap again to refresh.");
+        }
+        return drivingSessionRepository.save(
+                DrivingSession.startUnscheduled(organization, driver, startedAt, actor, method));
+    }
+
     @Transactional
     public DrivingSession takeOverActiveSession(
             DrivingSession activeSession,
@@ -154,7 +183,9 @@ public class DrivingSessionService {
         Objects.requireNonNull(changedAt, "Takeover time is required.");
         Objects.requireNonNull(method, "Driving action method is required.");
 
-        if (!activeSession.isActive()) {
+        lockOrganization(activeSession.getOrganization().getId());
+        DrivingSession current = findActiveSessionForUpdate(activeSession.getOrganization().getId());
+        if (current == null || !Objects.equals(current.getId(), activeSession.getId()) || !activeSession.isActive()) {
             throw new IllegalStateException(
                     "The driving session being replaced is no longer active."
             );
@@ -163,7 +194,7 @@ public class DrivingSessionService {
         DriverAssignment assignment = activeSession.getAssignment();
 
         if (!Objects.equals(
-                assignment.getOrganization().getId(),
+                activeSession.getOrganization().getId(),
                 newDriver.getOrganization().getId()
         )) {
             throw new IllegalArgumentException(
@@ -188,8 +219,8 @@ public class DrivingSessionService {
 
         /*
          * Close the previous driver's real-world session at the exact takeover
-         * time, then open a second session on the SAME assignment. The planned
-         * scheduled driver on DriverAssignment is never rewritten.
+         * time, then open a second session with the same assignment (or no
+         * assignment for an unscheduled drive). The planned driver is never rewritten.
          */
         activeSession.end(
                 changedAt,
@@ -205,7 +236,9 @@ public class DrivingSessionService {
                 changedAt
         );
 
-        DrivingSession replacement = DrivingSession.start(
+        DrivingSession replacement = assignment == null
+                ? DrivingSession.startUnscheduled(activeSession.getOrganization(), newDriver, changedAt, actor, method)
+                : DrivingSession.start(
                 assignment,
                 newDriver,
                 changedAt,
@@ -214,8 +247,10 @@ public class DrivingSessionService {
         );
 
         drivingSessionRepository.save(replacement);
-        assignment.registerDrivingSession(replacement);
-        assignment.markDrivingInProgress();
+        if (assignment != null) {
+            assignment.registerDrivingSession(replacement);
+            assignment.markDrivingInProgress();
+        }
 
         return replacement;
     }
@@ -228,6 +263,7 @@ public class DrivingSessionService {
             Instant endedAt,
             DrivingActionMethod method) {
 
+        lockOrganization(organizationId);
         DriverAssignment assignment = assignmentRepository
                 .findByIdAndOrganizationForUpdate(
                         assignmentId,
@@ -282,12 +318,11 @@ public class DrivingSessionService {
             DrivingActionMethod method,
             DrivingSessionEndReason endReason) {
 
-        Objects.requireNonNull(assignment, "Assignment is required.");
         Objects.requireNonNull(session, "Driving session is required.");
 
         if (!Objects.equals(
-                assignment.getId(),
-                session.getAssignment().getId()
+                assignment == null ? null : assignment.getId(),
+                session.getAssignment() == null ? null : session.getAssignment().getId()
         )) {
             throw new IllegalArgumentException(
                     "Driving session does not belong to this assignment."
@@ -335,6 +370,7 @@ public class DrivingSessionService {
     }
 
     private void updateDerivedOutcome(DriverAssignment assignment) {
+        if (assignment == null) return;
         List<DrivingSession> sessions = assignment.getDrivingSessions();
 
         if (sessions.isEmpty()) {

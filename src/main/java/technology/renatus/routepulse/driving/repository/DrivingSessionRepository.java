@@ -2,6 +2,7 @@ package technology.renatus.routepulse.driving.repository;
 
 import jakarta.persistence.LockModeType;
 import java.time.LocalDate;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +13,23 @@ import technology.renatus.routepulse.driving.model.DrivingSession;
 
 public interface DrivingSessionRepository
         extends JpaRepository<DrivingSession, Long> {
+
+    List<DrivingSession> findAllByOrganization_IdAndAssignmentIsNullAndEndedAtIsNotNullAndStartedAtBefore(
+            Long organizationId, Instant before);
+
+    @Query("""
+            SELECT session FROM DrivingSession session
+            WHERE session.organization.id = :organizationId AND session.assignment IS NULL
+              AND session.startedAt >= :start AND session.startedAt < :end
+              AND (:driverId IS NULL OR session.driver.id = :driverId)
+            ORDER BY session.startedAt DESC
+            """)
+    List<DrivingSession> findUnscheduledRecords(
+            @Param("organizationId") Long organizationId, @Param("driverId") Long driverId,
+            @Param("start") Instant start, @Param("end") Instant end);
+
+    List<DrivingSession> findTop20ByOrganization_IdAndDriver_IdAndAssignmentIsNullOrderByStartedAtDesc(
+            Long organizationId, Long driverId);
 
     List<DrivingSession> findAllByAssignment_IdOrderByStartedAtAsc(
             Long assignmentId

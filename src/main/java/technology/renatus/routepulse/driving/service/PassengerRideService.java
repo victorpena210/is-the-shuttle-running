@@ -75,12 +75,7 @@ public class PassengerRideService {
         Instant now = Instant.now();
         String deviceTokenHash = hashDeviceToken(deviceToken);
 
-        boolean alreadyConfirmedRecently = passengerRideConfirmationRepository
-                .existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
-                        activeSession.getAssignment().getId(),
-                        deviceTokenHash,
-                        now.minus(cooldownMinutes, ChronoUnit.MINUTES)
-                );
+        boolean alreadyConfirmedRecently = alreadyConfirmed(activeSession, deviceTokenHash, now);
 
         return new PassengerRideState(
                 true,
@@ -111,12 +106,7 @@ public class PassengerRideService {
         Instant now = Instant.now();
         String deviceTokenHash = hashDeviceToken(deviceToken);
 
-        boolean alreadyConfirmedRecently = passengerRideConfirmationRepository
-                .existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
-                        activeSession.getAssignment().getId(),
-                        deviceTokenHash,
-                        now.minus(cooldownMinutes, ChronoUnit.MINUTES)
-                );
+        boolean alreadyConfirmedRecently = alreadyConfirmed(activeSession, deviceTokenHash, now);
 
         if (alreadyConfirmedRecently) {
             return ConfirmationResult.ALREADY_CONFIRMED;
@@ -124,8 +114,7 @@ public class PassengerRideService {
 
         PassengerRideConfirmation confirmation =
                 new PassengerRideConfirmation(
-                        activeSession.getAssignment(),
-                        activeSession.getDriver(),
+                        activeSession,
                         deviceTokenHash,
                         calculateWindowStart(now),
                         now
@@ -172,6 +161,15 @@ public class PassengerRideService {
                         organizationId
                 )
                 .orElse(null);
+    }
+
+    private boolean alreadyConfirmed(DrivingSession session, String deviceTokenHash, Instant now) {
+        Instant since = now.minus(cooldownMinutes, ChronoUnit.MINUTES);
+        return session.isUnscheduled()
+                ? passengerRideConfirmationRepository.existsByDrivingSession_IdAndDeviceTokenHashAndSubmittedAtAfter(
+                        session.getId(), deviceTokenHash, since)
+                : passengerRideConfirmationRepository.existsByAssignment_IdAndDeviceTokenHashAndSubmittedAtAfter(
+                        session.getAssignment().getId(), deviceTokenHash, since);
     }
 
     private Instant calculateWindowStart(Instant submittedAt) {

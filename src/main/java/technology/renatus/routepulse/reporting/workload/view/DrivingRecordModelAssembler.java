@@ -13,6 +13,7 @@ public class DrivingRecordModelAssembler {
         model.addAttribute("isOwner", page.owner());
         model.addAttribute("drivers", page.drivers());
         model.addAttribute("records", page.records());
+        model.addAttribute("unscheduledRecords", page.unscheduledRecords());
         model.addAttribute("workloadSummary", page.workloadSummary());
         model.addAttribute("selectedDriverSummary", page.selectedDriverSummary());
         model.addAttribute("makeupStatus", page.makeupStatus());

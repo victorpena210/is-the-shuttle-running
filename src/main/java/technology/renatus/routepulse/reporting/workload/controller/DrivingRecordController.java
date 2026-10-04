@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
+import technology.renatus.routepulse.driving.service.DrivingActionService;
 import technology.renatus.routepulse.assignments.service.AssignmentReviewService;
 import technology.renatus.routepulse.organization.service.CurrentOrganizationService;
 import technology.renatus.routepulse.reporting.workload.model.DrivingRecordPage;
@@ -20,6 +21,7 @@ import technology.renatus.routepulse.reporting.workload.view.DrivingRecordModelA
 @Controller
 public class DrivingRecordController {
 
+    private final DrivingActionService drivingActionService;
     private final AssignmentReviewService assignmentReviewService;
     private final CurrentOrganizationService currentOrganizationService;
     private final DrivingRecordPageService pageService;
@@ -27,9 +29,11 @@ public class DrivingRecordController {
 
     public DrivingRecordController(
             AssignmentReviewService assignmentReviewService,
+            DrivingActionService drivingActionService,
             CurrentOrganizationService currentOrganizationService,
             DrivingRecordPageService pageService,
             DrivingRecordModelAssembler modelAssembler) {
+        this.drivingActionService = drivingActionService;
         this.assignmentReviewService = assignmentReviewService;
         this.currentOrganizationService = currentOrganizationService;
         this.pageService = pageService;
@@ -94,6 +98,19 @@ public class DrivingRecordController {
         preserveFilters(redirectAttributes, fromDate, toDate, driverId);
         redirectAttributes.addAttribute("view", "records");
         return "redirect:/driving-records#record-" + assignmentId;
+    }
+
+    @PostMapping("/driving-records/unscheduled/{sessionId}/end")
+    public String endUnscheduledDriving(Authentication authentication, @PathVariable Long sessionId,
+            RedirectAttributes redirectAttributes) {
+        Long organizationId = currentOrganizationService.requireOrganizationId(authentication);
+        try {
+            drivingActionService.endUnscheduledDriving(organizationId, sessionId, authentication.getName());
+            redirectAttributes.addFlashAttribute("successMessage", "Unscheduled driving ended. The end time and your account were recorded.");
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        }
+        return "redirect:/driving-records?view=records";
     }
 
     private void preserveFilters(

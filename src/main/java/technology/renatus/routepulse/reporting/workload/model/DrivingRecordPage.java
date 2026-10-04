@@ -3,6 +3,7 @@ package technology.renatus.routepulse.reporting.workload.model;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
+import technology.renatus.routepulse.driving.model.UnscheduledDrivingRecord;
 import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.driver.model.Driver;
@@ -13,6 +14,7 @@ public record DrivingRecordPage(
         boolean owner,
         List<Driver> drivers,
         List<DriverAssignment> records,
+        List<UnscheduledDrivingRecord> unscheduledRecords,
         WorkloadSummary workloadSummary,
         DriverWorkloadRow selectedDriverSummary,
         Map<Long, Boolean> makeupStatus,

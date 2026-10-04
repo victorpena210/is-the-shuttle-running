@@ -15,12 +15,15 @@ import technology.renatus.routepulse.assignments.repository.DriverAssignmentRepo
 import technology.renatus.routepulse.assignments.service.DriverWorkloadService;
 import technology.renatus.routepulse.driver.repository.DriverRepository;
 import technology.renatus.routepulse.reporting.workload.model.WorkloadSummary;
+import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
+import technology.renatus.routepulse.driving.model.UnscheduledDrivingRecord;
 
 /** Loads organization-scoped records and assembles workload reports in a read transaction. */
 @Service
 @Transactional(readOnly = true)
 public class DrivingRecordService {
 
+    private final DrivingSessionRepository drivingSessionRepository;
     private final ZoneId operationsZone;
     private final DriverAssignmentRepository assignmentRepository;
     private final DriverRepository driverRepository;
@@ -32,7 +35,9 @@ public class DrivingRecordService {
             DriverRepository driverRepository,
             DriverWorkloadService driverWorkloadService,
             WorkloadCalculator workloadCalculator,
+            DrivingSessionRepository drivingSessionRepository,
             @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
+        this.drivingSessionRepository = drivingSessionRepository;
         this.assignmentRepository = assignmentRepository;
         this.driverRepository = driverRepository;
         this.driverWorkloadService = driverWorkloadService;
@@ -85,6 +90,16 @@ public class DrivingRecordService {
                                 )
                 )
                 .toList();
+    }
+
+    public List<UnscheduledDrivingRecord> getUnscheduledRecords(Long organizationId,
+            LocalDate fromDate, LocalDate toDate, Long driverId) {
+        validateDateRange(organizationId, fromDate, toDate);
+        validateDriverIfPresent(organizationId, driverId);
+        return drivingSessionRepository.findUnscheduledRecords(organizationId, driverId,
+                        fromDate.atStartOfDay(operationsZone).toInstant(),
+                        toDate.plusDays(1).atStartOfDay(operationsZone).toInstant())
+                .stream().map(session -> UnscheduledDrivingRecord.from(session, operationsZone)).toList();
     }
 
     public Map<Long, Boolean> getMakeupStatusMap(
@@ -208,6 +223,9 @@ public class DrivingRecordService {
         return workloadCalculator.calculate(fromDate, toDate, driverId,
                 driverRepository.findAllByOrganization_IdOrderByNameAsc(organizationId),
                 assignmentRepository.findAllByOrganization_IdAndAssignmentDateBetween(
-                        organizationId, fromDate, toDate));
+                        organizationId, fromDate, toDate),
+                drivingSessionRepository.findUnscheduledRecords(organizationId, driverId,
+                        fromDate.atStartOfDay(operationsZone).toInstant(),
+                        toDate.plusDays(1).atStartOfDay(operationsZone).toInstant()));
     }
 }

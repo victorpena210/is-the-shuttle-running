@@ -242,6 +242,7 @@ public class RiderStatusService {
             DriverAssignment assignment,
             LocalDateTime now) {
 
+        if (assignment == null) return null;
         if (assignment.hasPlannedDrivingWindows()) {
             PlannedDrivingWindow activeWindow = assignment.getPlannedDrivingWindows().stream()
                     .filter(window -> window.contains(now.toLocalTime()))

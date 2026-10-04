@@ -21,6 +21,13 @@ public class WorkloadCalculator {
     public WorkloadSummary calculate(
             LocalDate fromDate, LocalDate toDate, Long driverId,
             List<Driver> organizationDrivers, List<DriverAssignment> assignments) {
+        return calculate(fromDate, toDate, driverId, organizationDrivers, assignments, List.of());
+    }
+
+    public WorkloadSummary calculate(
+            LocalDate fromDate, LocalDate toDate, Long driverId,
+            List<Driver> organizationDrivers, List<DriverAssignment> assignments,
+            List<DrivingSession> unscheduledSessions) {
 
         Map<Long, MutableDriverWorkload> workloadByDriver =
                 new LinkedHashMap<>();
@@ -173,6 +180,14 @@ public class WorkloadCalculator {
                     scheduledWorkload
                             .coveredByAnotherDriver++;
                 }
+            }
+        }
+
+        // Unscheduled segments add actual time; scheduled shifts and coverage counts remain unchanged.
+        for (DrivingSession session : unscheduledSessions) {
+            MutableDriverWorkload workload = workloadByDriver.get(session.getDriver().getId());
+            if (workload != null && session.isCompleted()) {
+                workload.actualMinutes += session.getActualMinutes();
             }
         }
 

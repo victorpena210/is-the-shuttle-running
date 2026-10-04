@@ -2,6 +2,7 @@ package technology.renatus.routepulse.reporting.workload.service;
 
 import java.time.LocalDate;
 import java.util.List;
+import technology.renatus.routepulse.driving.model.UnscheduledDrivingRecord;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,6 +46,7 @@ public class DrivingRecordPageService {
         String selectedView = "records".equalsIgnoreCase(view) ? "records" : "summary";
 
         List<DriverAssignment> records = List.of();
+        List<UnscheduledDrivingRecord> unscheduledRecords = List.of();
         WorkloadSummary workloadSummary = WorkloadSummary.empty(range.fromDate(), range.toDate());
         String filterError = null;
 
@@ -54,6 +56,8 @@ public class DrivingRecordPageService {
                     range.fromDate(),
                     range.toDate(),
                     driverId);
+            unscheduledRecords = drivingRecordService.getUnscheduledRecords(
+                    organizationId, range.fromDate(), range.toDate(), driverId);
             workloadSummary = drivingRecordService.getWorkloadSummary(
                     organizationId,
                     range.fromDate(),
@@ -73,6 +77,7 @@ public class DrivingRecordPageService {
                 hasOwnerRole(authentication),
                 driverService.getAllDrivers(organizationId),
                 records,
+                unscheduledRecords,
                 workloadSummary,
                 selectedDriverSummary,
                 drivingRecordService.getMakeupStatusMap(organizationId, records),

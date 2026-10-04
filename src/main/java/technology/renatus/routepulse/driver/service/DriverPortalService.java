@@ -18,6 +18,8 @@ import technology.renatus.routepulse.driver.service.portal.DriverCheckpointServi
 import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService.CheckpointPreview;
 import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService.CheckpointResult;
 import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
+import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
+import technology.renatus.routepulse.driving.model.UnscheduledDrivingRecord;
 
 /** Facade for the driver portal's profile, assignment history, and physical checkpoint actions. */
 @Service
@@ -28,12 +30,15 @@ public class DriverPortalService {
     private final DriverCheckpointService checkpointService;
     private final DriverAssignmentRepository assignmentRepository;
     private final ZoneId operationsZone;
+    private final DrivingSessionRepository drivingSessionRepository;
 
     public DriverPortalService(
             DriverPortalAccessService accessService,
             DriverCheckpointService checkpointService,
             DriverAssignmentRepository assignmentRepository,
+            DrivingSessionRepository drivingSessionRepository,
             @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
+        this.drivingSessionRepository = drivingSessionRepository;
         this.accessService = accessService;
         this.checkpointService = checkpointService;
         this.assignmentRepository = assignmentRepository;
@@ -42,6 +47,14 @@ public class DriverPortalService {
 
     public Driver requireCurrentDriver(Authentication authentication) {
         return accessService.requireCurrentDriver(authentication);
+    }
+
+    public List<UnscheduledDrivingRecord> getRecentUnscheduledRecords(Authentication authentication) {
+        Driver driver = requireCurrentDriver(authentication);
+        return drivingSessionRepository
+                .findTop20ByOrganization_IdAndDriver_IdAndAssignmentIsNullOrderByStartedAtDesc(
+                        driver.getOrganization().getId(), driver.getId())
+                .stream().map(session -> UnscheduledDrivingRecord.from(session, operationsZone)).toList();
     }
 
     public List<DriverAssignment> getTodayAssignments(Authentication authentication) {

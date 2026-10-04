@@ -153,6 +153,9 @@ public class DriverWorkloadService {
             );
         }
 
+        // Unscheduled time counts toward actual workload, but cannot satisfy a scheduled makeup duty.
+        if (session.isUnscheduled()) return;
+
         Long sessionId = session.getId();
 
         if (sessionId != null
@@ -308,11 +311,14 @@ public class DriverWorkloadService {
             Long organizationId,
             LocalDate beforeDate) {
 
-        List<DrivingSession> completedSessions = drivingSessionRepository
+        List<DrivingSession> completedSessions = new ArrayList<>(drivingSessionRepository
                 .findAllByOrganization_IdAndEndedAtIsNotNullAndAssignment_AssignmentDateBefore(
                         organizationId,
                         beforeDate
-                );
+                ));
+        completedSessions.addAll(drivingSessionRepository
+                .findAllByOrganization_IdAndAssignmentIsNullAndEndedAtIsNotNullAndStartedAtBefore(
+                        organizationId, beforeDate.atStartOfDay(operationsZone).toInstant()));
 
         Map<Long, Long> minutesByDriver = new HashMap<>();
         Map<Long, Instant> lastDriveByDriver = new HashMap<>();

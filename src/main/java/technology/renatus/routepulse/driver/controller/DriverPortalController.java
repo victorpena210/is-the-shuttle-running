@@ -45,6 +45,9 @@ public class DriverPortalController {
         List<DriverAssignment> todayAssignments =
                 driverPortalService.getTodayAssignments(authentication);
 
+        var unscheduledRecords = driverPortalService.getRecentUnscheduledRecords(authentication);
+        model.addAttribute("unscheduledRecords", unscheduledRecords);
+        model.addAttribute("unscheduledActive", unscheduledRecords.stream().anyMatch(record -> record.active()));
         model.addAttribute("todayAssignments", todayAssignments);
         model.addAttribute(
                 "primaryAssignment",
@@ -184,6 +187,8 @@ public class DriverPortalController {
         String methodLabel = checkpointLabel(result.method());
 
         return switch (result.action()) {
+            case START_UNSCHEDULED -> "Unscheduled driving started by " + methodLabel
+                    + ". Your name and actual start time have been saved in the driving records.";
             case RESUME -> {
                 String coverageMessage = result.coveragePerformed()
                         && result.scheduledDriver() != null

@@ -101,6 +101,17 @@ public class DrivingActionService {
         return assignment;
     }
 
+    @Transactional
+    public void endUnscheduledDriving(Long organizationId, Long sessionId, String actorEmail) {
+        drivingSessionService.lockOrganization(organizationId);
+        var actor = organizationActorService.loadActor(organizationId, actorEmail);
+        var active = drivingSessionService.findActiveSessionForUpdate(organizationId);
+        if (active == null || !active.isUnscheduled() || !active.getId().equals(sessionId)) {
+            throw new IllegalStateException("This unscheduled driving session is no longer active.");
+        }
+        drivingSessionService.endSession(null, active, actor, Instant.now(), DrivingActionMethod.MANAGER);
+    }
+
     private DriverAssignment loadAssignment(
             Long organizationId,
             Long assignmentId) {

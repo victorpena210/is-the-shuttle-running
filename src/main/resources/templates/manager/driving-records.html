@@ -100,6 +100,18 @@
 
     <th:block th:replace="~{fragments/driving-records/records :: records}"></th:block>
 
+    <section th:if="${selectedView == 'records'}" aria-labelledby="unscheduled-heading">
+        <h2 id="unscheduled-heading">Unscheduled driving</h2>
+        <p>Recorded without a scheduled assignment. Dates use each segment's start date in the operations time zone.
+            Completed minutes are included in actual hours; these records do not add scheduled shifts or makeup credit.</p>
+        <th:block th:replace="~{fragments/driving-records/unscheduled :: table}"></th:block>
+        <form th:each="record : ${unscheduledRecords}" th:if="${record.active}" method="post"
+              th:action="@{/driving-records/unscheduled/{id}/end(id=${record.id})}">
+            <button class="button button--secondary" type="submit"
+                    th:text="${'End unscheduled driving for ' + record.driverName}">End unscheduled driving</button>
+        </form>
+    </section>
+
 </main>
 
 <footer

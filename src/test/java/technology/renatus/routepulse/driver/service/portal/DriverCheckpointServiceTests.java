@@ -74,6 +74,62 @@ class DriverCheckpointServiceTests {
                 .thenReturn(List.of(assignment));
     }
 
+    private void noAvailableAssignment() {
+        when(assignmentSelector.selectStartAssignment(eq(driver), any(), any()))
+                .thenThrow(new DriverScanAssignmentSelector.NoStartableAssignmentException("No assignment"));
+    }
+
+    @Test
+    void previewOffersExplicitUnscheduledStartWithoutWriting() {
+        noAvailableAssignment();
+        var preview = service.getPreview(authentication, "checkpoint-code", DrivingActionMethod.NFC);
+        assertThat(preview.action()).isEqualTo(DriverCheckpointService.CheckpointPreviewAction.START_UNSCHEDULED);
+        assertThat(preview.assignment()).isNull();
+        assertThat(preview.coverageRequired()).isFalse();
+        verify(drivingSessionService, never()).startUnscheduledSession(any(), any(), any(), any());
+    }
+
+    @Test
+    void confirmedUnscheduledStartRecordsDriverAndMethod() {
+        noAvailableAssignment();
+        var result = service.recordCheckpoint(authentication, "checkpoint-code", DrivingActionMethod.NFC,
+                DriverCheckpointService.CheckpointAction.START_UNSCHEDULED);
+        assertThat(result.assignment()).isNull();
+        assertThat(result.action()).isEqualTo(DriverCheckpointService.CheckpointAction.START_UNSCHEDULED);
+        verify(drivingSessionService).lockOrganization(100L);
+        verify(drivingSessionService).startUnscheduledSession(eq(driver), eq(user), any(Instant.class), eq(DrivingActionMethod.NFC));
+    }
+
+    @Test
+    void oldScheduledStartCannotSilentlyBecomeUnscheduled() {
+        noAvailableAssignment();
+        for (var action : java.util.Arrays.asList(null, DriverCheckpointService.CheckpointAction.START)) {
+            assertThatThrownBy(() -> service.recordCheckpoint(authentication, "checkpoint-code",
+                    DrivingActionMethod.NFC, action)).isInstanceOf(IllegalStateException.class);
+        }
+        verify(drivingSessionService, never()).startUnscheduledSession(any(), any(), any(), any());
+    }
+
+    @Test
+    void scheduledAssignmentAppearingAfterPreviewRejectsUnscheduledConfirmation() {
+        assertThatThrownBy(() -> service.recordCheckpoint(authentication, "checkpoint-code",
+                DrivingActionMethod.NFC, DriverCheckpointService.CheckpointAction.START_UNSCHEDULED))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("driving state changed");
+        verify(drivingSessionService, never()).startUnscheduledSession(any(), any(), any(), any());
+    }
+
+    @Test
+    void repeatedUnscheduledStartDoesNotEndAnActiveDrive() {
+        var active = mock(technology.renatus.routepulse.driving.model.DrivingSession.class);
+        when(active.getDriver()).thenReturn(driver);
+        when(drivingSessionService.findActiveSessionForUpdate(100L)).thenReturn(active);
+        assertThatThrownBy(() -> service.recordCheckpoint(authentication, "checkpoint-code",
+                DrivingActionMethod.NFC, DriverCheckpointService.CheckpointAction.START_UNSCHEDULED))
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("already active");
+        verify(drivingSessionService, never()).startUnscheduledSession(any(), any(), any(), any());
+        verify(drivingSessionService, never()).endSession(any(), any(), any(), any(), any(), any());
+    }
+
     @Test
     void confirmedNfcStartRecordsSignedInDriverAndPhysicalMethod() {
         DriverCheckpointService.CheckpointResult result = service.recordCheckpoint(

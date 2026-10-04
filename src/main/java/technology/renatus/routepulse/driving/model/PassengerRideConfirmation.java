@@ -49,16 +49,16 @@ public class PassengerRideConfirmation {
     )
     private Organization organization;
 
-    @ManyToOne(
-            fetch = FetchType.LAZY,
-            optional = false
-    )
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "assignment_id",
-            nullable = false,
             updatable = false
     )
     private DriverAssignment assignment;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "driving_session_id", updatable = false)
+    private DrivingSession drivingSession;
 
     @ManyToOne(
             fetch = FetchType.EAGER,
@@ -111,17 +111,21 @@ public class PassengerRideConfirmation {
             Instant rideWindowStart,
             Instant submittedAt) {
 
-        this.assignment =
-                Objects.requireNonNull(
-                        assignment,
-                        "Driving assignment is required."
-                );
+        this(Objects.requireNonNull(assignment, "Assignment is required.").getOrganization(),
+                assignment, actualDriver, deviceTokenHash, rideWindowStart, submittedAt);
+    }
 
-        this.organization =
-                Objects.requireNonNull(
-                        assignment.getOrganization(),
-                        "Driving assignment organization is required."
-                );
+    public PassengerRideConfirmation(DrivingSession session, String deviceTokenHash,
+            Instant rideWindowStart, Instant submittedAt) {
+        this(session.getOrganization(), session.getAssignment(), session.getDriver(),
+                deviceTokenHash, rideWindowStart, submittedAt);
+        this.drivingSession = session;
+    }
+
+    private PassengerRideConfirmation(Organization organization, DriverAssignment assignment,
+            Driver actualDriver, String deviceTokenHash, Instant rideWindowStart, Instant submittedAt) {
+        this.assignment = assignment;
+        this.organization = Objects.requireNonNull(organization, "Organization is required.");
 
         this.driver =
                 Objects.requireNonNull(
