@@ -75,6 +75,20 @@ class DriverCheckpointServiceTests {
     }
 
     @Test
+    void confirmedNfcStartRecordsSignedInDriverAndPhysicalMethod() {
+        DriverCheckpointService.CheckpointResult result = service.recordCheckpoint(
+                authentication, "checkpoint-code", DrivingActionMethod.NFC,
+                DriverCheckpointService.CheckpointAction.START);
+
+        verify(accessService).requireActiveDriver(driver);
+        verify(accessService).validateCheckpointCode(organization, "checkpoint-code");
+        verify(drivingSessionService).startSession(
+                eq(assignment), eq(driver), eq(user), any(Instant.class), eq(DrivingActionMethod.NFC));
+        assertThat(result.action()).isEqualTo(DriverCheckpointService.CheckpointAction.START);
+        assertThat(result.method()).isEqualTo(DrivingActionMethod.NFC);
+    }
+
+    @Test
     void rejectsExplicitStaleActionBeforeStartingSession() {
         assertThatThrownBy(() -> service.recordCheckpoint(
                 authentication,

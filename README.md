@@ -14,6 +14,7 @@ assignments, driving, reporting, calendar, dashboard, marketing and shared code.
 - [Frontend organization](FRONTEND_ORGANIZATION.md): current CSS, JavaScript and Thymeleaf layout.
 - [Cleanup notes](docs/cleanup-notes.md): changes, verification and installation details.
 - [Production monitoring & recovery](docs/production-monitoring-and-recovery.md): Sentry, uptime, backups, and restore drills.
+- [NFC setup and persistent sign-in](docs/NFC-SETUP.md): tag programming, driver onboarding, and the required production signing key.
 
 The application entry point is
 `technology.renatus.routepulse.RoutePulseApplication`. After applying the cleanup,

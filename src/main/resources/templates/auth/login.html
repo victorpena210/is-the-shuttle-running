@@ -116,6 +116,18 @@
                 Forgot your password?
             </a>
 
+            <div class="checkbox-row">
+                <input type="checkbox" id="remember-me" name="remember-me" value="true"
+                       aria-describedby="remember-me-help">
+                <label for="remember-me" th:text="|Keep me signed in for ${rememberMeDays} days|">
+                    Keep me signed in for 90 days
+                </label>
+            </div>
+            <p id="remember-me-help" class="auth-panel__intro">
+                Use this on your personal phone. When you tap the shuttle tag, open it
+                in this same browser. Leave this unchecked on a shared device.
+            </p>
+
             <button class="button button--block" type="submit">Sign in</button>
         </form>
 

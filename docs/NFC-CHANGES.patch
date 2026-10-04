@@ -1,0 +1,604 @@
+diff --git a/.env.example b/.env.example
+index f7da854..40e7c8d 100644
+--- a/.env.example
++++ b/.env.example
+@@ -6,6 +6,10 @@ APP_BASE_URL=http://localhost:8080
+ APP_REGISTRATION_ENABLED=true
+ 
+ # Required only with SPRING_PROFILES_ACTIVE=prod
++# Generate your own secret once: openssl rand -hex 32
++# Set REMEMBER_ME_KEY in Railway before deploying; never commit the real value.
++# REMEMBER_ME_KEY=
++REMEMBER_ME_DAYS=90
+ MAIL_HOST=smtp.example.com
+ MAIL_PORT=587
+ MAIL_USERNAME=replace-with-smtp-user
+diff --git a/README.md b/README.md
+index 0787671..f3dfbfd 100644
+--- a/README.md
++++ b/README.md
+@@ -14,6 +14,7 @@ assignments, driving, reporting, calendar, dashboard, marketing and shared code.
+ - [Frontend organization](FRONTEND_ORGANIZATION.md): current CSS, JavaScript and Thymeleaf layout.
+ - [Cleanup notes](docs/cleanup-notes.md): changes, verification and installation details.
+ - [Production monitoring & recovery](docs/production-monitoring-and-recovery.md): Sentry, uptime, backups, and restore drills.
++- [NFC setup and persistent sign-in](docs/NFC-SETUP.md): tag programming, driver onboarding, and the required production signing key.
+ 
+ The application entry point is
+ `technology.renatus.routepulse.RoutePulseApplication`. After applying the cleanup,
+diff --git a/src/main/java/technology/renatus/routepulse/auth/controller/AuthenticationController.java b/src/main/java/technology/renatus/routepulse/auth/controller/AuthenticationController.java
+index af1dc92..6db7cfc 100644
+--- a/src/main/java/technology/renatus/routepulse/auth/controller/AuthenticationController.java
++++ b/src/main/java/technology/renatus/routepulse/auth/controller/AuthenticationController.java
+@@ -10,15 +10,18 @@ import org.springframework.web.bind.annotation.GetMapping;
+ public class AuthenticationController {
+ 
+     private final boolean registrationEnabled;
++    private final int rememberMeDays;
+ 
+     public AuthenticationController(
+             @Value(
+                     "${app.registration.enabled:true}"
+             )
+-            boolean registrationEnabled) {
++            boolean registrationEnabled,
++            @Value("${app.security.remember-me.days:90}") int rememberMeDays) {
+ 
+         this.registrationEnabled =
+                 registrationEnabled;
++        this.rememberMeDays = rememberMeDays;
+     }
+ 
+     @GetMapping("/login")
+@@ -29,6 +32,7 @@ public class AuthenticationController {
+                 "registrationEnabled",
+                 registrationEnabled
+         );
++        model.addAttribute("rememberMeDays", rememberMeDays);
+ 
+         return "auth/login";
+     }
+diff --git a/src/main/java/technology/renatus/routepulse/shared/security/SecurityConfig.java b/src/main/java/technology/renatus/routepulse/shared/security/SecurityConfig.java
+index 90d6673..0898ad9 100644
+--- a/src/main/java/technology/renatus/routepulse/shared/security/SecurityConfig.java
++++ b/src/main/java/technology/renatus/routepulse/shared/security/SecurityConfig.java
+@@ -7,6 +7,7 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+ import org.springframework.security.crypto.password.PasswordEncoder;
+ import org.springframework.security.web.SecurityFilterChain;
+ import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
++import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
+ 
+ @Configuration
+ public class SecurityConfig {
+@@ -23,7 +24,8 @@ public class SecurityConfig {
+             securityFilterChain(
+                     HttpSecurity http,
+                     PublicRequestThrottle
+-                            publicRequestThrottle)
++                            publicRequestThrottle,
++                    TokenBasedRememberMeServices rememberMeServices)
+                     throws Exception {
+ 
+         LoginAttemptThrottleFilter
+@@ -169,6 +171,11 @@ public class SecurityConfig {
+                                 .permitAll()
+                 )
+ 
++                .rememberMe(remember -> remember
++                        .key(rememberMeServices.getKey())
++                        .rememberMeServices(rememberMeServices)
++                )
++
+                 .logout(logout ->
+                         logout
+                                 .logoutSuccessUrl(
+@@ -180,6 +187,7 @@ public class SecurityConfig {
+                                 .clearAuthentication(
+                                         true
+                                 )
++                                .deleteCookies("JSESSIONID")
+                                 .permitAll()
+                 )
+ 
+diff --git a/src/main/resources/application-prod.properties b/src/main/resources/application-prod.properties
+index 38f6240..d4be544 100644
+--- a/src/main/resources/application-prod.properties
++++ b/src/main/resources/application-prod.properties
+@@ -28,6 +28,10 @@ server.servlet.session.cookie.http-only=true
+ server.servlet.session.cookie.same-site=lax
+ server.servlet.session.timeout=30m
+ 
++# Keep this secret stable across deploys/replicas so remembered phones stay signed in.
++app.security.remember-me.key=${REMEMBER_ME_KEY}
++app.security.remember-me.secure-cookie=true
++
+ # Inbox that receives public RoutePulse demo requests.
+ app.demo-request.recipient=${DEMO_REQUEST_RECIPIENT:victor@renatus.technology}
+ 
+diff --git a/src/main/resources/application.properties b/src/main/resources/application.properties
+index 50abecb..8c62fae 100644
+--- a/src/main/resources/application.properties
++++ b/src/main/resources/application.properties
+@@ -27,6 +27,12 @@ server.port=${PORT:8080}
+ 
+ app.base-url=${APP_BASE_URL:http://localhost:8080}
+ 
++# Persistent sign-in is opt-in. The random local key changes on restart unless
++# REMEMBER_ME_KEY is set. Production requires an explicit stable secret.
++app.security.remember-me.key=${REMEMBER_ME_KEY:${random.uuid}}
++app.security.remember-me.days=${REMEMBER_ME_DAYS:90}
++app.security.remember-me.secure-cookie=false
++
+ # Keep local development convenient. Production overrides this to false.
+ app.registration.enabled=${APP_REGISTRATION_ENABLED:true}
+ 
+diff --git a/src/main/resources/static/css/pages/auth.css b/src/main/resources/static/css/pages/auth.css
+index 1e49f30..b474311 100644
+--- a/src/main/resources/static/css/pages/auth.css
++++ b/src/main/resources/static/css/pages/auth.css
+@@ -148,6 +148,18 @@
+     margin-top: 1.25rem;
+ }
+ 
++.auth-form .checkbox-row {
++    margin-top: 1.25rem;
++}
++
++.auth-form .checkbox-row label {
++    margin: 0;
++}
++
++.auth-form .checkbox-row input {
++    flex: 0 0 1.1rem;
++}
++
+ .auth-link {
+     display: inline-block;
+     margin-top: 1rem;
+diff --git a/src/main/resources/templates/auth/login.html b/src/main/resources/templates/auth/login.html
+index e3e8627..68c40a2 100644
+--- a/src/main/resources/templates/auth/login.html
++++ b/src/main/resources/templates/auth/login.html
+@@ -116,6 +116,18 @@
+                 Forgot your password?
+             </a>
+ 
++            <div class="checkbox-row">
++                <input type="checkbox" id="remember-me" name="remember-me" value="true"
++                       aria-describedby="remember-me-help">
++                <label for="remember-me" th:text="|Keep me signed in for ${rememberMeDays} days|">
++                    Keep me signed in for 90 days
++                </label>
++            </div>
++            <p id="remember-me-help" class="auth-panel__intro">
++                Use this on your personal phone. When you tap the shuttle tag, open it
++                in this same browser. Leave this unchecked on a shared device.
++            </p>
++
+             <button class="button button--block" type="submit">Sign in</button>
+         </form>
+ 
+diff --git a/src/main/resources/templates/manager/driving-qr.html b/src/main/resources/templates/manager/driving-qr.html
+index 97abce1..d6f1be5 100644
+--- a/src/main/resources/templates/manager/driving-qr.html
++++ b/src/main/resources/templates/manager/driving-qr.html
+@@ -67,10 +67,19 @@
+                 </div>
+ 
+                 <ol class="checkpoint-steps">
+-                    <li>Open your NFC-writing app.</li>
+-                    <li>Write the URL above as a website/URL record.</li>
+-                    <li>Test the tag with a driver phone before mounting it in the shuttle.</li>
++                    <li>Copy the NFC URL above, including the entire checkpoint code.</li>
++                    <li>In your NFC-writing app, choose Write, add a website/URL record,
++                        paste the URL, and write it to the tag.</li>
++                    <li>Have each driver sign in on their own phone. They can select
++                        “Keep me signed in” on a personal device.</li>
++                    <li>Tap the tag, open the phone's link notification if shown, and choose
++                        “Confirm start driving” during an eligible driving window.</li>
++                    <li>Check for the saved-start message and verify the actual session
++                        in Driving records before mounting the tag.</li>
+                 </ol>
++                <p>Opening the link shows the action; confirming it saves the driving record.
++                    Drivers need an internet connection and must use the same browser they
++                    signed in with. Private browsing does not keep their sign-in.</p>
+             </div>
+         </article>
+ 
+diff --git a/src/test/java/technology/renatus/routepulse/driver/service/portal/DriverCheckpointServiceTests.java b/src/test/java/technology/renatus/routepulse/driver/service/portal/DriverCheckpointServiceTests.java
+index 3c92385..4b4b662 100644
+--- a/src/test/java/technology/renatus/routepulse/driver/service/portal/DriverCheckpointServiceTests.java
++++ b/src/test/java/technology/renatus/routepulse/driver/service/portal/DriverCheckpointServiceTests.java
+@@ -74,6 +74,20 @@ class DriverCheckpointServiceTests {
+                 .thenReturn(List.of(assignment));
+     }
+ 
++    @Test
++    void confirmedNfcStartRecordsSignedInDriverAndPhysicalMethod() {
++        DriverCheckpointService.CheckpointResult result = service.recordCheckpoint(
++                authentication, "checkpoint-code", DrivingActionMethod.NFC,
++                DriverCheckpointService.CheckpointAction.START);
++
++        verify(accessService).requireActiveDriver(driver);
++        verify(accessService).validateCheckpointCode(organization, "checkpoint-code");
++        verify(drivingSessionService).startSession(
++                eq(assignment), eq(driver), eq(user), any(Instant.class), eq(DrivingActionMethod.NFC));
++        assertThat(result.action()).isEqualTo(DriverCheckpointService.CheckpointAction.START);
++        assertThat(result.method()).isEqualTo(DrivingActionMethod.NFC);
++    }
++
+     @Test
+     void rejectsExplicitStaleActionBeforeStartingSession() {
+         assertThatThrownBy(() -> service.recordCheckpoint(
+diff --git a/docs/NFC-SETUP.md b/docs/NFC-SETUP.md
+new file mode 100644
+index 0000000..f7929b4
+--- /dev/null
++++ b/docs/NFC-SETUP.md
+@@ -0,0 +1,119 @@
++# NFC driver check-in and 90-day sign-in
++
++The NTAG215 tags in your screenshot can hold the checkpoint URL. One tag can be
++shared by the shuttle's drivers: the signed-in account identifies the driver.
++The current app uses an organization-wide checkpoint, not a separate tag per vehicle.
++
++The flow is **tap tag → open link → confirm Start driving → saved driving record**.
++The confirmation is intentional: opening or previewing a URL must not start or
++end a session. The recorded start time is the time the confirmation reaches the server.
++
++## 1. Deploy this update
++
++The supplied project includes opt-in persistent sign-in and updated setup help.
++The NFC start/pause/resume/end workflow already existed. No database migration is needed.
++
++1. On your Mac, generate a signing secret once:
++
++   ```bash
++   openssl rand -hex 32
++   ```
++
++2. In the Railway **application service** Variables, add `REMEMBER_ME_KEY` with
++   that generated value. Keep it private and keep the same value across deploys
++   and replicas. Do not put it in Git, screenshots, or on the NFC tag.
++3. Confirm `SPRING_PROFILES_ACTIVE=prod` and
++   `APP_BASE_URL=https://istheshuttlerunning.com`. The optional
++   `REMEMBER_ME_DAYS` setting defaults to `90`. Other existing variables stay in place.
++4. Apply the code changes to your existing local project. The archive contains
++   the full project and `docs/NFC-CHANGES.patch`. From your existing project root
++   (the folder with `pom.xml`), you can use the patch without replacing your Git history:
++
++   ```bash
++   git apply --check /path/to/extracted/is-the-shuttle-running/docs/NFC-CHANGES.patch
++   git apply /path/to/extracted/is-the-shuttle-running/docs/NFC-CHANGES.patch
++   ```
++
++   Replace the example path with the actual extracted path. If the check reports
++   conflicts, review those differences before applying; do not overwrite unrelated work.
++5. Run focused tests (no Docker needed):
++
++   ```bash
++   bash mvnw -Dtest=RememberMeSecurityTests,DriverCheckpointServiceTests,DrivingSessionCheckpointMethodTests test
++   ```
++
++   With Docker Desktop running, run `bash mvnw clean verify` for the full suite.
++   Review the diff, commit and push through your existing Railway deployment flow.
++   Verify `/actuator/health/readiness` and the sign-in page after deployment.
++
++**Verification status for this delivery:** source/configuration and patch checks
++were completed. Maven could not download the existing Spring Boot 4.1.0 parent
++because `repo.maven.apache.org` could not be resolved from the editing environment.
++Compilation and the new tests therefore have not run. Run the commands above before deployment.
++
++## 2. Prepare each driver
++
++- Register/link the driver to their own user account with the DRIVER role and an
++  active driver profile. Have them accept the driver invitation and set their password.
++- Give them an assignment with an eligible driving window. The existing app
++  checks assignment timing; an arbitrary off-window test can correctly be blocked.
++- On their own phone, have them sign in at
++  `https://istheshuttlerunning.com/login` and select **Keep me signed in for 90 days**.
++- Use the normal browser that opens NFC links. A different browser, an isolated
++  home-screen app, or private browsing may use a different cookie store.
++
++## 3. Program the tag
++
++1. Sign in with your OWNER or ADMIN account and open
++   `https://istheshuttlerunning.com/driving-qr`
++   (also available through Drivers → Manage NFC + QR).
++2. Click **Copy NFC URL**. It has the format
++   `https://istheshuttlerunning.com/driver/tap?code=YOUR_ORGANIZATION_CODE`.
++   Copy the real full URL from the app; the example code above will not work.
++3. In an NFC-writing app on an NFC-capable phone, choose **Write**, add a
++   **URL/URI/website record**, and paste the copied URL. Button names vary by app.
++   Write only this URL record, not a plain-text record, password, or automation.
++4. Hold the tag to the phone's NFC reading area until writing succeeds. Read it
++   back and confirm the entire URL matches. Keep it rewritable while testing.
++5. Test in its intended mounting location before attaching it permanently. If
++   scanning stops working near metal, try a nonmetal surface or suitable spacer.
++
++## 4. Test a real start
++
++1. During an eligible assignment window, the signed-in driver taps the tag.
++   Open the link notification if the phone shows one; unlocking may be required.
++2. Check the displayed driver name and assignment, then press
++   **Confirm start driving**. Internet access is required.
++3. Wait for the saved-start message. As a manager, open **Driving records** and
++   check the actual driver, start time and NFC method.
++4. Tap again: the active driver can choose **Pause driving** or **End driving**.
++   A later tap can resume; a different driver is asked to confirm a handoff.
++5. Check persistent sign-in by closing/reopening the browser and then, after
++   the normal 30-minute idle session expires, tapping again. For a stronger
++   check, repeat after an application redeploy with the same signing key.
++6. Confirm logout: sign out, tap again, and verify login is required. A signed-out
++   tap should return to its original checkpoint after successful login.
++
++## How persistent sign-in behaves
++
++The normal production session remains 30 minutes. Selecting the checkbox stores
++an HttpOnly, HTTPS-only, SameSite=Lax signed cookie that can restore authentication
++for up to 90 days from password sign-in. It does not extend forever on every tap.
++The label follows `REMEMBER_ME_DAYS` if you change it (supported range: 1–365).
++
++Logout clears this browser's remembered sign-in. Clearing cookies, changing the
++password, expiration, or changing the signing key requires a new sign-in.
++Account status and roles are reloaded when restoring authentication. Existing
++driver-active and organization-code checks still apply when recording a session.
++A copied persistent cookie remains valid until expiry, password change, or key
++rotation; logout does not centrally revoke copies. There is no device-management UI.
++Use the option only on personal devices. Browser privacy settings may clear cookies earlier.
++
++The NFC URL itself is copyable and is not proof of physical presence. Driver
++authentication and confirmation are still required. Regenerating the checkpoint
++code invalidates the old tag URL; rewrite every tag and reprint the QR afterward.
++
++## Reference documentation
++
++- NXP NTAG213/215/216: https://www.nxp.com/products/NTAG213_215_216
++- Spring Security remember-me: https://docs.spring.io/spring-security/reference/servlet/authentication/rememberme.html
+diff --git a/src/main/java/technology/renatus/routepulse/shared/security/RememberMeConfig.java b/src/main/java/technology/renatus/routepulse/shared/security/RememberMeConfig.java
+new file mode 100644
+index 0000000..168dd5f
+--- /dev/null
++++ b/src/main/java/technology/renatus/routepulse/shared/security/RememberMeConfig.java
+@@ -0,0 +1,39 @@
++package technology.renatus.routepulse.shared.security;
++
++import java.time.Duration;
++import org.springframework.beans.factory.annotation.Value;
++import org.springframework.context.annotation.Bean;
++import org.springframework.context.annotation.Configuration;
++import org.springframework.security.core.userdetails.UserDetailsService;
++import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
++import org.springframework.util.Assert;
++
++/** Opt-in sign-in on a personal device, independent of the short HTTP session. */
++@Configuration
++public class RememberMeConfig {
++
++    @Bean
++    public TokenBasedRememberMeServices rememberMeServices(
++            UserDetailsService userDetailsService,
++            @Value("${app.security.remember-me.key}") String key,
++            @Value("${app.security.remember-me.days:90}") int days,
++            @Value("${app.security.remember-me.secure-cookie:false}") boolean secureCookie) {
++
++        Assert.isTrue(key != null && key.trim().length() >= 32,
++                "REMEMBER_ME_KEY must contain at least 32 characters; generate it with openssl rand -hex 32.");
++        Assert.isTrue(days >= 1 && days <= 365,
++                "REMEMBER_ME_DAYS must be between 1 and 365.");
++
++        // Spring signs the cookie against the current password hash. A password
++        // reset or key rotation invalidates previously issued remember-me cookies.
++        TokenBasedRememberMeServices services =
++                new TokenBasedRememberMeServices(key, userDetailsService);
++        services.setCookieName("shuttle-remember-me");
++        services.setParameter("remember-me");
++        services.setAlwaysRemember(false);
++        services.setTokenValiditySeconds(Math.toIntExact(Duration.ofDays(days).getSeconds()));
++        services.setUseSecureCookie(secureCookie);
++        services.setCookieCustomizer(cookie -> cookie.setAttribute("SameSite", "Lax"));
++        return services;
++    }
++}
+diff --git a/src/test/java/technology/renatus/routepulse/auth/RememberMeSecurityTests.java b/src/test/java/technology/renatus/routepulse/auth/RememberMeSecurityTests.java
+new file mode 100644
+index 0000000..030a4fe
+--- /dev/null
++++ b/src/test/java/technology/renatus/routepulse/auth/RememberMeSecurityTests.java
+@@ -0,0 +1,197 @@
++package technology.renatus.routepulse.auth;
++
++import static org.assertj.core.api.Assertions.assertThat;
++import static org.mockito.ArgumentMatchers.any;
++import static org.mockito.ArgumentMatchers.eq;
++import static org.mockito.Mockito.mock;
++import static org.mockito.Mockito.never;
++import static org.mockito.Mockito.reset;
++import static org.mockito.Mockito.verify;
++import static org.mockito.Mockito.when;
++import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
++import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
++import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.cookie;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
++import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
++
++import jakarta.servlet.http.Cookie;
++import org.junit.jupiter.api.BeforeEach;
++import org.junit.jupiter.api.Test;
++import org.springframework.beans.factory.annotation.Autowired;
++import org.springframework.context.annotation.Bean;
++import org.springframework.context.annotation.Configuration;
++import org.springframework.context.annotation.Import;
++import org.springframework.mock.web.MockHttpSession;
++import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
++import org.springframework.security.core.userdetails.User;
++import org.springframework.security.provisioning.InMemoryUserDetailsManager;
++import org.springframework.test.context.TestPropertySource;
++import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
++import org.springframework.test.context.web.WebAppConfiguration;
++import org.springframework.test.web.servlet.MockMvc;
++import org.springframework.test.web.servlet.MvcResult;
++import org.springframework.test.web.servlet.setup.MockMvcBuilders;
++import org.springframework.web.context.WebApplicationContext;
++import org.springframework.web.servlet.config.annotation.EnableWebMvc;
++import org.springframework.web.servlet.view.InternalResourceViewResolver;
++import technology.renatus.routepulse.auth.controller.AuthenticationController;
++import technology.renatus.routepulse.driver.controller.DriverPortalController;
++import technology.renatus.routepulse.driver.service.DriverPortalService;
++import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService.CheckpointAction;
++import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
++import technology.renatus.routepulse.shared.security.PublicRequestThrottle;
++import technology.renatus.routepulse.shared.security.RememberMeConfig;
++import technology.renatus.routepulse.shared.security.SecurityConfig;
++
++/** Real security filter chain and controllers, with no MySQL/Docker requirement. */
++@SpringJUnitConfig(RememberMeSecurityTests.TestConfig.class)
++@WebAppConfiguration
++@TestPropertySource(properties = {
++        "app.security.remember-me.key=test-only-signing-key-at-least-32-characters",
++        "app.security.remember-me.days=90",
++        "app.security.remember-me.secure-cookie=true"
++})
++class RememberMeSecurityTests {
++
++    private static final String EMAIL = "driver@example.com";
++    private static final String COOKIE = "shuttle-remember-me";
++    @Autowired WebApplicationContext context;
++    @Autowired InMemoryUserDetailsManager users;
++    @Autowired DriverPortalService portal;
++    private MockMvc mvc;
++
++    @BeforeEach
++    void setUp() {
++        users.updateUser(User.withUsername(EMAIL).password("{noop}test-password")
++                .roles("DRIVER").build());
++        reset(portal);
++        when(portal.getCheckpointPreview(any(), eq("tag-code"), eq(DrivingActionMethod.NFC)))
++                .thenThrow(new IllegalStateException("No driving window is available."));
++        mvc = MockMvcBuilders.webAppContextSetup(context).apply(springSecurity()).build();
++    }
++
++    @Test
++    void remembersDriverWithoutOldSessionAndKeepsNfcGetReadOnly() throws Exception {
++        Cookie remembered = signIn(true).getResponse().getCookie(COOKIE);
++        assertThat(remembered).isNotNull();
++        assertThat(remembered.getMaxAge()).isEqualTo(90 * 24 * 60 * 60);
++        assertThat(remembered.isHttpOnly()).isTrue();
++        assertThat(remembered.getSecure()).isTrue();
++        assertThat(remembered.getAttribute("SameSite")).isEqualTo("Lax");
++
++        // Deliberately send only the persistent cookie, no previous session.
++        mvc.perform(get("/driver/tap").secure(true).param("code", "tag-code").cookie(remembered))
++                .andExpect(status().isOk())
++                .andExpect(model().attribute("checkpointMethod", DrivingActionMethod.NFC));
++        verify(portal).getCheckpointPreview(
++                org.mockito.ArgumentMatchers.argThat(auth -> EMAIL.equals(auth.getName())),
++                eq("tag-code"), eq(DrivingActionMethod.NFC));
++        verify(portal, never()).recordCheckpoint(any(), any(), any(), any());
++    }
++
++    @Test
++    void signedOutTapReturnsToOriginalCheckpointAfterLogin() throws Exception {
++        MvcResult tap = mvc.perform(get("/driver/tap").secure(true).param("code", "tag-code"))
++                .andExpect(status().is3xxRedirection()).andReturn();
++        MvcResult login = mvc.perform(post("/login").secure(true).with(csrf())
++                        .session((MockHttpSession) tap.getRequest().getSession(false))
++                        .param("email", EMAIL).param("password", "test-password")
++                        .param("remember-me", "true"))
++                .andExpect(status().is3xxRedirection()).andReturn();
++        assertThat(login.getResponse().getRedirectedUrl())
++                .contains("/driver/tap", "code=tag-code");
++    }
++
++    @Test
++    void persistenceRequiresOptInAndLoginDisplaysConfiguredDuration() throws Exception {
++        assertThat(signIn(false).getResponse().getCookie(COOKIE)).isNull();
++        mvc.perform(get("/login")).andExpect(model().attribute("rememberMeDays", 90));
++    }
++
++    @Test
++    void passwordChangeInvalidatesOldRememberedSignIn() throws Exception {
++        Cookie remembered = signIn(true).getResponse().getCookie(COOKIE);
++        users.updateUser(User.withUsername(EMAIL).password("{noop}new-password").roles("DRIVER").build());
++        mvc.perform(get("/driver/tap").secure(true).param("code", "tag-code").cookie(remembered))
++                .andExpect(status().is3xxRedirection()).andExpect(cookie().maxAge(COOKIE, 0));
++        verify(portal, never()).getCheckpointPreview(any(), any(), any());
++    }
++
++    @Test
++    void disabledAccountCannotRestoreSignIn() throws Exception {
++        Cookie remembered = signIn(true).getResponse().getCookie(COOKIE);
++        users.updateUser(User.withUsername(EMAIL).password("{noop}test-password")
++                .roles("DRIVER").disabled(true).build());
++        mvc.perform(get("/driver/tap").secure(true).param("code", "tag-code").cookie(remembered))
++                .andExpect(status().is3xxRedirection()).andExpect(cookie().maxAge(COOKIE, 0));
++        verify(portal, never()).getCheckpointPreview(any(), any(), any());
++    }
++
++    @Test
++    void logoutClearsPersistentCookie() throws Exception {
++        Cookie remembered = signIn(true).getResponse().getCookie(COOKIE);
++        mvc.perform(post("/logout").secure(true).with(csrf()).cookie(remembered))
++                .andExpect(redirectedUrl("/login?logout"))
++                .andExpect(cookie().maxAge(COOKIE, 0));
++    }
++
++    @Test
++    void rememberedDriverCannotUseManagerCheckpointManagement() throws Exception {
++        Cookie remembered = signIn(true).getResponse().getCookie(COOKIE);
++        mvc.perform(get("/driving-qr").secure(true).cookie(remembered))
++                .andExpect(status().is3xxRedirection());
++    }
++
++    @Test
++    void nfcPostStillRequiresCsrf() throws Exception {
++        MvcResult login = signIn(true);
++        mvc.perform(post("/driver/tap").secure(true)
++                        .session((MockHttpSession) login.getRequest().getSession(false))
++                        .param("code", "tag-code").param("action", "START"))
++                .andExpect(status().isForbidden());
++        verify(portal, never()).recordCheckpoint(any(), any(), any(), any());
++    }
++
++    @Test
++    void rememberedDriverCanSubmitConfirmedNfcStart() throws Exception {
++        Cookie remembered = signIn(true).getResponse().getCookie(COOKIE);
++        // A service validation error is sufficient to verify authenticated dispatch
++        // through the actual controller; successful session persistence is covered
++        // by DriverCheckpointServiceTests and DrivingSessionIntegrationTests.
++        when(portal.recordCheckpoint(any(), eq("tag-code"), eq(DrivingActionMethod.NFC), eq(CheckpointAction.START)))
++                .thenThrow(new IllegalStateException("No driving window is available."));
++        mvc.perform(post("/driver/tap").secure(true).with(csrf()).cookie(remembered)
++                        .param("code", "tag-code").param("action", "START"))
++                .andExpect(redirectedUrl("/driver"));
++        verify(portal).recordCheckpoint(
++                org.mockito.ArgumentMatchers.argThat(auth -> EMAIL.equals(auth.getName())),
++                eq("tag-code"), eq(DrivingActionMethod.NFC), eq(CheckpointAction.START));
++    }
++
++    private MvcResult signIn(boolean remember) throws Exception {
++        var request = post("/login").secure(true).with(csrf())
++                .param("email", EMAIL).param("password", "test-password");
++        if (remember) request.param("remember-me", "true");
++        return mvc.perform(request).andExpect(redirectedUrl("/post-login")).andReturn();
++    }
++
++    @Configuration
++    @EnableWebMvc
++    @EnableWebSecurity
++    @Import({SecurityConfig.class, RememberMeConfig.class,
++            AuthenticationController.class, DriverPortalController.class})
++    static class TestConfig {
++        @Bean InMemoryUserDetailsManager users() {
++            return new InMemoryUserDetailsManager(User.withUsername(EMAIL)
++                    .password("{noop}test-password").roles("DRIVER").build());
++        }
++        @Bean PublicRequestThrottle throttle() { return new PublicRequestThrottle(); }
++        @Bean DriverPortalService portal() { return mock(DriverPortalService.class); }
++        @Bean InternalResourceViewResolver views() {
++            return new InternalResourceViewResolver("/WEB-INF/views/", ".html");
++        }
++    }
++}

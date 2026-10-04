@@ -7,6 +7,7 @@ import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
 
 @Configuration
 public class SecurityConfig {
@@ -23,7 +24,8 @@ public class SecurityConfig {
             securityFilterChain(
                     HttpSecurity http,
                     PublicRequestThrottle
-                            publicRequestThrottle)
+                            publicRequestThrottle,
+                    TokenBasedRememberMeServices rememberMeServices)
                     throws Exception {
 
         LoginAttemptThrottleFilter
@@ -169,6 +171,11 @@ public class SecurityConfig {
                                 .permitAll()
                 )
 
+                .rememberMe(remember -> remember
+                        .key(rememberMeServices.getKey())
+                        .rememberMeServices(rememberMeServices)
+                )
+
                 .logout(logout ->
                         logout
                                 .logoutSuccessUrl(
@@ -180,6 +187,7 @@ public class SecurityConfig {
                                 .clearAuthentication(
                                         true
                                 )
+                                .deleteCookies("JSESSIONID")
                                 .permitAll()
                 )
 

@@ -148,6 +148,18 @@
     margin-top: 1.25rem;
 }
 
+.auth-form .checkbox-row {
+    margin-top: 1.25rem;
+}
+
+.auth-form .checkbox-row label {
+    margin: 0;
+}
+
+.auth-form .checkbox-row input {
+    flex: 0 0 1.1rem;
+}
+
 .auth-link {
     display: inline-block;
     margin-top: 1rem;
