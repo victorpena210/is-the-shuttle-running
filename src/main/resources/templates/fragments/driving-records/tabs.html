@@ -3,27 +3,13 @@
 <body>
     <nav th:fragment="tabs"
         class="records-view-tabs"
-        aria-label="Driving records views">
+        aria-label="Service history views">
 
-        <a
-            class="records-view-tab"
-            th:classappend="${selectedView == 'summary'} ? ' records-view-tab--active' : ''"
-            th:attr="aria-current=${selectedView == 'summary' ? 'page' : null}"
-            th:href="@{/driving-records(
-                from=${fromDate},
-                to=${toDate},
-                driverId=${selectedDriverId},
-                view='summary'
-            )}">
-
-            <span>
-                Driver summary
-            </span>
-
-            <small>
-                Workload totals
-            </small>
-
+        <a class="records-view-tab"
+           th:classappend="${selectedView == 'review'} ? ' records-view-tab--active' : ''"
+           th:attr="aria-current=${selectedView == 'review' ? 'page' : null}"
+           th:href="@{/service-history(from=${fromDate},to=${toDate},driverId=${selectedDriverId})}">
+            <span>Service review</span><small>Demand and recorded activity</small>
         </a>
 
         <a
@@ -43,6 +29,27 @@
 
             <small>
                 Assignment history
+            </small>
+
+        </a>
+
+        <a
+            class="records-view-tab"
+            th:classappend="${selectedView == 'summary'} ? ' records-view-tab--active' : ''"
+            th:attr="aria-current=${selectedView == 'summary' ? 'page' : null}"
+            th:href="@{/driving-records(
+                from=${fromDate},
+                to=${toDate},
+                driverId=${selectedDriverId},
+                view='summary'
+            )}">
+
+            <span>
+                Driver summary
+            </span>
+
+            <small>
+                Workload totals
             </small>
 
         </a>

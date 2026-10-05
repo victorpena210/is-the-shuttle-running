@@ -94,8 +94,9 @@ public final class CleanupRegressionChecks {
         dashboardPlanningGate();
         renderDashboardStates();
         renderReportingStates();
+        renderServiceHistoryStates();
         timestampDisplayUsesOperationsZone();
-        System.out.println("PASS: 7 cleanup regression groups (workload, organization, calendar, planning, dashboard, reporting, timestamps)");
+        System.out.println("PASS: 8 cleanup regression groups (workload, organization, calendar, planning, dashboard, reporting, service history, timestamps)");
     }
 
     public static void timestampDisplayUsesOperationsZone() {
@@ -375,6 +376,38 @@ public final class CleanupRegressionChecks {
                     check(html.contains("3.00 hrs") || driverId != null, "workload hours");
                 }
             }
+        }
+    }
+
+    public static void renderServiceHistoryStates() throws Exception {
+        var calculator = new technology.renatus.routepulse.reporting.history.ServiceReviewCalculator(ZoneId.of("UTC"), 10, 15);
+        var span = new technology.renatus.routepulse.reporting.history.ServiceReviewCalculator.Span(
+                DATE.atTime(9, 0).toInstant(java.time.ZoneOffset.UTC), DATE.atTime(9, 15).toInstant(java.time.ZoneOffset.UTC));
+        for (String calendar : List.of("Open", "Park closed", "Calendar unverified")) {
+            var input = new technology.renatus.routepulse.reporting.history.ServiceReviewCalculator.Input(
+                    DATE, "morning", "Morning", calendar, "Uploaded schedule", List.of(span),
+                    List.of(new technology.renatus.routepulse.reporting.history.ServiceReviewCalculator.Demand(span, 20)),
+                    List.of(), List.of(), List.of());
+            var row = calculator.calculate(input, null, "actual", span.end());
+            var filters = technology.renatus.routepulse.reporting.history.ServiceReviewFilters.resolve(
+                    DATE, DATE, null, null, null, null, null, DATE);
+            ExtendedModelMap model = managerModel();
+            model.addAttribute("drivers", List.of());
+            model.addAttribute("selectedView", "review");
+            model.addAttribute("fromDate", DATE);
+            model.addAttribute("toDate", DATE);
+            model.addAttribute("selectedDriverId", null);
+            model.addAttribute("filters", filters);
+            model.addAttribute("operationsZone", "UTC");
+            model.addAttribute("report", technology.renatus.routepulse.reporting.history.ServiceReviewCalculator.summarize(List.of(row), span.end()));
+            String html = render(engine(), "manager/service-history", model);
+            check(html.contains("Recorded service time") && html.contains("Apply filters"), "service history and filters render");
+            check(html.contains(calendar) && html.contains("View time windows and evidence"), "service review state renders");
+            model.addAttribute("report", technology.renatus.routepulse.reporting.history.ServiceReviewCalculator.summarize(List.of(), span.end()));
+            check(render(engine(), "manager/service-history", model).contains("No periods match these filters"), "empty service review state");
+            model.addAttribute("filterError", "Choose a valid period filter.");
+            String error = render(engine(), "manager/service-history", model);
+            check(error.contains("Choose a valid period filter.") && !error.contains("periods shown"), "invalid filters do not show unfiltered data");
         }
     }
 

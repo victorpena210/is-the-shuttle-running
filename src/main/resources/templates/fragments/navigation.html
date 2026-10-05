@@ -16,7 +16,8 @@
                 </span>
             </a>
 
-            <nav class="app-nav" aria-label="Primary navigation">
+            <nav class="app-nav app-nav--manager" aria-label="Primary navigation">
+                <span class="app-nav__group-label">Operations</span>
                 <a
                     class="app-nav__link"
                     th:href="@{/app#overview}"
@@ -33,12 +34,13 @@
                     Live shuttle status
                 </a>
 
+                <span class="app-nav__group-label">Planning</span>
                 <a
                     class="app-nav__link"
                     th:href="@{/app#schedules}"
                     data-dashboard-link="schedules"
                     th:attr="aria-current=${activePage == 'schedules' ? 'page' : null}">
-                    Schedules
+                    Schedule imports
                 </a>
 
                 <a
@@ -57,20 +59,22 @@
                     Driver coverage
                 </a>
 
+                <span class="app-nav__group-label">Reports</span>
                 <a
                     class="app-nav__link"
-                    th:href="@{/driving-records}"
-                    th:attr="aria-current=${activePage == 'driving-records' ? 'page' : null}">
-                    Driving records
+                    th:href="@{/service-history}"
+                    th:attr="aria-current=${activePage == 'service-history' or activePage == 'driving-records' ? 'page' : null}">
+                    Service history
                 </a>
 
                 <a
                     class="app-nav__link"
                     th:href="@{/pilot-analytics}"
                     th:attr="aria-current=${activePage == 'pilot-analytics' ? 'page' : null}">
-                    Pilot analytics
+                    Analytics
                 </a>
 
+                <span class="app-nav__group-label">Administration</span>
                 <a
                     class="app-nav__link"
                     th:href="@{/drivers}"
@@ -83,7 +87,7 @@
                     th:if="${canManageDrivingQr}"
                     th:href="@{/driving-qr}"
                     th:attr="aria-current=${activePage == 'driving-qr' ? 'page' : null}">
-                    Driver Checkpoint
+                    QR &amp; NFC setup
                 </a>
 
                 <a

@@ -295,3 +295,20 @@ body[data-dashboard-view="schedules"] .page-date {
     }
 }
 
+
+/* Navigation groups stay compact on desktop and scroll as one row on mobile. */
+.app-nav__group-label {
+    padding: .95rem .85rem .15rem;
+    color: #a6b6ac;
+    font-size: .62rem;
+    font-weight: 800;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+@media (min-width: 961px) {
+    .app-nav--manager { gap: .15rem; }
+    .app-nav--manager .app-nav__link { min-height: 2.35rem; padding-block: .45rem; }
+}
+@media (max-width: 960px) {
+    .app-nav__group-label { display: none; }
+}

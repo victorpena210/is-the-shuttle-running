@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#17201c">
+    <title>Service History | Is the Shuttle Running</title>
+    <link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/driving-records.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/service-history.css}">
+</head>
+<body class="app-page service-history-page">
+<th:block th:replace="~{fragments/navigation :: managerNav('service-history')}"></th:block>
+<main id="main-content" class="app-main">
+    <header class="page-header">
+        <div><p class="eyebrow" th:text="${organizationName}">Organization</p>
+            <h1>Service history</h1>
+            <p>Compare scheduled demand with recorded driving and rider confirmations for a specific date or period.</p>
+        </div>
+    </header>
+    <th:block th:replace="~{fragments/driving-records/tabs :: tabs}"></th:block>
+    <section class="review-filters" aria-labelledby="review-filters-heading">
+        <div class="review-filter-heading">
+            <div><p class="eyebrow">Service review</p><h2 id="review-filters-heading">Choose what to review</h2></div>
+            <div class="review-presets" aria-label="Date shortcuts">
+                <a class="button button--secondary" th:href="@{/service-history(range='today',period=${filters.period},driverId=${selectedDriverId},driverRole=${filters.driverRole},result=${filters.result})}">Today</a>
+                <a class="button button--secondary" th:href="@{/service-history(range='yesterday',period=${filters.period},driverId=${selectedDriverId},driverRole=${filters.driverRole},result=${filters.result})}">Yesterday</a>
+                <a class="button button--secondary" th:href="@{/service-history(range='week',period=${filters.period},driverId=${selectedDriverId},driverRole=${filters.driverRole},result=${filters.result})}">This week</a>
+            </div>
+        </div>
+        <form th:action="@{/service-history}" method="get">
+            <div class="review-filter-grid">
+                <div class="form-group"><label for="from">From</label><input id="from" name="from" type="date" th:value="${fromDate}" required></div>
+                <div class="form-group"><label for="to">To</label><input id="to" name="to" type="date" th:value="${toDate}" required></div>
+                <div class="form-group"><label for="period">Period</label>
+                    <select id="period" name="period">
+                        <option value="all" th:selected="${filters.period == 'all'}">All periods</option>
+                        <option value="morning" th:selected="${filters.period == 'morning'}">Morning</option>
+                        <option value="midday" th:selected="${filters.period == 'midday'}">Midday</option>
+                        <option value="evening" th:selected="${filters.period == 'evening'}">Evening</option>
+                        <option value="off-hours" th:selected="${filters.period == 'off-hours'}">Off-hours</option>
+                    </select>
+                </div>
+                <div class="form-group"><label for="driverId">Driver</label>
+                    <select id="driverId" name="driverId"><option value="">All drivers</option>
+                        <option th:each="driver : ${drivers}" th:value="${driver.id}" th:selected="${selectedDriverId != null and selectedDriverId.equals(driver.id)}" th:text="${driver.name}">Driver</option>
+                    </select>
+                </div>
+                <div class="form-group"><label for="driverRole">Filter driver by</label>
+                    <select id="driverRole" name="driverRole">
+                        <option value="actual" th:selected="${filters.driverRole == 'actual'}">Recorded activity</option>
+                        <option value="scheduled" th:selected="${filters.driverRole == 'scheduled'}">Scheduled assignment</option>
+                    </select>
+                </div>
+                <div class="form-group"><label for="result">Evidence / review result</label>
+                    <select id="result" name="result">
+                        <option value="all" th:selected="${filters.result == 'all'}">All results</option>
+                        <option value="needs-review" th:selected="${filters.result == 'needs-review'}">Needs review</option>
+                        <option value="both" th:selected="${filters.result == 'both'}">Driving and rider evidence</option>
+                        <option value="driving-only" th:selected="${filters.result == 'driving-only'}">Driving only</option>
+                        <option value="rider-only" th:selected="${filters.result == 'rider-only'}">Rider confirmations only</option>
+                        <option value="none" th:selected="${filters.result == 'none'}">No recorded evidence</option>
+                    </select>
+                </div>
+            </div>
+            <div class="review-presets"><button class="button" type="submit">Apply filters</button>
+                <a class="button button--secondary" th:href="@{/service-history}">Reset to today</a></div>
+        </form>
+        <p class="review-help">Date ranges can include up to 31 days. All times use <span th:text="${operationsZone}">America/Chicago</span>.</p>
+    </section>
+    <div class="alert alert--error" role="alert" th:if="${filterError != null}" th:text="${filterError}">Choose a valid date range.</div>
+    <th:block th:if="${filterError == null}">
+        <section aria-labelledby="review-summary-heading">
+            <div class="review-results-heading"><div>
+                <p class="eyebrow">Totals for the selected filters</p>
+                <h2 id="review-summary-heading"><span th:text="${#temporals.format(fromDate, 'MMM d, yyyy')}"></span><th:block th:if="${!fromDate.equals(toDate)}"> – <span th:text="${#temporals.format(toDate, 'MMM d, yyyy')}"></span></th:block></h2>
+            </div><span class="review-badge" th:text="|${#lists.size(report.rows)} periods shown|">3 periods shown</span></div>
+            <div class="review-summary-grid">
+                <div><span>Recorded service time</span><strong th:text="${report.drivingTime()}">0 min</strong></div>
+                <div><span>Rider confirmations</span><strong th:text="${report.confirmations}">0</strong></div>
+                <div><span>Unscheduled service time</span><strong th:text="${report.unscheduledTime()}">0 min</strong></div>
+                <div><span>Periods needing review</span><strong th:text="${report.reviewCount}">0</strong></div>
+            </div>
+            <p class="review-help">These are totals, not averages. Time counts when at least one driving session was recorded; overlapping sessions and period windows count once in these totals. Unscheduled time is included in recorded service time.</p>
+            <p class="review-help" th:if="${selectedDriverId != null and filters.driverRole == 'actual'}">Activity totals show the selected driver's recordings. Scheduled demand and coverage flags still describe overall service for the period.</p>
+            <p class="review-help" th:if="${selectedDriverId != null and filters.driverRole == 'scheduled'}">Showing periods assigned to the selected driver, including recorded service from substitutes and unscheduled drivers.</p>
+        </section>
+        <details class="review-explanation"><summary>How to read this report</summary>
+            <p>Scheduled demand counts employee arrivals in the morning, arrivals plus departures at midday, and departures in the evening. It is not a passenger count. Rider confirmations count submissions, not unique people.</p>
+            <p>A review flag marks a completed demand window with meaningful scheduled demand and no recorded driving or rider evidence. Optional rider scans do not prove a missed trip. Closed days, unverified calendars, unavailable schedules and reviewed cancelled/excused/missed assignments are not automatically flagged.</p>
+            <p>Archived schedules show their retained period totals. Demand timing at period boundaries cannot be reconstructed exactly, so archived totals alone are not used to flag coverage gaps.</p>
+            <p>Period times follow the planning windows and expand to include their demand buckets. Some boundary windows overlap; report totals remove duplication. Recorded time comes from driver check-in/check-out activity, not GPS tracking.</p>
+        </details>
+        <div class="alert alert--info" th:if="${#lists.isEmpty(report.rows)}">No periods match these filters. Try another date, driver or result.</div>
+        <div class="review-rows">
+            <article class="review-row" th:each="row : ${report.rows}" th:id="${row.key()}" th:classappend="${row.needsReview()} ? ' review-row--flagged' : ''">
+                <header class="review-row-header"><div>
+                    <p class="eyebrow" th:text="${#temporals.format(row.date, 'EEEE, MMMM d, yyyy')}">Monday, October 5, 2026</p>
+                    <h3 th:text="${row.title}">Morning</h3>
+                    <p th:text="|${row.timeRange} · ${operationsZone}|">9:00 AM–12:00 PM · America/Chicago</p>
+                </div><div class="review-status"><span class="review-badge" th:text="${row.state}">Period ended</span>
+                    <span class="review-badge review-badge--warning" th:if="${row.needsReview()}">Needs review</span></div></header>
+                <div class="review-context">
+                    <p><span>Planned driver</span><strong th:text="${row.scheduledDrivers}">No scheduled assignment</strong></p>
+                    <p><span>Recorded activity by</span><strong th:text="${row.actualDrivers}">No recorded activity</strong></p>
+                    <p><span>Calendar / schedule</span><strong th:text="${row.calendar}">Open</strong><small th:text="${row.demandSource}">Uploaded schedule</small></p>
+                </div>
+                <div class="review-row-metrics">
+                    <p><span>Scheduled demand</span><strong th:text="${row.demandSource == 'No schedule available' ? 'Unavailable' : row.demand}">14</strong></p>
+                    <p><span>Rider confirmations</span><strong th:text="${row.confirmations}">0</strong></p>
+                    <p><span>Recorded service time</span><strong th:text="${row.drivingTime()}">0 min</strong><small th:if="${row.unscheduledSeconds > 0}" th:text="|Includes ${row.unscheduledTime()} unscheduled|">Includes unscheduled activity</small></p>
+                </div>
+                <p class="review-evidence" th:text="${row.evidence}">No recorded evidence</p>
+                <p class="review-gap" th:if="${row.needsReview()}" th:text="|${row.gaps} completed demand window(s) have no recorded service evidence. Review the details before drawing a conclusion.|">Review service evidence.</p>
+                <details class="review-details"><summary>View time windows and evidence</summary>
+                    <p th:if="${#lists.isEmpty(row.windows)}">No scheduled demand or recorded activity in this period.</p>
+                    <div class="review-table-wrap" th:unless="${#lists.isEmpty(row.windows)}"><table>
+                        <caption class="visually-hidden" th:text="|${row.title} evidence for ${row.date}|">Period evidence</caption>
+                        <thead><tr><th scope="col">Time window</th><th scope="col">Demand</th><th scope="col">Rider confirmations</th><th scope="col">Recorded time</th><th scope="col">Review status</th></tr></thead>
+                        <tbody><tr th:each="window : ${row.windows}"><td th:text="${window.range}"></td><td th:text="${row.demandSource == 'No schedule available' ? 'Unavailable' : (row.demandSource == 'Archived schedule totals' ? 'Totals only' : window.demand)}"></td><td th:text="${window.confirmations}"></td><td th:text="${window.drivingTime()}"></td><td th:text="${window.status}"></td></tr></tbody>
+                    </table></div>
+                </details>
+                <div class="review-row-links"><a th:href="@{/driving-records(from=${row.date},to=${row.date},view='records')}">Open individual records</a>
+                    <a th:href="@{/app(date=${row.date})} + '#coverage'">View driver coverage</a></div>
+            </article>
+        </div>
+    </th:block>
+</main>
+<footer th:replace="~{fragments/footer :: footer('app')}"></footer>
+</body></html>

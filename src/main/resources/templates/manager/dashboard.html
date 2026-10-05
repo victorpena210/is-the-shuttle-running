@@ -145,10 +145,20 @@
 
             <th:block th:replace="~{fragments/dashboard/transportation-demand :: demand}"></th:block>
 
-            <th:block th:replace="~{fragments/dashboard/service-verification :: verification}"></th:block>
+            <div class="alert alert--info" data-dashboard-section="demand" th:if="${calendarConfirmationRequired or calendarOverrideActive}">
+                <div>
+                    <strong th:text="${calendarOverrideActive ? 'Manager-confirmed operating day' : (operatingDay.status.name() == 'CLOSED' ? 'Park calendar: closed' : 'Park calendar: unverified')}">Calendar status</strong>
+                    <p>Employee schedule demand is shown below independently of park operating status.
+                        <a href="#coverage">Review calendar status and operating overrides in Driver coverage.</a></p>
+                </div>
+            </div>
+            <p data-dashboard-section="demand" class="muted">
+                Looking for recorded service? <a th:href="@{/service-history(from=${selectedDate},to=${selectedDate})}">Open Service review for this date.</a>
+            </p>
 
                 <div
                     class="alert alert--success calendar-override-record"
+                    data-dashboard-section="coverage"
                     th:if="${calendarOverrideActive and calendarOverride != null}"
                     role="status">
 
@@ -183,6 +193,7 @@
 
                 <div
                     class="alert alert--warning calendar-override-prompt"
+                    data-dashboard-section="coverage"
                     th:if="${calendarConfirmationRequired}"
                     role="alert">
 

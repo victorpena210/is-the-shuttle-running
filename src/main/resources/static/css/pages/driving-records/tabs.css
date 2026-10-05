@@ -84,3 +84,6 @@
 }
 
 
+
+.records-view-tabs { display: flex; flex-wrap: wrap; }
+.records-view-tab { flex: 1 1 160px; min-width: 0; }

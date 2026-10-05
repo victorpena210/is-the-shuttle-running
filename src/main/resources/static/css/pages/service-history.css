@@ -1,0 +1,51 @@
+.review-filters, .review-row, .review-explanation { background: var(--white); border: 1px solid var(--slate-200); border-radius: var(--radius-lg); }
+.service-history-page .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+.review-filters { margin: 1.4rem 0 2rem; padding: 1.4rem; }
+.review-filter-heading, .review-results-heading, .review-row-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1.2rem; }
+.review-filter-heading { margin-bottom: 1rem; }
+.review-filter-heading h2 { font-size: 1.35rem; }
+.review-presets, .review-status, .review-row-links { display: flex; flex-wrap: wrap; gap: .6rem; }
+.review-status { justify-content: flex-end; }
+.review-presets .button { min-height: 2.5rem; padding: .55rem .85rem; }
+.review-filter-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin-bottom: 1rem; }
+.review-help { color: var(--slate-600); font-size: .84rem; line-height: 1.55; margin: .85rem 0; }
+.review-summary-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .8rem; margin: 1rem 0; }
+.review-summary-grid > div { padding: 1.15rem; background: #edf3e9; border: 1px solid #dce5d6; border-radius: var(--radius-md); }
+.review-summary-grid span, .review-context span, .review-row-metrics span { display: block; font-size: .77rem; color: var(--slate-600); }
+.review-summary-grid strong { display: block; font-size: 1.55rem; margin-top: .5rem; }
+.review-badge { display: inline-block; max-width: 100%; padding: .4rem .7rem; border-radius: 1rem; background: var(--slate-100); color: var(--slate-700); font-size: .75rem; font-weight: 750; }
+.review-badge--warning { color: #92400e; background: #fff0cd; }
+.review-explanation { padding: 1rem 1.2rem; margin: 1.3rem 0; }
+.review-explanation summary, .review-details summary { cursor: pointer; font-weight: 750; color: var(--blue-600); }
+.review-explanation p { margin: .8rem 0 0; color: var(--slate-600); font-size: .86rem; }
+.review-rows { display: grid; gap: 1.3rem; }
+.review-row { overflow: hidden; box-shadow: var(--shadow-sm); }
+.review-row--flagged { border-color: #e5b35e; }
+.review-row-header { padding: 1.2rem 1.3rem; border-bottom: 1px solid var(--slate-200); }
+.review-row-header h3 { font-size: 1.4rem; margin-bottom: .25rem; }
+.review-row-header p:last-child { font-size: .86rem; color: var(--slate-600); margin: 0; }
+.review-context, .review-row-metrics { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; padding: 1rem 1.3rem; border-bottom: 1px solid var(--slate-100); }
+.review-context p, .review-row-metrics p { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.review-context strong, .review-context small, .review-row-metrics strong, .review-row-metrics small { display: block; margin-top: .25rem; }
+.review-context strong { font-size: .88rem; }
+.review-context small, .review-row-metrics small { color: var(--slate-500); font-size: .75rem; }
+.review-row-metrics strong { font-size: 1.3rem; }
+.review-evidence { padding: .75rem 1.3rem; margin: 0; font-size: .87rem; font-weight: 700; }
+.review-gap { padding: .8rem 1rem; margin: 0 1.3rem .8rem; background: #fff6e3; border-radius: var(--radius-sm); font-size: .85rem; }
+.review-details { padding: .8rem 1.3rem 1.1rem; }
+.review-table-wrap { overflow-x: auto; margin-top: .8rem; }
+.review-table-wrap table { width: 100%; min-width: 640px; font-size: .8rem; border-collapse: collapse; }
+.review-table-wrap th, .review-table-wrap td { padding: .7rem .6rem; text-align: left; border-bottom: 1px solid var(--slate-200); }
+.review-row-links { padding: .85rem 1.3rem; border-top: 1px solid var(--slate-100); font-size: .82rem; }
+.review-row-links a + a { margin-left: .5rem; }
+@media (max-width: 1100px) {
+    .review-filter-heading { flex-direction: column; }
+    .review-filter-grid, .review-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 620px) {
+    .review-filter-grid, .review-context, .review-row-metrics { grid-template-columns: 1fr; }
+    .review-row-header, .review-results-heading { flex-direction: column; }
+    .review-status { justify-content: flex-start; }
+    .review-summary-grid strong { font-size: 1.2rem; }
+    .review-filters { padding: 1rem; }
+}

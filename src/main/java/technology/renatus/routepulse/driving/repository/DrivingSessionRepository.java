@@ -14,6 +14,18 @@ import technology.renatus.routepulse.driving.model.DrivingSession;
 public interface DrivingSessionRepository
         extends JpaRepository<DrivingSession, Long> {
 
+    @Query("""
+            SELECT session FROM DrivingSession session
+            JOIN FETCH session.driver
+            WHERE session.organization.id = :organizationId
+              AND session.startedAt < :end
+              AND (session.endedAt IS NULL OR session.endedAt > :start)
+            ORDER BY session.startedAt
+            """)
+    List<DrivingSession> findOverlappingForServiceReview(
+            @Param("organizationId") Long organizationId,
+            @Param("start") Instant start, @Param("end") Instant end);
+
     List<DrivingSession> findAllByOrganization_IdAndAssignmentIsNullAndEndedAtIsNotNullAndStartedAtBefore(
             Long organizationId, Instant before);
 

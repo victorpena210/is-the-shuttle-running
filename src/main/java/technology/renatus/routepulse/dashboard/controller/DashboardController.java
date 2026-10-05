@@ -12,7 +12,6 @@ import technology.renatus.routepulse.dashboard.model.DashboardPlan;
 import technology.renatus.routepulse.dashboard.service.DashboardPlanningService;
 import technology.renatus.routepulse.dashboard.view.DashboardModelAssembler;
 import technology.renatus.routepulse.driving.service.RiderStatusService;
-import technology.renatus.routepulse.driving.verification.service.ServiceVerificationService;
 import technology.renatus.routepulse.operations.service.OperationalStatusService;
 import technology.renatus.routepulse.organization.model.Organization;
 import technology.renatus.routepulse.organization.service.CurrentOrganizationService;
@@ -26,7 +25,6 @@ public class DashboardController {
     private final AttentionCenterService attentionCenterService;
     private final OperationalStatusService operationalStatusService;
     private final RiderStatusService riderStatusService;
-    private final ServiceVerificationService serviceVerificationService;
 
     public DashboardController(
             CurrentOrganizationService currentOrganizationService,
@@ -34,15 +32,13 @@ public class DashboardController {
             DashboardModelAssembler dashboardModelAssembler,
             AttentionCenterService attentionCenterService,
             OperationalStatusService operationalStatusService,
-            RiderStatusService riderStatusService,
-            ServiceVerificationService serviceVerificationService) {
+            RiderStatusService riderStatusService) {
         this.currentOrganizationService = currentOrganizationService;
         this.dashboardPlanningService = dashboardPlanningService;
         this.dashboardModelAssembler = dashboardModelAssembler;
         this.attentionCenterService = attentionCenterService;
         this.operationalStatusService = operationalStatusService;
         this.riderStatusService = riderStatusService;
-        this.serviceVerificationService = serviceVerificationService;
     }
 
     @GetMapping("/app/attention")
@@ -85,14 +81,6 @@ public class DashboardController {
                 date);
 
         dashboardModelAssembler.populate(model, plan);
-        model.addAttribute(
-                "serviceVerificationReport",
-                serviceVerificationService.build(
-                        organization.getId(),
-                        plan.selectedDate(),
-                        plan.transportationDemand(),
-                        plan.driverAssignments()
-                ));
         model.addAttribute(
                 "attentionCenter",
                 attentionCenterService.build(organization.getId(), plan));

@@ -3,6 +3,9 @@ package technology.renatus.routepulse.regression;
 import org.junit.jupiter.api.Test;
 
 class CleanupRegressionTests {
+    @Test void serviceHistoryRendersClosedOpenEmptyAndInvalidStates() throws Exception {
+        CleanupRegressionChecks.renderServiceHistoryStates();
+    }
     @Test void utcAuditTimestampsDisplayInOperationsZone() {
         CleanupRegressionChecks.timestampDisplayUsesOperationsZone();
     }

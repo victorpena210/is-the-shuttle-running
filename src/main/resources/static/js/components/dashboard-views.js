@@ -26,17 +26,17 @@ const viewCopy = {
     },
 
     schedules: {
-        heading: 'Schedules',
+        heading: 'Schedule imports',
         description:
             'Upload Dayforce schedules and review the imports Is the Shuttle Running uses for shuttle planning.',
-        documentTitle: 'Schedules | Is the Shuttle Running',
+        documentTitle: 'Schedule Imports | Is the Shuttle Running',
         showPlanningDate: false
     },
 
     demand: {
         heading: 'Transportation demand',
         description:
-            'Review arrivals, midday turnover, evening pickups, service verification, and recommended shuttle windows for the selected planning day.',
+            'Review scheduled arrivals, midday turnover, evening pickups, and recommended shuttle windows for the selected planning day.',
         documentTitle: 'Transportation Demand | Is the Shuttle Running',
         showPlanningDate: true
     },
