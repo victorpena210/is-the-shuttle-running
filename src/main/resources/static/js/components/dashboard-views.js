@@ -2,6 +2,7 @@
 
 const validViews = new Set([
     'overview',
+    'live-status',
     'schedules',
     'demand',
     'coverage'
@@ -14,6 +15,14 @@ const viewCopy = {
             'Review today’s transportation demand, driver coverage, and shuttle operations.',
         documentTitle: 'Overview | Is the Shuttle Running',
         showPlanningDate: true
+    },
+
+    'live-status': {
+        heading: 'Live shuttle status',
+        description:
+            'Review what riders see right now and manage public service updates.',
+        documentTitle: 'Live Shuttle Status | Is the Shuttle Running',
+        showPlanningDate: false
     },
 
     schedules: {

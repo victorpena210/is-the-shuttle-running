@@ -15,6 +15,7 @@ import technology.renatus.routepulse.driving.model.DrivingSession;
 import technology.renatus.routepulse.driving.model.PassengerRideConfirmation;
 import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
 import technology.renatus.routepulse.driving.repository.PassengerRideConfirmationRepository;
+import technology.renatus.routepulse.driving.service.rider.PublicDriverName;
 import technology.renatus.routepulse.operations.service.OperationalStatusService;
 import technology.renatus.routepulse.organization.model.Organization;
 import technology.renatus.routepulse.organization.repository.OrganizationRepository;
@@ -79,7 +80,7 @@ public class PassengerRideService {
 
         return new PassengerRideState(
                 true,
-                activeSession.getDriver().getName(),
+                PublicDriverName.firstName(activeSession.getDriver().getName()),
                 alreadyConfirmedRecently,
                 cooldownMinutes
         );

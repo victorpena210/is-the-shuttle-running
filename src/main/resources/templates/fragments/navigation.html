@@ -27,6 +27,14 @@
 
                 <a
                     class="app-nav__link"
+                    th:href="@{/app#live-status}"
+                    data-dashboard-link="live-status"
+                    th:attr="aria-current=${activePage == 'live-status' ? 'page' : null}">
+                    Live shuttle status
+                </a>
+
+                <a
+                    class="app-nav__link"
                     th:href="@{/app#schedules}"
                     data-dashboard-link="schedules"
                     th:attr="aria-current=${activePage == 'schedules' ? 'page' : null}">

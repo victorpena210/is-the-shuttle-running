@@ -20,6 +20,7 @@ import technology.renatus.routepulse.assignments.model.PlannedDrivingWindow;
 import technology.renatus.routepulse.assignments.repository.DriverAssignmentRepository;
 import technology.renatus.routepulse.driving.model.DrivingSession;
 import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
+import technology.renatus.routepulse.driving.service.rider.PublicDriverName;
 import technology.renatus.routepulse.operations.domain.OperationalStatusOverride;
 import technology.renatus.routepulse.operations.domain.RiderOperationalStatus;
 import technology.renatus.routepulse.operations.model.OperationalStatusUpdate;
@@ -98,7 +99,7 @@ public class RiderStatusService {
 
         String driverName = activeSession == null
                 ? null
-                : activeSession.getDriver().getName();
+                : PublicDriverName.firstName(activeSession.getDriver().getName());
 
         boolean confirmationAvailable = activeSession != null
                 && (effectiveStatus == RiderOperationalStatus.RUNNING
@@ -169,7 +170,7 @@ public class RiderStatusService {
         if (end.toLocalDate().isAfter(now.toLocalDate())) range += " (next day)";
         result.add(new RiderScheduleWindow(
                 assignment.getScheduledDriver() == null ? "Driver to be assigned"
-                        : assignment.getScheduledDriver().getName(),
+                        : PublicDriverName.firstName(assignment.getScheduledDriver().getName()),
                 start, range, duration, label, tone));
     }
 
