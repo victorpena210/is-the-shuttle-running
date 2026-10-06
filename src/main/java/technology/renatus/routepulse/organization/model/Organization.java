@@ -70,6 +70,13 @@ public class Organization {
     @Column(name = "rider_help_contact", length = 300)
     private String riderHelpContact;
 
+    @Column(name = "movement_route", length = 12000)
+    private String movementRoute;
+    public String getMovementRoute() { return movementRoute; }
+    public void updateMovementRoute(String route) {
+        movementRoute = technology.renatus.routepulse.driving.movement.ShuttleRoute.parse(route).normalized();
+    }
+
     public String getRiderPickupInstructions() { return riderPickupInstructions; }
     public String getRiderHelpContact() { return riderHelpContact; }
     public void updateRiderInformation(String pickupInstructions, String helpContact) {

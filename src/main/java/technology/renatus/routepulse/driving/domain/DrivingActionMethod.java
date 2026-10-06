@@ -4,5 +4,7 @@ public enum DrivingActionMethod {
     QR,
     NFC,
     MANAGER,
+    AUTOMATIC,
+    DRIVER,
     LEGACY
 }

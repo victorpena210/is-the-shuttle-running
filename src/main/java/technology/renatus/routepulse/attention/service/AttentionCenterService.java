@@ -27,6 +27,8 @@ public class AttentionCenterService {
     private final technology.renatus.routepulse.driving.service.RiderStatusService riderStatus;
     private final technology.renatus.routepulse.organization.repository.OrganizationRepository organizations;
 
+    private final technology.renatus.routepulse.driving.repository.DrivingSessionRepository drivingSessions;
+
     public AttentionCenterService(
             ScheduleAttentionChecker scheduleAttentionChecker,
             CoverageAttentionChecker coverageAttentionChecker,
@@ -34,7 +36,9 @@ public class AttentionCenterService {
             ServiceVerificationAttentionChecker serviceVerificationAttentionChecker,
             technology.renatus.routepulse.driving.service.RiderStatusService riderStatus,
             technology.renatus.routepulse.organization.repository.OrganizationRepository organizations,
+            technology.renatus.routepulse.driving.repository.DrivingSessionRepository drivingSessions,
             @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
+        this.drivingSessions = drivingSessions;
 
         this.scheduleAttentionChecker = scheduleAttentionChecker;
         this.coverageAttentionChecker = coverageAttentionChecker;
@@ -62,6 +66,13 @@ public class AttentionCenterService {
                         "Rider status needs confirmation", status.detail(), "Resolve live status", "/app#live-status"));
             }
         });
+
+        long timeouts = drivingSessions.countByOrganization_IdAndEndReasonAndInactivityReviewedAtIsNull(organizationId,
+                technology.renatus.routepulse.driving.domain.DrivingSessionEndReason.INACTIVITY_TIMEOUT);
+        if (timeouts > 0) items.add(new AttentionItem("inactivity-timeout-review",
+                technology.renatus.routepulse.attention.model.AttentionSeverity.WARNING,
+                "Inactivity timeout — needs review", timeouts + " automatically closed session(s) need a manager review.",
+                "Review timeouts", "/operations/movement"));
 
         scheduleAttentionChecker.addAlerts(plan, items);
         coverageAttentionChecker.addAlerts(plan, items);

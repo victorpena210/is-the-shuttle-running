@@ -142,3 +142,7 @@ Never edit a migration after it has been applied to a shared or production datab
 Create the next numbered migration instead. Historical migrations V2, V3, and V10
 were sanitized during early development; an older local database may need to be
 recreated as described in `PRIVACY_CLEANUP.md`.
+
+### Movement monitoring
+
+Drivers can enable per-session location monitoring from `/driver`. Managers configure their organization's route and review automatic inactivity timeouts at `/operations/movement` (linked from Live shuttle status). See [Movement monitoring](docs/MOVEMENT_MONITORING.md) for setup, the 10/20-minute workflow, GPS-gap behavior, migration, and verification commands.

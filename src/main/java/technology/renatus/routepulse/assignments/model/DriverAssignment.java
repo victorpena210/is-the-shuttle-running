@@ -760,6 +760,10 @@ public class DriverAssignment {
         return drivingHistory().isDriving();
     }
 
+    public boolean isInactivityReviewNeeded() {
+        return drivingSessions.stream().anyMatch(DrivingSession::isInactivityReviewNeeded);
+    }
+
     public boolean isDrivingCompleted() {
         return drivingHistory().isCompleted();
     }

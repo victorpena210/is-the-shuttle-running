@@ -14,6 +14,19 @@ import technology.renatus.routepulse.driving.model.DrivingSession;
 public interface DrivingSessionRepository
         extends JpaRepository<DrivingSession, Long> {
 
+    long countByOrganization_IdAndEndReasonAndInactivityReviewedAtIsNull(Long organizationId,
+            technology.renatus.routepulse.driving.domain.DrivingSessionEndReason endReason);
+
+    @Query("SELECT DISTINCT s.organization.id FROM DrivingSession s WHERE s.endedAt IS NULL AND s.movement.startedAt IS NOT NULL")
+    List<Long> findMonitoredOrganizationIds();
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT s FROM DrivingSession s WHERE s.id = :id AND s.organization.id = :organizationId")
+    Optional<DrivingSession> findForReview(@Param("id") Long id, @Param("organizationId") Long organizationId);
+
+    List<DrivingSession> findTop50ByOrganization_IdAndEndReasonAndInactivityReviewedAtIsNullOrderByEndedAtDesc(
+            Long organizationId, technology.renatus.routepulse.driving.domain.DrivingSessionEndReason endReason);
+
     Optional<DrivingSession> findFirstByOrganization_IdAndEndedAtIsNotNullOrderByEndedAtDesc(Long organizationId);
 
     @Query("""

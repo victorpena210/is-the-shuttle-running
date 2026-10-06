@@ -5,6 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#17201c">
+    <meta name="_csrf" th:content="${_csrf.token}">
+    <meta name="_csrf_header" th:content="${_csrf.headerName}">
 
     <title>My Driving Assignment | Is the Shuttle Running</title>
 
@@ -71,6 +73,42 @@
             <button class="button" type="submit">I’m still running the shuttle</button>
         </form>
         <p>If service has ended, use the NFC/QR checkpoint to end it or ask a manager to close the session.</p>
+    </section>
+
+    <section class="driver-focus movement-panel" th:if="${activeSessionId != null}"
+             id="movement-monitor" th:data-session-id="${activeSessionId}" aria-labelledby="movement-heading">
+        <p class="eyebrow">Shuttle location</p>
+        <h2 id="movement-heading">Movement monitoring</h2>
+        <p>Use a phone or tablet that stays in the shuttle. Location is shared only for this session;
+            riders never see coordinates. Keep this page open and allow location access.</p>
+        <p id="movement-status" role="status" aria-live="polite">Checking monitoring status…</p>
+        <p id="movement-connection" role="status"></p>
+        <p id="movement-route-note" hidden>A manager needs to save the shuttle route before movement can automatically confirm running service.
+            Accurate stationary updates can still trigger an inactivity check.</p>
+        <p id="movement-confirmed"></p>
+        <div class="movement-actions">
+            <button type="button" class="button" id="movement-enable">Enable location for this session</button>
+            <button type="button" class="button button--secondary" id="movement-stop" hidden>Stop sharing location</button>
+        </div>
+        <div id="movement-prompt" class="alert" hidden role="status" aria-live="polite">
+            <h3>Still providing shuttle service?</h3>
+            <p>The shuttle has been stationary for at least 10 minutes. <strong>Respond only while safely parked.</strong></p>
+            <p id="movement-deadline"></p>
+        </div>
+        <div id="movement-responses" hidden>
+            <p><strong>Use these controls only while safely parked.</strong></p>
+            <div class="movement-actions">
+                <button type="button" class="button" data-movement-response="WAITING">Waiting for passengers</button>
+                <button type="button" class="button button--secondary" data-movement-response="BREAK">On break</button>
+                <button type="button" class="button button--secondary" data-movement-response="END">End session</button>
+            </div>
+            <p>Waiting keeps service active and starts a new 10-minute check-in period. On break pauses service;
+                use the shuttle NFC/QR checkpoint to resume. After 20 minutes of continuously observed inactivity
+                without a response, the session closes for review.</p>
+        </div>
+        <p>Locking the screen, closing this page, or losing a reliable location signal may interrupt updates.
+            Missing updates show status unconfirmed and do not end the session.</p>
+        <noscript><p>JavaScript is required for location monitoring. You can still use the confirmation and NFC/QR controls.</p></noscript>
     </section>
 
     <section class="driver-focus" th:if="${unscheduledActive}" aria-labelledby="unscheduled-active-heading">
@@ -240,6 +278,7 @@
                     </td>
 
                     <td>
+                        <p th:if="${assignment.inactivityReviewNeeded}">Inactivity timeout — needs review</p>
                         <span
                             class="badge badge--active"
                             th:if="${assignment.driving}">
@@ -315,5 +354,6 @@
 
 <footer th:replace="~{fragments/footer :: footer('app')}"></footer>
 
+<script th:src="@{/js/pages/driver-movement.js}" defer></script>
 </body>
 </html>

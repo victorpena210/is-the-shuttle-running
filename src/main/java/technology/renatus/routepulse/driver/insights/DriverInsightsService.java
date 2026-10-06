@@ -94,7 +94,8 @@ public class DriverInsightsService {
         if (session.isActive()) return "Recording in progress";
         if (session.getEndReason() == null) return "Ended";
         return switch (session.getEndReason()) {
-            case PAUSE -> "Paused"; case HANDOFF -> "Handed off"; case COMPLETED -> "Ended";
+            case INACTIVITY_TIMEOUT -> session.isInactivityReviewNeeded() ? "Inactivity timeout — needs review" : "Inactivity timeout — reviewed";
+                            case PAUSE -> "Paused"; case HANDOFF -> "Handed off"; case COMPLETED -> "Ended";
         };
     }
 }

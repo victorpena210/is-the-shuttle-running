@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Movement monitoring | Is the Shuttle Running</title>
+    <link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+</head>
+<body class="app-page">
+<th:block th:replace="~{fragments/navigation :: managerNav('live-status')}"></th:block>
+<main id="main-content" class="app-main">
+    <a th:href="@{/app#live-status}">← Back to live shuttle status</a>
+    <header class="page-header"><div><p class="eyebrow">Service reliability</p><h1>Movement monitoring</h1>
+        <p>Confirm service from reliable route movement and review sessions closed after inactivity.</p></div></header>
+    <p class="alert alert--success" role="status" th:if="${successMessage}" th:text="${successMessage}"></p>
+    <p class="alert alert--error" role="alert" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+    <section class="panel" aria-labelledby="route-heading">
+        <h2 id="route-heading">Shuttle route</h2>
+        <p>Save points along the actual driving route, including turns and pickup stops, in travel order.
+            Movement within 150 meters of that route can confirm service. Repeat the first point at the end for a loop.</p>
+        <form th:action="@{/operations/movement/route}" method="post">
+            <div class="form-group"><label for="movement-route">Route points — one latitude,longitude pair per line</label>
+                <textarea id="movement-route" name="route" rows="8" maxlength="12000" th:text="${movementRoute}"
+                          aria-describedby="route-help" spellcheck="false"></textarea>
+                <p id="route-help">Copy coordinates from your map. Use 2–100 points, with adjacent points within 10 km.
+                    Leaving this empty disables automatic confirmation from movement. Stationary monitoring still works.</p></div>
+            <button class="button" type="submit">Save shuttle route</button>
+        </form>
+        <p>The active driver enables location from their driver page on a device kept in the shuttle.
+            A browser needs an open page and location permission. It cannot guarantee updates while the screen is locked.</p>
+        <p>Accurate stationary updates trigger a parked-only check-in after 10 minutes. Waiting restarts the check-in period.
+            After 20 minutes without a response, the session closes for review. Missing or unreliable updates never trigger a timeout.</p>
+    </section>
+    <section class="panel" aria-labelledby="reviews-heading">
+        <h2 id="reviews-heading">Inactivity timeouts — needs review</h2>
+        <p>A timeout is an automatic session close, not proof of an employee’s work or the exact time service stopped.
+            Check with the driver before drawing a conclusion. Reviewing records your note; it does not change the original times or confirm live service.</p>
+        <p th:if="${#lists.isEmpty(reviews)}">No inactivity timeouts are waiting for review.</p>
+        <article class="alert" th:each="drivingSession : ${reviews}">
+            <h3 th:text="${drivingSession.driver.name}">Driver</h3>
+            <p>Inactivity timeout — needs review · session <span th:text="${drivingSession.id}"></span></p>
+            <p>Started <span th:text="${timestampDisplay.format(drivingSession.startedAt, 'MMM d, h:mm a z')}"></span> ·
+                Automatically closed <span th:text="${timestampDisplay.format(drivingSession.endedAt, 'MMM d, h:mm a z')}"></span></p>
+            <p>Last service confirmation: <span th:text="${timestampDisplay.format(drivingSession.lastConfirmedAt, 'MMM d, h:mm a z')}"></span> ·
+                Stationary since: <span th:text="${timestampDisplay.format(drivingSession.movement.stationarySince, 'MMM d, h:mm a z')}"></span></p>
+            <form th:action="@{/operations/movement/review}" method="post">
+                <input type="hidden" name="sessionId" th:value="${drivingSession.id}">
+                <label th:for="|review-note-${drivingSession.id}|">Review note</label>
+                <textarea th:id="|review-note-${drivingSession.id}|" name="note" maxlength="1000" rows="3" required></textarea>
+                <button class="button button--secondary" type="submit">Record review</button>
+            </form>
+        </article>
+        <p th:if="${#lists.size(reviews) == 50}">Showing the latest 50 pending reviews. Older entries appear as these are reviewed.</p>
+    </section>
+</main>
+</body>
+</html>

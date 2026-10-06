@@ -27,7 +27,7 @@ public class ServiceFreshnessPolicy {
         Instant confirmed = session.getLastConfirmedAt();
         Instant deadline = confirmed.plusSeconds(confirmationMinutes * 60);
         var a = session.getAssignment();
-        if (a == null) return deadline;
+        if (a == null) return movementDeadline(session, deadline);
         // Use the window in which this session started, never a later window or another day.
         var start = LocalDateTime.ofInstant(session.getStartedAt(), zone);
         LocalDateTime plannedEnd = null;
@@ -46,11 +46,19 @@ public class ServiceFreshnessPolicy {
             Instant endDeadline = plannedEnd.plusMinutes(overrunMinutes).atZone(zone).toInstant();
             if (endDeadline.isBefore(deadline)) deadline = endDeadline;
         }
-        return deadline;
+        return movementDeadline(session, deadline);
+    }
+
+    private Instant movementDeadline(DrivingSession session, Instant deadline) {
+        var movement = session.getMovement();
+        if (!movement.enabled()) return deadline;
+        Instant evidenceDeadline = movement.evidenceDueAt();
+        return evidenceDeadline != null && evidenceDeadline.isBefore(deadline) ? evidenceDeadline : deadline;
     }
 
     public boolean isFresh(DrivingSession session, Instant now) {
         return session != null && session.isActive() && !now.isBefore(session.getLastConfirmedAt())
-                && now.isBefore(confirmationDueAt(session));
+                && now.isBefore(confirmationDueAt(session))
+                && (!session.getMovement().enabled() || session.getMovement().fresh(now));
     }
 }

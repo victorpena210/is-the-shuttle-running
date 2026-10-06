@@ -169,6 +169,9 @@
                         th:if="${drivingSession.endedAt != null}">
 
                         <td>
+                            <span th:if="${drivingSession.endReason != null and drivingSession.endReason.name() == 'INACTIVITY_TIMEOUT'}"
+                                  th:text="${drivingSession.inactivityReviewNeeded ? 'Inactivity timeout — needs review' : 'Inactivity timeout — reviewed'}"></span>
+                            <small th:if="${drivingSession.inactivityReviewNote != null}" th:text="${drivingSession.inactivityReviewNote}"></small>
                             <span th:if="${drivingSession.endReason != null and drivingSession.endReason.name() == 'PAUSE'}"
                                   th:text="|Driving paused · ${drivingSession.driver.name}|">
                                 Driving paused · Driver
@@ -197,7 +200,7 @@
                         <td
                             th:text="${drivingSession.endedBy != null
                                 ? drivingSession.endedBy.firstName + ' ' + drivingSession.endedBy.lastName
-                                : 'Not recorded'}">
+                                : (drivingSession.endMethod != null and drivingSession.endMethod.name() == 'AUTOMATIC' ? 'Automatic system timeout' : 'Not recorded')}">
 
                             Driver
 

@@ -87,10 +87,13 @@ public class RiderStatusService {
                 .findLatest(organization.getId())
                 .orElse(null);
 
-        Instant lastConfirmed = activeSession == null
-                ? drivingSessionRepository.findFirstByOrganization_IdAndEndedAtIsNotNullOrderByEndedAtDesc(organization.getId())
-                        .map(DrivingSession::getEndedAt).orElse(null)
-                : activeSession.getLastConfirmedAt();
+        DrivingSession lastEnded = activeSession == null
+                ? drivingSessionRepository.findFirstByOrganization_IdAndEndedAtIsNotNullOrderByEndedAtDesc(organization.getId()).orElse(null)
+                : null;
+        boolean inactivityTimeout = lastEnded != null && lastEnded.getEndReason()
+                == technology.renatus.routepulse.driving.domain.DrivingSessionEndReason.INACTIVITY_TIMEOUT;
+        Instant lastConfirmed = activeSession != null ? activeSession.getLastConfirmedAt()
+                : lastEnded == null ? null : inactivityTimeout ? lastEnded.getLastConfirmedAt() : lastEnded.getEndedAt();
         boolean manual = latestUpdate != null && latestUpdate.getStatusOverride() != OperationalStatusOverride.AUTOMATIC;
         boolean expired = latestUpdate != null && latestUpdate.isExpired(eventNow);
         boolean newerActivity = latestUpdate != null && lastConfirmed != null
@@ -105,6 +108,13 @@ public class RiderStatusService {
                 effectiveStatus = RiderOperationalStatus.CONFIRMATION_NEEDED;
         } else if (activeSession != null && !freshness.isFresh(activeSession, eventNow)) {
             effectiveStatus = RiderOperationalStatus.CONFIRMATION_NEEDED;
+        } else if (inactivityTimeout) {
+            effectiveStatus = RiderOperationalStatus.CONFIRMATION_NEEDED;
+        } else if (activeSession != null && activeSession.getMovement().waiting()) {
+            effectiveStatus = RiderOperationalStatus.WAITING_AT_PICKUP;
+        } else if (lastEnded != null && lastEnded.getEndReason() == technology.renatus.routepulse.driving.domain.DrivingSessionEndReason.PAUSE
+                && lastEnded.getEndedAt().isAfter(eventNow.minusSeconds(7200))) {
+            effectiveStatus = RiderOperationalStatus.TEMPORARILY_PAUSED;
         } else {
             effectiveStatus = inferAutomaticStatus(organization.getId(), activeSession, now);
         }
@@ -118,8 +128,14 @@ public class RiderStatusService {
 
         boolean confirmationAvailable = activeSession != null
                 && (effectiveStatus == RiderOperationalStatus.RUNNING
-                    || effectiveStatus == RiderOperationalStatus.SERVICE_ENDING_SOON);
+                    || effectiveStatus == RiderOperationalStatus.SERVICE_ENDING_SOON
+                    || effectiveStatus == RiderOperationalStatus.WAITING_AT_PICKUP);
         String detail = defaultDetail(effectiveStatus);
+        if (effectiveStatus == RiderOperationalStatus.CONFIRMATION_NEEDED && activeSession != null && activeSession.getMovement().enabled()
+                && !activeSession.getMovement().fresh(eventNow))
+            detail = "Reliable location updates are unavailable. Missing location data does not mean the shuttle stopped. Check the last confirmation time or contact your shuttle coordinator.";
+        if (effectiveStatus == RiderOperationalStatus.CONFIRMATION_NEEDED && inactivityTimeout)
+            detail = "The last session was automatically closed after sustained inactivity and needs a service check. Contact your shuttle coordinator before waiting for a ride.";
         if (manual && !expired) {
             if (effectiveStatus == RiderOperationalStatus.DELAYED) detail = "A manager has reported a service delay. Check the operational update for details.";
             if (effectiveStatus == RiderOperationalStatus.NO_SERVICE_SCHEDULED) detail = "A manager has reported no service for this period.";
@@ -314,7 +330,8 @@ public class RiderStatusService {
     private String headline(RiderOperationalStatus status) {
         return switch (status) {
             case RUNNING -> "The shuttle is running.";
-            case CONFIRMATION_NEEDED -> "Shuttle status needs confirmation.";
+            case CONFIRMATION_NEEDED -> "Status unconfirmed.";
+            case WAITING_AT_PICKUP -> "Waiting at pickup.";
             case TEMPORARILY_PAUSED -> "Shuttle service is temporarily paused.";
             case DELAYED -> "Shuttle service is delayed.";
             case NO_SERVICE_SCHEDULED -> "No shuttle service is scheduled today.";
@@ -326,6 +343,7 @@ public class RiderStatusService {
     private String defaultDetail(RiderOperationalStatus status) {
         return switch (status) {
             case RUNNING -> "Service is currently active.";
+            case WAITING_AT_PICKUP -> "The driver has confirmed they are waiting for passengers. Service remains active.";
             case CONFIRMATION_NEEDED -> "The latest service confirmation is overdue. We cannot confirm whether the shuttle is running. Check with your organization before waiting for a ride.";
             case TEMPORARILY_PAUSED -> "Service is expected to resume when the operational issue is resolved.";
             case DELAYED -> "Planned service is due, but no driving session is currently active.";
@@ -337,7 +355,7 @@ public class RiderStatusService {
 
     private String tone(RiderOperationalStatus status) {
         return switch (status) {
-            case RUNNING -> "running";
+            case RUNNING, WAITING_AT_PICKUP -> "running";
             case CONFIRMATION_NEEDED -> "unconfirmed";
             case SERVICE_ENDING_SOON -> "ending";
             case TEMPORARILY_PAUSED -> "paused";
@@ -383,7 +401,8 @@ public class RiderStatusService {
 
         public boolean running() {
             return operationalStatus == RiderOperationalStatus.RUNNING
-                    || operationalStatus == RiderOperationalStatus.SERVICE_ENDING_SOON;
+                    || operationalStatus == RiderOperationalStatus.SERVICE_ENDING_SOON
+                    || operationalStatus == RiderOperationalStatus.WAITING_AT_PICKUP;
         }
     }
 

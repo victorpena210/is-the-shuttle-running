@@ -75,6 +75,34 @@ public class DrivingSession {
     @Column(name = "end_reason", length = 20)
     private DrivingSessionEndReason endReason;
 
+    @jakarta.persistence.Embedded
+    private technology.renatus.routepulse.driving.movement.MovementState movement = new technology.renatus.routepulse.driving.movement.MovementState();
+
+    @Column(name = "inactivity_reviewed_at") private Instant inactivityReviewedAt;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "inactivity_reviewed_by") private UserAccount inactivityReviewedBy;
+    @Column(name = "inactivity_review_note", length = 1000) private String inactivityReviewNote;
+
+    public technology.renatus.routepulse.driving.movement.MovementState getMovement() {
+        if (movement == null) movement = new technology.renatus.routepulse.driving.movement.MovementState();
+        return movement;
+    }
+    public void confirmMovement(Instant now) {
+        if (!isActive()) throw new IllegalStateException("This session has ended.");
+        if (!now.isBefore(getLastConfirmedAt())) { lastConfirmedAt = now; confirmedBy = null; }
+    }
+    public boolean isInactivityReviewNeeded() {
+        return endReason == DrivingSessionEndReason.INACTIVITY_TIMEOUT && inactivityReviewedAt == null;
+    }
+    public Instant getInactivityReviewedAt() { return inactivityReviewedAt; }
+    public String getInactivityReviewNote() { return inactivityReviewNote; }
+    public void reviewInactivity(UserAccount actor, String note, Instant now) {
+        if (!isInactivityReviewNeeded()) throw new IllegalStateException("This session does not need an inactivity review.");
+        if (note == null || note.isBlank() || note.trim().length() > 1000)
+            throw new IllegalArgumentException("Add a review note of 1–1000 characters.");
+        inactivityReviewedBy = Objects.requireNonNull(actor); inactivityReviewedAt = now; inactivityReviewNote = note.trim();
+    }
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
@@ -182,11 +210,11 @@ public class DrivingSession {
             );
         }
 
+        boolean automated = endMethod == DrivingActionMethod.AUTOMATIC && endReason == DrivingSessionEndReason.INACTIVITY_TIMEOUT;
+        if (!automated) Objects.requireNonNull(endedBy, "The account ending the driving session is required.");
         this.endedAt = endedAt;
-        this.endedBy = Objects.requireNonNull(
-                endedBy,
-                "The account ending the driving session is required."
-        );
+        this.endedBy = automated ? null : endedBy;
+        getMovement().clearCoordinates();
         this.endMethod = Objects.requireNonNull(
                 endMethod,
                 "Driving end method is required."
@@ -239,6 +267,7 @@ public class DrivingSession {
             throw new IllegalStateException("Only an active session can be confirmed at the current time.");
         lastConfirmedAt = now;
         confirmedBy = actor;
+        getMovement().acknowledge(now, false);
     }
 
     public UserAccount getStartedBy() {

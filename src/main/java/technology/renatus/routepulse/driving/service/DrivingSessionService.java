@@ -336,6 +336,11 @@ public class DrivingSessionService {
                 endReason
         );
 
+        if (endReason == DrivingSessionEndReason.INACTIVITY_TIMEOUT) {
+            // A timeout is an estimate requiring review, never proof of completion or a missed duty.
+            if (assignment != null) assignment.updateDerivedOutcome(AssignmentOutcome.PENDING);
+            return session;
+        }
         updateDerivedOutcome(assignment);
         driverWorkloadService.recordSessionCompletion(
                 session,

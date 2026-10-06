@@ -4,5 +4,6 @@ package technology.renatus.routepulse.driving.domain;
 public enum DrivingSessionEndReason {
     PAUSE,
     COMPLETED,
+    INACTIVITY_TIMEOUT,
     HANDOFF
 }
