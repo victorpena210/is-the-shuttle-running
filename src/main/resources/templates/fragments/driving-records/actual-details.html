@@ -133,30 +133,30 @@
                 </tr>
 
                 <th:block
-                    th:each="session : ${record.drivingSessions}">
+                    th:each="drivingSession : ${record.drivingSessions}">
 
                     <tr>
 
                         <td>
-                            <span th:text="|Driving started · ${session.driver.name}|">
+                            <span th:text="|Driving started · ${drivingSession.driver.name}|">
                                 Driving started · Driver
                             </span>
-                            <small th:if="${session.startMethod != null}"
-                                   th:text="| · ${session.startMethod}|">
+                            <small th:if="${drivingSession.startMethod != null}"
+                                   th:text="| · ${drivingSession.startMethod}|">
                                 · NFC
                             </small>
                         </td>
 
                         <td
-                            th:text="${timestampDisplay.format(session.startedAt, 'MMM d, yyyy h:mm a')}">
+                            th:text="${timestampDisplay.format(drivingSession.startedAt, 'MMM d, yyyy h:mm a')}">
 
                             Sep 7, 2026 9:03 AM
 
                         </td>
 
                         <td
-                            th:text="${session.startedBy != null
-                                ? session.startedBy.firstName + ' ' + session.startedBy.lastName
+                            th:text="${drivingSession.startedBy != null
+                                ? drivingSession.startedBy.firstName + ' ' + drivingSession.startedBy.lastName
                                 : 'Not recorded'}">
 
                             Driver
@@ -166,37 +166,37 @@
                     </tr>
 
                     <tr
-                        th:if="${session.endedAt != null}">
+                        th:if="${drivingSession.endedAt != null}">
 
                         <td>
-                            <span th:if="${session.endReason != null and session.endReason.name() == 'PAUSE'}"
-                                  th:text="|Driving paused · ${session.driver.name}|">
+                            <span th:if="${drivingSession.endReason != null and drivingSession.endReason.name() == 'PAUSE'}"
+                                  th:text="|Driving paused · ${drivingSession.driver.name}|">
                                 Driving paused · Driver
                             </span>
-                            <span th:if="${session.endReason != null and session.endReason.name() == 'HANDOFF'}"
-                                  th:text="|Driver handoff · ${session.driver.name}|">
+                            <span th:if="${drivingSession.endReason != null and drivingSession.endReason.name() == 'HANDOFF'}"
+                                  th:text="|Driver handoff · ${drivingSession.driver.name}|">
                                 Driver handoff · Driver
                             </span>
-                            <span th:if="${session.endReason == null or session.endReason.name() == 'COMPLETED'}"
-                                  th:text="|Driving ended · ${session.driver.name}|">
+                            <span th:if="${drivingSession.endReason == null or drivingSession.endReason.name() == 'COMPLETED'}"
+                                  th:text="|Driving ended · ${drivingSession.driver.name}|">
                                 Driving ended · Driver
                             </span>
-                            <small th:if="${session.endMethod != null}"
-                                   th:text="| · ${session.endMethod}|">
+                            <small th:if="${drivingSession.endMethod != null}"
+                                   th:text="| · ${drivingSession.endMethod}|">
                                 · NFC
                             </small>
                         </td>
 
                         <td
-                            th:text="${timestampDisplay.format(session.endedAt, 'MMM d, yyyy h:mm a')}">
+                            th:text="${timestampDisplay.format(drivingSession.endedAt, 'MMM d, yyyy h:mm a')}">
 
                             Sep 7, 2026 12:02 PM
 
                         </td>
 
                         <td
-                            th:text="${session.endedBy != null
-                                ? session.endedBy.firstName + ' ' + session.endedBy.lastName
+                            th:text="${drivingSession.endedBy != null
+                                ? drivingSession.endedBy.firstName + ' ' + drivingSession.endedBy.lastName
                                 : 'Not recorded'}">
 
                             Driver

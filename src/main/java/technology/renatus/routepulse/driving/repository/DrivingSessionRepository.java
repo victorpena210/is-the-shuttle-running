@@ -16,6 +16,21 @@ public interface DrivingSessionRepository
 
     @Query("""
             SELECT session FROM DrivingSession session
+            LEFT JOIN FETCH session.assignment assignment
+            LEFT JOIN FETCH assignment.scheduledDriver
+            WHERE session.organization.id = :organizationId
+              AND session.driver.id = :driverId
+              AND session.startedAt < :end
+              AND (session.endedAt IS NULL OR session.endedAt > :start)
+            ORDER BY session.startedAt DESC
+            """)
+    List<DrivingSession> findPersonalAnalyticsSessions(
+            @Param("organizationId") Long organizationId,
+            @Param("driverId") Long driverId,
+            @Param("start") Instant start, @Param("end") Instant end);
+
+    @Query("""
+            SELECT session FROM DrivingSession session
             JOIN FETCH session.driver
             WHERE session.organization.id = :organizationId
               AND session.startedAt < :end

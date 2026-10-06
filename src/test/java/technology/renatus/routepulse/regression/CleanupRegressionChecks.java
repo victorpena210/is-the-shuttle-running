@@ -11,7 +11,6 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -19,12 +18,12 @@ import java.util.function.BiFunction;
 import org.springframework.ui.ExtendedModelMap;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
-import org.thymeleaf.context.Context;
 import org.thymeleaf.context.IExpressionContext;
 import org.thymeleaf.linkbuilder.StandardLinkBuilder;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.FileTemplateResolver;
 import technology.renatus.routepulse.shared.time.TimestampDisplay;
+import technology.renatus.routepulse.support.WebTemplateContext;
 import technology.renatus.routepulse.attention.model.AttentionCenter;
 import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
 import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
@@ -454,7 +453,7 @@ public final class CleanupRegressionChecks {
     }
 
     private static String render(SpringTemplateEngine engine, String template, Map<String, Object> model) {
-        return engine.process(template, new Context(Locale.US, model));
+        return engine.process(template, WebTemplateContext.create(model));
     }
 
     private static TransportationDemandAnalysis demand() {

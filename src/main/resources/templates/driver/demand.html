@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#17201c">
+    <title>Today’s Demand | Is the Shuttle Running</title>
+    <link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/driver-insights.css}">
+</head>
+<body class="app-page">
+<th:block th:replace="~{fragments/navigation :: driverNav}"></th:block>
+<main id="main-content" class="app-main driver-insights">
+    <header class="page-header">
+        <div>
+            <p class="eyebrow" th:text="${organizationName}">Organization</p>
+            <h1>Today’s transportation demand</h1>
+            <p>See when arrivals and departures are expected, so you can prepare for busy driving windows.</p>
+        </div>
+        <div class="page-date">
+            <span th:text="${#temporals.format(demandView.date, 'EEEE, MMMM d, yyyy')}">Today</span>
+            <small th:text="${operationsZone}">America/Chicago</small>
+        </div>
+    </header>
+
+    <section class="insight-panel insight-context" aria-label="Today’s planning context">
+        <strong th:text="${demandView.calendar}">Open</strong>
+        <p th:if="${demandView.calendar == 'Park closed'}">The calendar reports the park closed. Any schedule demand below is still shown for reference. Check with your manager before driving.</p>
+        <p th:if="${demandView.calendar == 'Calendar unverified'}">The park calendar has not been verified. Check your assignment and your manager’s instructions.</p>
+        <p>Demand is based on scheduled employee shifts. Counts are expected movements, not confirmed passengers or driving assignments.</p>
+        <p th:if="${demandView.uploadedAt != null}">Schedule uploaded <span th:text="${timestampDisplay.format(demandView.uploadedAt, 'MMM d, h:mm a')}"></span>.</p>
+        <a class="button button--secondary" th:href="@{/driver}">View my assignment</a>
+        <a class="button button--secondary" th:href="@{/driver/demand}">Refresh demand</a>
+    </section>
+
+    <section class="insight-panel" th:unless="${demandView.scheduleAvailable}" aria-labelledby="missing-demand-heading">
+        <h2 id="missing-demand-heading">No schedule available for today</h2>
+        <p>Your manager needs to upload today’s employee schedule before demand can be shown. This does not mean demand is zero.</p>
+    </section>
+
+    <th:block th:if="${demandView.scheduleAvailable}" th:with="demand=${demandView.analysis}">
+        <section class="insight-panel insight-peak" th:if="${demand.overallPeakWindowCount > 0}" aria-labelledby="peak-heading">
+            <p class="eyebrow" id="peak-heading">Busiest operating window</p>
+            <h2 th:text="${#temporals.format(demand.overallPeakWindowStart, 'h:mm a') + ' – ' + #temporals.format(demand.overallPeakWindowEnd, 'h:mm a')}">5:00 PM – 5:15 PM</h2>
+            <p><strong th:text="${demand.overallPeakWindowCount}">0</strong> expected movements · <span th:text="${demand.overallPeakPeriodTitle}">Evening Pickups</span></p>
+        </section>
+
+        <div class="demand-periods">
+            <section class="insight-panel" th:each="period : ${demand.periods}" th:attr="aria-labelledby=${'demand-' + period.key}">
+                <h2 th:id="${'demand-' + period.key}" th:text="${period.title}">Morning Arrivals</h2>
+                <p class="insight-total"><strong th:text="${period.totalCount}">0</strong> <span th:text="${period.totalLabel}">arrivals</span></p>
+                <p th:text="${period.description}">Scheduled shift starts.</p>
+                <p th:if="${period.hasDemand()}"><strong>Peak:</strong> <span th:text="${#temporals.format(period.peakWindowStart, 'h:mm a') + ' – ' + #temporals.format(period.peakWindowEnd, 'h:mm a')}"></span> · <span th:text="${period.peakWindowCount}"></span></p>
+                <p th:unless="${period.hasDemand()}">No demand recorded in this period in today’s uploaded schedule.</p>
+                <details th:if="${period.hasDemand()}">
+                    <summary>View demand by time</summary>
+                    <div class="table-shell" tabindex="0" role="region" th:attr="aria-label=${period.title + ' demand windows'}">
+                        <table>
+                            <caption th:text="${period.title + ' · expected movements by time'}">Expected movements</caption>
+                            <thead><tr><th scope="col">Time</th><th scope="col">Arrivals</th><th scope="col">Departures</th><th scope="col">Demand</th></tr></thead>
+                            <tbody><tr th:each="window : ${period.windows}">
+                                <th scope="row" th:text="${#temporals.format(window.windowStart, 'h:mm a') + ' – ' + #temporals.format(window.windowEnd, 'h:mm a')}"></th>
+                                <td th:text="${window.arrivals}"></td><td th:text="${window.departures}"></td>
+                                <td><strong th:text="${window.demandCount}"></strong><small th:text="${window.priority.label}"></small></td>
+                            </tr></tbody>
+                        </table>
+                    </div>
+                </details>
+            </section>
+        </div>
+        <section class="insight-panel" th:if="${demand.hasOffHoursDemand()}" aria-labelledby="off-hours-heading">
+            <h2 id="off-hours-heading">Off-hours movements</h2>
+            <p><strong th:text="${demand.offHoursMovementCount}"></strong> expected arrivals and departures outside normal operating hours. Confirm coverage with your manager.</p>
+            <details>
+                <summary>View off-hours demand by time</summary>
+                <div class="table-shell" tabindex="0" role="region" aria-label="Off-hours demand windows">
+                    <table>
+                        <caption>Off-hours expected movements</caption>
+                        <thead><tr><th scope="col">Time</th><th scope="col">Arrivals</th><th scope="col">Departures</th></tr></thead>
+                        <tbody><tr th:each="window : ${demand.offHoursWindows}">
+                            <th scope="row" th:text="${#temporals.format(window.windowStart, 'h:mm a') + ' – ' + #temporals.format(window.windowEnd, 'h:mm a')}"></th>
+                            <td th:text="${window.arrivals}"></td><td th:text="${window.departures}"></td>
+                        </tr></tbody>
+                    </table>
+                </div>
+            </details>
+        </section>
+        <p class="insight-note">Morning demand counts arrivals; midday counts arrivals plus departures; evening counts departures. A person can contribute more than one movement in a day.</p>
+    </th:block>
+</main>
+<footer th:replace="~{fragments/footer :: footer('app')}"></footer>
+</body>
+</html>

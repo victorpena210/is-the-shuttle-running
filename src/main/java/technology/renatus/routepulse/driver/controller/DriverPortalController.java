@@ -36,6 +36,7 @@ public class DriverPortalController {
                 .requireCurrentDriver(authentication);
 
         model.addAttribute("driver", driver);
+        model.addAttribute("driverPage", "assignment");
         model.addAttribute(
                 "organizationName",
                 driver.getOrganization().getDisplayName());

@@ -12,6 +12,20 @@ public interface PassengerRideConfirmationRepository
                 PassengerRideConfirmation,
                 Long> {
 
+    @Query("""
+            SELECT confirmation.submittedAt
+            FROM PassengerRideConfirmation confirmation
+            WHERE confirmation.organization.id = :organizationId
+              AND confirmation.driver.id = :driverId
+              AND confirmation.submittedAt >= :start
+              AND confirmation.submittedAt < :end
+            ORDER BY confirmation.submittedAt
+            """)
+    List<Instant> findPersonalConfirmationTimes(
+            @Param("organizationId") Long organizationId,
+            @Param("driverId") Long driverId,
+            @Param("start") Instant start, @Param("end") Instant end);
+
     boolean existsByDrivingSession_IdAndDeviceTokenHashAndSubmittedAtAfter(
             Long sessionId, String deviceTokenHash, Instant submittedAfter);
 

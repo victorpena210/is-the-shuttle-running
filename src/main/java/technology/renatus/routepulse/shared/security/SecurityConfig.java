@@ -102,6 +102,8 @@ public class SecurityConfig {
                                  * This includes viewing today's own
                                  * assignment and recording start/end
                                  * through the shuttle NFC/QR checkpoint.
+                                 * Drivers can also read today's aggregate
+                                 * demand and their own activity analytics.
                                  */
                                 .requestMatchers(
                                         "/driver/**"

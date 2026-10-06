@@ -1,0 +1,43 @@
+.driver-insights { max-width: 78rem; }
+.driver-insights .page-date small,
+.driver-insights td small { display: block; margin-top: .25rem; color: var(--slate-500); }
+.insight-panel {
+    min-width: 0;
+    margin-bottom: 1.25rem;
+    padding: clamp(1rem, 3vw, 1.5rem);
+    border: 1px solid var(--slate-200);
+    border-radius: var(--radius-md);
+    background: var(--white);
+    box-shadow: var(--shadow-sm);
+}
+.insight-panel h2 { font-size: 1.25rem; }
+.insight-panel p { color: var(--slate-600); }
+.insight-panel p:last-child { margin-bottom: 0; }
+.insight-context .button { margin: .25rem .5rem .25rem 0; }
+.insight-peak { border-left: .3rem solid #527461; background: #f0f5ef; }
+.insight-peak h2 { font-size: clamp(1.5rem, 4vw, 2rem); }
+.demand-periods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.insight-total strong { color: var(--ink-950); font-size: 2.25rem; }
+.driver-insights summary { padding: .6rem 0; font-weight: 750; cursor: pointer; }
+.driver-insights .table-shell { max-width: 100%; overflow-x: auto; margin-top: .8rem; }
+.driver-insights table { width: 100%; }
+.driver-insights caption { padding: .75rem; text-align: left; color: var(--slate-600); font-size: .8rem; }
+.driver-insights th { white-space: nowrap; }
+.insight-note { margin: .85rem 0; color: var(--slate-600); font-size: .85rem; }
+.insight-presets { display: flex; flex-wrap: wrap; gap: .5rem; margin-bottom: 1rem; }
+.insight-filters { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 1rem; }
+.insight-filters > div { flex: 1 1 10rem; }
+.insight-filters label { display: block; margin-bottom: .4rem; font-weight: 700; }
+.insight-filters input { width: 100%; min-width: 0; }
+.insight-metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1rem; margin: 1rem 0; }
+.insight-metrics > div { padding: 1.15rem; border: 1px solid var(--slate-200); border-radius: var(--radius-md); background: var(--white); }
+.insight-metrics dt { font-size: .82rem; color: var(--slate-600); font-weight: 700; }
+.insight-metrics dd { margin: .5rem 0 0; font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 800; color: var(--ink-950); }
+.insight-secondary { display: flex; flex-wrap: wrap; gap: .5rem 2rem; }
+.insight-explainer[open] summary { margin-bottom: .75rem; }
+@media (max-width: 1200px) { .demand-periods { grid-template-columns: 1fr; } }
+@media (max-width: 700px) { .insight-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; } }
+@media (max-width: 440px) {
+    .insight-filters > div, .insight-filters > button { flex-basis: 100%; }
+    .insight-metrics > div { padding: .8rem; }
+}
