@@ -1,0 +1,7 @@
+.coverage-assessment { padding: 0 1.25rem 1rem; overflow-wrap: anywhere; }
+.coverage-assessment summary { cursor: pointer; font-weight: 700; padding: .65rem 0; }
+.coverage-assessment ul { padding-left: 1.25rem; }
+.coverage-assessment li { margin-bottom: .5rem; }
+.coverage-gap { border-left: 3px solid #b76b13; padding-left: .75rem; }
+.rider-information-settings { margin-top: 1.5rem; }
+.rider-information-settings summary { cursor: pointer; font-weight: 700; }

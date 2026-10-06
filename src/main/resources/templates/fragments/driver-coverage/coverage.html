@@ -36,42 +36,30 @@
 
                 <div>
 
-                    <strong
-                        th:text="${needsAttentionShiftCount == 1
-                            ? '1 shuttle shift still needs a driver'
-                            : needsAttentionShiftCount + ' shuttle shifts still need drivers'}">
-                        1 shuttle shift still needs a driver
-                    </strong>
+                    <strong th:text="${coverageSummary}">Coverage needs review</strong>
 
                     <p>
-                        Review the required coverage below. Afternoon opening coverage is automatic when counter staffing permits; other midday service is optional.
+                        Review the uncovered times and staffing conflicts below. Required demand remains visible when counter staffing prevents assignment; regular midday service is optional.
                     </p>
 
                 </div>
 
-                <button
-                    class="button"
-                    type="button"
-                    th:attr="data-open-coverage-details=${
-                        morningRequired and !morningAssignmentExists ? '#assign-morning' : (middayRequired and !middayAssignmentExists ? '#assign-midday' : '#assign-afternoon')
-                    }">
-                    Assign driver
-                </button>
+                <a class="button" href="#coverage">Review coverage below</a>
 
             </div>
 
             <div
                 class="coverage-action coverage-action--success"
-                th:if="${needsAttentionShiftCount != null and needsAttentionShiftCount == 0 and !assignmentReviewRequired}">
+                th:if="${needsAttentionShiftCount != null and needsAttentionShiftCount == 0 and !assignmentReviewRequired and totalShiftCount > 0}">
 
                 <div>
 
                     <strong>
-                        Required coverage is complete
+                        Required demand is covered
                     </strong>
 
                     <p>
-                        All required periods with sufficient staffing have assigned drivers. Regular midday suggestions are optional.
+                        Every required demand interval has assigned driving time within an uploaded work shift, with no unresolved coverage conflict. Regular midday suggestions are optional.
                     </p>
 
                 </div>

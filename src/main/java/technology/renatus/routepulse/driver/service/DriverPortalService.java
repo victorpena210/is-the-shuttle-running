@@ -31,14 +31,17 @@ public class DriverPortalService {
     private final DriverAssignmentRepository assignmentRepository;
     private final ZoneId operationsZone;
     private final DrivingSessionRepository drivingSessionRepository;
+    private final technology.renatus.routepulse.driving.service.rider.ServiceFreshnessPolicy freshness;
 
     public DriverPortalService(
             DriverPortalAccessService accessService,
             DriverCheckpointService checkpointService,
             DriverAssignmentRepository assignmentRepository,
             DrivingSessionRepository drivingSessionRepository,
+            technology.renatus.routepulse.driving.service.rider.ServiceFreshnessPolicy freshness,
             @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
         this.drivingSessionRepository = drivingSessionRepository;
+        this.freshness = freshness;
         this.accessService = accessService;
         this.checkpointService = checkpointService;
         this.assignmentRepository = assignmentRepository;
@@ -48,6 +51,16 @@ public class DriverPortalService {
     public Driver requireCurrentDriver(Authentication authentication) {
         return accessService.requireCurrentDriver(authentication);
     }
+
+    public ActiveConfirmation getActiveConfirmation(Authentication authentication) {
+        var driver = requireCurrentDriver(authentication);
+        return drivingSessionRepository.findFirstByOrganization_IdAndEndedAtIsNullOrderByStartedAtDesc(driver.getOrganization().getId())
+                .filter(s -> s.getDriver().getId().equals(driver.getId()))
+                .map(s -> new ActiveConfirmation(s.getId(), freshness.confirmationDueAt(s), !freshness.isFresh(s, java.time.Instant.now())))
+                .orElse(null);
+    }
+
+    public record ActiveConfirmation(Long sessionId, java.time.Instant dueAt, boolean overdue) {}
 
     public List<UnscheduledDrivingRecord> getRecentUnscheduledRecords(Authentication authentication) {
         Driver driver = requireCurrentDriver(authentication);

@@ -45,21 +45,21 @@ public class OperationalStatusService {
     }
 
 
-    public boolean blocksPassengerConfirmation(Long organizationId) {
-        return findLatest(organizationId)
-                .map(update -> switch (update.getStatusOverride()) {
-                    case TEMPORARILY_PAUSED, DELAYED, NO_SERVICE_SCHEDULED -> true;
-                    case AUTOMATIC, SERVICE_ENDING_SOON -> false;
-                })
-                .orElse(false);
-    }
-
     @Transactional
     public OperationalStatusUpdate update(
             Long organizationId,
             OperationalStatusOverride statusOverride,
             String message,
             String actorEmail) {
+
+        return update(organizationId, statusOverride, message, actorEmail, 120);
+    }
+
+    @Transactional
+    public OperationalStatusUpdate update(Long organizationId, OperationalStatusOverride statusOverride,
+            String message, String actorEmail, int durationMinutes) {
+        if (durationMinutes < 15 || durationMinutes > 720)
+            throw new IllegalArgumentException("Choose a status duration between 15 and 720 minutes.");
 
         if (organizationId == null) {
             throw new IllegalArgumentException("An organization is required.");
@@ -104,6 +104,8 @@ public class OperationalStatusService {
                 displayName,
                 actor.getEmail(),
                 Instant.now());
+
+        update.setExpiresAt(update.getUpdatedAt().plusSeconds(durationMinutes * 60L));
 
         return updateRepository.save(update);
     }

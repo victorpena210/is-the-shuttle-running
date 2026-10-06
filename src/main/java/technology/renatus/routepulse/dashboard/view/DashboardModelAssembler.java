@@ -72,14 +72,19 @@ public class DashboardModelAssembler {
             model.addAttribute(prefix + "Assignment", assignment);
             model.addAttribute(prefix + "AssignedDriverSchedule", findAssignedDriverSchedule(plan.driverSchedules(), assignment));
             model.addAttribute(prefix + "Required", plan.requiresCoverage(period));
+            var coverage = technology.renatus.routepulse.dashboard.model.CoverageAssessment.assess(plan, period);
+            model.addAttribute(prefix + "Coverage", coverage);
             if (plan.requiresCoverage(period)) {
                 required++;
-                if (assignment != null) covered++;
+                if (coverage.fullyCovered()) covered++;
             }
         }
         model.addAttribute("totalShiftCount", required);
         model.addAttribute("coveredShiftCount", covered);
         model.addAttribute("needsAttentionShiftCount", required - covered);
+        model.addAttribute("coverageSummary", required == 0 ? "No required transportation demand"
+                : required != covered ? (required - covered) + " required periods need coverage or review"
+                : plan.assignmentReviewRequired() ? "Assignments need schedule review" : "Required demand is covered");
     }
 
     private DriverSchedule findAssignedDriverSchedule(

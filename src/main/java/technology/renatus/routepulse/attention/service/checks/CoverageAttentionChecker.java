@@ -121,48 +121,19 @@ public class CoverageAttentionChecker {
                 continue;
             }
 
-            boolean assignmentExists = plan.driverAssignments().stream()
-                    .anyMatch(assignment -> assignment.getPeriod() == period);
-
-            if (assignmentExists) {
+            var assessment = technology.renatus.routepulse.dashboard.model.CoverageAssessment.assess(plan, period);
+            if (assessment.fullyCovered()) {
                 continue;
             }
 
-            String periodLabel = plan.wardrobeHours().usesOpeningWindow() && period == ShuttlePeriod.MORNING
-                    ? "Opening" : AttentionSupport.periodLabel(period);
-            String requestedWindow =
-                    AttentionSupport.requestedWindowLabel(demandPeriod);
-            boolean eligibleDriverExists = AttentionSupport.hasEligibleDriver(
-                    plan.driverSchedules(),
-                    demandPeriod
-            );
+            boolean eligible = AttentionSupport.hasEligibleDriver(plan.driverSchedules(), demandPeriod);
+            items.add(new AttentionItem("coverage-gap-" + period.name(),
+                    eligible ? AttentionSeverity.WARNING : AttentionSeverity.URGENT,
+                    AttentionSupport.periodLabel(period) + ": " + assessment.label(),
+                    assessment.gaps().isEmpty() ? "Demand has assigned time, but staffing or schedule conflicts still require review."
+                            : "Transportation demand still needs coverage at " + String.join(", ", assessment.gaps()) + ".",
+                    "Review coverage", AttentionSupport.dashboardHref(plan, "coverage")));
 
-            if (!eligibleDriverExists) {
-                items.add(new AttentionItem(
-                        "missing-coverage-no-eligible-" + period.name(),
-                        AttentionSeverity.URGENT,
-                        periodLabel + " coverage has no eligible driver",
-                        requestedWindow == null
-                                ? "No active Is the Shuttle Running driver has an uploaded work shift that can cover this transportation period."
-                                : "No active Is the Shuttle Running driver has an uploaded work shift overlapping "
-                                        + requestedWindow + ".",
-                        "Resolve coverage",
-                        AttentionSupport.dashboardHref(plan, "coverage")
-                ));
-                continue;
-            }
-
-            items.add(new AttentionItem(
-                    "missing-coverage-" + period.name(),
-                    AttentionSeverity.WARNING,
-                    periodLabel + " coverage is unassigned",
-                    requestedWindow == null
-                            ? "Transportation demand exists for this period, but no driver has been assigned yet."
-                            : "Transportation demand exists from " + requestedWindow
-                                    + ", but no driver has been assigned yet.",
-                    "Assign driver",
-                    AttentionSupport.dashboardHref(plan, "coverage")
-            ));
         }
     }
 

@@ -320,7 +320,7 @@ public final class CleanupRegressionChecks {
                 "Open", null, false, suggestion);
         ExtendedModelMap optionalModel = managerModel();
         new DashboardModelAssembler().populate(optionalModel, optionalPlan);
-        equal(1, optionalModel.get("needsAttentionShiftCount"), "only afternoon requires assignment with one morning staff member");
+        equal(2, optionalModel.get("needsAttentionShiftCount"), "blocked opening demand remains visible alongside afternoon demand");
         String optionalHtml = render(engine, "manager/dashboard", optionalModel);
         check(optionalHtml.contains("Demand shown") && optionalHtml.contains("9:00 AM–11:59 PM"), "demand horizon renders through end of day");
         check(!optionalHtml.contains("Normal operations · 9:00 AM–9:00 PM"), "old hard-coded demand cutoff removed");
@@ -333,7 +333,7 @@ public final class CleanupRegressionChecks {
         check(!optionalHtml.contains("id=\"assign-morning\""), "manual morning form hidden when office staffing blocked");
         List<technology.renatus.routepulse.attention.model.AttentionItem> alerts = new ArrayList<>();
         new technology.renatus.routepulse.attention.service.checks.CoverageAttentionChecker().addAlerts(optionalPlan, alerts);
-        check(alerts.stream().noneMatch(a -> a.key().contains("MIDDAY") || a.key().contains("missing-coverage-MORNING")), "optional and office-blocked periods are not missing-coverage alerts");
+        check(alerts.stream().noneMatch(a -> a.key().contains("MIDDAY")), "regular midday remains optional");
         check(alerts.stream().anyMatch(a -> a.key().equals("morning-office-coverage")), "office staffing notice present");
         for (boolean staffed : List.of(false, true)) {
             var afternoonRows = new ArrayList<DriverSchedule>();
@@ -348,7 +348,7 @@ public final class CleanupRegressionChecks {
                     "Open", null, false);
             ExtendedModelMap lateModel = managerModel(); new DashboardModelAssembler().populate(lateModel, latePlan);
             equal("MIDDAY", lateModel.get("lateOpeningPeriod"), "late opening recognized in dashboard");
-            equal(staffed, lateModel.get("middayRequired"), "opening required only with staffing");
+            equal(true, lateModel.get("middayRequired"), "opening demand remains required when staffing is blocked");
             String lateHtml = render(engine, "manager/dashboard", lateModel);
             check(lateHtml.contains("Midday opening coverage"), "opening card label");
             check(!lateHtml.contains("Optional midday driving"), "opening card incorrectly labeled optional");
@@ -356,7 +356,7 @@ public final class CleanupRegressionChecks {
             equal(staffed, lateHtml.contains("id=\"assign-midday\""), "unsafe manual form hidden");
             var lateAlerts = new ArrayList<technology.renatus.routepulse.attention.model.AttentionItem>();
             new technology.renatus.routepulse.attention.service.checks.CoverageAttentionChecker().addAlerts(latePlan, lateAlerts);
-            equal(staffed, lateAlerts.stream().anyMatch(a -> a.key().equals("missing-coverage-MIDDAY")), "opening missing coverage warning");
+            equal(true, lateAlerts.stream().anyMatch(a -> a.key().equals("coverage-gap-MIDDAY")), "opening gap remains visible until resolved");
         }
         for (boolean staffed : List.of(false, true)) {
             var fridayRows = new ArrayList<DriverSchedule>();
@@ -371,7 +371,7 @@ public final class CleanupRegressionChecks {
             ExtendedModelMap fridayModel = managerModel(); new DashboardModelAssembler().populate(fridayModel, fridayPlan);
             equal(true, fridayModel.get("configuredOpening"), "configured opening enabled");
             equal(false, fridayModel.get("morningRequired"), "morning is not required on late-opening days");
-            equal(staffed, fridayModel.get("middayRequired"), "midday opening needs two roster members");
+            equal(true, fridayModel.get("middayRequired"), "midday opening demand remains visible while staffing is resolved");
             String fridayHtml = render(engine, "manager/dashboard", fridayModel);
             check(fridayHtml.contains("Opening driving window: 3:00 PM–6:00 PM"), "Friday hours cross five without split");
             check(fridayHtml.contains("name=\"openingTime\"") && fridayHtml.contains("Fridays"), "opening and weekday inputs render");

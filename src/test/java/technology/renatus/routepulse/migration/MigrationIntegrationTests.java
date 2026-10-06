@@ -13,7 +13,7 @@ class MigrationIntegrationTests extends MySqlIntegrationTestSupport {
         assertNotNull(flyway.info().current());
 
         assertEquals(
-                "36",
+                "37",
                 flyway.info().current().getVersion().getVersion()
         );
 
@@ -35,7 +35,7 @@ class MigrationIntegrationTests extends MySqlIntegrationTestSupport {
                 Integer.class
         );
 
-        assertEquals(36, successfulMigrations);
+        assertEquals(37, successfulMigrations);
         assertEquals(0, failedMigrations);
     }
 }

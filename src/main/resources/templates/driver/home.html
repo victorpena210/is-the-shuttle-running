@@ -62,6 +62,17 @@
         th:text="${errorMessage}">
     </div>
 
+    <section class="driver-focus" th:if="${activeSessionId != null}" aria-labelledby="service-confirmation-heading">
+        <h2 id="service-confirmation-heading" th:text="${confirmationOverdue ? 'Rider status needs your confirmation' : 'Keep rider status current'}"></h2>
+        <p>Next confirmation due <strong th:text="${timestampDisplay.format(confirmationDueAt, 'MMM d, h:mm a z')}"></strong>.
+            Confirm only when parked safely and still providing shuttle service.</p>
+        <form th:action="@{/driver/confirm-running}" method="post">
+            <input type="hidden" name="sessionId" th:value="${activeSessionId}">
+            <button class="button" type="submit">I’m still running the shuttle</button>
+        </form>
+        <p>If service has ended, use the NFC/QR checkpoint to end it or ask a manager to close the session.</p>
+    </section>
+
     <section class="driver-focus" th:if="${unscheduledActive}" aria-labelledby="unscheduled-active-heading">
         <span class="driver-focus__eyebrow">Driving now</span>
         <h2 id="unscheduled-active-heading">Unscheduled driving is active.</h2>

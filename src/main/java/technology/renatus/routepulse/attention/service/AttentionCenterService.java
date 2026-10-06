@@ -24,18 +24,24 @@ public class AttentionCenterService {
     private final CoverageAttentionChecker coverageAttentionChecker;
     private final LiveOperationsAttentionChecker liveOperationsAttentionChecker;
     private final ServiceVerificationAttentionChecker serviceVerificationAttentionChecker;
+    private final technology.renatus.routepulse.driving.service.RiderStatusService riderStatus;
+    private final technology.renatus.routepulse.organization.repository.OrganizationRepository organizations;
 
     public AttentionCenterService(
             ScheduleAttentionChecker scheduleAttentionChecker,
             CoverageAttentionChecker coverageAttentionChecker,
             LiveOperationsAttentionChecker liveOperationsAttentionChecker,
             ServiceVerificationAttentionChecker serviceVerificationAttentionChecker,
+            technology.renatus.routepulse.driving.service.RiderStatusService riderStatus,
+            technology.renatus.routepulse.organization.repository.OrganizationRepository organizations,
             @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
 
         this.scheduleAttentionChecker = scheduleAttentionChecker;
         this.coverageAttentionChecker = coverageAttentionChecker;
         this.liveOperationsAttentionChecker = liveOperationsAttentionChecker;
         this.serviceVerificationAttentionChecker = serviceVerificationAttentionChecker;
+        this.riderStatus = riderStatus;
+        this.organizations = organizations;
         this.operationsZone = ZoneId.of(operationsZone);
     }
 
@@ -48,6 +54,14 @@ public class AttentionCenterService {
         }
 
         List<AttentionItem> items = new ArrayList<>();
+        organizations.findById(organizationId).ifPresent(org -> {
+            var status = riderStatus.getStatus(org.getSlug());
+            if (status.operationalStatus() == technology.renatus.routepulse.operations.domain.RiderOperationalStatus.CONFIRMATION_NEEDED) {
+                items.add(new AttentionItem("service-confirmation-overdue",
+                        technology.renatus.routepulse.attention.model.AttentionSeverity.URGENT,
+                        "Rider status needs confirmation", status.detail(), "Resolve live status", "/app#live-status"));
+            }
+        });
 
         scheduleAttentionChecker.addAlerts(plan, items);
         coverageAttentionChecker.addAlerts(plan, items);

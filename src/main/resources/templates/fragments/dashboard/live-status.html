@@ -28,6 +28,10 @@
                    th:text="|Last changed by ${operationalStatusUpdate.updatedByName} · ${timestampDisplay.format(operationalStatusUpdate.updatedAt, 'MMM d, h:mm a')}|">
                 Last changed by Manager
             </small>
+            <p th:if="${operationalStatusUpdate != null}">
+                Update expires <strong th:text="${timestampDisplay.format(operationalStatusUpdate.expiresAt, 'MMM d, h:mm a z')}"></strong>.
+                Expired temporary overrides require a fresh confirmation or a return to automatic status.
+            </p>
         </div>
         <div>
             <span class="live-status-current__label">Riders currently see</span>
@@ -36,6 +40,23 @@
                     ? currentRiderStatus.operationalMessage
                     : currentRiderStatus.detail}">Service is currently active.</p>
         </div>
+    </div>
+
+    <div class="alert" th:if="${currentRiderStatus.activeSessionId != null}">
+        <h3>Confirm or close the active session</h3>
+        <p>Confirm only after checking that the shuttle is still operating. Closing records the actual end time you enter.</p>
+        <p>Session confirmation due:
+            <strong th:text="${timestampDisplay.format(currentRiderStatus.confirmationDueAt, 'MMM d, h:mm a z')}"></strong>.</p>
+        <form th:action="@{/operations/confirm-running}" method="post">
+            <input type="hidden" name="sessionId" th:value="${currentRiderStatus.activeSessionId}">
+            <button class="button" type="submit">Confirm shuttle is still running</button>
+        </form>
+        <form th:action="@{/operations/close-session}" method="post" class="live-status-form">
+            <input type="hidden" name="sessionId" th:value="${currentRiderStatus.activeSessionId}">
+            <label for="actual-service-end">Actual service end <span th:text="${currentRiderStatus.scheduleZone}"></span></label>
+            <input id="actual-service-end" name="endedAt" type="datetime-local" required>
+            <button class="button button--secondary" type="submit">Close session at this time</button>
+        </form>
     </div>
 
     <form class="live-status-form" th:action="@{/operations/status}" method="post">
@@ -68,6 +89,19 @@
             </div>
 
             <div class="form-group form-group--full">
+                <label for="status-duration">Temporary update duration</label>
+                <select id="status-duration" name="durationMinutes">
+                    <option value="15">15 minutes</option>
+                    <option value="30">30 minutes</option>
+                    <option value="60">1 hour</option>
+                    <option value="120" selected>2 hours</option>
+                    <option value="240">4 hours</option>
+                    <option value="480">8 hours</option>
+                    <option value="720">12 hours</option>
+                </select>
+                <small>Applies to the temporary status and message. Automatic mode itself does not expire.</small>
+            </div>
+            <div class="form-group form-group--full">
                 <label for="operational-message">Operational message <span class="muted">(optional)</span></label>
                 <textarea id="operational-message" name="message" maxlength="500"
                           placeholder="Example: Shuttle temporarily unavailable — vehicle issue."
@@ -87,6 +121,19 @@
         <input type="hidden" name="status" value="AUTOMATIC">
         <button class="button button--secondary" type="submit">Return to automatic</button>
     </form>
+
+    <details class="rider-information-settings">
+        <summary>Pickup locations and rider help</summary>
+        <p>This information appears publicly on your organization’s rider page.</p>
+        <form class="live-status-form" th:action="@{/operations/rider-information}" method="post">
+            <label for="pickup-instructions">Where should riders wait?</label>
+            <textarea id="pickup-instructions" name="pickupInstructions" maxlength="1500" rows="4"
+                      th:text="${currentRiderStatus.pickupInstructions}"></textarea>
+            <label for="rider-help">Help contact (phone, email, or location)</label>
+            <input id="rider-help" name="helpContact" maxlength="300" th:value="${currentRiderStatus.helpContact}">
+            <button class="button" type="submit">Save rider information</button>
+        </form>
+    </details>
 </section>
 </body>
 </html>

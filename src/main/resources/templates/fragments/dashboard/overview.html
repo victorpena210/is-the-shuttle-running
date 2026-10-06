@@ -88,11 +88,7 @@
 
                 <span
                     class="overview-card__detail"
-                    th:text="${needsAttentionShiftCount == 0
-                        ? 'Required coverage is complete'
-                        : (needsAttentionShiftCount == 1
-                            ? '1 shuttle shift still needs a driver'
-                            : needsAttentionShiftCount + ' shuttle shifts still need drivers')}">
+                    th:text="${coverageSummary}">
                     Shift coverage status
                 </span>
 

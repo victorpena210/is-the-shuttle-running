@@ -30,6 +30,7 @@ public class OperationalStatusController {
             Authentication authentication,
             @RequestParam OperationalStatusOverride status,
             @RequestParam(required = false) String message,
+            @RequestParam(defaultValue = "120") int durationMinutes,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
             RedirectAttributes redirectAttributes) {
@@ -40,7 +41,7 @@ public class OperationalStatusController {
                     organization.getId(),
                     status,
                     message,
-                    authentication.getName());
+                    authentication.getName(), durationMinutes);
 
             redirectAttributes.addFlashAttribute(
                     "successMessage",

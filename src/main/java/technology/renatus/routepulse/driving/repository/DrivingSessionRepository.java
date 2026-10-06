@@ -14,6 +14,8 @@ import technology.renatus.routepulse.driving.model.DrivingSession;
 public interface DrivingSessionRepository
         extends JpaRepository<DrivingSession, Long> {
 
+    Optional<DrivingSession> findFirstByOrganization_IdAndEndedAtIsNotNullOrderByEndedAtDesc(Long organizationId);
+
     @Query("""
             SELECT session FROM DrivingSession session
             LEFT JOIN FETCH session.assignment assignment

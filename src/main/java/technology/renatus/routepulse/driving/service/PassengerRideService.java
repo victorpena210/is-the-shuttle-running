@@ -16,7 +16,6 @@ import technology.renatus.routepulse.driving.model.PassengerRideConfirmation;
 import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
 import technology.renatus.routepulse.driving.repository.PassengerRideConfirmationRepository;
 import technology.renatus.routepulse.driving.service.rider.PublicDriverName;
-import technology.renatus.routepulse.operations.service.OperationalStatusService;
 import technology.renatus.routepulse.organization.model.Organization;
 import technology.renatus.routepulse.organization.repository.OrganizationRepository;
 
@@ -26,14 +25,14 @@ public class PassengerRideService {
     private final OrganizationRepository organizationRepository;
     private final DrivingSessionRepository drivingSessionRepository;
     private final PassengerRideConfirmationRepository passengerRideConfirmationRepository;
-    private final OperationalStatusService operationalStatusService;
+    private final RiderStatusService riderStatusService;
     private final int cooldownMinutes;
 
     public PassengerRideService(
             OrganizationRepository organizationRepository,
             DrivingSessionRepository drivingSessionRepository,
             PassengerRideConfirmationRepository passengerRideConfirmationRepository,
-            OperationalStatusService operationalStatusService,
+            RiderStatusService riderStatusService,
             @Value("${app.passenger-ride.cooldown-minutes:30}")
             int cooldownMinutes) {
 
@@ -46,7 +45,7 @@ public class PassengerRideService {
         this.organizationRepository = organizationRepository;
         this.drivingSessionRepository = drivingSessionRepository;
         this.passengerRideConfirmationRepository = passengerRideConfirmationRepository;
-        this.operationalStatusService = operationalStatusService;
+        this.riderStatusService = riderStatusService;
         this.cooldownMinutes = cooldownMinutes;
     }
 
@@ -64,7 +63,7 @@ public class PassengerRideService {
         );
 
         if (activeSession == null
-                || operationalStatusService.blocksPassengerConfirmation(organization.getId())) {
+                || !riderStatusService.getStatus(organization.getSlug()).confirmationAvailable()) {
             return new PassengerRideState(
                     false,
                     null,
@@ -95,12 +94,15 @@ public class PassengerRideService {
                 organizationSlug
         );
 
+        organizationRepository.findByIdForUpdate(organization.getId())
+                .orElseThrow(() -> new PassengerRideNotFoundException("Passenger ride page was not found."));
+
         DrivingSession activeSession = findActiveSession(
                 organization.getId()
         );
 
         if (activeSession == null
-                || operationalStatusService.blocksPassengerConfirmation(organization.getId())) {
+                || !riderStatusService.getStatus(organization.getSlug()).confirmationAvailable()) {
             return ConfirmationResult.NO_ACTIVE_SHUTTLE;
         }
 

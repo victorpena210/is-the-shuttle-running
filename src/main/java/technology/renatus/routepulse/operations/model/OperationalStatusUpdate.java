@@ -41,6 +41,9 @@ public class OperationalStatusUpdate {
     @Column(name = "updated_at", nullable = false, updatable = false)
     private Instant updatedAt;
 
+    @Column(name = "expires_at")
+    private Instant expiresAt;
+
     protected OperationalStatusUpdate() {
     }
 
@@ -69,4 +72,10 @@ public class OperationalStatusUpdate {
     public String getUpdatedByName() { return updatedByName; }
     public String getUpdatedByEmail() { return updatedByEmail; }
     public Instant getUpdatedAt() { return updatedAt; }
+    public Instant getExpiresAt() {
+        // Older records also expire; a deployment cannot revive an old pause.
+        return expiresAt == null ? updatedAt.plusSeconds(120 * 60L) : expiresAt;
+    }
+    public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }
+    public boolean isExpired(Instant now) { return !now.isBefore(getExpiresAt()); }
 }

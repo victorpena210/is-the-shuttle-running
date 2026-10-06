@@ -64,6 +64,25 @@ public class Organization {
     )
     private String drivingQrCode;
 
+    @Column(name = "rider_pickup_instructions", length = 1500)
+    private String riderPickupInstructions;
+
+    @Column(name = "rider_help_contact", length = 300)
+    private String riderHelpContact;
+
+    public String getRiderPickupInstructions() { return riderPickupInstructions; }
+    public String getRiderHelpContact() { return riderHelpContact; }
+    public void updateRiderInformation(String pickupInstructions, String helpContact) {
+        riderPickupInstructions = normalizeRiderText(pickupInstructions, 1500);
+        riderHelpContact = normalizeRiderText(helpContact, 300);
+    }
+    private static String normalizeRiderText(String value, int max) {
+        String result = value == null || value.isBlank() ? null : value.trim();
+        if (result != null && result.length() > max)
+            throw new IllegalArgumentException("Rider information exceeds the " + max + " character limit.");
+        return result;
+    }
+
     @Column(
             name = "created_at",
             nullable = false,

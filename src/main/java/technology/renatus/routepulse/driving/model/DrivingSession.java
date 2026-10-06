@@ -48,6 +48,13 @@ public class DrivingSession {
     @Column(name = "ended_at")
     private Instant endedAt;
 
+    @Column(name = "last_confirmed_at")
+    private Instant lastConfirmedAt;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "confirmed_by_user_id")
+    private UserAccount confirmedBy;
+
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "started_by_user_id", updatable = false)
     private UserAccount startedBy;
@@ -221,6 +228,17 @@ public class DrivingSession {
 
     public Instant getEndedAt() {
         return endedAt;
+    }
+
+    public Instant getLastConfirmedAt() { return lastConfirmedAt == null ? startedAt : lastConfirmedAt; }
+
+    public void confirmRunning(Instant now, UserAccount actor) {
+        Objects.requireNonNull(now, "Confirmation time is required.");
+        Objects.requireNonNull(actor, "Confirming account is required.");
+        if (!isActive() || now.isBefore(getLastConfirmedAt()))
+            throw new IllegalStateException("Only an active session can be confirmed at the current time.");
+        lastConfirmedAt = now;
+        confirmedBy = actor;
     }
 
     public UserAccount getStartedBy() {

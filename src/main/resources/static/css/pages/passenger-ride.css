@@ -231,3 +231,12 @@
 .rider-schedule-window--current { border-color: #27754a; background: #edf8f0; }
 .rider-schedule-window--cancelled { background: #fff3ef; }
 .rider-schedule-window--completed { color: #526359; }
+/* Operational confirmation is deliberately separate from the page refresh. */
+.rider-status-card--unconfirmed { border-color: #b76b13; background: #302a1e; }
+.rider-status-card--unconfirmed h1 { color: #ffd580; }
+.rider-status-card--unconfirmed .rider-status-indicator { background: #b76b13; }
+.rider-confirmation-time { margin-top: 1.25rem; font-size: .9rem; }
+.rider-confirmation-time p { margin: .4rem 0; }
+.rider-pickup p { white-space: pre-line; overflow-wrap: anywhere; }
+.rider-confirmation-card { margin-top: 1.5rem; }
+.rider-confirmation-card .passenger-ride-section { margin-top: 0; padding-top: 0; border-top: 0; }

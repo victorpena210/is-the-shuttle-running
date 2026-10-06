@@ -6,8 +6,9 @@
         class="coverage-shift-card"
         th:with="officeBlocked=${(periodName == 'MORNING' and morningStaffingBlocked == true) or (periodName == lateOpeningPeriod and openingStaffingBlocked == true)},
                  optional=${periodName == 'MIDDAY' and lateOpeningPeriod != 'MIDDAY'},
-                 requiredPeriod=${periodName == 'MORNING' ? morningRequired : (periodName == 'MIDDAY' ? middayRequired : afternoonRequired)}"
-        th:classappend="${assignment == null and requiredPeriod == true} ? ' coverage-shift-card--missing' : ' coverage-shift-card--covered'">
+                 requiredPeriod=${periodName == 'MORNING' ? morningRequired : (periodName == 'MIDDAY' ? middayRequired : afternoonRequired)},
+                 assessment=${periodName == 'MORNING' ? morningCoverage : (periodName == 'MIDDAY' ? middayCoverage : afternoonCoverage)}"
+        th:classappend="${assessment != null and !assessment.fullyCovered and requiredPeriod == true} ? ' coverage-shift-card--missing' : ' coverage-shift-card--covered'">
 
         <header class="coverage-shift-card__header">
 
@@ -56,21 +57,22 @@
 
             </div>
 
-            <span
-                class="coverage-state coverage-state--covered"
-                th:if="${assignment != null}">
-                <span aria-hidden="true">✓</span>
-                Covered
-            </span>
-
-            <span
-                class="coverage-state"
-                th:classappend="${requiredPeriod == true ? 'coverage-state--missing' : 'coverage-state--neutral'}"
-                th:if="${assignment == null}" th:text="${optional ? 'Optional' : (officeBlocked ? 'Office coverage' : (requiredPeriod == true ? 'Needs driver' : 'No demand'))}">
-                Needs driver
-            </span>
+            <span class="coverage-state"
+                  th:if="${assessment != null}"
+                  th:classappend="${assessment.fullyCovered ? 'coverage-state--covered' : 'coverage-state--missing'}"
+                  th:text="${optional and assignment == null ? 'Optional' : assessment.label}">Needs review</span>
 
         </header>
+        <div class="coverage-assessment" th:if="${assessment != null}">
+            <p class="coverage-gap" th:if="${!#lists.isEmpty(assessment.gaps) and (requiredPeriod or assignment != null)}">
+                <strong>Uncovered demand:</strong> <span th:text="${#strings.listJoin(assessment.gaps, ', ')}"></span>
+            </p>
+            <details>
+                <summary>Why this assignment?</summary>
+                <ul><li th:each="reason : ${assessment.explanations}" th:text="${reason}"></li></ul>
+            </details>
+        </div>
+
 
         <div
             class="coverage-shift-card__body"

@@ -117,10 +117,10 @@ public record DashboardPlan(
     public boolean requiresCoverage(ShuttlePeriod period) {
         if (period == lateOpeningPeriod()) {
             var demand = period == ShuttlePeriod.MIDDAY ? middayDrivingDemand() : eveningDrivingDemand();
-            return demand.hasDemand() && !openingStaffingBlocked();
+            return demand.hasDemand();
         }
         return switch (period) {
-            case MORNING -> openingDrivingDemand().hasDemand() && !morningStaffingBlocked();
+            case MORNING -> openingDrivingDemand().hasDemand();
             case MIDDAY -> false;
             case AFTERNOON -> eveningDrivingDemand().hasDemand();
         };
