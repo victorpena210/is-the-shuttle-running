@@ -60,6 +60,11 @@ class DrivingSessionIntegrationTests extends MySqlIntegrationTestSupport {
         LocalDate today =
                 assignmentService.getCurrentOperationsDate();
 
+        String csvDate = today.format(java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy"));
+        csvScheduleProvider.loadSchedule(organization.getId(), operator.getEmail(), csvFile("wardrobe.csv",
+                "100,First Driver," + csvDate + " 8:00 AM," + csvDate + " 5:00 PM,Park/Ops/Wardrobe,Staff",
+                "200,Second Driver," + csvDate + " 8:00 AM," + csvDate + " 5:00 PM,Park/Ops/Wardrobe,Staff"));
+
         DriverAssignment assignment =
                 assignmentService.createManualAssignment(
                         organization.getId(),

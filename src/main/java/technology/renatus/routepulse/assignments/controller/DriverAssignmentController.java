@@ -26,6 +26,21 @@ public class DriverAssignmentController {
         this.currentOrganizationService = currentOrganizationService;
     }
 
+    @PostMapping("/assignments/midday-suggestion")
+    public String acceptMiddaySuggestion(Authentication authentication,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate assignmentDate,
+            @RequestParam String expectedPlan, RedirectAttributes redirectAttributes) {
+        Long organizationId = currentOrganizationService.requireOrganizationId(authentication);
+        try {
+            driverAssignmentService.acceptMiddaySuggestion(organizationId, assignmentDate, expectedPlan);
+            redirectAttributes.addFlashAttribute("successMessage", "Optional midday driving assigned.");
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
+        }
+        redirectAttributes.addAttribute("date", assignmentDate.toString());
+        return "redirect:/app#coverage";
+    }
+
     @PostMapping("/assignments/manual")
     public String createManualAssignment(
             Authentication authentication,

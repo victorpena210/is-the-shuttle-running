@@ -86,17 +86,18 @@ public class FairnessPlanningChecks {
             check(f.events.size() == 1 && f.events.get(0).getEventType() == DriverWorkloadEventType.MAKEUP_REQUIRED,
                     "planning must not complete make-ups");
         });
-        run("three days rotate all periods and ignore tab-opening order", () -> {
+        run("three days balance required work and ignore tab-opening order", () -> {
             Fixture early = new Fixture();
             early.planner.getOrCreateAssignments(1L, FIRST);
             Fixture late = new Fixture();
             late.planner.getOrCreateAssignments(1L, FIRST.plusDays(2));
             check(early.signature().equals(late.signature()), "date-view order changed assignments");
             check(early.planningDates.equals(List.of(FIRST, FIRST.plusDays(1), FIRST.plusDays(2))), "planning not chronological");
-            check(early.assignments.size() == 9, "expected all three periods on all three days");
-            for (ShuttlePeriod period : ShuttlePeriod.values()) {
-                check(early.assignments.stream().filter(a -> a.getPeriod() == period)
-                        .map(a -> a.getScheduledDriver().getId()).distinct().count() == 3, "period did not rotate: " + period);
+            check(early.assignments.size() == 6, "expected morning and afternoon on all three days");
+            for (Driver driver : early.drivers) {
+                check(early.assignments.stream().filter(a -> a.getScheduledDriver().getId().equals(driver.getId()))
+                        .mapToLong(DriverAssignment::getScheduledMinutes).sum() == 120,
+                        "equal required duties did not balance over three days");
             }
         });
         run("unequal period lengths balance total planned minutes", () -> {
@@ -106,7 +107,7 @@ public class FairnessPlanningChecks {
             List<Long> totals = f.drivers.stream().map(driver -> f.assignments.stream()
                     .filter(a -> a.getScheduledDriver().getId().equals(driver.getId()))
                     .mapToLong(DriverAssignment::getScheduledMinutes).sum()).toList();
-            check(totals.stream().mapToLong(Long::longValue).sum() == 1440, "planned coverage minutes lost");
+            check(totals.stream().mapToLong(Long::longValue).sum() == 1260, "planned coverage minutes lost");
             // Duties are indivisible: balance within one longest duty, rather than promise identical totals.
             check(Collections.max(totals) - Collections.min(totals) <= 240,
                     "workload spread exceeds one longest duty: " + totals);
@@ -156,7 +157,7 @@ public class FairnessPlanningChecks {
                 f.add(date, period, f.drivers.get(0), period == ShuttlePeriod.MORNING ? 9 : period == ShuttlePeriod.MIDDAY ? 13 : 18,
                         period == ShuttlePeriod.MORNING ? 10 : period == ShuttlePeriod.MIDDAY ? 14 : 19);
             }
-            Set<Long> ids = new HashSet<>(f.assignments.stream().map(DriverAssignment::getId).toList());
+            Set<Long> ids = new HashSet<>(f.assignments.stream().filter(a -> a.getPeriod() != ShuttlePeriod.MIDDAY).map(DriverAssignment::getId).toList());
             f.planner.getOrCreateAssignments(1L, FIRST);
             check(f.assignments.stream().map(a -> a.getScheduledDriver().getId()).distinct().count() == 3, "stale drivers not rebalanced");
             check(ids.equals(new HashSet<>(f.assignments.stream().map(DriverAssignment::getId).toList())), "rebalance replaced records");
@@ -169,7 +170,7 @@ public class FairnessPlanningChecks {
                     && a.getPeriod() == ShuttlePeriod.AFTERNOON).findFirst().orElseThrow();
             check(!evening.getScheduledDriver().getId().equals(f.drivers.get(2).getId()), "9–3 driver assigned evening");
         });
-        run("short-shift driver takes morning so longer shifts cover all later demand", () -> {
+        run("short-shift driver takes morning so longer shifts cover evening demand", () -> {
             Fixture f = new Fixture();
             f.shortLastDay = true;
             f.longPeriods = true;
@@ -179,8 +180,8 @@ public class FairnessPlanningChecks {
                     .filter(a -> a.getAssignmentDate().equals(FIRST.plusDays(2))).toList();
             DriverAssignment morning = sunday.stream().filter(a -> a.getPeriod() == ShuttlePeriod.MORNING).findFirst().orElseThrow();
             check(morning.getScheduledDriver().getId().equals(3L), "short-shift driver was left for an unsuitable later duty");
-            check(sunday.stream().mapToLong(DriverAssignment::getScheduledMinutes).sum() == 660,
-                    "coverage was shortened even though the team could cover all periods");
+            check(sunday.stream().mapToLong(DriverAssignment::getScheduledMinutes).sum() == 420,
+                    "required coverage was shortened despite available staff");
         });
         run("full coverage takes priority over partial overlap", () -> {
             DriverSchedule shortShift = new DriverSchedule(1L, "1", "Short", FIRST, LocalTime.of(9, 0), LocalTime.of(18, 0));
@@ -194,7 +195,7 @@ public class FairnessPlanningChecks {
             f.closed.add(FIRST);
             f.unknown.add(FIRST.plusDays(1));
             f.planner.getOrCreateAssignments(1L, FIRST.plusDays(2));
-            check(f.assignments.size() == 3 && f.assignments.stream().allMatch(a -> a.getAssignmentDate().equals(FIRST.plusDays(2))),
+            check(f.assignments.size() == 2 && f.assignments.stream().allMatch(a -> a.getAssignmentDate().equals(FIRST.plusDays(2))),
                     "calendar gate bypassed");
         });
         run("other organizations do not affect workload", () -> {
@@ -204,9 +205,102 @@ public class FairnessPlanningChecks {
             set(foreign, "organization", withId(new Organization("Other", "Other", "other", OrganizationStatus.ACTIVE, null, null), 2L));
             check(f.rank(FIRST.plusDays(1)).get(0).driverId().equals(winner), "organization workload leaked");
         });
+        run("one roster member, even with duplicate shifts, cannot leave the office", () -> {
+            Fixture f = new Fixture();
+            DriverSchedule only = f.schedules(FIRST).get(0);
+            f.customSchedules = List.of(only, only);
+            f.planner.getOrCreateAssignments(1L, FIRST);
+            check(f.assignments.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING), "duplicate rows counted as two staff");
+            check(f.assignments.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MIDDAY), "midday was auto-assigned");
+        });
+        run("second driver arriving at ten does not satisfy the nine-to-noon rule", () -> {
+            Fixture f = new Fixture();
+            f.customSchedules = List.of(f.schedules(FIRST).get(0), schedule(2L, 10, 21));
+            f.planner.getOrCreateAssignments(1L, FIRST);
+            check(f.assignments.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING), "late second arrival permitted morning driving");
+        });
+        run("two roster members throughout the morning permit assignment", () -> {
+            Fixture f = new Fixture(); f.customSchedules = f.schedules(FIRST).subList(0, 2);
+            f.planner.getOrCreateAssignments(1L, FIRST);
+            check(f.assignments.stream().anyMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING), "two staff did not permit driving");
+        });
+        run("staffing loss withdraws only unprotected future automatic morning assignments", () -> {
+            Fixture f = new Fixture();
+            var automatic = f.add(FIRST, ShuttlePeriod.MORNING, f.drivers.get(0), 9, 10);
+            var manual = f.add(FIRST.plusDays(1), ShuttlePeriod.MORNING, f.drivers.get(0), 9, 10);
+            manual.protectManualTimeEdit();
+            f.customSchedules = f.schedules(FIRST).subList(0, 1);
+            f.planner.getOrCreateAssignments(1L, FIRST);
+            check(!f.assignments.contains(automatic), "unsafe automatic plan retained");
+            check(f.assignments.contains(manual), "manager decision erased");
+        });
+        run("midday suggestions are read-only and follow fairness among available drivers", () -> {
+            Fixture f = new Fixture(); f.planner.getOrCreateAssignments(1L, FIRST);
+            String before = f.signature();
+            var suggestion = f.planner.getMiddaySuggestion(1L, FIRST);
+            check(suggestion != null && suggestion.getId() == null, "suggestion was absent or persisted");
+            var assigned = f.assignments.stream().filter(a -> a.getAssignmentDate().equals(FIRST)).toList();
+            var fairest = f.workload.rankEligibleDrivers(1L, FIRST, f.schedules(FIRST), assigned).get(0);
+            check(suggestion.getScheduledDriver().getId().equals(fairest.driverId()), "fairness recommendation ignored");
+            check(before.equals(f.signature()), "suggestion reserved workload");
+            check(AssignmentPlanningService.suggestionKey(suggestion).equals(
+                    AssignmentPlanningService.suggestionKey(f.planner.getMiddaySuggestion(1L, FIRST))), "refresh shuffled suggestion");
+        });
+        run("accepting a midday suggestion creates protected manual coverage", () -> {
+            Fixture f = new Fixture(); f.planner.getOrCreateAssignments(1L, FIRST);
+            var suggestion = f.planner.getMiddaySuggestion(1L, FIRST);
+            var accepted = f.planner.acceptMiddaySuggestion(1L, FIRST, AssignmentPlanningService.suggestionKey(suggestion));
+            check(accepted.getAssignmentSource() == AssignmentSource.MANUAL, "accepted suggestion not protected");
+            check(accepted.getPlannedDrivingWindows().equals(suggestion.getPlannedDrivingWindows()), "start/stop windows lost");
+            f.planner.getOrCreateAssignments(1L, FIRST);
+            check(f.assignments.contains(accepted), "accepted midday removed");
+            check(f.planner.getMiddaySuggestion(1L, FIRST) == null, "already assigned period suggested again");
+            rejects(() -> f.planner.acceptMiddaySuggestion(1L, FIRST, AssignmentPlanningService.suggestionKey(suggestion)), "duplicate acceptance");
+        });
+        run("stale midday suggestion is rejected", () -> {
+            Fixture f = new Fixture(); f.planner.getOrCreateAssignments(1L, FIRST);
+            rejects(() -> f.planner.acceptMiddaySuggestion(1L, FIRST, "outdated"), "stale suggestion accepted");
+            check(f.assignments.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MIDDAY), "rejected suggestion persisted");
+        });
+        run("manual morning creation must meet the same office rule", () -> {
+            Fixture f = new Fixture(); f.customSchedules = f.schedules(FIRST).subList(0, 1);
+            var proposed = DriverAssignment.manual(FIRST, ShuttlePeriod.MORNING, f.drivers.get(0), "Test");
+            proposed.updateScheduledTimes(LocalTime.of(9, 0), LocalTime.NOON);
+            rejects(() -> f.planner.validateMorningCoverageAfterChange(1L, proposed), "manual morning bypassed staffing");
+        });
+        run("roster handoffs and gaps are checked across the whole period", () -> {
+            var policyRows = List.of(schedule(1L, 9, 21), schedule(2L, 9, 10), schedule(3L, 10, 12));
+            check(technology.renatus.routepulse.assignments.service.planning.MorningStaffingPolicy.hasMorningStaffing(policyRows, List.of()), "continuous handoff rejected");
+            check(!technology.renatus.routepulse.assignments.service.planning.MorningStaffingPolicy.hasMorningStaffing(
+                    List.of(schedule(1L, 9, 21), schedule(2L, 9, 10), schedule(3L, 11, 12)), List.of()), "office gap ignored");
+            check(!technology.renatus.routepulse.assignments.service.planning.MorningStaffingPolicy.canAssign(
+                    List.of(schedule(1L, 9, 21), schedule(2L, 9, 12)), List.of(), 1L,
+                    LocalTime.of(9, 0), LocalTime.of(12, 15)), "uncovered post-noon buffer allowed");
+        });
+        run("duplicate work rows cannot inflate midday availability", () -> {
+            var partial = schedule(1L, 13, 14);
+            var full = schedule(2L, 13, 15);
+            var chosen = new DriverScheduleSelector().chooseForDemandWindows(List.of(partial, full),
+                    Map.of(1L, List.of(partial, partial), 2L, List.of(full)), period(13, 15).getWindows(), Set.of());
+            check(chosen.driverId().equals(2L), "duplicate rows falsely covered the whole midday window");
+        });
+        run("midday cannot take the only remaining office staff during morning overlap", () -> {
+            Fixture f = new Fixture();
+            f.customSchedules = f.schedules(FIRST).subList(0, 2);
+            var morning = f.add(FIRST, ShuttlePeriod.MORNING, f.drivers.get(0), 9, 14);
+            morning.protectManualTimeEdit();
+            check(f.planner.getMiddaySuggestion(1L, FIRST) == null, "suggested the only office backup during morning driving");
+        });
         System.out.println("PASS: " + checks + " fairness planning checks");
     }
 
+    private static DriverSchedule schedule(Long id, int start, int end) {
+        return new DriverSchedule(id, id.toString(), "Driver " + id, FIRST, LocalTime.of(start, 0), LocalTime.of(end, 0));
+    }
+    private static void rejects(Runnable action, String message) {
+        try { action.run(); } catch (IllegalStateException expected) { return; }
+        throw new AssertionError(message);
+    }
     private static void run(String name, Runnable test) {
         try { test.run(); checks++; System.out.println("PASS: " + name); }
         catch (Throwable failure) { throw new AssertionError(name, failure); }
@@ -234,12 +328,17 @@ public class FairnessPlanningChecks {
         final List<DriverWorkloadEvent> events = new ArrayList<>();
         final List<DrivingSession> sessions = new ArrayList<>();
         boolean shortLastDay, longPeriods, longMidday;
+        List<DriverSchedule> customSchedules;
         final DriverAssignmentRepository assignmentRepository = repository(DriverAssignmentRepository.class, (method, args) -> {
             if (method.equals("flush")) return null;
+            if (method.equals("delete")) { assignments.remove(args[0]); return null; }
+            if (method.equals("save")) { DriverAssignment a = (DriverAssignment) args[0];
+                withId(a, assignments.stream().mapToLong(DriverAssignment::getId).max().orElse(0) + 1);
+                assignments.add(a); return a; }
             if (method.equals("saveAll")) {
                 for (Object value : (Iterable<?>) args[0]) {
                     DriverAssignment a = (DriverAssignment) value;
-                    withId(a, (long) assignments.size() + 1); assignments.add(a);
+                    withId(a, assignments.stream().mapToLong(DriverAssignment::getId).max().orElse(0) + 1); assignments.add(a);
                 }
                 return args[0];
             }
@@ -297,6 +396,8 @@ public class FairnessPlanningChecks {
         }
         Driver driver(Long id) { return drivers.stream().filter(d -> d.getId().equals(id)).findFirst().orElseThrow(); }
         List<DriverSchedule> schedules(LocalDate date) {
+            if (customSchedules != null) return customSchedules.stream().map(s -> new DriverSchedule(s.driverId(),
+                    s.employeeId(), s.driverName(), date, s.startTime(), s.endTime())).toList();
             return drivers.stream().map(d -> new DriverSchedule(d.getId(), d.getEmployeeId(), d.getName(), date,
                     LocalTime.of(9, 0), LocalTime.of(shortLastDay && date.equals(FIRST.plusDays(2)) && d.getId().equals(3L) ? 15 : 21, 0))).toList();
         }

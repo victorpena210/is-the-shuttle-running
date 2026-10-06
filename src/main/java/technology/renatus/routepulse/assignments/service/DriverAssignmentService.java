@@ -52,6 +52,16 @@ public class DriverAssignmentService {
         this.operationsZone = ZoneId.of(operationsZone);
     }
 
+    @Transactional(readOnly = true)
+    public DriverAssignment getMiddaySuggestion(Long organizationId, LocalDate date) {
+        return assignmentPlanningService.getMiddaySuggestion(organizationId, date);
+    }
+
+    @Transactional
+    public DriverAssignment acceptMiddaySuggestion(Long organizationId, LocalDate date, String expectedPlan) {
+        return assignmentPlanningService.acceptMiddaySuggestion(organizationId, date, expectedPlan);
+    }
+
     @Transactional
     public DriverAssignment createManualAssignment(
             Long organizationId,
@@ -61,6 +71,8 @@ public class DriverAssignmentService {
             LocalTime scheduledStartTime,
             LocalTime scheduledEndTime,
             String reason) {
+        assignmentPlanningService.lockPlanning(organizationId);
+
 
         validateReason(
                 reason
@@ -118,9 +130,8 @@ public class DriverAssignmentService {
                 List.of(new PlannedDrivingWindow(scheduledStartTime, scheduledEndTime))
         );
 
-        return assignmentRepository.save(
-                assignment
-        );
+        assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
+        return assignmentRepository.save(assignment);
     }
 
     @Transactional
@@ -130,6 +141,8 @@ public class DriverAssignmentService {
             Long newDriverId,
             String reason,
             String actorEmail) {
+        assignmentPlanningService.lockPlanning(organizationId);
+
 
         validateReason(
                 reason
@@ -166,6 +179,7 @@ public class DriverAssignmentService {
             );
         }
 
+        assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
         return assignment;
     }
 
@@ -175,6 +189,8 @@ public class DriverAssignmentService {
             Long assignmentId,
             LocalTime scheduledStartTime,
             LocalTime scheduledEndTime) {
+        assignmentPlanningService.lockPlanning(organizationId);
+
 
         validateScheduledTimes(
                 scheduledStartTime,
@@ -197,6 +213,7 @@ public class DriverAssignmentService {
 
         assignment.protectManualTimeEdit();
 
+        assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
         return assignment;
     }
 
@@ -207,6 +224,8 @@ public class DriverAssignmentService {
             Long recommendedDriverId,
             Long expectedScheduleImportId,
             String actorEmail) {
+        assignmentPlanningService.lockPlanning(organizationId);
+
 
         DriverAssignment assignment = loadAssignment(
                 organizationId,
@@ -293,6 +312,7 @@ public class DriverAssignmentService {
                 Instant.now()
         );
 
+        assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
         return assignment;
     }
 
@@ -302,6 +322,8 @@ public class DriverAssignmentService {
             Long assignmentId,
             Long expectedScheduleImportId,
             String actorEmail) {
+        assignmentPlanningService.lockPlanning(organizationId);
+
 
         DriverAssignment assignment = loadAssignment(
                 organizationId,
@@ -327,6 +349,7 @@ public class DriverAssignmentService {
                 Instant.now()
         );
 
+        assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
         return assignment;
     }
 

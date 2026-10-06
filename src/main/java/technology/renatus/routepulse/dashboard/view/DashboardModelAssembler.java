@@ -1,5 +1,6 @@
 package technology.renatus.routepulse.dashboard.view;
 
+import technology.renatus.routepulse.assignments.service.AssignmentPlanningService;
 import java.util.List;
 import org.springframework.stereotype.Component;
 import org.springframework.ui.Model;
@@ -50,7 +51,11 @@ public class DashboardModelAssembler {
         model.addAttribute("assignmentReviewRequired", plan.assignmentReviewRequired());
         model.addAttribute("latestScheduleImport", plan.latestScheduleImport());
 
-        int covered = 0;
+        model.addAttribute("morningStaffingBlocked", plan.morningStaffingBlocked());
+        model.addAttribute("middaySuggestion", plan.middaySuggestion());
+        model.addAttribute("middaySuggestionKey", AssignmentPlanningService
+                .suggestionKey(plan.middaySuggestion()));
+        int required = 0, covered = 0;
         for (ShuttlePeriod period : List.of(ShuttlePeriod.MORNING, ShuttlePeriod.MIDDAY, ShuttlePeriod.AFTERNOON)) {
             DriverAssignment assignment = plan.driverAssignments().stream()
                     .filter(a -> a.getPeriod() == period).findFirst().orElse(null);
@@ -58,13 +63,15 @@ public class DashboardModelAssembler {
             model.addAttribute(prefix + "AssignmentExists", assignment != null);
             model.addAttribute(prefix + "Assignment", assignment);
             model.addAttribute(prefix + "AssignedDriverSchedule", findAssignedDriverSchedule(plan.driverSchedules(), assignment));
-            if (assignment != null) {
-                covered++;
+            model.addAttribute(prefix + "Required", plan.requiresCoverage(period));
+            if (plan.requiresCoverage(period)) {
+                required++;
+                if (assignment != null) covered++;
             }
         }
-        model.addAttribute("totalShiftCount", 3);
+        model.addAttribute("totalShiftCount", required);
         model.addAttribute("coveredShiftCount", covered);
-        model.addAttribute("needsAttentionShiftCount", 3 - covered);
+        model.addAttribute("needsAttentionShiftCount", required - covered);
     }
 
     private DriverSchedule findAssignedDriverSchedule(

@@ -20,7 +20,13 @@ public final class ServiceReviewCalculator {
     public record Demand(Span span, int count) {}
     public record Input(LocalDate date, String period, String title, String calendar, String demandSource,
                         List<Span> scopes, List<Demand> demand, List<Assignment> assignments,
-                        List<Activity> activities, List<Ride> rides) {}
+                        List<Activity> activities, List<Ride> rides, String coverageExemption) {
+        public Input(LocalDate date, String period, String title, String calendar, String demandSource,
+                List<Span> scopes, List<Demand> demand, List<Assignment> assignments,
+                List<Activity> activities, List<Ride> rides) {
+            this(date, period, title, calendar, demandSource, scopes, demand, assignments, activities, rides, null);
+        }
+    }
     public record Window(String range, int demand, long confirmations, long seconds, String status, boolean needsReview) {
         public String drivingTime() { return duration(seconds); }
     }
@@ -72,7 +78,9 @@ public final class ServiceReviewCalculator {
         boolean knownDemand = !"No schedule available".equals(input.demandSource());
         boolean reviewed = !input.assignments().isEmpty() && input.assignments().stream().allMatch(Assignment::reviewed);
         boolean archived = "Archived schedule totals".equals(input.demandSource());
-        boolean evaluate = operating && knownDemand && !reviewed && !archived;
+        String exemption = input.coverageExemption();
+        if ("midday".equals(input.period()) && input.assignments().isEmpty()) exemption = "Optional midday—not assigned";
+        boolean evaluate = operating && knownDemand && !reviewed && !archived && exemption == null;
         // Include every activity window, even where forecast demand is zero.
         TreeMap<Instant, Span> buckets = new TreeMap<>();
         for (Span scope : scopes) {
@@ -99,6 +107,7 @@ public final class ServiceReviewCalculator {
                     : !knownDemand ? "No schedule to compare"
                     : archived ? "Archived demand totals only"
                     : reviewed ? "Outcome already reviewed"
+                    : exemption != null ? (seconds > 0 || confirmations > 0 ? evidence(seconds, confirmations) : exemption)
                     : !completed ? (now.isBefore(span.start()) ? "Upcoming" : "In progress")
                     : gap ? "No recorded service evidence"
                     : seconds > 0 || confirmations > 0 ? evidence(seconds, confirmations)
@@ -114,6 +123,7 @@ public final class ServiceReviewCalculator {
                 : !knownDemand ? "No schedule available"
                 : archived ? "Archived demand · window coverage not evaluated"
                 : reviewed ? "Outcome reviewed: " + input.assignments().stream().map(a -> a.outcome().toLowerCase(Locale.ROOT)).distinct().collect(Collectors.joining(", "))
+                : exemption != null ? exemption
                 : now.isBefore(first) ? "Upcoming"
                 : now.isBefore(last) ? "In progress"
                 : input.assignments().isEmpty() && !"off-hours".equals(input.period()) ? "No scheduled assignment"

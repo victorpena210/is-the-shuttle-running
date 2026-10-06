@@ -93,6 +93,7 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
                                 "drivers.csv",
                                 "100,Alice," + csvDate + " 8:00 AM," + csvDate + " 4:00 PM,Park/Ops/Transportation/Shuttle/101 North Gate,Driver",
                                 "200,Bob," + csvDate + " 8:30 AM," + csvDate + " 4:30 PM,Park/Ops/Transportation/Shuttle/202 South Gate,Driver",
+                                "300,Charlie," + csvDate + " 8:00 AM," + csvDate + " 4:00 PM,Park/Ops/Transportation/Shuttle/202 South Gate,Driver",
                                 "400,Rider," + csvDate + " 9:00 AM," + csvDate + " 5:00 PM,Park/Ops/Rides/101 North Gate,Operator"
                         )
                 );
@@ -126,7 +127,8 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
         );
 
         Long originalSuggestionId = morning.getOriginallySuggestedDriver().getId();
-        assertTrue(List.of(alice.getId(), bob.getId()).contains(originalSuggestionId));
+        assertTrue(List.of(alice.getId(), bob.getId(), charlie.getId()).contains(originalSuggestionId));
+        Driver replacement = originalSuggestionId.equals(charlie.getId()) ? alice : charlie;
 
         assertEquals(
                 sourceImport.getId(),
@@ -137,7 +139,7 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
                 assignmentService.changeAssignedDriver(
                         organization.getId(),
                         morning.getId(),
-                        charlie.getId(),
+                        replacement.getId(),
                         "Manager coverage change",
                         uploader.getEmail()
                 );
@@ -148,7 +150,7 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
         );
 
         assertEquals(
-                charlie.getId(),
+                replacement.getId(),
                 overridden.getFinalDriver().getId()
         );
 
@@ -250,7 +252,55 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
     }
 
     @Test
-    void managerCanAssignOneDriverToBothShuttlePeriods() {
+    void importedRosterStaffingAndOptionalMiddayAreEnforced() {
+        Organization organization = createOrganization("Office Coverage", "office-coverage");
+        UserAccount uploader = createUser("office@example.com", true);
+        membershipRepository.save(new OrganizationMembership(organization, uploader, OrganizationRole.ADMIN));
+        Driver first = driverRepository.save(new Driver(organization, "100", "First", true));
+        Driver second = driverRepository.save(new Driver(organization, "200", "Second", true));
+        driverRepository.save(new Driver(organization, "300", "Inactive", false));
+        LocalDate date = LocalDate.now(java.time.ZoneOffset.UTC).plusDays(1);
+        String day = date.format(java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy"));
+        org.mockito.Mockito.when(operatingDays.getOperatingDay(org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(invocation -> new technology.renatus.routepulse.calendar.domain.ParkOperatingDay(
+                        invocation.getArgument(0), technology.renatus.routepulse.calendar.domain.ParkOperatingStatus.OPEN,
+                        LocalTime.of(9, 0), LocalTime.of(21, 0), false, "TEST", null));
+        String firstRow = "100,First," + day + " 9:00 AM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
+        String inactiveRow = "300,Inactive," + day + " 9:00 AM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
+        String riderRow = "400,Rider," + day + " 1:00 PM," + day + " 6:00 PM,Park/Ops/Rides,Operator";
+        String nonRosterRow = "500,Other," + day + " 9:00 AM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
+        csvScheduleProvider.loadSchedule(organization.getId(), uploader.getEmail(), csvFile("one.csv",
+                firstRow, inactiveRow, riderRow, nonRosterRow));
+        var one = assignmentService.getOrCreateAssignments(organization.getId(), date);
+        assertTrue(one.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING),
+                "Inactive and non-roster employees must not count as office backup.");
+        assertTrue(one.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MIDDAY));
+
+        csvScheduleProvider.loadSchedule(organization.getId(), uploader.getEmail(), csvFile("two.csv",
+                firstRow, "200,Second," + day + " 9:00 AM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff", riderRow));
+        var two = assignmentService.getOrCreateAssignments(organization.getId(), date);
+        assertTrue(two.stream().anyMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING));
+        assertTrue(two.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MIDDAY));
+        var suggestion = assignmentService.getMiddaySuggestion(organization.getId(), date);
+        assertNotNull(suggestion);
+        assertNull(suggestion.getId());
+        var accepted = assignmentService.acceptMiddaySuggestion(organization.getId(), date,
+                technology.renatus.routepulse.assignments.service.AssignmentPlanningService.suggestionKey(suggestion));
+        assertEquals(AssignmentSource.MANUAL, accepted.getAssignmentSource());
+        assertEquals(suggestion.getPlannedDrivingWindows(), accepted.getPlannedDrivingWindows());
+        assertNull(assignmentService.getMiddaySuggestion(organization.getId(), date));
+
+        csvScheduleProvider.loadSchedule(organization.getId(), uploader.getEmail(), csvFile("one-again.csv", firstRow, riderRow));
+        var revised = assignmentService.getOrCreateAssignments(organization.getId(), date);
+        assertTrue(revised.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING));
+        assertTrue(revised.stream().anyMatch(a -> a.getId().equals(accepted.getId())), "Accepted optional coverage must be preserved.");
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () ->
+                assignmentService.createManualAssignment(organization.getId(), date, ShuttlePeriod.MORNING,
+                        first.getId(), LocalTime.of(9, 0), LocalTime.NOON, "Manual coverage"));
+    }
+
+    @Test
+    void historicalManualRecordsCanPreserveOneDriverInBothPeriods() {
         Organization organization = createOrganization(
                 "Emergency Coverage Organization",
                 "emergency-coverage-organization"
@@ -266,7 +316,7 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
         );
 
         LocalDate assignmentDate =
-                LocalDate.of(2026, 9, 18);
+                LocalDate.now(java.time.ZoneOffset.UTC).minusDays(1);
 
         DriverAssignment morning =
                 assignmentService.createManualAssignment(

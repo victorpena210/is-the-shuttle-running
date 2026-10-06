@@ -4,7 +4,10 @@
     <article
         th:fragment="shiftCard(assignment, periodName, periodLabel, periodIcon, assignedDriverSchedule, recommendedStart, recommendedEnd)"
         class="coverage-shift-card"
-        th:classappend="${assignment == null} ? ' coverage-shift-card--missing' : ' coverage-shift-card--covered'">
+        th:with="officeBlocked=${periodName == 'MORNING' and morningStaffingBlocked == true},
+                 optional=${periodName == 'MIDDAY'},
+                 requiredPeriod=${periodName == 'MORNING' ? morningRequired : (periodName == 'MIDDAY' ? false : afternoonRequired)}"
+        th:classappend="${assignment == null and requiredPeriod == true} ? ' coverage-shift-card--missing' : ' coverage-shift-card--covered'">
 
         <header class="coverage-shift-card__header">
 
@@ -61,9 +64,9 @@
             </span>
 
             <span
-                class="coverage-state coverage-state--missing"
-                th:if="${assignment == null}">
-                <span aria-hidden="true">!</span>
+                class="coverage-state"
+                th:classappend="${requiredPeriod == true ? 'coverage-state--missing' : 'coverage-state--neutral'}"
+                th:if="${assignment == null}" th:text="${optional ? 'Optional' : (officeBlocked ? 'Office coverage' : (requiredPeriod == true ? 'Needs driver' : 'No demand'))}">
                 Needs driver
             </span>
 
@@ -222,14 +225,29 @@
             th:if="${assignment == null}">
 
             <div class="coverage-empty-state">
-                <strong>
-                    No driver has been assigned.
-                </strong>
-
-                <p>
-                    Choose a driver for this shuttle shift before transportation begins.
-                </p>
+                <strong th:text="${optional ? 'Optional midday driving' : (officeBlocked ? 'Wardrobe office coverage required' : 'No driver has been assigned.')}"></strong>
+                <p th:if="${optional}">A suggestion is not a driving assignment. Leaving it unassigned creates no missing-coverage or missed-service alert.</p>
+                <p th:if="${officeBlocked}">Two roster members must be scheduled throughout 9:00 AM–12:00 PM so one can remain in wardrobe.</p>
+                <p th:if="${!optional and !officeBlocked and requiredPeriod == true}">Choose a driver before transportation begins.</p>
+                <p th:if="${!optional and !officeBlocked and requiredPeriod != true}">No transportation demand is forecast for this period.</p>
             </div>
+
+            <div class="coverage-driving-plan" th:if="${optional and middaySuggestion != null}">
+                <span class="coverage-driving-plan__label">Suggested driver</span>
+                <strong th:text="${middaySuggestion.scheduledDriver.name}"></strong>
+                <p>Based on availability and the fairness rotation: make-up priority, actual driving time,
+                    already planned work, and rotating ties. Suggestions do not add workload until assigned.</p>
+                <div class="coverage-driving-plan__windows">
+                    <span class="coverage-driving-plan__window" th:each="window : ${middaySuggestion.plannedDrivingWindows}"
+                          th:text="|${#temporals.format(window.startTime, 'h:mm a')}–${#temporals.format(window.endTime, 'h:mm a')}|"></span>
+                </div>
+                <form th:action="@{/assignments/midday-suggestion}" method="post">
+                    <input type="hidden" name="assignmentDate" th:value="${selectedDate}">
+                    <input type="hidden" name="expectedPlan" th:value="${middaySuggestionKey}">
+                    <button class="button" type="submit">Assign suggested driver</button>
+                </form>
+            </div>
+            <p th:if="${optional and middaySuggestion == null}">No upcoming eligible midday suggestion is available for this date.</p>
 
             <div class="coverage-candidate-preview">
 
@@ -288,7 +306,9 @@
 
             </div>
 
-            <th:block th:replace="~{fragments/driver-coverage/manual-assignment :: manualAssignment(${periodName}, ${periodLabel}, ${recommendedStart}, ${recommendedEnd})}"></th:block>
+            <th:block th:if="${!officeBlocked}">
+                <th:block th:replace="~{fragments/driver-coverage/manual-assignment :: manualAssignment(${periodName}, ${periodLabel}, ${recommendedStart}, ${recommendedEnd})}"></th:block>
+            </th:block>
 
         </div>
 

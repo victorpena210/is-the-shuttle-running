@@ -4,15 +4,15 @@
     <div th:fragment="summary" class="coverage-summary" aria-label="Coverage summary">
 
         <article class="coverage-summary__item">
-            <strong>3</strong>
-            <span>Shuttle shifts</span>
+            <strong th:text="${totalShiftCount}">0</strong>
+            <span>Required periods</span>
         </article>
 
         <article class="coverage-summary__item coverage-summary__item--good">
             <strong th:text="${coveredShiftCount != null ? coveredShiftCount : 0}">
                 0
             </strong>
-            <span>Covered</span>
+            <span>Required periods covered</span>
         </article>
 
         <article

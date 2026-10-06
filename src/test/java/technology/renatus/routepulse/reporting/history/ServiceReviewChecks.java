@@ -77,6 +77,19 @@ public final class ServiceReviewChecks {
         equal(false, noQr.needsReview(), "missing optional scans alone does not flag missed service");
         var none = new Input(DAY,"morning","Morning","Open","No schedule available",List.of(WINDOW),List.of(),List.of(),List.of(unscheduled),List.of());
         equal(1, CALC.calculate(none,null,"actual",at(10,0)).windows().size(), "activity visible without forecast demand");
+        var optional = new Input(DAY,"midday","Midday","Open","Uploaded schedule",List.of(WINDOW),
+                List.of(new Demand(WINDOW,20)),List.of(),List.of(),List.of());
+        var optionalRow = CALC.calculate(optional,null,"actual",at(10,0));
+        equal(false, optionalRow.needsReview(), "unassigned optional midday does not require review");
+        equal("Optional midday—not assigned", optionalRow.state(), "optional midday status");
+        var accepted = new Input(DAY,"midday","Midday","Open","Uploaded schedule",List.of(WINDOW),
+                List.of(new Demand(WINDOW,20)),List.of(PLAN),List.of(),List.of());
+        equal(true, CALC.calculate(accepted,null,"actual",at(10,0)).needsReview(), "accepted midday is evaluated");
+        var office = new Input(DAY,"morning","Morning","Open","Uploaded schedule",List.of(WINDOW),
+                List.of(new Demand(WINDOW,20)),List.of(),List.of(unscheduled),List.of(ride),"Wardrobe office coverage required");
+        var officeRow = CALC.calculate(office,null,"actual",at(10,0));
+        equal(false, officeRow.needsReview(), "office exemption does not require service review");
+        equal(900L, officeRow.seconds(), "office exemption preserves actual driving evidence");
         ServiceReviewFilters today = filters(null,null,null);
         equal(DAY,today.from(),"default is today");
         equal(DAY,today.to(),"default single day");

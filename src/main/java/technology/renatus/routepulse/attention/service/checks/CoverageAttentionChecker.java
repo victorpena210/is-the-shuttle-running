@@ -1,5 +1,6 @@
 package technology.renatus.routepulse.attention.service.checks;
 
+import technology.renatus.routepulse.assignments.service.planning.MorningStaffingPolicy;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,6 +30,14 @@ public class CoverageAttentionChecker {
         Set<Long> scheduleMismatchAssignmentIds =
                 addScheduleReviewAlerts(plan, items);
 
+        if (plan.morningStaffingBlocked()) {
+            boolean assigned = plan.driverAssignments().stream().anyMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING);
+            items.add(new AttentionItem("morning-office-coverage", assigned ? AttentionSeverity.WARNING : AttentionSeverity.INFO,
+                    assigned ? "Review morning wardrobe coverage" : "Morning driving withheld for wardrobe coverage",
+                    assigned ? "An existing morning assignment is preserved, but the uploaded roster no longer meets the office staffing rule. Review coverage before driving."
+                            : MorningStaffingPolicy.MESSAGE,
+                    "Review staffing", AttentionSupport.dashboardHref(plan, "coverage")));
+        }
         addMissingCoverageAlerts(plan, items);
         addAssignedDriverScheduleAlerts(
                 plan,
@@ -90,6 +99,7 @@ public class CoverageAttentionChecker {
             List<AttentionItem> items) {
 
         for (ShuttlePeriod period : ShuttlePeriod.values()) {
+            if (!plan.requiresCoverage(period)) continue;
             TransportationDemandPeriod demandPeriod =
                     AttentionSupport.demandPeriod(plan, period);
 

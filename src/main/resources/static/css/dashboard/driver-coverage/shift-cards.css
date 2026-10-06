@@ -96,6 +96,11 @@
     background: var(--green-100);
 }
 
+.coverage-state--neutral {
+    color: var(--slate-700);
+    background: var(--slate-100);
+}
+
 .coverage-state--missing {
     color: var(--amber-800);
     background: var(--amber-100);

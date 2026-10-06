@@ -190,6 +190,7 @@ public final class CleanupRegressionChecks {
                 assignmentCalls[0]++;
                 return List.of(f.assignment());
             }
+            @Override public DriverAssignment getMiddaySuggestion(Long organizationId, LocalDate date) { return null; }
             @Override public LocalDate getCurrentOperationsDate() { return DATE.plusDays(2); }
         };
         DriverScheduleService driverSchedules = new DriverScheduleService(null, null) {
@@ -306,6 +307,26 @@ public final class CleanupRegressionChecks {
                 }
             }
         }
+        DriverAssignment suggestion = DriverAssignment.automatic(DATE, ShuttlePeriod.MIDDAY, f.drivers().get(0));
+        suggestion.updateScheduledTimes(LocalTime.of(13, 0), LocalTime.of(14, 0));
+        suggestion.replacePlannedDrivingWindows(List.of(new technology.renatus.routepulse.assignments.model.PlannedDrivingWindow(
+                LocalTime.of(13, 0), LocalTime.of(14, 0))));
+        DashboardPlan optionalPlan = new DashboardPlan(DATE, DATE, List.of(DATE), true, true, List.of(f.imported()),
+                demand(), schedules, List.of(), f.drivers(), List.of(), List.of(), f.imported(), false, null,
+                new ParkOperatingDay(DATE, ParkOperatingStatus.OPEN, LocalTime.of(9, 0), LocalTime.of(21, 0), false, "TEST", null),
+                "Open", null, false, suggestion);
+        ExtendedModelMap optionalModel = managerModel();
+        new DashboardModelAssembler().populate(optionalModel, optionalPlan);
+        equal(1, optionalModel.get("needsAttentionShiftCount"), "only afternoon requires assignment with one morning staff member");
+        String optionalHtml = render(engine, "manager/dashboard", optionalModel);
+        check(optionalHtml.contains("/assignments/midday-suggestion"), "suggestion acceptance form renders");
+        check(optionalHtml.contains("Assign suggested driver"), "suggestion action label");
+        check(optionalHtml.contains("wardrobe office coverage required"), "office explanation renders");
+        check(!optionalHtml.contains("id=\"assign-morning\""), "manual morning form hidden when office staffing blocked");
+        List<technology.renatus.routepulse.attention.model.AttentionItem> alerts = new ArrayList<>();
+        new technology.renatus.routepulse.attention.service.checks.CoverageAttentionChecker().addAlerts(optionalPlan, alerts);
+        check(alerts.stream().noneMatch(a -> a.key().contains("MIDDAY") || a.key().contains("missing-coverage-MORNING")), "optional and office-blocked periods are not missing-coverage alerts");
+        check(alerts.stream().anyMatch(a -> a.key().equals("morning-office-coverage")), "office staffing notice present");
         ExtendedModelMap empty = managerModel();
         new DashboardModelAssembler().populate(empty, new DashboardPlan(DATE, DATE, List.of(), false,
                 false, List.of(), TransportationDemandAnalysis.empty(), List.of(), List.of(), List.of(),

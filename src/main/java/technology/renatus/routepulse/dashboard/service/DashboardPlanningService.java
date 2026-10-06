@@ -1,5 +1,6 @@
 package technology.renatus.routepulse.dashboard.service;
 
+import technology.renatus.routepulse.assignments.service.planning.MorningStaffingPolicy;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -91,6 +92,7 @@ public class DashboardPlanningService {
         ParkOperatingDay operatingDay = null;
         ParkCalendarOverride calendarOverride = null;
         String assignmentMessage = null;
+        DriverAssignment middaySuggestion = null;
         String calendarMessage = null;
         boolean reviewRequired = false;
         boolean overrideActive = false;
@@ -124,21 +126,15 @@ public class DashboardPlanningService {
                         latestImport);
                 reviewRequired = scheduleReconciliations.stream()
                         .anyMatch(ScheduleReconciliation::requiresAction);
-                int requiredPeriods = (demand.getMorning().hasDemand() ? 1 : 0)
-                        + (demand.getMidday().hasDemand() ? 1 : 0)
-                        + (demand.getEvening().hasDemand() ? 1 : 0);
-                int coveredRequiredPeriods = (assignments.stream()
-                        .anyMatch(assignment -> assignment.getPeriod()
-                                == ShuttlePeriod.MORNING)
-                        && demand.getMorning().hasDemand() ? 1 : 0)
-                        + (assignments.stream()
-                        .anyMatch(assignment -> assignment.getPeriod()
-                                == ShuttlePeriod.MIDDAY)
-                        && demand.getMidday().hasDemand() ? 1 : 0)
-                        + (assignments.stream()
-                        .anyMatch(assignment -> assignment.getPeriod()
-                                == ShuttlePeriod.AFTERNOON)
-                        && demand.getEvening().hasDemand() ? 1 : 0);
+                middaySuggestion = driverAssignmentService.getMiddaySuggestion(organizationId, selectedDate);
+                boolean morningRequired = demand.getMorning().hasDemand()
+                        && MorningStaffingPolicy
+                                .hasMorningStaffing(driverSchedules, assignments);
+                int requiredPeriods = (morningRequired ? 1 : 0) + (demand.getEvening().hasDemand() ? 1 : 0);
+                int coveredRequiredPeriods = (morningRequired && assignments.stream()
+                        .anyMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING) ? 1 : 0)
+                        + (demand.getEvening().hasDemand() && assignments.stream()
+                        .anyMatch(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON) ? 1 : 0);
                 int missingRequiredPeriods = Math.max(0, requiredPeriods - coveredRequiredPeriods);
 
                 if (missingRequiredPeriods == requiredPeriods && requiredPeriods > 0) {
@@ -171,7 +167,7 @@ public class DashboardPlanningService {
                 operatingDay,
                 calendarMessage,
                 calendarOverride,
-                overrideActive);
+                overrideActive, middaySuggestion);
     }
 
     private String describeCalendar(ParkOperatingDay day, boolean overrideActive) {

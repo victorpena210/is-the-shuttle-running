@@ -1,5 +1,7 @@
 package technology.renatus.routepulse.reporting.history;
 
+import technology.renatus.routepulse.scheduling.planning.DriverScheduleService;
+import technology.renatus.routepulse.assignments.service.planning.MorningStaffingPolicy;
 import java.time.*;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,12 +40,14 @@ public class ServiceHistoryService {
     private final int windowMinutes;
     private final LocalTime morningStart, middayStart, eveningStart, operatingEnd;
     private final ServiceReviewCalculator calculator;
+    private final DriverScheduleService driverScheduleService;
 
     public ServiceHistoryService(DrivingSessionRepository sessions, PassengerRideConfirmationRepository confirmations,
             DriverAssignmentRepository assignments, DriverRepository drivers, CsvScheduleProvider schedules,
             TransportationDemandService demandService, HistoricalDemandSnapshotRepository snapshots,
             ParkOperatingDaySnapshotRepository calendars, ParkCalendarOverrideRepository overrides,
             ParkOperatingDayService calendarService,
+            DriverScheduleService driverScheduleService,
             @Value("${app.operations-zone:America/Chicago}") String zone,
             @Value("${sixflags.calendar.park-id:914}") int parkId,
             @Value("${app.service-verification.minimum-demand-for-review:10}") int minimumDemand,
@@ -52,6 +56,7 @@ public class ServiceHistoryService {
             @Value("${app.transportation-demand.midday-start:12:00}") String middayStart,
             @Value("${app.transportation-demand.evening-start:17:00}") String eveningStart,
             @Value("${app.transportation-demand.operating-end:21:00}") String operatingEnd) {
+        this.driverScheduleService = driverScheduleService;
         this.sessions = sessions; this.confirmations = confirmations; this.assignments = assignments;
         this.drivers = drivers; this.schedules = schedules; this.demandService = demandService;
         this.snapshots = snapshots; this.calendars = calendars; this.overrides = overrides;
@@ -106,6 +111,10 @@ public class ServiceHistoryService {
                 }
             }
             String calendar = calendar(organizationId, date);
+            LocalDate staffingDate = date;
+            boolean morningStaffed = !available.contains(date) || MorningStaffingPolicy
+                    .hasMorningStaffing(driverScheduleService.getDriverSchedulesForDate(organizationId, date).scheduledDrivers(),
+                            planned.stream().filter(a -> a.getAssignmentDate().equals(staffingDate)).toList());
             for (String key : demand.keySet()) {
                 if (!"all".equals(filters.period()) && !key.equals(filters.period())) continue;
                 List<Demand> windows = demand.get(key).stream().filter(d -> d.count() > 0).toList();
@@ -119,7 +128,9 @@ public class ServiceHistoryService {
                 windows.forEach(d -> scopes.add(d.span()));
                 scheduledAssignments.forEach(a -> addAssignmentScopes(scopes, day, a));
                 Row row = calculator.calculate(new Input(date, key, title(key), calendar, source, scopes, windows,
-                        periodAssignments, activity, rides), filters.driverId(), filters.driverRole(), now);
+                        periodAssignments, activity, rides,
+                        "morning".equals(key) && periodAssignments.isEmpty() && !morningStaffed
+                                ? "Morning not assigned—wardrobe office coverage required" : null), filters.driverId(), filters.driverRole(), now);
                 if (row == null) continue;
                 if (archivedTotals.containsKey(key)) row = row.withDemandTotal(archivedTotals.get(key));
                 if ("off-hours".equals(key) && row.demand() == 0 && row.seconds() == 0 && row.confirmations() == 0) continue;

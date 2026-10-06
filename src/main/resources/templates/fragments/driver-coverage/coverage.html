@@ -44,8 +44,7 @@
                     </strong>
 
                     <p>
-                        Review the Morning, Midday Turnover, and Afternoon
-                        coverage below and assign the remaining driver coverage.
+                        Review the required morning and afternoon coverage below. Midday driving is optional.
                     </p>
 
                 </div>
@@ -54,11 +53,7 @@
                     class="button"
                     type="button"
                     th:attr="data-open-coverage-details=${
-                        !morningAssignmentExists
-                            ? '#assign-morning'
-                            : (!middayAssignmentExists
-                                ? '#assign-midday'
-                                : '#assign-afternoon')
+                        morningRequired and !morningAssignmentExists ? '#assign-morning' : '#assign-afternoon'
                     }">
                     Assign driver
                 </button>
@@ -72,16 +67,22 @@
                 <div>
 
                     <strong>
-                        All shuttle shifts are covered
+                        Required coverage is complete
                     </strong>
 
                     <p>
-                        Morning, Midday Turnover, and Afternoon
-                        have assigned drivers.
+                        All required periods with sufficient staffing have assigned drivers. Midday suggestions are optional.
                     </p>
 
                 </div>
 
+            </div>
+
+            <div class="alert" th:if="${morningStaffingBlocked}">
+                <strong th:text="${morningAssignmentExists ? 'Review morning wardrobe coverage' : 'No driving assignment—wardrobe office coverage required'}"></strong>
+                <p>At least two staff on the driver roster must be scheduled throughout 9:00 AM–12:00 PM.
+                    Someone must remain available in wardrobe while the driver is away.</p>
+                <p th:if="${morningAssignmentExists}">The existing assignment has been preserved. Review it before driving.</p>
             </div>
 
             <th:block th:replace="~{fragments/driver-coverage/schedule-reconciliation :: scheduleReconciliation}"></th:block>

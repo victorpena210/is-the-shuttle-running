@@ -217,18 +217,7 @@ public class DriverScheduleSelector {
             }
 
             long coverageMinutes = activeDemandWindows.stream()
-                    .mapToLong(window -> Math.min(
-                            java.time.Duration.between(
-                                    window.getWindowStart(),
-                                    window.getWindowEnd()
-                            ).toMinutes(),
-                            driverRows.stream()
-                                    .mapToLong(schedule -> schedule.overlapMinutes(
-                                            window.getWindowStart(),
-                                            window.getWindowEnd()))
-                                    .sum()
-                    ))
-                    .sum();
+                    .mapToLong(window -> coveredMinutes(driverRows, window)).sum();
 
             if (coverageMinutes <= 0) {
                 continue;
@@ -257,6 +246,23 @@ public class DriverScheduleSelector {
         }
 
         return bestPartial == null ? null : bestPartial.schedule();
+    }
+
+    private long coveredMinutes(List<DriverSchedule> schedules, TransportationDemandWindow window) {
+        var clips = schedules.stream().map(s -> s.clipTo(window.getWindowStart(), window.getWindowEnd()))
+                .filter(java.util.Objects::nonNull).sorted(Comparator.comparing(DriverSchedule.DrivingWindow::startTime)).toList();
+        LocalTime start = null, end = null;
+        long minutes = 0;
+        for (var clip : clips) {
+            if (start == null) { start = clip.startTime(); end = clip.endTime(); }
+            else if (!clip.startTime().isAfter(end)) {
+                if (clip.endTime().isAfter(end)) end = clip.endTime();
+            } else {
+                minutes += java.time.Duration.between(start, end).toMinutes();
+                start = clip.startTime(); end = clip.endTime();
+            }
+        }
+        return minutes + (start == null ? 0 : java.time.Duration.between(start, end).toMinutes());
     }
 
     private record DemandCoverage(
