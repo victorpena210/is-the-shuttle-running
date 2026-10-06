@@ -20,7 +20,14 @@ public final class ServiceReviewCalculator {
     public record Demand(Span span, int count) {}
     public record Input(LocalDate date, String period, String title, String calendar, String demandSource,
                         List<Span> scopes, List<Demand> demand, List<Assignment> assignments,
-                        List<Activity> activities, List<Ride> rides, String coverageExemption, Instant serviceNotBefore) {
+                        List<Activity> activities, List<Ride> rides, String coverageExemption, Instant serviceNotBefore,
+                        List<Span> openingServiceWindows) {
+        public Input(LocalDate date, String period, String title, String calendar, String demandSource,
+                List<Span> scopes, List<Demand> demand, List<Assignment> assignments,
+                List<Activity> activities, List<Ride> rides, String coverageExemption, Instant serviceNotBefore) {
+            this(date, period, title, calendar, demandSource, scopes, demand, assignments, activities, rides,
+                    coverageExemption, serviceNotBefore, null);
+        }
         public Input(LocalDate date, String period, String title, String calendar, String demandSource,
                 List<Span> scopes, List<Demand> demand, List<Assignment> assignments,
                 List<Activity> activities, List<Ride> rides, String coverageExemption) {
@@ -84,7 +91,7 @@ public final class ServiceReviewCalculator {
         boolean reviewed = !input.assignments().isEmpty() && input.assignments().stream().allMatch(Assignment::reviewed);
         boolean archived = "Archived schedule totals".equals(input.demandSource());
         String exemption = input.coverageExemption();
-        if ("midday".equals(input.period()) && input.assignments().isEmpty()) exemption = "Optional midday—not assigned";
+        if ("midday".equals(input.period()) && input.assignments().isEmpty() && input.openingServiceWindows() == null) exemption = "Optional midday—not assigned";
         boolean evaluate = operating && knownDemand && !reviewed && !archived && exemption == null;
         // Include every activity window, even where forecast demand is zero.
         TreeMap<Instant, Span> buckets = new TreeMap<>();
@@ -105,7 +112,7 @@ public final class ServiceReviewCalculator {
             boolean completed = !span.end().isAfter(now);
             // Coverage flags always assess all recorded service, including substitute/unscheduled drivers.
             Instant reviewStart = input.serviceNotBefore() == null ? span.start() : max(span.start(), input.serviceNotBefore());
-            List<Span> reviewScope = reviewStart.isBefore(span.end()) ? List.of(new Span(reviewStart, span.end())) : List.of();
+            List<Span> reviewScope = reviewScope(reviewStart, span.end(), input.openingServiceWindows());
             boolean gap = evaluate && completed && !reviewScope.isEmpty() && demand >= minimumDemand
                     && serviceSeconds(allActivities, reviewScope, now) == 0
                     && allRides.stream().noneMatch(r -> inside(r.at(), reviewScope));
@@ -115,7 +122,8 @@ public final class ServiceReviewCalculator {
                     : archived ? "Archived demand totals only"
                     : reviewed ? "Outcome already reviewed"
                     : exemption != null ? (seconds > 0 || confirmations > 0 ? evidence(seconds, confirmations) : exemption)
-                    : reviewScope.isEmpty() ? "Before wardrobe closes—driving not required"
+                    : reviewScope.isEmpty() ? (input.openingServiceWindows() == null
+                            ? "Before wardrobe closes—driving not required" : "Counter coverage—driving not required")
                     : !completed ? (now.isBefore(reviewStart) ? "Upcoming" : "In progress")
                     : gap ? "No recorded service evidence"
                     : seconds > 0 || confirmations > 0 ? evidence(seconds, confirmations)
@@ -214,6 +222,13 @@ public final class ServiceReviewCalculator {
     private static long seconds(List<Span> spans) {
         return merge(spans).stream().mapToLong(s -> Duration.between(s.start(), s.end()).getSeconds()).sum();
     }
+    private static List<Span> reviewScope(Instant start, Instant end, List<Span> openingWindows) {
+        if (!start.isBefore(end)) return List.of();
+        if (openingWindows == null) return List.of(new Span(start, end));
+        return openingWindows.stream().filter(w -> w.start().isBefore(end) && w.end().isAfter(start))
+                .map(w -> new Span(max(start, w.start()), min(end, w.end()))).toList();
+    }
+
     public static List<Span> merge(List<Span> spans) {
         List<Span> sorted = spans.stream().sorted(Comparator.comparing(Span::start)).toList();
         List<Span> merged = new ArrayList<>();

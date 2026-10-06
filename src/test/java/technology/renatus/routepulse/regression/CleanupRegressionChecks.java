@@ -333,6 +333,29 @@ public final class CleanupRegressionChecks {
         new technology.renatus.routepulse.attention.service.checks.CoverageAttentionChecker().addAlerts(optionalPlan, alerts);
         check(alerts.stream().noneMatch(a -> a.key().contains("MIDDAY") || a.key().contains("missing-coverage-MORNING")), "optional and office-blocked periods are not missing-coverage alerts");
         check(alerts.stream().anyMatch(a -> a.key().equals("morning-office-coverage")), "office staffing notice present");
+        for (boolean staffed : List.of(false, true)) {
+            var afternoonRows = new ArrayList<DriverSchedule>();
+            afternoonRows.add(new DriverSchedule(1L, "100", "Scheduled Driver", DATE, LocalTime.NOON, LocalTime.of(21, 0)));
+            if (staffed) afternoonRows.add(new DriverSchedule(2L, "200", "Counter Driver", DATE, LocalTime.NOON, LocalTime.of(21, 0)));
+            var raw = demand();
+            var lateDemand = new TransportationDemandAnalysis(TransportationDemandAnalysis.empty().getMorning(), raw.getMidday(),
+                    raw.getEvening(), List.of(), 0, null, null, 0, null);
+            var latePlan = new DashboardPlan(DATE, DATE, List.of(DATE), true, true, List.of(f.imported()),
+                    lateDemand, afternoonRows, List.of(), f.drivers(), List.of(), List.of(), f.imported(), false, null,
+                    new ParkOperatingDay(DATE, ParkOperatingStatus.OPEN, LocalTime.of(17, 0), LocalTime.of(21, 0), false, "TEST", null),
+                    "Open", null, false);
+            ExtendedModelMap lateModel = managerModel(); new DashboardModelAssembler().populate(lateModel, latePlan);
+            equal("MIDDAY", lateModel.get("lateOpeningPeriod"), "late opening recognized in dashboard");
+            equal(staffed, lateModel.get("middayRequired"), "opening required only with staffing");
+            String lateHtml = render(engine, "manager/dashboard", lateModel);
+            check(lateHtml.contains("Opening coverage"), "opening card label");
+            check(!lateHtml.contains("Optional midday driving"), "opening card incorrectly labeled optional");
+            equal(!staffed, lateHtml.contains("Opening driving withheld for counter coverage"), "counter explanation");
+            equal(staffed, lateHtml.contains("id=\"assign-midday\""), "unsafe manual form hidden");
+            var lateAlerts = new ArrayList<technology.renatus.routepulse.attention.model.AttentionItem>();
+            new technology.renatus.routepulse.attention.service.checks.CoverageAttentionChecker().addAlerts(latePlan, lateAlerts);
+            equal(staffed, lateAlerts.stream().anyMatch(a -> a.key().equals("missing-coverage-MIDDAY")), "opening missing coverage warning");
+        }
         ExtendedModelMap empty = managerModel();
         new DashboardModelAssembler().populate(empty, new DashboardPlan(DATE, DATE, List.of(), false,
                 false, List.of(), TransportationDemandAnalysis.empty(), List.of(), List.of(), List.of(),

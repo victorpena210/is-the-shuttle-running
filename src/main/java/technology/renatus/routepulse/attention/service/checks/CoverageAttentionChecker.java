@@ -38,10 +38,16 @@ public class CoverageAttentionChecker {
                             : MorningStaffingPolicy.MESSAGE,
                     "Review staffing", AttentionSupport.dashboardHref(plan, "coverage")));
         }
+        if (plan.openingStaffingBlocked()) {
+            items.add(new AttentionItem("late-opening-office-coverage", AttentionSeverity.INFO,
+                    "Opening driving withheld for counter coverage",
+                    technology.renatus.routepulse.assignments.service.planning.LateOpeningPolicy.MESSAGE,
+                    "Review staffing", AttentionSupport.dashboardHref(plan, "coverage")));
+        }
         if (plan.drivingStartConflict()) {
             items.add(new AttentionItem("driving-before-demand-or-close", AttentionSeverity.WARNING,
                     "Review driving start against demand and wardrobe hours",
-                    "An existing midday or evening assignment starts before eligible demand or wardrobe closing. Its history or manager decision was preserved; review its start time.",
+                    "An existing midday or evening assignment conflicts with demand, wardrobe hours, or opening counter coverage. Its history or manager decision was preserved; review the assignment.",
                     "Review driving coverage", AttentionSupport.dashboardHref(plan, "coverage")));
         }
         addMissingCoverageAlerts(plan, items);

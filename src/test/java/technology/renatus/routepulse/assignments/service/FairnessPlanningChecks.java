@@ -406,7 +406,121 @@ public class FairnessPlanningChecks {
             check(AssignmentPlanningService.startsBeforeDrivingDemand(original, f.customEvening, f.wardrobeClosing),
                     "protected early start was not flagged");
         });
+        run("afternoon opening automatically assigns one driver before closing", () -> {
+            Fixture f = lateOpening();
+            var expected = f.rank(FIRST).get(0).driverId();
+            var opening = f.planner.getOrCreateAssignments(1L, FIRST).stream()
+                    .filter(a -> a.getPeriod() == ShuttlePeriod.MIDDAY).findFirst().orElseThrow();
+            check(opening.getScheduledStartTime().equals(LocalTime.of(13, 0)), "opening did not start with demand");
+            check(opening.getScheduledDriver().getId().equals(expected), "opening ignored fairness");
+            check(f.planner.getMiddaySuggestion(1L, FIRST) == null, "opening was also offered as optional");
+            f.planner.validateDemandStartTime(1L, opening);
+            f.planner.validateMorningCoverageAfterChange(1L, opening);
+            String before = f.signature(); f.planner.getOrCreateAssignments(1L, FIRST);
+            check(f.signature().equals(before), "opening replanning is not stable");
+        });
+        run("one afternoon roster member stays at the counter", () -> {
+            Fixture f = lateOpening(); f.customSchedules = List.of(schedule(1L, 12, 21));
+            check(f.planner.getOrCreateAssignments(1L, FIRST).isEmpty(), "one staff member assigned before close");
+            var manual = DriverAssignment.manual(FIRST, ShuttlePeriod.MIDDAY, f.driver(1L), "Test");
+            manual.updateScheduledTimes(LocalTime.of(13, 0), LocalTime.of(14, 0));
+            rejects(() -> f.planner.validateDemandStartTime(1L, manual), "manual bypassed opening staffing");
+        });
+        run("duplicate roster rows do not count as a second person", () -> {
+            Fixture f = lateOpening(); f.customSchedules = List.of(schedule(1L, 12, 21), schedule(1L, 12, 21));
+            check(f.planner.getOrCreateAssignments(1L, FIRST).isEmpty(), "duplicate rows manufactured backup");
+        });
+        run("opening driving waits for late backup and leaves when backup leaves", () -> {
+            Fixture f = lateOpening(); f.customMidday = period(13, 16);
+            f.customSchedules = List.of(schedule(1L, 12, 21), schedule(2L, 14, 15));
+            var opening = f.planner.getOrCreateAssignments(1L, FIRST).get(0);
+            check(opening.getScheduledStartTime().equals(LocalTime.of(14, 0))
+                    && opening.getScheduledEndTime().equals(LocalTime.of(15, 0)), "did not clip to actual counter coverage");
+        });
+        run("split counter coverage leaves uncovered minutes out of driving", () -> {
+            Fixture f = lateOpening(); f.customMidday = period(13, 16);
+            f.customSchedules = List.of(schedule(1L, 12, 21), schedule(2L, 13, 14), schedule(2L, 15, 16));
+            var opening = f.planner.getOrCreateAssignments(1L, FIRST).get(0);
+            check(opening.getPlannedDrivingWindows().equals(List.of(new PlannedDrivingWindow(LocalTime.of(13, 0), LocalTime.of(14, 0)),
+                    new PlannedDrivingWindow(LocalTime.of(15, 0), LocalTime.of(16, 0)))), "driving during a counter gap");
+        });
+        run("backup already driving cannot cover the counter", () -> {
+            Fixture f = lateOpening();
+            f.add(FIRST, ShuttlePeriod.AFTERNOON, f.driver(2L), 13, 14).protectManualTimeEdit();
+            check(f.planner.getOrCreateAssignments(1L, FIRST).stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MIDDAY),
+                    "driver away from counter was counted as backup");
+        });
+        run("manager edit cannot take away the opening counter backup", () -> {
+            Fixture f = lateOpening();
+            var opening = f.planner.getOrCreateAssignments(1L, FIRST).get(0);
+            var other = f.driver(opening.getScheduledDriver().getId().equals(1L) ? 2L : 1L);
+            var proposed = DriverAssignment.manual(FIRST, ShuttlePeriod.AFTERNOON, other, "Test");
+            proposed.updateScheduledTimes(LocalTime.of(13, 0), LocalTime.of(14, 0));
+            rejects(() -> f.planner.validateMorningCoverageAfterChange(1L, proposed), "counter backup taken by manual edit");
+        });
+        run("roster revision withdraws an untouched opening assignment", () -> {
+            Fixture f = lateOpening(); f.planner.getOrCreateAssignments(1L, FIRST);
+            f.customSchedules = List.of(schedule(1L, 12, 21));
+            check(f.planner.getOrCreateAssignments(1L, FIRST).isEmpty(), "unsafe future opening retained");
+        });
+        run("roster revision preserves and flags manager opening decisions", () -> {
+            Fixture f = lateOpening(); var opening = f.planner.getOrCreateAssignments(1L, FIRST).get(0);
+            opening.protectManualTimeEdit(); f.customSchedules = List.of(schedule(opening.getScheduledDriver().getId(), 12, 21));
+            check(f.planner.getOrCreateAssignments(1L, FIRST).contains(opening), "manager decision erased");
+            var analysis = new TransportationDemandAnalysis(TransportationDemandAnalysis.empty().getMorning(), period(13,14),
+                    period(18,19), List.of(), 0, null, null, 0, null);
+            check(AssignmentPlanningService.hasDrivingConflict(opening, analysis, f.schedules(FIRST), f.assignments,
+                    f.wardrobeClosing), "unsafe preserved opening was not flagged");
+        });
+        run("one driver can cover remaining opening demand after seasonal closing", () -> {
+            Fixture f = lateOpening(); f.customMidday = period(13, 16); f.wardrobeClosing = LocalTime.of(15, 0);
+            f.customSchedules = List.of(schedule(1L, 12, 21));
+            var opening = f.planner.getOrCreateAssignments(1L, FIRST).stream()
+                    .filter(a -> a.getPeriod() == ShuttlePeriod.MIDDAY).findFirst().orElseThrow();
+            check(opening.getScheduledStartTime().equals(LocalTime.of(15, 0)), "one driver started before closing");
+        });
+        run("late opening can fall in the evening period", () -> {
+            Fixture f = lateOpening(); f.customMidday = TransportationDemandAnalysis.empty().getMidday();
+            f.customEvening = period(17, 21); f.customSchedules = List.of(schedule(1L, 16, 21), schedule(2L, 16, 19));
+            var opening = f.planner.getOrCreateAssignments(1L, FIRST).get(0);
+            check(opening.getPeriod() == ShuttlePeriod.AFTERNOON && opening.getScheduledStartTime().equals(LocalTime.of(17, 0)),
+                    "evening opening waited until close despite counter backup");
+            check(opening.getScheduledEndTime().equals(LocalTime.of(21, 0)), "post-close single-driver time was lost");
+        });
+        run("regular evening still waits until close after an afternoon opening", () -> {
+            Fixture f = lateOpening(); f.customEvening = period(17, 21);
+            var evening = f.planner.getOrCreateAssignments(1L, FIRST).stream()
+                    .filter(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON).findFirst().orElseThrow();
+            check(evening.getScheduledStartTime().equals(LocalTime.of(19, 0)), "exception leaked to the later evening period");
+        });
+        run("no demand means no opening assignment", () -> {
+            Fixture f = lateOpening(); f.customMidday = TransportationDemandAnalysis.empty().getMidday();
+            f.customEvening = TransportationDemandAnalysis.empty().getEvening();
+            check(f.planner.getOrCreateAssignments(1L, FIRST).isEmpty(), "demand-free assignment generated");
+        });
+        run("midnight closing does not release the only counter worker", () -> {
+            Fixture f = lateOpening(); f.wardrobeClosing = LocalTime.MIDNIGHT;
+            f.customSchedules = List.of(schedule(1L, 12, 21));
+            check(f.planner.getOrCreateAssignments(1L, FIRST).isEmpty(), "midnight treated as start of day");
+        });
+        run("today's opening is never backdated", () -> {
+            Fixture f = lateOpening(); f.customMidday = period(13, 16);
+            set(f, "dates", List.of(TODAY));
+            set(f.planner, "clock", Clock.fixed(TODAY.atTime(13, 5, 30).atZone(ZONE).toInstant(), ZONE));
+            check(f.planner.getOrCreateAssignments(1L, TODAY).get(0).getScheduledStartTime().equals(LocalTime.of(13, 6)),
+                    "new opening starts in the past");
+        });
+        run("late opening respects calendar gates", () -> {
+            Fixture f = lateOpening(); f.closed.add(FIRST);
+            check(f.planner.getOrCreateAssignments(1L, FIRST).isEmpty(), "closed day assigned");
+        });
         System.out.println("PASS: " + checks + " fairness planning checks");
+    }
+
+    private static Fixture lateOpening() {
+        Fixture f = new Fixture(); f.noMorning = true; f.wardrobeClosing = LocalTime.of(19, 0);
+        f.customSchedules = List.of(schedule(1L, 12, 21), schedule(2L, 12, 21));
+        return f;
     }
 
     private static DriverSchedule schedule(Long id, int start, int end) {
@@ -442,7 +556,7 @@ public class FairnessPlanningChecks {
         final List<DriverAssignment> assignments = new ArrayList<>();
         final List<DriverWorkloadEvent> events = new ArrayList<>();
         final List<DrivingSession> sessions = new ArrayList<>();
-        boolean shortLastDay, longPeriods, longMidday;
+        boolean shortLastDay, longPeriods, longMidday, noMorning;
         LocalTime wardrobeClosing = LocalTime.NOON;
         TransportationDemandPeriod customEvening, customMidday;
         List<DriverSchedule> customSchedules;
@@ -489,13 +603,14 @@ public class FairnessPlanningChecks {
             };
             MorningDrivingPlanningService morning = new MorningDrivingPlanningService(null, "09:00", "12:00", 15, 15) {
                 @Override public MorningDrivingPlan getPlanForDate(Long organizationId, LocalDate date) {
+                    if (noMorning) return MorningDrivingPlan.empty();
                     return new MorningDrivingPlan(List.of(), LocalTime.of(9, 0), LocalTime.of(9, 0), LocalTime.of(9, 0),
                             LocalTime.of(longPeriods ? 12 : 10, 0), 1);
                 }
             };
             TransportationDemandService demand = new TransportationDemandService(null, morning, "09:00", "12:00", "17:00", "21:00", 15, 15) {
                 @Override public TransportationDemandAnalysis getDemandForDate(Long organizationId, LocalDate date) {
-                    return new TransportationDemandAnalysis(period(9, longPeriods ? 12 : 10), customMidday == null ? period(13, longMidday ? 17 : 14) : customMidday,
+                    return new TransportationDemandAnalysis(noMorning ? TransportationDemandAnalysis.empty().getMorning() : period(9, longPeriods ? 12 : 10), customMidday == null ? period(13, longMidday ? 17 : 14) : customMidday,
                             customEvening == null ? period(longPeriods ? 17 : 18, longPeriods ? 21 : 19) : customEvening, List.of(), 0, null, null, 0, null);
                 }
             };

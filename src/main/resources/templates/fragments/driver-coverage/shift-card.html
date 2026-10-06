@@ -4,9 +4,9 @@
     <article
         th:fragment="shiftCard(assignment, periodName, periodLabel, periodIcon, assignedDriverSchedule, recommendedStart, recommendedEnd)"
         class="coverage-shift-card"
-        th:with="officeBlocked=${periodName == 'MORNING' and morningStaffingBlocked == true},
-                 optional=${periodName == 'MIDDAY'},
-                 requiredPeriod=${periodName == 'MORNING' ? morningRequired : (periodName == 'MIDDAY' ? false : afternoonRequired)}"
+        th:with="officeBlocked=${(periodName == 'MORNING' and morningStaffingBlocked == true) or (periodName == lateOpeningPeriod and openingStaffingBlocked == true)},
+                 optional=${periodName == 'MIDDAY' and lateOpeningPeriod != 'MIDDAY'},
+                 requiredPeriod=${periodName == 'MORNING' ? morningRequired : (periodName == 'MIDDAY' ? middayRequired : afternoonRequired)}"
         th:classappend="${assignment == null and requiredPeriod == true} ? ' coverage-shift-card--missing' : ' coverage-shift-card--covered'">
 
         <header class="coverage-shift-card__header">
@@ -227,7 +227,7 @@
             <div class="coverage-empty-state">
                 <strong th:text="${optional ? 'Optional midday driving' : (officeBlocked ? 'Wardrobe office coverage required' : 'No driver has been assigned.')}"></strong>
                 <p th:if="${optional}">A suggestion is not a driving assignment. Leaving it unassigned creates no missing-coverage or missed-service alert.</p>
-                <p th:if="${officeBlocked}">Two roster members must be scheduled throughout 9:00 AM–12:00 PM so one can remain in wardrobe.</p>
+                <p th:if="${officeBlocked}">A second scheduled driver-roster member must remain available at the wardrobe counter while the driver is away.</p>
                 <p th:if="${!optional and !officeBlocked and requiredPeriod == true}">Choose a driver before transportation begins.</p>
                 <p th:if="${!optional and !officeBlocked and requiredPeriod != true}"
                    th:text="${periodName == 'AFTERNOON' ? 'No evening demand is forecast after wardrobe closes.' : 'No transportation demand is forecast for this period.'}"></p>

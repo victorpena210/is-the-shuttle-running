@@ -44,7 +44,7 @@
                     </strong>
 
                     <p>
-                        Review the required morning and evening coverage below. Midday driving is optional.
+                        Review the required coverage below. Afternoon opening coverage is automatic when counter staffing permits; other midday service is optional.
                     </p>
 
                 </div>
@@ -53,7 +53,7 @@
                     class="button"
                     type="button"
                     th:attr="data-open-coverage-details=${
-                        morningRequired and !morningAssignmentExists ? '#assign-morning' : '#assign-afternoon'
+                        morningRequired and !morningAssignmentExists ? '#assign-morning' : (middayRequired and !middayAssignmentExists ? '#assign-midday' : '#assign-afternoon')
                     }">
                     Assign driver
                 </button>
@@ -71,7 +71,7 @@
                     </strong>
 
                     <p>
-                        All required periods with sufficient staffing have assigned drivers. Midday suggestions are optional.
+                        All required periods with sufficient staffing have assigned drivers. Regular midday suggestions are optional.
                     </p>
 
                 </div>
@@ -83,6 +83,13 @@
                 <p>At least two staff on the driver roster must be scheduled throughout 9:00 AM–12:00 PM.
                     Someone must remain available in wardrobe while the driver is away.</p>
                 <p th:if="${morningAssignmentExists}">The existing assignment has been preserved. Review it before driving.</p>
+            </div>
+
+            <div class="alert" th:if="${lateOpeningPeriod != ''}">
+                <strong th:text="${openingStaffingBlocked ? 'Opening driving withheld for counter coverage' : 'Afternoon opening coverage'}"></strong>
+                <p>The first demand period is treated like morning opening coverage. Driving starts only during demand,
+                    with a second scheduled driver-roster member available at the counter until wardrobe closes.</p>
+                <p th:if="${openingStaffingBlocked}">Only one available roster member must stay at the counter. No automatic opening run can be assigned with the current staffing.</p>
             </div>
 
             <th:block th:replace="~{fragments/driver-coverage/schedule-reconciliation :: scheduleReconciliation}"></th:block>
@@ -127,7 +134,7 @@
                     th:replace="~{fragments/driver-coverage/shift-card :: shiftCard(
                         assignment=${middayAssignment},
                         periodName='MIDDAY',
-                        periodLabel='Midday Turnover',
+                        periodLabel=${lateOpeningPeriod == 'MIDDAY' ? 'Opening coverage' : 'Midday Turnover'},
                         periodIcon='↔',
                         assignedDriverSchedule=${middayAssignedDriverSchedule},
                         recommendedStart=${middayDrivingDemand.recommendedStartTime},
@@ -139,7 +146,7 @@
                     th:replace="~{fragments/driver-coverage/shift-card :: shiftCard(
                         assignment=${afternoonAssignment},
                         periodName='AFTERNOON',
-                        periodLabel='Evening',
+                        periodLabel=${lateOpeningPeriod == 'AFTERNOON' ? 'Opening coverage' : 'Evening'},
                         periodIcon='🌆',
                         assignedDriverSchedule=${afternoonAssignedDriverSchedule},
                         recommendedStart=${eveningDrivingDemand.recommendedStartTime},

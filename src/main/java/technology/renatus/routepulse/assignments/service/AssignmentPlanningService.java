@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import technology.renatus.routepulse.wardrobe.*;
 import java.time.LocalTime;
 import technology.renatus.routepulse.assignments.service.planning.MorningStaffingPolicy;
+import technology.renatus.routepulse.assignments.service.planning.LateOpeningPolicy;
 import java.time.LocalDateTime;
 import java.time.Clock;
 import java.time.ZoneId;
@@ -45,7 +46,7 @@ import technology.renatus.routepulse.scheduling.repository.UploadedShiftReposito
  *
  * Morning and afternoon are planned as mostly continuous driving windows with
  * one protected break when a demand-free window of at least 15 minutes exists.
- * Midday is offered as an optional, unsaved suggestion until a manager accepts it.
+ * Midday is optional except when it is the opening period for an afternoon-start roster.
  */
 @Service
 public class AssignmentPlanningService {
@@ -144,14 +145,25 @@ public class AssignmentPlanningService {
         if (assignment.getAssignmentDate().isBefore(LocalDate.now(clock))
                 || assignment.getPeriod() == ShuttlePeriod.MORNING) return;
         var closing = wardrobeHoursService.getHours(organizationId, assignment.getAssignmentDate()).closingTime();
-        if (startsBeforeClosing(assignment, closing)) {
-            throw new IllegalStateException("Midday and evening driving cannot start before wardrobe closes. Update wardrobe hours or choose a later start.");
-        }
         var analysis = transportationDemandService.getDemandForDate(organizationId, assignment.getAssignmentDate());
-        var demand = assignment.getPeriod() == ShuttlePeriod.MIDDAY ? analysis.getMidday() : analysis.getEvening();
-        if (startsBeforeDrivingDemand(assignment, demand, closing)) {
-            throw new IllegalStateException("Choose a start at or after the first demand window remaining after wardrobe closes.");
+        var rows = driverScheduleService.getDriverSchedulesForDate(organizationId, assignment.getAssignmentDate()).scheduledDrivers();
+        var assignments = assignmentRepository.findAllByOrganization_IdAndAssignmentDate(organizationId, assignment.getAssignmentDate());
+        if (hasDrivingConflict(assignment, analysis, rows, assignments, closing)) {
+            throw new IllegalStateException("Driving must start with eligible demand. Before wardrobe closes, only opening coverage is allowed, "
+                    + "with another scheduled driver-roster member available at the counter throughout each run.");
         }
+    }
+
+    public static boolean hasDrivingConflict(DriverAssignment assignment, TransportationDemandAnalysis analysis,
+            List<DriverSchedule> rows, List<DriverAssignment> assignments, LocalTime closing) {
+        if (assignment.getPeriod() == ShuttlePeriod.MORNING || assignment.getScheduledStartTime() == null) return false;
+        if (LateOpeningPolicy.openingPeriod(analysis, rows) == assignment.getPeriod()) {
+            var demand = LateOpeningPolicy.drivingDemand(analysis, rows, assignment.getPeriod(), closing);
+            return !demand.hasDemand() || assignment.getScheduledStartTime().isBefore(demand.getRecommendedStartTime())
+                    || !LateOpeningPolicy.canAssign(assignment, rows, assignments, closing);
+        }
+        return startsBeforeDrivingDemand(assignment,
+                assignment.getPeriod() == ShuttlePeriod.MIDDAY ? analysis.getMidday() : analysis.getEvening(), closing);
     }
 
     /** Existing manager decisions stay saved and are flagged for review instead of silently rewritten. */
@@ -188,23 +200,26 @@ public class AssignmentPlanningService {
 
         MorningDrivingPlan morningPlan = morningDrivingPlanningService.getPlanForDate(organizationId, date);
         TransportationDemandAnalysis demand = transportationDemandService.getDemandForDate(organizationId, date);
-        var eveningDemand = EveningClosingPolicy.afterClosing(demand.getEvening(),
-                wardrobeHoursService.getHours(organizationId, date).closingTime());
+        var closing = wardrobeHoursService.getHours(organizationId, date).closingTime();
+        var openingPeriod = LateOpeningPolicy.openingPeriod(demand, result.scheduledDrivers());
+        var eveningDemand = LateOpeningPolicy.drivingDemand(demand, result.scheduledDrivers(), ShuttlePeriod.AFTERNOON, closing);
         ScheduleImport sourceImport = uploadedShiftRepository
                 .findLatestScheduleImportForDate(organizationId, date).orElse(null);
 
         // Withdraw only untouched future automatic plans. Manager decisions and driving history survive.
         for (DriverAssignment assignment : existing) {
-            if (assignment.getPeriod() == ShuttlePeriod.MIDDAY && assignment.canAutomaticallyRebalance(now)) {
+            if (assignment.getPeriod() == ShuttlePeriod.MIDDAY && openingPeriod != ShuttlePeriod.MIDDAY
+                    && assignment.canAutomaticallyRebalance(now)) {
                 assignmentRepository.delete(assignment);
             }
         }
         existing = existing.stream().filter(a -> a.getPeriod() != ShuttlePeriod.MIDDAY
-                || !a.canAutomaticallyRebalance(now)).toList();
+                || openingPeriod == ShuttlePeriod.MIDDAY || !a.canAutomaticallyRebalance(now)).toList();
         List<DriverAssignment> assigned = new ArrayList<>(existing.stream()
                 .filter(assignment -> !assignment.canAutomaticallyRebalance(now)).toList());
         List<DriverAssignment> additions = new ArrayList<>();
-        for (ShuttlePeriod period : List.of(ShuttlePeriod.MORNING, ShuttlePeriod.AFTERNOON)) {
+        for (ShuttlePeriod period : ShuttlePeriod.values()) {
+            if (period == ShuttlePeriod.MIDDAY && openingPeriod != period) continue;
             DriverAssignment original = findAssignment(existing, period);
             if (original != null && !original.canAutomaticallyRebalance(now)) {
                 continue;
@@ -225,6 +240,11 @@ public class AssignmentPlanningService {
                         .toList();
                 plan = createMorningAssignment(organizationId, date, ranked, schedules,
                         morningPlan, demand.getMorning(), sourceImport, assigned);
+            } else if (period == openingPeriod) {
+                var openingDemand = upcomingDemand(LateOpeningPolicy.drivingDemand(
+                        demand, result.scheduledDrivers(), period, closing), date, now);
+                plan = createOpeningAssignment(organizationId, date, period, openingDemand, ranked,
+                        schedules, result.scheduledDrivers(), assigned, closing, sourceImport);
             } else {
                 var upcomingEvening = eveningDemand;
                 if (date.equals(now.toLocalDate())) {
@@ -238,9 +258,8 @@ public class AssignmentPlanningService {
             }
             if (plan == null) {
                 if (original != null) {
-                    if (period == ShuttlePeriod.AFTERNOON && (!eveningDemand.hasDemand()
-                            || startsBeforeDrivingDemand(original, demand.getEvening(),
-                                    wardrobeHoursService.getHours(organizationId, date).closingTime()))) {
+                    if (period == openingPeriod || (period == ShuttlePeriod.AFTERNOON && (!eveningDemand.hasDemand()
+                            || hasDrivingConflict(original, demand, result.scheduledDrivers(), assigned, closing)))) {
                         assignmentRepository.delete(original);
                     } else if (period == ShuttlePeriod.MORNING && !MorningStaffingPolicy.canAssign(
                             result.scheduledDrivers(), assigned, original.getScheduledDriver().getId(),
@@ -277,11 +296,13 @@ public class AssignmentPlanningService {
                 .findAllByOrganization_IdAndAssignmentDate(organizationId, date);
         if (findAssignment(assigned, ShuttlePeriod.MIDDAY) != null) return null;
         var rows = driverScheduleService.getDriverSchedulesForDate(organizationId, date).scheduledDrivers();
+        var analysis = transportationDemandService.getDemandForDate(organizationId, date);
+        if (LateOpeningPolicy.openingPeriod(analysis, rows) == ShuttlePeriod.MIDDAY) return null;
         Map<Long, List<DriverSchedule>> schedules = rows.stream().collect(Collectors.groupingBy(DriverSchedule::driverId));
         var eligible = schedules.values().stream().map(scheduleSelector::earliest).toList();
         var ranked = driverWorkloadService.rankEligibleDrivers(organizationId, date, eligible, assigned);
         var remainingDemand = EveningClosingPolicy.afterClosing(
-                transportationDemandService.getDemandForDate(organizationId, date).getMidday(),
+                analysis.getMidday(),
                 wardrobeHoursService.getHours(organizationId, date).closingTime());
         if (date.equals(now.toLocalDate())) {
             LocalTime nextMinute = now.toLocalTime().withSecond(0).withNano(0).plusMinutes(1);
@@ -351,6 +372,19 @@ public class AssignmentPlanningService {
                 organizationId, proposed.getAssignmentDate()));
         assignments.removeIf(a -> a == proposed || (proposed.getId() != null && proposed.getId().equals(a.getId())));
         assignments.add(proposed);
+        var rows = driverScheduleService.getDriverSchedulesForDate(organizationId, proposed.getAssignmentDate()).scheduledDrivers();
+        var analysis = transportationDemandService.getDemandForDate(organizationId, proposed.getAssignmentDate());
+        var openingPeriod = LateOpeningPolicy.openingPeriod(analysis, rows);
+        var closing = wardrobeHoursService.getHours(organizationId, proposed.getAssignmentDate()).closingTime();
+        for (var opening : assignments) {
+            if (opening.getPeriod() == openingPeriod
+                    && (opening.getAssignmentOutcome() == AssignmentOutcome.PENDING
+                        || opening.getAssignmentOutcome() == AssignmentOutcome.IN_PROGRESS)
+                    && (opening == proposed || assignmentsOverlap(proposed, opening))
+                    && !LateOpeningPolicy.canAssign(opening, rows, assignments, closing)) {
+                throw new IllegalStateException(LateOpeningPolicy.MESSAGE);
+            }
+        }
         var morning = findAssignment(assignments, ShuttlePeriod.MORNING);
         if (morning == null || (morning != proposed && !affectsMorningCoverage(proposed, morning))) return;
         if (morning.getAssignmentOutcome() != AssignmentOutcome.PENDING
@@ -360,6 +394,35 @@ public class AssignmentPlanningService {
                 morning.getScheduledStartTime(), morning.getScheduledEndTime())) {
             throw new IllegalStateException(MorningStaffingPolicy.MESSAGE);
         }
+    }
+
+    private boolean assignmentsOverlap(DriverAssignment first, DriverAssignment second) {
+        if (first.getScheduledStartTime() == null || first.getScheduledEndTime() == null
+                || second.getScheduledStartTime() == null || second.getScheduledEndTime() == null) return false;
+        return first.getScheduledStartTime().isBefore(second.getScheduledEndTime())
+                && first.getScheduledEndTime().isAfter(second.getScheduledStartTime());
+    }
+
+    private TransportationDemandPeriod upcomingDemand(TransportationDemandPeriod demand, LocalDate date, LocalDateTime now) {
+        if (!date.equals(now.toLocalDate())) return demand;
+        var next = now.toLocalTime().withSecond(0).withNano(0).plusMinutes(1);
+        return next.equals(LocalTime.MIDNIGHT) ? EveningClosingPolicy.afterClosing(demand, next)
+                : EveningClosingPolicy.notBefore(demand, next);
+    }
+
+    private DriverAssignment createOpeningAssignment(Long organizationId, LocalDate date, ShuttlePeriod period,
+            TransportationDemandPeriod demand, List<DriverSchedule> ranked, Map<Long, List<DriverSchedule>> schedules,
+            List<DriverSchedule> rows, List<DriverAssignment> assigned, LocalTime closing, ScheduleImport source) {
+        DriverAssignment best = null;
+        // Cover the most safe demand minutes; workload fairness breaks equal-coverage ties.
+        for (var row : ranked) {
+            var windows = LateOpeningPolicy.safeWindows(demand, rows, assigned, row.driverId(), closing);
+            if (windows.isEmpty()) continue;
+            var candidate = DriverAssignment.automatic(date, period, loadDriver(organizationId, row.driverId()), source);
+            if (windowPlanner.applyMiddayPlan(candidate, schedules.get(row.driverId()), windows)
+                    && (best == null || candidate.getScheduledMinutes() > best.getScheduledMinutes())) best = candidate;
+        }
+        return best;
     }
 
     private boolean affectsMorningCoverage(DriverAssignment proposed, DriverAssignment morning) {

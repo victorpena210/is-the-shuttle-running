@@ -2,6 +2,8 @@ package technology.renatus.routepulse.reporting.history;
 
 import technology.renatus.routepulse.scheduling.planning.DriverScheduleService;
 import technology.renatus.routepulse.assignments.service.planning.MorningStaffingPolicy;
+import technology.renatus.routepulse.assignments.service.planning.LateOpeningPolicy;
+import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
 import java.time.*;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -93,8 +95,9 @@ public class ServiceHistoryService {
             for (String key : List.of("morning", "midday", "evening", "off-hours")) demand.put(key, new ArrayList<>());
             String source = "No schedule available";
             Map<String, Integer> archivedTotals = new HashMap<>();
+            TransportationDemandAnalysis analysis = TransportationDemandAnalysis.empty();
             if (available.contains(date)) {
-                TransportationDemandAnalysis analysis = demandService.getDemandForDate(organizationId, date);
+                analysis = demandService.getDemandForDate(organizationId, date);
                 addDemand(demand.get("morning"), analysis.getMorning().getWindows(), date);
                 addDemand(demand.get("midday"), analysis.getMidday().getWindows(), date);
                 addDemand(demand.get("evening"), analysis.getEvening().getWindows(), date);
@@ -116,9 +119,11 @@ public class ServiceHistoryService {
             String calendar = calendar(organizationId, date);
             LocalTime closingTime = wardrobeHoursService.getHours(organizationId, date).closingTime();
             LocalDate staffingDate = date;
-            boolean morningStaffed = !available.contains(date) || MorningStaffingPolicy
-                    .hasMorningStaffing(driverScheduleService.getDriverSchedulesForDate(organizationId, date).scheduledDrivers(),
-                            planned.stream().filter(a -> a.getAssignmentDate().equals(staffingDate)).toList());
+            var roster = available.contains(date)
+                    ? driverScheduleService.getDriverSchedulesForDate(organizationId, date).scheduledDrivers() : List.<technology.renatus.routepulse.scheduling.domain.DriverSchedule>of();
+            var dayAssignments = planned.stream().filter(a -> a.getAssignmentDate().equals(staffingDate)).toList();
+            boolean morningStaffed = !available.contains(date) || MorningStaffingPolicy.hasMorningStaffing(roster, dayAssignments);
+            var openingPeriod = LateOpeningPolicy.openingPeriod(analysis, roster);
             for (String key : demand.keySet()) {
                 if (!"all".equals(filters.period()) && !key.equals(filters.period())) continue;
                 List<Demand> windows = demand.get(key).stream().filter(d -> d.count() > 0).toList();
@@ -131,8 +136,24 @@ public class ServiceHistoryService {
                 List<Span> scopes = new ArrayList<>(scopes(date, key));
                 windows.forEach(d -> scopes.add(d.span()));
                 scheduledAssignments.forEach(a -> addAssignmentScopes(scopes, day, a));
+                boolean opening = openingPeriod != null
+                        && key.equals(openingPeriod == ShuttlePeriod.MIDDAY ? "midday" : "evening");
+                List<Span> openingWindows = null;
+                if (opening) {
+                    openingWindows = new ArrayList<>();
+                    var drivingDemand = LateOpeningPolicy.drivingDemand(analysis, roster, openingPeriod, closingTime);
+                    var others = dayAssignments.stream().filter(a -> a.getPeriod() != openingPeriod).toList();
+                    for (Long driverId : roster.stream().map(technology.renatus.routepulse.scheduling.domain.DriverSchedule::driverId).distinct().toList()) {
+                        for (var window : LateOpeningPolicy.safeWindows(drivingDemand, roster, others, driverId, closingTime)) {
+                            openingWindows.add(span(day, window.getWindowStart(), window.getWindowEnd()));
+                        }
+                    }
+                    // Keep reviewing promised service when a protected assignment survives a roster revision.
+                    for (var assignment : scheduledAssignments) addAssignmentScopes(openingWindows, day, assignment);
+                    openingWindows = merge(openingWindows);
+                }
                 Instant eveningNotBefore = null;
-                if ("evening".equals(key)) {
+                if ("evening".equals(key) && !opening) {
                     eveningNotBefore = (closingTime.equals(LocalTime.MIDNIGHT) ? day.plusDays(1) : day)
                             .atTime(closingTime).atZone(zone).toInstant();
                     // An explicitly preserved earlier assignment still has its promised service reviewed.
@@ -143,10 +164,12 @@ public class ServiceHistoryService {
                         }
                     }
                 }
-                Row row = calculator.calculate(new Input(date, key, title(key), calendar, source, scopes, windows,
+                Row row = calculator.calculate(new Input(date, key, opening ? "Opening coverage" : title(key), calendar, source, scopes, windows,
                         periodAssignments, activity, rides,
                         "morning".equals(key) && periodAssignments.isEmpty() && !morningStaffed
-                                ? "Morning not assigned—wardrobe office coverage required" : null, eveningNotBefore), filters.driverId(), filters.driverRole(), now);
+                                ? "Morning not assigned—wardrobe office coverage required"
+                                : opening && openingWindows.isEmpty() ? "Opening not assigned—wardrobe counter coverage required" : null,
+                        eveningNotBefore, openingWindows), filters.driverId(), filters.driverRole(), now);
                 if (row == null) continue;
                 if (archivedTotals.containsKey(key)) row = row.withDemandTotal(archivedTotals.get(key));
                 if ("off-hours".equals(key) && row.demand() == 0 && row.seconds() == 0 && row.confirmations() == 0) continue;

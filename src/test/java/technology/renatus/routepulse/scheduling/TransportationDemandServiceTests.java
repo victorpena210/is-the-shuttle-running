@@ -107,6 +107,26 @@ class TransportationDemandServiceTests {
         assertEquals(3, analysis.getMidday().getWindows().get(0).getDemandCount());
     }
 
+    @Test
+    void noonArrivalsAreMorningButHalfPastNoonCanStartAfternoonOpeningDemand() {
+        ScheduleProvider noon = (organizationId, date) -> List.of(
+                shift("100", LocalTime.NOON, LocalTime.of(21, 0)),
+                shift("200", LocalTime.NOON, LocalTime.of(21, 0)),
+                shift("400", LocalTime.of(13, 0), LocalTime.of(20, 0)));
+        var noonAnalysis = service(noon).getDemandForDate(ORGANIZATION_ID, DATE);
+        assertEquals(2, noonAnalysis.getMorning().getTotalCount());
+        assertEquals(1, noonAnalysis.getMidday().getTotalCount());
+
+        ScheduleProvider afternoon = (organizationId, date) -> List.of(
+                shift("100", LocalTime.of(12, 30), LocalTime.of(21, 0)),
+                shift("200", LocalTime.of(12, 30), LocalTime.of(21, 0)),
+                shift("400", LocalTime.of(13, 0), LocalTime.of(20, 0)));
+        var afternoonAnalysis = service(afternoon).getDemandForDate(ORGANIZATION_ID, DATE);
+        assertEquals(0, afternoonAnalysis.getMorning().getTotalCount());
+        assertEquals(3, afternoonAnalysis.getMidday().getTotalCount());
+        assertEquals(LocalTime.of(12, 30), afternoonAnalysis.getMidday().getRecommendedStartTime());
+    }
+
     private TransportationDemandService service(
             ScheduleProvider provider) {
 

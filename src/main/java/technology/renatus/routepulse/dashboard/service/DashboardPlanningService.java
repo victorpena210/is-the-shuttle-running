@@ -1,6 +1,7 @@
 package technology.renatus.routepulse.dashboard.service;
 
 import technology.renatus.routepulse.assignments.service.planning.MorningStaffingPolicy;
+import technology.renatus.routepulse.assignments.service.planning.LateOpeningPolicy;
 import java.time.LocalDate;
 import java.util.List;
 import org.springframework.stereotype.Service;
@@ -131,13 +132,23 @@ public class DashboardPlanningService {
                 boolean morningRequired = demand.getMorning().hasDemand()
                         && MorningStaffingPolicy
                                 .hasMorningStaffing(driverSchedules, assignments);
-                boolean eveningRequired = technology.renatus.routepulse.wardrobe.EveningClosingPolicy
-                        .afterClosing(demand.getEvening(), wardrobeHours.closingTime()).hasDemand();
-                int requiredPeriods = (morningRequired ? 1 : 0) + (eveningRequired ? 1 : 0);
+                var opening = LateOpeningPolicy
+                        .openingPeriod(demand, driverSchedules);
+                var eveningDemand = LateOpeningPolicy
+                        .drivingDemand(demand, driverSchedules, ShuttlePeriod.AFTERNOON, wardrobeHours.closingTime());
+                boolean eveningRequired = eveningDemand.hasDemand() && (opening != ShuttlePeriod.AFTERNOON
+                        || LateOpeningPolicy.hasSafeDemand(
+                                eveningDemand, driverSchedules, assignments, opening, wardrobeHours.closingTime()));
+                boolean middayRequired = opening == ShuttlePeriod.MIDDAY
+                        && LateOpeningPolicy.hasSafeDemand(
+                                demand.getMidday(), driverSchedules, assignments, opening, wardrobeHours.closingTime());
+                int requiredPeriods = (morningRequired ? 1 : 0) + (middayRequired ? 1 : 0) + (eveningRequired ? 1 : 0);
                 int coveredRequiredPeriods = (morningRequired && assignments.stream()
                         .anyMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING) ? 1 : 0)
                         + (eveningRequired && assignments.stream()
                         .anyMatch(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON) ? 1 : 0);
+                coveredRequiredPeriods += middayRequired && assignments.stream()
+                        .anyMatch(a -> a.getPeriod() == ShuttlePeriod.MIDDAY) ? 1 : 0;
                 int missingRequiredPeriods = Math.max(0, requiredPeriods - coveredRequiredPeriods);
 
                 if (missingRequiredPeriods == requiredPeriods && requiredPeriods > 0) {

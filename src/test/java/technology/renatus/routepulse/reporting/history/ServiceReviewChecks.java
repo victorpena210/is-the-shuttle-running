@@ -104,6 +104,20 @@ public final class ServiceReviewChecks {
         partialClosing = new Input(DAY,"evening","Evening","Open","Uploaded schedule",List.of(WINDOW),
                 List.of(new Demand(WINDOW,20)),List.of(),List.of(beforeOnly),List.of(),null,at(9,10));
         equal(true, CALC.calculate(partialClosing,null,"actual",at(10,0)).needsReview(), "pre-close activity cannot cover the later required window");
+        var openingWindows = List.of(new Span(at(13,0),at(13,15)), new Span(at(13,15),at(13,30)));
+        var openingInput = new Input(DAY,"midday","Opening coverage","Open","Uploaded schedule",openingWindows,
+                openingWindows.stream().map(w -> new Demand(w,20)).toList(),List.of(),List.of(),List.of(),null,null,
+                List.of(openingWindows.get(1)));
+        var openingRow = CALC.calculate(openingInput,null,"actual",at(20,0));
+        equal(1, openingRow.gaps(), "staffed opening demand requires review even when unassigned");
+        equal("Counter coverage—driving not required", openingRow.windows().get(0).status(), "unavailable backup is exempt");
+        equal(40, openingRow.demand(), "counter exemption preserves raw demand");
+        var blockedOpening = new Input(DAY,"midday","Opening coverage","Open","Uploaded schedule",openingWindows,
+                openingWindows.stream().map(w -> new Demand(w,20)).toList(),List.of(),List.of(),List.of(),
+                "Opening not assigned—wardrobe counter coverage required",null,List.of());
+        var blockedRow = CALC.calculate(blockedOpening,null,"actual",at(20,0));
+        equal(false, blockedRow.needsReview(), "one counter worker does not cause missed-service alerts");
+        equal("Opening not assigned—wardrobe counter coverage required", blockedRow.state(), "opening is not labeled optional midday");
         ServiceReviewFilters today = filters(null,null,null);
         equal(DAY,today.from(),"default is today");
         equal(DAY,today.to(),"default single day");

@@ -56,6 +56,8 @@ public class DashboardModelAssembler {
         model.addAttribute("middayDrivingDemand", plan.middayDrivingDemand());
         model.addAttribute("drivingStartConflict", plan.drivingStartConflict());
         model.addAttribute("morningStaffingBlocked", plan.morningStaffingBlocked());
+        model.addAttribute("lateOpeningPeriod", plan.lateOpeningPeriod() == null ? "" : plan.lateOpeningPeriod().name());
+        model.addAttribute("openingStaffingBlocked", plan.openingStaffingBlocked());
         model.addAttribute("middaySuggestion", plan.middaySuggestion());
         model.addAttribute("middaySuggestionKey", AssignmentPlanningService
                 .suggestionKey(plan.middaySuggestion()));

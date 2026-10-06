@@ -2,6 +2,7 @@ package technology.renatus.routepulse.dashboard.model;
 
 import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
 import technology.renatus.routepulse.assignments.service.planning.MorningStaffingPolicy;
+import technology.renatus.routepulse.assignments.service.planning.LateOpeningPolicy;
 import java.time.LocalDate;
 import technology.renatus.routepulse.wardrobe.*;
 import technology.renatus.routepulse.assignments.service.AssignmentPlanningService;
@@ -61,18 +62,17 @@ public record DashboardPlan(
     }
 
     public technology.renatus.routepulse.scheduling.domain.TransportationDemandPeriod eveningDrivingDemand() {
-        return EveningClosingPolicy.afterClosing(transportationDemand.getEvening(), wardrobeHours.closingTime());
+        return LateOpeningPolicy.drivingDemand(transportationDemand, driverSchedules, ShuttlePeriod.AFTERNOON, wardrobeHours.closingTime());
     }
     public technology.renatus.routepulse.scheduling.domain.TransportationDemandPeriod middayDrivingDemand() {
-        return EveningClosingPolicy.afterClosing(transportationDemand.getMidday(), wardrobeHours.closingTime());
+        return LateOpeningPolicy.drivingDemand(transportationDemand, driverSchedules, ShuttlePeriod.MIDDAY, wardrobeHours.closingTime());
     }
     public boolean drivingStartConflict() {
         return driverAssignments.stream().filter(a -> a.getAssignmentOutcome()
                 != technology.renatus.routepulse.assignments.domain.AssignmentOutcome.CANCELLED
                 && a.getAssignmentOutcome() != technology.renatus.routepulse.assignments.domain.AssignmentOutcome.EXCUSED)
-                .anyMatch(a -> AssignmentPlanningService.startsBeforeDrivingDemand(a,
-                        a.getPeriod() == ShuttlePeriod.MIDDAY ? transportationDemand.getMidday() : transportationDemand.getEvening(),
-                        wardrobeHours.closingTime()));
+                .anyMatch(a -> AssignmentPlanningService.hasDrivingConflict(a, transportationDemand,
+                        driverSchedules, driverAssignments, wardrobeHours.closingTime()));
     }
 
     public boolean morningStaffingBlocked() {
@@ -89,7 +89,23 @@ public record DashboardPlan(
                 driverSchedules, driverAssignments);
     }
 
+    public ShuttlePeriod lateOpeningPeriod() {
+        return LateOpeningPolicy.openingPeriod(transportationDemand, driverSchedules);
+    }
+
+    public boolean openingStaffingBlocked() {
+        var period = lateOpeningPeriod();
+        if (period == null) return false;
+        var demand = period == ShuttlePeriod.MIDDAY ? middayDrivingDemand() : eveningDrivingDemand();
+        return demand.hasDemand() && !LateOpeningPolicy.hasSafeDemand(demand, driverSchedules,
+                driverAssignments, period, wardrobeHours.closingTime());
+    }
+
     public boolean requiresCoverage(ShuttlePeriod period) {
+        if (period == lateOpeningPeriod()) {
+            var demand = period == ShuttlePeriod.MIDDAY ? middayDrivingDemand() : eveningDrivingDemand();
+            return demand.hasDemand() && !openingStaffingBlocked();
+        }
         return switch (period) {
             case MORNING -> transportationDemand.getMorning().hasDemand() && !morningStaffingBlocked();
             case MIDDAY -> false;

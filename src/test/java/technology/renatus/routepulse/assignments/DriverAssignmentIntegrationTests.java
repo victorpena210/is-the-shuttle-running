@@ -309,6 +309,51 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
     }
 
     @Test
+    void afternoonOpeningUsesOnlyActiveRosterBackupAndWithdrawsUnsafeAutomaticCoverage() {
+        Organization organization = createOrganization("Late Opening", "late-opening");
+        UserAccount uploader = createUser("late-opening@example.com", true);
+        membershipRepository.save(new OrganizationMembership(organization, uploader, OrganizationRole.ADMIN));
+        Driver first = driverRepository.save(new Driver(organization, "100", "First", true));
+        driverRepository.save(new Driver(organization, "200", "Second", true));
+        driverRepository.save(new Driver(organization, "300", "Inactive", false));
+        LocalDate date = LocalDate.now(java.time.ZoneOffset.UTC).plusDays(1)
+                .with(java.time.temporal.TemporalAdjusters.nextOrSame(java.time.DayOfWeek.FRIDAY));
+        String day = date.format(java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy"));
+        org.mockito.Mockito.when(operatingDays.getOperatingDay(org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(invocation -> new technology.renatus.routepulse.calendar.domain.ParkOperatingDay(
+                        invocation.getArgument(0), technology.renatus.routepulse.calendar.domain.ParkOperatingStatus.OPEN,
+                        LocalTime.of(17, 0), LocalTime.of(21, 0), false, "TEST", null));
+        // Noon arrivals belong to morning demand; this scenario needs afternoon-only arrivals.
+        String firstRow = "100,First," + day + " 12:30 PM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
+        String secondRow = "200,Second," + day + " 12:30 PM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
+        String inactiveRow = "300,Inactive," + day + " 12:30 PM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
+        String otherRow = "500,Other," + day + " 12:30 PM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
+        String riderRow = "400,Rider," + day + " 1:00 PM," + day + " 8:00 PM,Park/Ops/Rides,Operator";
+        csvScheduleProvider.loadSchedule(organization.getId(), uploader.getEmail(), csvFile("late-one.csv",
+                firstRow, inactiveRow, otherRow, riderRow));
+        assertTrue(assignmentService.getOrCreateAssignments(organization.getId(), date).stream()
+                .noneMatch(a -> a.getPeriod() == ShuttlePeriod.MIDDAY), "Only active roster staff can cover the counter.");
+        csvScheduleProvider.loadSchedule(organization.getId(), uploader.getEmail(), csvFile("late-two.csv",
+                firstRow, secondRow, riderRow));
+        var two = assignmentService.getOrCreateAssignments(organization.getId(), date);
+        var opening = two.stream().filter(a -> a.getPeriod() == ShuttlePeriod.MIDDAY).findFirst().orElseThrow();
+        assertEquals(AssignmentSource.AUTO, opening.getAssignmentSource());
+        assertEquals(LocalTime.of(12, 30), opening.getScheduledStartTime(),
+                "Opening driving starts at the first afternoon demand window, before wardrobe closes.");
+        assertTrue(two.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING));
+        assertNull(assignmentService.getMiddaySuggestion(organization.getId(), date));
+        assertTrue(two.stream().filter(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON)
+                .allMatch(a -> !a.getScheduledStartTime().isBefore(LocalTime.of(19, 0))));
+        csvScheduleProvider.loadSchedule(organization.getId(), uploader.getEmail(), csvFile("late-one-again.csv",
+                firstRow, inactiveRow, otherRow, riderRow));
+        assertTrue(assignmentService.getOrCreateAssignments(organization.getId(), date).stream()
+                .noneMatch(a -> a.getPeriod() == ShuttlePeriod.MIDDAY));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () ->
+                assignmentService.createManualAssignment(organization.getId(), date, ShuttlePeriod.MIDDAY,
+                        first.getId(), LocalTime.of(13, 0), LocalTime.of(14, 0), "Counter must stay staffed"));
+    }
+
+    @Test
     void historicalManualRecordsCanPreserveOneDriverInBothPeriods() {
         Organization organization = createOrganization(
                 "Emergency Coverage Organization",
