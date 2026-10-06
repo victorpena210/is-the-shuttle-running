@@ -34,7 +34,7 @@ public enum TransportationPeriodType {
             "off-hours",
             "Off-hours Demand",
             "Off-hours demand",
-            "Schedule activity outside normal 9:00 AM–9:00 PM operations.",
+            "Schedule activity outside the displayed demand hours.",
             "·",
             "movements",
             "Peak off-hours movement"

@@ -28,6 +28,8 @@ public class TransportationDemandService {
     private final MorningDrivingPlanningService morningDrivingPlanningService;
     private final TransportationDemandBucketizer bucketizer;
     private final TransportationDemandPeriodBuilder periodBuilder;
+    private final LocalTime operatingStart;
+    private final LocalTime operatingEnd;
 
     public TransportationDemandService(
             ScheduleProvider scheduleProvider,
@@ -35,9 +37,11 @@ public class TransportationDemandService {
             @Value("${app.transportation-demand.operating-start:09:00}") String operatingStart,
             @Value("${app.transportation-demand.midday-start:12:00}") String middayStart,
             @Value("${app.transportation-demand.evening-start:17:00}") String eveningStart,
-            @Value("${app.transportation-demand.operating-end:21:00}") String operatingEnd,
+            @Value("${app.transportation-demand.operating-end:23:59}") String operatingEnd,
             @Value("${app.transportation-demand.window-minutes:15}") int windowMinutes,
             @Value("${app.transportation-demand.buffer-minutes:15}") int bufferMinutes) {
+        this.operatingStart = LocalTime.parse(operatingStart);
+        this.operatingEnd = LocalTime.parse(operatingEnd);
         this.scheduleProvider = scheduleProvider;
         this.morningDrivingPlanningService = morningDrivingPlanningService;
         this.bucketizer = new TransportationDemandBucketizer(
@@ -113,7 +117,7 @@ public class TransportationDemandService {
                 peakPeriod == null ? null : peakPeriod.getTitle(),
                 java.util.Arrays.stream(TransportationPeriodType.values())
                         .flatMap(type -> periodBuilder.buildWindows(TransportationPeriodType.OFF_HOURS,
-                                buckets.forType(type)).stream()).toList()
+                                buckets.forType(type)).stream()).toList(), operatingStart, operatingEnd
         );
     }
 }

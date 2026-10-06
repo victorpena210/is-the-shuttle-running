@@ -39,13 +39,13 @@ class TransportationDemandServiceTests {
 
         assertEquals(2, analysis.getMorning().getTotalCount());
         assertEquals(3, analysis.getMidday().getTotalCount());
-        assertEquals(4, analysis.getEvening().getTotalCount());
+        assertEquals(5, analysis.getEvening().getTotalCount());
 
         /*
-         * 2:00 AM start + 5:00 AM end + 9:10 PM end.
-         * The exact 9:00 PM pickup above remains normal evening demand.
+         * Only the 2:00 AM start and 5:00 AM end are off-hours.
+         * Both the 9:00 PM and 9:10 PM pickups remain visible evening demand.
          */
-        assertEquals(3, analysis.getOffHoursMovementCount());
+        assertEquals(2, analysis.getOffHoursMovementCount());
 
         assertTrue(analysis.hasOperationalDemand());
         assertTrue(analysis.hasOffHoursDemand());
@@ -127,8 +127,42 @@ class TransportationDemandServiceTests {
         assertEquals(LocalTime.of(12, 30), afternoonAnalysis.getMidday().getRecommendedStartTime());
     }
 
-    private TransportationDemandService service(
-            ScheduleProvider provider) {
+    @Test
+    void latePickupsRemainVisibleThrough2359WithoutWrappingIntoTomorrow() {
+        ScheduleProvider provider = (organizationId, date) -> List.of(
+                shift("L1", LocalTime.of(9, 0), LocalTime.of(22, 30)),
+                shift("L2", LocalTime.of(9, 0), LocalTime.of(23, 45)),
+                shift("L3", LocalTime.of(9, 0), LocalTime.of(23, 59)),
+                shift("L4", LocalTime.of(9, 0), LocalTime.of(0, 30)));
+        var analysis = service(provider).getDemandForDate(ORGANIZATION_ID, DATE);
+        assertEquals(LocalTime.of(9, 0), analysis.getOperatingStart());
+        assertEquals(LocalTime.of(23, 59), analysis.getOperatingEnd());
+        assertEquals(3, analysis.getEvening().getTotalCount());
+        assertEquals(1, analysis.getOffHoursMovementCount());
+        assertEquals(LocalTime.of(22, 30), analysis.getEvening().getRecommendedStartTime());
+        assertEquals(LocalTime.of(23, 59), analysis.getEvening().getRecommendedEndTime());
+        var last = analysis.getEvening().getWindows().get(1);
+        assertEquals(LocalTime.of(23, 45), last.getWindowStart());
+        assertEquals(LocalTime.of(23, 59), last.getWindowEnd());
+        assertEquals(2, last.getDepartures());
+        assertTrue(analysis.getMovementWindows().stream().allMatch(w -> w.getWindowEnd().isAfter(w.getWindowStart())));
+    }
+
+    @Test
+    void aConfiguredEarlierCutoffIsReportedAccurately() {
+        ScheduleProvider provider = (organizationId, date) -> List.of(
+                shift("C1", LocalTime.of(9, 0), LocalTime.of(21, 10)));
+        var analysis = service(provider, "21:00").getDemandForDate(ORGANIZATION_ID, DATE);
+        assertEquals(LocalTime.of(21, 0), analysis.getOperatingEnd());
+        assertEquals(0, analysis.getEvening().getTotalCount());
+        assertEquals(1, analysis.getOffHoursMovementCount());
+    }
+
+    private TransportationDemandService service(ScheduleProvider provider) {
+        return service(provider, "23:59");
+    }
+
+    private TransportationDemandService service(ScheduleProvider provider, String operatingEnd) {
 
         MorningDrivingPlanningService morningService =
                 new MorningDrivingPlanningService(
@@ -145,7 +179,7 @@ class TransportationDemandServiceTests {
                 "09:00",
                 "12:00",
                 "17:00",
-                "21:00",
+                operatingEnd,
                 15,
                 15
         );

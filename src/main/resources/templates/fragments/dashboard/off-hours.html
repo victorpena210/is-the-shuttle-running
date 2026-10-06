@@ -17,8 +17,9 @@
                 5 scheduled movements
             </span>
 
-            <span class="off-hours-demand__note">
-                outside 9:00 AM–9:00 PM
+            <span class="off-hours-demand__note"
+                th:text="|outside ${#temporals.format(transportationDemand.operatingStart, 'h:mm a')}–${#temporals.format(transportationDemand.operatingEnd, 'h:mm a')}|">
+                outside 9:00 AM–11:59 PM
             </span>
 
         </summary>

@@ -61,7 +61,7 @@ public class ServiceHistoryService {
             @Value("${app.transportation-demand.operating-start:09:00}") String morningStart,
             @Value("${app.transportation-demand.midday-start:12:00}") String middayStart,
             @Value("${app.transportation-demand.evening-start:17:00}") String eveningStart,
-            @Value("${app.transportation-demand.operating-end:21:00}") String operatingEnd) {
+            @Value("${app.transportation-demand.operating-end:23:59}") String operatingEnd) {
         this.driverScheduleService = driverScheduleService;
         this.wardrobeHoursService = wardrobeHoursService;
         this.sessions = sessions; this.confirmations = confirmations; this.assignments = assignments;

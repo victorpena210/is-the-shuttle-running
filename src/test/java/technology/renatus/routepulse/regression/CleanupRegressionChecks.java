@@ -322,6 +322,8 @@ public final class CleanupRegressionChecks {
         new DashboardModelAssembler().populate(optionalModel, optionalPlan);
         equal(1, optionalModel.get("needsAttentionShiftCount"), "only afternoon requires assignment with one morning staff member");
         String optionalHtml = render(engine, "manager/dashboard", optionalModel);
+        check(optionalHtml.contains("Demand shown") && optionalHtml.contains("9:00 AM–11:59 PM"), "demand horizon renders through end of day");
+        check(!optionalHtml.contains("Normal operations · 9:00 AM–9:00 PM"), "old hard-coded demand cutoff removed");
         check(optionalHtml.contains("/wardrobe-hours/season") && optionalHtml.contains("Summer · 5 PM")
                 && optionalHtml.contains("Fright Fest · 7 PM"), "seasonal wardrobe hours form and presets render");
         check(optionalHtml.contains("/wardrobe-hours/day"), "daily wardrobe override form renders");
@@ -535,7 +537,7 @@ public final class CleanupRegressionChecks {
                 new ShiftRecord("300", "Night Driver", "Operations", "Team Member", DATE,
                         LocalTime.of(2, 0), LocalTime.of(5, 0), "Gate"));
         MorningDrivingPlanningService morning = new MorningDrivingPlanningService(provider, "09:00", "12:00", 15, 15);
-        return new TransportationDemandService(provider, morning, "09:00", "12:00", "17:00", "21:00", 15, 15)
+        return new TransportationDemandService(provider, morning, "09:00", "12:00", "17:00", "23:59", 15, 15)
                 .getDemandForDate(10L, DATE);
     }
 

@@ -12,6 +12,8 @@ import java.util.List;
  */
 public class TransportationDemandAnalysis {
 
+    private final LocalTime operatingStart;
+    private final LocalTime operatingEnd;
     private final List<TransportationDemandWindow> movementWindows;
     private final TransportationDemandPeriod morning;
     private final TransportationDemandPeriod midday;
@@ -44,6 +46,18 @@ public class TransportationDemandAnalysis {
             TransportationDemandPeriod evening, List<TransportationDemandWindow> offHoursWindows, int offHoursMovementCount,
             LocalTime overallPeakWindowStart, LocalTime overallPeakWindowEnd, int overallPeakWindowCount,
             String overallPeakPeriodTitle, List<TransportationDemandWindow> movementWindows) {
+        this(morning, midday, evening, offHoursWindows, offHoursMovementCount, overallPeakWindowStart,
+                overallPeakWindowEnd, overallPeakWindowCount, overallPeakPeriodTitle, movementWindows,
+                LocalTime.of(9, 0), LocalTime.of(23, 59));
+    }
+
+    public TransportationDemandAnalysis(TransportationDemandPeriod morning, TransportationDemandPeriod midday,
+            TransportationDemandPeriod evening, List<TransportationDemandWindow> offHoursWindows, int offHoursMovementCount,
+            LocalTime overallPeakWindowStart, LocalTime overallPeakWindowEnd, int overallPeakWindowCount,
+            String overallPeakPeriodTitle, List<TransportationDemandWindow> movementWindows,
+            LocalTime operatingStart, LocalTime operatingEnd) {
+        this.operatingStart = operatingStart;
+        this.operatingEnd = operatingEnd;
         this.movementWindows = List.copyOf(movementWindows);
         this.morning = morning;
         this.midday = midday;
@@ -94,6 +108,9 @@ public class TransportationDemandAnalysis {
                 null
         );
     }
+
+    public LocalTime getOperatingStart() { return operatingStart; }
+    public LocalTime getOperatingEnd() { return operatingEnd; }
 
     public List<TransportationDemandWindow> getMovementWindows() { return movementWindows; }
 

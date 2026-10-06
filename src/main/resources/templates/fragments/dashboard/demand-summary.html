@@ -20,13 +20,15 @@
 
                 <p>
                     Recommended windows are derived from the
-                    uploaded team-member schedule.
+                    uploaded team-member schedule. Driving assignments follow demand within each driver's work shift;
+                    demand after a driver's clock-out remains visible here.
                 </p>
 
             </div>
 
-            <span class="transport-plan-summary__hours">
-                Normal operations · 9:00 AM–9:00 PM
+            <span class="transport-plan-summary__hours"
+                th:text="|Demand shown · ${#temporals.format(transportationDemand.operatingStart, 'h:mm a')}–${#temporals.format(transportationDemand.operatingEnd, 'h:mm a')}|">
+                Demand shown · 9:00 AM–11:59 PM
             </span>
 
         </header>

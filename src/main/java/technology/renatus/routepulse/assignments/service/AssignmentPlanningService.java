@@ -620,16 +620,28 @@ public class AssignmentPlanningService {
                 sourceScheduleImport
         );
 
-        LocalTime firstCoveredDemand = wholeOpeningWindow ? demandPeriod.getRecommendedStartTime() : demandPeriod.getWindows().stream()
-                .filter(w -> w.getDemandCount() > 0)
+        var coveredDemand = demandPeriod.getWindows().stream().filter(w -> w.getDemandCount() > 0)
                 .map(w -> driverSchedule.clipTo(w.getWindowStart(), w.getWindowEnd()))
-                .filter(java.util.Objects::nonNull).map(DriverSchedule.DrivingWindow::startTime)
-                .min(LocalTime::compareTo).orElseThrow();
+                .filter(java.util.Objects::nonNull).toList();
+        LocalTime firstCoveredDemand = wholeOpeningWindow ? demandPeriod.getRecommendedStartTime() : coveredDemand.stream()
+                .map(DriverSchedule.DrivingWindow::startTime).min(LocalTime::compareTo).orElseThrow();
+        LocalTime requestedEnd = demandPeriod.getRecommendedEndTime();
+        if (!wholeOpeningWindow) {
+            // A pickup after this driver's clock-out must not extend an earlier run through a quiet gap.
+            var lastCovered = coveredDemand.stream().map(DriverSchedule.DrivingWindow::endTime)
+                    .max(LocalTime::compareTo).orElseThrow();
+            var lastForecast = demandPeriod.getWindows().stream().filter(w -> w.getDemandCount() > 0)
+                    .map(technology.renatus.routepulse.scheduling.domain.TransportationDemandWindow::getWindowEnd)
+                    .max(LocalTime::compareTo).orElseThrow();
+            long buffer = Math.max(0, java.time.Duration.between(lastForecast, requestedEnd).toMinutes());
+            var bufferedEnd = LocalTime.ofSecondOfDay(Math.min(1439L, lastCovered.toSecondOfDay() / 60L + buffer) * 60L);
+            if (bufferedEnd.isBefore(requestedEnd)) requestedEnd = bufferedEnd;
+        }
         windowPlanner.applyContinuousPlanWithBreak(
                 assignment,
                 driverSchedule,
                 firstCoveredDemand,
-                demandPeriod.getRecommendedEndTime(),
+                requestedEnd,
                 demandPeriod.getWindows(),
                 protectedBreakMinutes
         );

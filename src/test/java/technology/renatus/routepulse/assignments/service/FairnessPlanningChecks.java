@@ -627,7 +627,51 @@ public class FairnessPlanningChecks {
             check(morning.getScheduledStartTime().equals(LocalTime.of(9,0)) && morning.getScheduledEndTime().equals(LocalTime.NOON), "eleven AM calendar did not create nine to noon");
             check(plans.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MIDDAY), "ordinary midday became required");
         });
+        run("Jody's eleven PM work shift includes late pickups and stops at clock-out", () -> {
+            Fixture f = configuredFriday();
+            f.customSchedules = List.of(schedule(1L,15,23), schedule(3L,15,21));
+            f.customEvening = latePickups(LocalTime.of(20,0), LocalTime.of(22,45), LocalTime.of(23,30));
+            var original = f.add(FIRST, ShuttlePeriod.AFTERNOON, f.driver(1L),19,21);
+            var evening = f.planner.getOrCreateAssignments(1L,FIRST).stream()
+                    .filter(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON).findFirst().orElseThrow();
+            check(evening.getId().equals(original.getId()) && evening.getScheduledDriver().getId().equals(1L), "Jody's allocation changed");
+            check(evening.getScheduledStartTime().equals(LocalTime.of(20,0))
+                    && evening.getScheduledEndTime().equals(LocalTime.of(23,0)), "late demand did not fit Jody's work shift");
+            check(evening.getPlannedDrivingWindows().stream().allMatch(w -> !w.getEndTime().isAfter(LocalTime.of(23,0))), "driving exceeded clock-out");
+            check(f.customEvening.getWindows().stream().anyMatch(w -> w.getWindowStart().equals(LocalTime.of(23,30))), "later demand was erased");
+        });
+        run("demand after clock-out does not extend a driver's earlier run through a quiet gap", () -> {
+            Fixture f = configuredFriday();
+            f.customEvening = latePickups(LocalTime.of(20,0), LocalTime.of(23,30));
+            var evening = f.planner.getOrCreateAssignments(1L,FIRST).stream()
+                    .filter(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON).findFirst().orElseThrow();
+            check(evening.getScheduledEndTime().equals(LocalTime.of(20,15)), "off-shift demand extended earlier driving");
+        });
+        run("no evening assignment when all remaining pickups occur after every driver's clock-out", () -> {
+            Fixture f = configuredFriday(); f.customEvening = latePickups(LocalTime.of(23,30));
+            check(f.planner.getOrCreateAssignments(1L,FIRST).stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON), "driver assigned outside work hours");
+            check(f.customEvening.hasDemand(), "uncovered demand must stay visible");
+        });
+        run("late-night windows remain usable for a driver working until midnight", () -> {
+            Fixture f = configuredFriday(); f.customSchedules = List.of(schedule(1L,15,0),schedule(3L,15,21));
+            f.customEvening = latePickups(LocalTime.of(23,45), LocalTime.of(23,59));
+            var evening = f.planner.getOrCreateAssignments(1L,FIRST).stream()
+                    .filter(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON).findFirst().orElseThrow();
+            check(evening.getScheduledDriver().getId().equals(1L), "wrong late driver");
+            check(evening.getScheduledStartTime().equals(LocalTime.of(23,45))
+                    && evening.getScheduledEndTime().equals(LocalTime.of(23,59)), "end-of-day driving wrapped or disappeared");
+        });
         System.out.println("PASS: " + checks + " fairness planning checks");
+    }
+
+    private static TransportationDemandPeriod latePickups(LocalTime... ends) {
+        var records = java.util.stream.IntStream.range(0, ends.length).mapToObj(i ->
+                new technology.renatus.routepulse.scheduling.domain.ShiftRecord("late-"+i, "Rider", "Operations", "Staff",
+                        FIRST, LocalTime.of(15,0), ends[i], "Gate")).toList();
+        technology.renatus.routepulse.scheduling.importing.ScheduleProvider provider = (org,date) -> records;
+        var morning = new MorningDrivingPlanningService(provider, "09:00", "12:00", 15, 15);
+        return new TransportationDemandService(provider, morning, "09:00", "12:00", "17:00", "23:59", 15, 15)
+                .getDemandForDate(1L,FIRST).getEvening();
     }
 
     private static Fixture configuredFriday() {

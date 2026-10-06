@@ -92,9 +92,11 @@ public class TransportationDemandPeriodBuilder {
             }
 
             LocalTime windowStart = entry.getKey();
+            LocalTime windowEnd = sameDayEnd(windowStart, windowMinutes);
+            if (!windowEnd.isAfter(windowStart)) windowEnd = LocalTime.MAX;
             windows.add(new TransportationDemandWindow(
                     windowStart,
-                    windowStart.plusMinutes(windowMinutes),
+                    windowEnd,
                     counts.arrivals(),
                     counts.departures(),
                     demandCount,
@@ -113,6 +115,12 @@ public class TransportationDemandPeriodBuilder {
         return windows.isEmpty() ? null : windows.get(windows.size() - 1).getWindowEnd();
     }
 
+    /** LocalTime arithmetic wraps at midnight; same-day demand must keep a later end time. */
+    private LocalTime sameDayEnd(LocalTime start, int extraMinutes) {
+        long endMinute = start.toSecondOfDay() / 60L + extraMinutes;
+        return LocalTime.ofSecondOfDay(Math.min(endMinute, 1439) * 60L);
+    }
+
     public LocalTime bufferedStart(List<TransportationDemandWindow> windows) {
         LocalTime first = firstWindowStart(windows);
         return first == null ? null : first.minusMinutes(bufferMinutes);
@@ -120,6 +128,6 @@ public class TransportationDemandPeriodBuilder {
 
     public LocalTime bufferedEnd(List<TransportationDemandWindow> windows) {
         LocalTime last = lastWindowEnd(windows);
-        return last == null ? null : last.plusMinutes(bufferMinutes);
+        return last == null ? null : sameDayEnd(last, bufferMinutes);
     }
 }
