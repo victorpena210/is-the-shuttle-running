@@ -44,7 +44,7 @@
             <p class="auth-panel__intro">
                 Signed in as <strong th:text="${driver.name}">Driver Name</strong>.
                 <span th:if="${assignment != null}">Is the Shuttle Running matched this checkpoint to the
-                <strong th:text="${assignment.period}">MORNING</strong> shift for
+                <strong th:text="${assignment.periodLabel}">MORNING</strong> shift for
                 <strong th:text="${#temporals.format(assignment.assignmentDate, 'MMMM d, yyyy')}">
                     September 4, 2026
                 </strong>.</span>

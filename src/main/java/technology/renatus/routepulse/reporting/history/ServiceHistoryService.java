@@ -4,6 +4,8 @@ import technology.renatus.routepulse.scheduling.planning.DriverScheduleService;
 import technology.renatus.routepulse.assignments.service.planning.MorningStaffingPolicy;
 import technology.renatus.routepulse.assignments.service.planning.LateOpeningPolicy;
 import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
+import technology.renatus.routepulse.wardrobe.OpeningCoveragePolicy;
+import technology.renatus.routepulse.wardrobe.WardrobeHoursService;
 import java.time.*;
 import java.util.*;
 import org.springframework.beans.factory.annotation.Value;
@@ -117,13 +119,20 @@ public class ServiceHistoryService {
                 }
             }
             String calendar = calendar(organizationId, date);
-            LocalTime closingTime = wardrobeHoursService.getHours(organizationId, date).closingTime();
+            var hours = wardrobeHoursService.getHours(organizationId, date);
+            LocalTime closingTime = hours.closingTime();
+            if (hours.usesOpeningWindow() && available.contains(date)) {
+                for (var entry : OpeningCoveragePolicy.reportingPeriods(analysis, hours).entrySet()) {
+                    demand.get(entry.getKey()).clear();
+                    addDemand(demand.get(entry.getKey()), entry.getValue().getWindows(), date);
+                }
+            }
             LocalDate staffingDate = date;
             var roster = available.contains(date)
                     ? driverScheduleService.getDriverSchedulesForDate(organizationId, date).scheduledDrivers() : List.<technology.renatus.routepulse.scheduling.domain.DriverSchedule>of();
             var dayAssignments = planned.stream().filter(a -> a.getAssignmentDate().equals(staffingDate)).toList();
             boolean morningStaffed = !available.contains(date) || MorningStaffingPolicy.hasMorningStaffing(roster, dayAssignments);
-            var openingPeriod = LateOpeningPolicy.openingPeriod(analysis, roster);
+            var openingPeriod = hours.usesOpeningWindow() ? OpeningCoveragePolicy.openingPeriod(hours) : LateOpeningPolicy.openingPeriod(analysis, roster);
             for (String key : demand.keySet()) {
                 if (!"all".equals(filters.period()) && !key.equals(filters.period())) continue;
                 List<Demand> windows = demand.get(key).stream().filter(d -> d.count() > 0).toList();
@@ -133,15 +142,17 @@ public class ServiceHistoryService {
                 List<Assignment> periodAssignments = scheduledAssignments.stream()
                         .map(a -> new Assignment(a.getId(), a.getScheduledDriver() == null ? null : a.getScheduledDriver().getId(),
                                 a.getScheduledDriver() == null ? "Unassigned" : a.getScheduledDriver().getName(), a.getAssignmentOutcome().name())).toList();
-                List<Span> scopes = new ArrayList<>(scopes(date, key));
+                List<Span> scopes = new ArrayList<>(hours.usesOpeningWindow() && available.contains(date) ? configuredScopes(date, key, hours) : scopes(date, key));
                 windows.forEach(d -> scopes.add(d.span()));
                 scheduledAssignments.forEach(a -> addAssignmentScopes(scopes, day, a));
+                if (scopes.isEmpty()) continue;
                 boolean opening = openingPeriod != null
-                        && key.equals(openingPeriod == ShuttlePeriod.MIDDAY ? "midday" : "evening");
+                        && key.equals(openingPeriod == ShuttlePeriod.MORNING ? "morning" : openingPeriod == ShuttlePeriod.MIDDAY ? "midday" : "evening");
                 List<Span> openingWindows = null;
                 if (opening) {
                     openingWindows = new ArrayList<>();
-                    var drivingDemand = LateOpeningPolicy.drivingDemand(analysis, roster, openingPeriod, closingTime);
+                    var drivingDemand = hours.usesOpeningWindow() ? OpeningCoveragePolicy.opening(analysis, hours)
+                            : LateOpeningPolicy.drivingDemand(analysis, roster, openingPeriod, closingTime);
                     var others = dayAssignments.stream().filter(a -> a.getPeriod() != openingPeriod).toList();
                     for (Long driverId : roster.stream().map(technology.renatus.routepulse.scheduling.domain.DriverSchedule::driverId).distinct().toList()) {
                         for (var window : LateOpeningPolicy.safeWindows(drivingDemand, roster, others, driverId, closingTime)) {
@@ -166,9 +177,10 @@ public class ServiceHistoryService {
                 }
                 Row row = calculator.calculate(new Input(date, key, opening ? "Opening coverage" : title(key), calendar, source, scopes, windows,
                         periodAssignments, activity, rides,
-                        "morning".equals(key) && periodAssignments.isEmpty() && !morningStaffed
+                        !hours.usesOpeningWindow() && "morning".equals(key) && periodAssignments.isEmpty() && !morningStaffed
                                 ? "Morning not assigned—wardrobe office coverage required"
-                                : opening && openingWindows.isEmpty() ? "Opening not assigned—wardrobe counter coverage required" : null,
+                                : opening && openingWindows.isEmpty() ? "Opening not assigned—wardrobe counter coverage required"
+                                : hours.usesOpeningWindow() && "off-hours".equals(key) ? "Outside configured shuttle hours—driving not required" : null,
                         eveningNotBefore, openingWindows), filters.driverId(), filters.driverRole(), now);
                 if (row == null) continue;
                 if (archivedTotals.containsKey(key)) row = row.withDemandTotal(archivedTotals.get(key));
@@ -195,6 +207,20 @@ public class ServiceHistoryService {
         return new Span(date.atTime(start).atZone(zone).toInstant(),
                 (end.isAfter(start) ? date : date.plusDays(1)).atTime(end).atZone(zone).toInstant());
     }
+    private List<Span> configuredScopes(LocalDate day, String key, WardrobeHoursService.Hours hours) {
+        var openingEnd = hours.openingEndTime();
+        var later = openingEnd.isAfter(LocalTime.of(17,0)) ? openingEnd : LocalTime.of(17,0);
+        return switch (key) {
+            case "morning" -> OpeningCoveragePolicy.openingPeriod(hours) == ShuttlePeriod.MORNING
+                    ? List.of(span(day, hours.openingStartTime(), openingEnd)) : List.of();
+            case "midday" -> OpeningCoveragePolicy.openingPeriod(hours) == ShuttlePeriod.MIDDAY
+                    ? List.of(span(day, hours.openingStartTime(), openingEnd))
+                    : openingEnd.isBefore(later) ? List.of(span(day, openingEnd, later)) : List.of();
+            case "evening" -> List.of(span(day, later, LocalTime.MIDNIGHT));
+            default -> hours.openingStartTime().equals(LocalTime.MIDNIGHT) ? List.of() : List.of(span(day, LocalTime.MIDNIGHT, hours.openingStartTime()));
+        };
+    }
+
     private List<Span> scopes(LocalDate date, String key) {
         return switch (key) {
             case "morning" -> List.of(span(date, morningStart, middayStart));

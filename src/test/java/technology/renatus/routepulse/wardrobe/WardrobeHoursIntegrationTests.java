@@ -21,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class WardrobeHoursIntegrationTests extends MySqlIntegrationTestSupport {
     @Autowired WardrobeHoursService hours;
     @Autowired WardrobeHoursRepository rules;
+    @Autowired technology.renatus.routepulse.reporting.history.ServiceHistoryService history;
     @MockitoBean ParkOperatingDayService operatingDays;
 
     @Test void savedSeasonAndDayOverrideReplanRealAssignments() throws Exception {
@@ -64,6 +65,56 @@ class WardrobeHoursIntegrationTests extends MySqlIntegrationTestSupport {
                 organization.getId(),date,date).size());
         assertThrows(IllegalStateException.class, () -> assignmentService.updateScheduledTimes(organization.getId(),id,
                 LocalTime.of(18,0),LocalTime.of(20,0)));
+    }
+
+    @Test void fridayOpeningCrossesFiveAndDoesNotDuplicateMiddayOrReporting() throws Exception {
+        var org = createOrganization("Friday wardrobe", "friday-wardrobe");
+        var manager = createUser("friday-hours@example.com", true);
+        membershipRepository.save(new OrganizationMembership(org, manager, OrganizationRole.ADMIN));
+        driverRepository.save(new Driver(org, "100", "First", true));
+        driverRepository.save(new Driver(org, "200", "Second", true));
+        LocalDate date = LocalDate.now(ZoneOffset.UTC).plusDays(1)
+                .with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.FRIDAY));
+        String day = date.format(java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy"));
+        when(operatingDays.getOperatingDay(any())).thenAnswer(invocation -> new ParkOperatingDay(invocation.getArgument(0),
+                ParkOperatingStatus.OPEN, LocalTime.of(17,0), LocalTime.of(23,0), false, "TEST", null));
+        csvScheduleProvider.loadSchedule(org.getId(), manager.getEmail(), csvFile("friday.csv",
+                "100,First,"+day+" 3:00 PM,"+day+" 11:00 PM,Park/Ops/Wardrobe,Staff",
+                "200,Second,"+day+" 3:00 PM,"+day+" 11:00 PM,Park/Ops/Wardrobe,Staff",
+                "300,Early Rider,"+day+" 9:00 AM,"+day+" 5:00 PM,Park/Ops/Rides,Operator",
+                "400,Late Arrival,"+day+" 5:45 PM,"+day+" 10:30 PM,Park/Ops/Rides,Operator"));
+        // Calendar-derived hours work before any wardrobe rule is saved.
+        assertEquals(LocalTime.of(15,0), hours.getHours(org.getId(), date).openingTime());
+        var automaticOpening = assignmentFor(assignmentService.getOrCreateAssignments(org.getId(),date), ShuttlePeriod.MIDDAY);
+        assertEquals(LocalTime.of(15,0), automaticOpening.getScheduledStartTime());
+        assertEquals(LocalTime.of(18,0), automaticOpening.getScheduledEndTime());
+        assignmentService.updateWardrobeHours(org.getId(), WardrobeHoursRule.Scope.SEASON, "Regular",
+                date,date.plusDays(30),LocalTime.of(9,0),LocalTime.of(19,0),null,manager.getEmail());
+        mockMvc.perform(post("/wardrobe-hours/season").with(user(manager.getEmail()).roles("ADMIN")).with(csrf())
+                .param("label","Fridays").param("from",date.toString()).param("to",date.plusDays(30).toString())
+                .param("selectedDate",date.toString()).param("openingTime","15:00").param("closingTime","19:00").param("dayOfWeek","5"))
+                .andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("successMessage"));
+        assertEquals(LocalTime.of(15,0), hours.getHours(org.getId(),date).openingTime());
+        assertEquals(LocalTime.of(15,0), hours.getHours(org.getId(),date.plusDays(1)).openingTime()); // mocked calendar is 5 PM on every date
+        var assigned = assignmentService.getExistingAssignments(org.getId(),date);
+        var opening = assignmentFor(assigned,ShuttlePeriod.MIDDAY);
+        assertEquals(LocalTime.of(15,0), opening.getScheduledStartTime());
+        assertEquals(LocalTime.of(18,0), opening.getScheduledEndTime());
+        assertEquals("Midday", opening.getPeriodLabel());
+        assertTrue(opening.getPlannedDrivingWindows().stream().anyMatch(w ->
+                w.getStartTime().isBefore(LocalTime.of(17,0)) && w.getEndTime().isAfter(LocalTime.of(17,0))));
+        assertTrue(assigned.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING));
+        assertEquals(LocalTime.of(22,30), assignmentFor(assigned,ShuttlePeriod.AFTERNOON).getScheduledStartTime());
+        var filters = technology.renatus.routepulse.reporting.history.ServiceReviewFilters.resolve(
+                date,date,null,null,null,null,null,date);
+        var report = history.build(org.getId(),filters);
+        var openingRow = report.rows().stream().filter(r -> r.period().equals("midday")).findFirst().orElseThrow();
+        assertEquals("Opening coverage",openingRow.title());
+        assertEquals(4,openingRow.demand()); // two staff arrivals, 5 PM departure, 5:45 PM arrival
+        assertTrue(report.rows().stream().noneMatch(r -> r.period().equals("morning")));
+        assertEquals(8,report.rows().stream().mapToInt(r -> r.demand()).sum()); // each movement appears once
+        mockMvc.perform(get("/app").with(user(manager.getEmail()).roles("ADMIN")).param("date",date.toString()))
+                .andExpect(status().isOk());
     }
 
     @Test void hoursAreOrganizationScopedAndManagerOnly() throws Exception {

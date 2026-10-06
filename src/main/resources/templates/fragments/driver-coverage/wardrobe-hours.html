@@ -2,22 +2,24 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
 <section th:fragment="wardrobeHours" class="section wardrobe-hours" data-dashboard-section="coverage" aria-labelledby="wardrobe-hours-heading">
     <h2 id="wardrobe-hours-heading">Wardrobe hours</h2>
-    <p><strong th:text="|Closes at ${#temporals.format(wardrobeHours.closingTime, 'h:mm a')}|"></strong>
+    <p><strong th:text="${configuredOpening ? 'Opens ' + #temporals.format(wardrobeHours.openingStartTime, 'h:mm a') + ' · Closes ' + #temporals.format(wardrobeHours.closingTime, 'h:mm a') : 'Closes at ' + #temporals.format(wardrobeHours.closingTime, 'h:mm a')}"></strong>
         <span th:text="| · ${wardrobeHours.label}|"></span>
         <span th:if="${wardrobeHours.startsOn != null and !wardrobeHours.dailyOverride}"
               th:text="| · ${#temporals.format(wardrobeHours.startsOn, 'MMM d, yyyy')}–${#temporals.format(wardrobeHours.endsOn, 'MMM d, yyyy')}|"></span>
     </p>
-    <p>On afternoon-start days with no morning demand, the first demand period is opening coverage:
+    <p th:if="${configuredOpening}" th:text="|Opening driving window: ${#temporals.format(wardrobeHours.openingStartTime, 'h:mm a')}–${#temporals.format(wardrobeHours.openingEndTime, 'h:mm a')}. Driving follows demand within this window, with a second roster member at the counter. Crossing noon or 5 PM does not split the assignment.|"></p>
+    <p th:unless="${configuredOpening}">Save an opening time below to use a three-hour opening window that moves with wardrobe hours.</p>
+    <p th:unless="${configuredOpening}">On afternoon-start days with no morning demand, the first demand period is opening coverage:
         one rostered driver drives while another covers the counter until wardrobe closes.
         Other midday and evening driving wait for demand at or after closing. Regular midday service remains optional.</p>
     <div class="alert alert--warning" th:if="${drivingStartConflict}">
-        An existing midday or evening assignment conflicts with demand, wardrobe hours, or opening counter coverage. Review it below; its history or manager decision has been preserved.
+        An existing driving assignment conflicts with demand, wardrobe hours, or opening counter coverage. Review it below; its history or manager decision has been preserved.
     </div>
     <div class="wardrobe-hours__forms">
         <details class="coverage-manager">
             <summary class="button button--secondary">Set seasonal hours</summary>
             <div class="coverage-manager__panel">
-                <p>Choose the dates for the season. A newer seasonal rule replaces older rules on overlapping dates.</p>
+                <p>Choose the season dates and the days this schedule applies. A weekday rule overrides an every-day rule; a one-day override takes priority over both.</p>
                 <form th:action="@{/wardrobe-hours/season}" method="post" data-wardrobe-season-form>
                     <input type="hidden" name="selectedDate" th:value="${selectedDate}">
                     <div class="coverage-form-actions">
@@ -26,12 +28,22 @@
                     </div>
                     <div class="form-group"><label for="wardrobe-season-name">Season name</label>
                         <input id="wardrobe-season-name" name="label" maxlength="80" placeholder="Summer or Fright Fest" required></div>
+                    <div class="form-group"><label for="wardrobe-weekday">Applies on</label>
+                        <select id="wardrobe-weekday" name="dayOfWeek">
+                            <option value="">Every day</option>
+                            <option th:each="weekday : ${T(java.time.DayOfWeek).values()}" th:value="${weekday.value}"
+                                th:selected="${wardrobeHours.dayOfWeek == weekday.value}"
+                                th:text="${weekday.getDisplayName(T(java.time.format.TextStyle).FULL, T(java.util.Locale).US) + 's'}"></option>
+                        </select>
+                    </div>
                     <div class="coverage-time-fields">
                         <div class="form-group"><label for="wardrobe-season-from">First day</label>
                             <input id="wardrobe-season-from" name="from" type="date" th:value="${selectedDate}" required></div>
                         <div class="form-group"><label for="wardrobe-season-to">Last day</label>
                             <input id="wardrobe-season-to" name="to" type="date" th:value="${selectedDate}" th:min="${currentOperationsDate}" required></div>
                     </div>
+                    <div class="form-group"><label for="wardrobe-season-open">Wardrobe opens</label>
+                        <input id="wardrobe-season-open" name="openingTime" type="time" step="60" th:value="${wardrobeHours.openingStartTime}" required></div>
                     <div class="form-group"><label for="wardrobe-season-close">Wardrobe closes</label>
                         <input id="wardrobe-season-close" name="closingTime" type="time" step="60" th:value="${wardrobeHours.closingTime}" required></div>
                     <button class="button" type="submit">Save season and update assignments</button>
@@ -44,6 +56,8 @@
                 <p>A daily override takes priority over seasonal hours. It affects only the selected date.</p>
                 <form th:action="@{/wardrobe-hours/day}" method="post">
                     <input type="hidden" name="selectedDate" th:value="${selectedDate}">
+                    <div class="form-group"><label for="wardrobe-day-open">Wardrobe opens</label>
+                        <input id="wardrobe-day-open" name="openingTime" type="time" step="60" th:value="${wardrobeHours.openingStartTime}" required></div>
                     <div class="form-group"><label for="wardrobe-day-close">Wardrobe closes</label>
                         <input id="wardrobe-day-close" name="closingTime" type="time" step="60" th:value="${wardrobeHours.closingTime}" required></div>
                     <button class="button" type="submit">Save this day</button>
@@ -55,6 +69,8 @@
             </div>
         </details>
     </div>
+    <p class="muted">Friday example: choose Fridays, open 3 PM and close 7 PM for a 3–6 PM opening window.
+        Saturday example: open 9 AM for a 9 AM–noon window. Later service begins with demand after closing.</p>
     <p class="muted">Dates without a matching season use 7 PM. Midnight means the end of the selected day.
         Hours are saved for this organization; changing them updates upcoming automatic assignments.</p>
 </section>

@@ -36,7 +36,7 @@ public final class AttentionSupport {
             ShuttlePeriod period) {
 
         return switch (period) {
-            case MORNING -> plan.transportationDemand().getMorning();
+            case MORNING -> plan.openingDrivingDemand();
             case MIDDAY -> plan.middayDrivingDemand();
             case AFTERNOON -> plan.eveningDrivingDemand();
         };

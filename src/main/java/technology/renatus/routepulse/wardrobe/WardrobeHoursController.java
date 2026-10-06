@@ -21,30 +21,32 @@ public class WardrobeHoursController {
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate selectedDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime openingTime,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime closingTime,
-            RedirectAttributes redirect) {
-        return save(authentication, WardrobeHoursRule.Scope.SEASON, label, from, to, closingTime, selectedDate, redirect);
+            @RequestParam(required = false) Integer dayOfWeek, RedirectAttributes redirect) {
+        return save(authentication, WardrobeHoursRule.Scope.SEASON, label, from, to, openingTime, closingTime, dayOfWeek, selectedDate, redirect);
     }
     @PostMapping("/wardrobe-hours/day")
     public String saveDay(Authentication authentication,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate selectedDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime openingTime,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime closingTime,
             RedirectAttributes redirect) {
         return save(authentication, WardrobeHoursRule.Scope.DAY, "Day override", selectedDate, selectedDate,
-                closingTime, selectedDate, redirect);
+                openingTime, closingTime, null, selectedDate, redirect);
     }
     @PostMapping("/wardrobe-hours/day/reset")
     public String resetDay(Authentication authentication,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate selectedDate,
             RedirectAttributes redirect) {
         return save(authentication, WardrobeHoursRule.Scope.DAY, "Use seasonal hours", selectedDate, selectedDate,
-                null, selectedDate, redirect);
+                null, null, null, selectedDate, redirect);
     }
     private String save(Authentication authentication, WardrobeHoursRule.Scope scope, String label,
-            LocalDate from, LocalDate to, LocalTime closing, LocalDate selectedDate, RedirectAttributes redirect) {
+            LocalDate from, LocalDate to, LocalTime opening, LocalTime closing, Integer dayOfWeek, LocalDate selectedDate, RedirectAttributes redirect) {
         try {
             Long organizationId = organizations.requireOrganizationId(authentication);
-            assignments.updateWardrobeHours(organizationId, scope, label, from, to, closing, authentication.getName());
+            assignments.updateWardrobeHours(organizationId, scope, label, from, to, opening, closing, dayOfWeek, authentication.getName());
             redirect.addFlashAttribute("successMessage", "Wardrobe hours saved and upcoming automatic assignments recalculated. Review any preserved assignments flagged below.");
         } catch (IllegalArgumentException | IllegalStateException exception) {
             redirect.addFlashAttribute("errorMessage", exception.getMessage());

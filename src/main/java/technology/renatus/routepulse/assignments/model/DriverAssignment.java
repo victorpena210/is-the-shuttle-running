@@ -369,6 +369,14 @@ public class DriverAssignment {
         }
     }
 
+    public String getPeriodLabel() {
+        return switch (period) {
+            case MORNING -> scheduledStartTime != null && !scheduledStartTime.isBefore(LocalTime.NOON) ? "Opening coverage" : "Morning";
+            case MIDDAY -> "Midday";
+            case AFTERNOON -> "Evening";
+        };
+    }
+
     public boolean canAutomaticallyRebalance(LocalDateTime now) {
         return assignmentSource == AssignmentSource.AUTO
                 && assignmentOutcome == AssignmentOutcome.PENDING

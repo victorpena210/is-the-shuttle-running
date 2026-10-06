@@ -82,9 +82,7 @@ public class DriverInsightsService {
                     String type = s.isUnscheduled() ? "Unscheduled"
                             : Objects.equals(s.getAssignment().getScheduledDriver().getId(), driver.getId())
                                     ? "Scheduled" : "Coverage";
-                    String period = s.isUnscheduled() ? "—" : switch (s.getAssignment().getPeriod()) {
-                        case MORNING -> "Morning"; case MIDDAY -> "Midday"; case AFTERNOON -> "Evening";
-                    };
+                    String period = s.isUnscheduled() ? "—" : s.getAssignment().getPeriodLabel();
                     return new DriverAnalyticsCalculator.Session(s.getStartedAt(), s.getEndedAt(), type,
                             period, s.isUnscheduled(), status(s));
                 }).toList();

@@ -69,7 +69,7 @@ public class DriverCheckpointStartPolicy {
         if (nextWindow == null) {
             throw new IllegalStateException(
                     "Your planned driving time for the "
-                            + periodLabel(assignment.getPeriod())
+                            + assignment.getPeriodLabel().toLowerCase(java.util.Locale.ROOT)
                             + " shift has ended. A manager can override this if service still needs coverage.");
         }
 

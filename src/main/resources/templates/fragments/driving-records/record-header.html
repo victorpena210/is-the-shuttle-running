@@ -13,7 +13,7 @@
                         ? ' record-period--afternoon'
                         : '')"
                 th:text="${record.period.name() == 'MORNING'}
-                    ? 'AM'
+                    ? (record.periodLabel == 'Opening coverage' ? 'OPEN' : 'AM')
                     : (${record.period.name() == 'MIDDAY'}
                         ? 'MID'
                         : 'PM')">
@@ -26,7 +26,7 @@
 
                 <p
                     class="record-card__date"
-                    th:text="|${#temporals.format(record.assignmentDate, 'MMM d')} · ${record.period}|">
+                    th:text="|${#temporals.format(record.assignmentDate, 'MMM d')} · ${record.periodLabel}|">
 
                     SEP 7 · MORNING
 

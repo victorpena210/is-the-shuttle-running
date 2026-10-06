@@ -76,9 +76,7 @@ public class DriverUpcomingScheduleService {
         var breaks = assignment.getPeriod() == ShuttlePeriod.MIDDAY ? List.<TimeWindow>of()
                 : assignment.getPlannedBreakWindows().stream()
                     .map(w -> new TimeWindow(w.getStartTime(), w.getEndTime())).toList();
-        String period = switch (assignment.getPeriod()) {
-            case MORNING -> "Morning"; case MIDDAY -> "Midday"; case AFTERNOON -> "Evening";
-        };
+        String period = assignment.getPeriodLabel();
         return new AssignmentRow(assignment.getAssignmentDate(), period, windows, breaks,
                 assignment.getAssignmentOutcome() == AssignmentOutcome.IN_PROGRESS ? "In progress" : "Scheduled");
     }

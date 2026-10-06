@@ -141,7 +141,7 @@ public class ScheduleReconciliationService {
                 : formatShifts(previousShifts);
         String latestScheduleLabel = formatShifts(latestShifts);
         String driverName = assignment.getScheduledDriver().getName();
-        String periodLabel = periodLabel(assignment.getPeriod());
+        String periodLabel = assignment.getPeriodLabel();
 
         if (assignment.hasDrivingSessions()) {
             return new ScheduleReconciliation(

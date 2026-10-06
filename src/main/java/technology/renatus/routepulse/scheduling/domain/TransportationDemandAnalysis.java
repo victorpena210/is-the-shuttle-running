@@ -12,6 +12,7 @@ import java.util.List;
  */
 public class TransportationDemandAnalysis {
 
+    private final List<TransportationDemandWindow> movementWindows;
     private final TransportationDemandPeriod morning;
     private final TransportationDemandPeriod midday;
     private final TransportationDemandPeriod evening;
@@ -33,6 +34,17 @@ public class TransportationDemandAnalysis {
             int overallPeakWindowCount,
             String overallPeakPeriodTitle) {
 
+        this(morning, midday, evening, offHoursWindows, offHoursMovementCount, overallPeakWindowStart,
+                overallPeakWindowEnd, overallPeakWindowCount, overallPeakPeriodTitle,
+                java.util.stream.Stream.of(morning.getWindows(), midday.getWindows(), evening.getWindows(), offHoursWindows)
+                        .flatMap(List::stream).toList());
+    }
+
+    public TransportationDemandAnalysis(TransportationDemandPeriod morning, TransportationDemandPeriod midday,
+            TransportationDemandPeriod evening, List<TransportationDemandWindow> offHoursWindows, int offHoursMovementCount,
+            LocalTime overallPeakWindowStart, LocalTime overallPeakWindowEnd, int overallPeakWindowCount,
+            String overallPeakPeriodTitle, List<TransportationDemandWindow> movementWindows) {
+        this.movementWindows = List.copyOf(movementWindows);
         this.morning = morning;
         this.midday = midday;
         this.evening = evening;
@@ -82,6 +94,8 @@ public class TransportationDemandAnalysis {
                 null
         );
     }
+
+    public List<TransportationDemandWindow> getMovementWindows() { return movementWindows; }
 
     public TransportationDemandPeriod getMorning() {
         return morning;

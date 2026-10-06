@@ -110,7 +110,10 @@ public class TransportationDemandService {
                 peakPeriod == null ? null : peakPeriod.getPeakWindowStart(),
                 peakPeriod == null ? null : peakPeriod.getPeakWindowEnd(),
                 peakPeriod == null ? 0 : peakPeriod.getPeakWindowCount(),
-                peakPeriod == null ? null : peakPeriod.getTitle()
+                peakPeriod == null ? null : peakPeriod.getTitle(),
+                java.util.Arrays.stream(TransportationPeriodType.values())
+                        .flatMap(type -> periodBuilder.buildWindows(TransportationPeriodType.OFF_HOURS,
+                                buckets.forType(type)).stream()).toList()
         );
     }
 }

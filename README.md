@@ -10,6 +10,7 @@ driver recommendations, manager-approved coverage, and actual driving records.
 Java source is grouped by feature: auth, organization, driver, scheduling,
 assignments, driving, reporting, calendar, dashboard, marketing and shared code.
 
+- [Wardrobe opening hours](docs/wardrobe-opening-hours.md): Friday/Saturday setup, counter staffing, and assignment overlap rules.
 - [Architecture](docs/architecture.md): backend boundaries, calendar provider and tests.
 - [Frontend organization](FRONTEND_ORGANIZATION.md): current CSS, JavaScript and Thymeleaf layout.
 - [Cleanup notes](docs/cleanup-notes.md): changes, verification and installation details.

@@ -142,6 +142,14 @@ public class DashboardPlanningService {
                 boolean middayRequired = opening == ShuttlePeriod.MIDDAY
                         && LateOpeningPolicy.hasSafeDemand(
                                 demand.getMidday(), driverSchedules, assignments, opening, wardrobeHours.closingTime());
+                if (wardrobeHours.usesOpeningWindow()) {
+                    var openingDemand = technology.renatus.routepulse.wardrobe.OpeningCoveragePolicy.opening(demand, wardrobeHours);
+                    var openingSlot = technology.renatus.routepulse.wardrobe.OpeningCoveragePolicy.openingPeriod(wardrobeHours);
+                    boolean staffed = LateOpeningPolicy.hasSafeDemand(openingDemand, driverSchedules, assignments, openingSlot, wardrobeHours.closingTime());
+                    morningRequired = openingSlot == ShuttlePeriod.MORNING && staffed;
+                    middayRequired = openingSlot == ShuttlePeriod.MIDDAY && staffed;
+                    eveningRequired = technology.renatus.routepulse.wardrobe.OpeningCoveragePolicy.evening(demand, wardrobeHours).hasDemand();
+                }
                 int requiredPeriods = (morningRequired ? 1 : 0) + (middayRequired ? 1 : 0) + (eveningRequired ? 1 : 0);
                 int coveredRequiredPeriods = (morningRequired && assignments.stream()
                         .anyMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING) ? 1 : 0)

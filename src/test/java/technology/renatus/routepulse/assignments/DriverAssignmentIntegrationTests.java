@@ -323,12 +323,13 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
                 .thenAnswer(invocation -> new technology.renatus.routepulse.calendar.domain.ParkOperatingDay(
                         invocation.getArgument(0), technology.renatus.routepulse.calendar.domain.ParkOperatingStatus.OPEN,
                         LocalTime.of(17, 0), LocalTime.of(21, 0), false, "TEST", null));
-        // Noon arrivals belong to morning demand; this scenario needs afternoon-only arrivals.
-        String firstRow = "100,First," + day + " 12:30 PM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
-        String secondRow = "200,Second," + day + " 12:30 PM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
-        String inactiveRow = "300,Inactive," + day + " 12:30 PM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
-        String otherRow = "500,Other," + day + " 12:30 PM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
-        String riderRow = "400,Rider," + day + " 1:00 PM," + day + " 8:00 PM,Park/Ops/Rides,Operator";
+        // A verified 5 PM park opening requires the 3–6 PM opening block.
+        // Include a late arrival to exercise coverage across the raw 5 PM demand boundary.
+        String firstRow = "100,First," + day + " 3:00 PM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
+        String secondRow = "200,Second," + day + " 3:00 PM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
+        String inactiveRow = "300,Inactive," + day + " 3:00 PM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
+        String otherRow = "500,Other," + day + " 3:00 PM," + day + " 9:00 PM,Park/Ops/Wardrobe,Staff";
+        String riderRow = "400,Rider," + day + " 5:45 PM," + day + " 8:00 PM,Park/Ops/Rides,Operator";
         csvScheduleProvider.loadSchedule(organization.getId(), uploader.getEmail(), csvFile("late-one.csv",
                 firstRow, inactiveRow, otherRow, riderRow));
         assertTrue(assignmentService.getOrCreateAssignments(organization.getId(), date).stream()
@@ -338,19 +339,22 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
         var two = assignmentService.getOrCreateAssignments(organization.getId(), date);
         var opening = two.stream().filter(a -> a.getPeriod() == ShuttlePeriod.MIDDAY).findFirst().orElseThrow();
         assertEquals(AssignmentSource.AUTO, opening.getAssignmentSource());
-        assertEquals(LocalTime.of(12, 30), opening.getScheduledStartTime(),
-                "Opening driving starts at the first afternoon demand window, before wardrobe closes.");
+        assertEquals(LocalTime.of(15, 0), opening.getScheduledStartTime(),
+                "A 5 PM park opening automatically starts required coverage at 3 PM.");
+        assertEquals(LocalTime.of(18, 0), opening.getScheduledEndTime(),
+                "Opening coverage must continue through 6 PM, across the midday/evening boundary.");
         assertTrue(two.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING));
         assertNull(assignmentService.getMiddaySuggestion(organization.getId(), date));
-        assertTrue(two.stream().filter(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON)
-                .allMatch(a -> !a.getScheduledStartTime().isBefore(LocalTime.of(19, 0))));
+        var evening = two.stream().filter(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON).findFirst().orElseThrow();
+        assertTrue(!evening.getScheduledStartTime().isBefore(LocalTime.of(19, 0)),
+                "Automatic evening service still waits until wardrobe closes.");
         csvScheduleProvider.loadSchedule(organization.getId(), uploader.getEmail(), csvFile("late-one-again.csv",
                 firstRow, inactiveRow, otherRow, riderRow));
         assertTrue(assignmentService.getOrCreateAssignments(organization.getId(), date).stream()
                 .noneMatch(a -> a.getPeriod() == ShuttlePeriod.MIDDAY));
         org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () ->
                 assignmentService.createManualAssignment(organization.getId(), date, ShuttlePeriod.MIDDAY,
-                        first.getId(), LocalTime.of(13, 0), LocalTime.of(14, 0), "Counter must stay staffed"));
+                        first.getId(), LocalTime.of(15, 0), LocalTime.of(18, 0), "Counter must stay staffed"));
     }
 
     @Test

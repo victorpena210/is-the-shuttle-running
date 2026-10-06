@@ -89,11 +89,7 @@
 
         <h2
             id="driver-focus-heading"
-            th:text="${primaryAssignment.period.name() == 'MORNING'
-                ? 'Morning driving'
-                : (primaryAssignment.period.name() == 'MIDDAY'
-                    ? 'Midday driving'
-                    : 'Evening driving')}">
+            th:text="${primaryAssignment.periodLabel + ' driving'}">
             Morning driving
         </h2>
 
@@ -183,9 +179,7 @@
                 <tbody>
                 <tr th:each="assignment : ${todayAssignments}">
                     <td
-                        th:text="${assignment.period.name() == 'MORNING'
-                            ? 'Morning'
-                            : (assignment.period.name() == 'MIDDAY' ? 'Midday' : 'Evening')}">
+                        th:text="${assignment.periodLabel}">
                         Morning
                     </td>
 

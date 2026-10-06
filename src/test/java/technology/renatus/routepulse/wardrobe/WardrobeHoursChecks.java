@@ -70,6 +70,63 @@ public final class WardrobeHoursChecks {
         equal(LocalTime.of(20,30), forecast.getEvening().getRecommendedEndTime(), "pickup end buffer remains");
         equal(LocalTime.of(20,0), EveningClosingPolicy.afterClosing(forecast.getEvening(), LocalTime.of(19,0)).getRecommendedStartTime(),
                 "real forecast waits through closing-time quiet gap");
+        // Exercise actual bucketization, including arrivals after the old 5 PM boundary.
+        technology.renatus.routepulse.scheduling.importing.ScheduleProvider fridayProvider = (org, date) -> List.of(
+                new ShiftRecord("100", "First", "Wardrobe", "Staff", date, LocalTime.of(15,0), LocalTime.of(23,0), "Counter"),
+                new ShiftRecord("200", "Second", "Wardrobe", "Staff", date, LocalTime.of(15,0), LocalTime.of(23,0), "Counter"),
+                new ShiftRecord("300", "Early rider", "Operations", "Staff", date, LocalTime.of(9,0), LocalTime.of(17,0), "Gate"),
+                new ShiftRecord("400", "Late arrival", "Operations", "Staff", date, LocalTime.of(17,45), LocalTime.of(22,30), "Gate"));
+        var fridayMorning = new technology.renatus.routepulse.scheduling.planning.MorningDrivingPlanningService(fridayProvider, "09:00", "12:00", 15, 15);
+        var fridayDemand = new technology.renatus.routepulse.scheduling.planning.TransportationDemandService(
+                fridayProvider, fridayMorning, "09:00", "12:00", "17:00", "21:00", 15, 15).getDemandForDate(1L, DAY);
+        var fridayHours = new WardrobeHoursService.Hours(LocalTime.of(19,0), "Friday", DAY, DAY, false, LocalTime.of(15,0), 5);
+        var opening = OpeningCoveragePolicy.opening(fridayDemand, fridayHours);
+        equal(LocalTime.of(15,0), opening.getRecommendedStartTime(), "Friday ignores unrelated 9 AM arrivals");
+        equal(LocalTime.of(18,0), opening.getRecommendedEndTime(), "arrival after five extends opening run to six");
+        equal(true, opening.getWindows().stream().anyMatch(w -> w.getWindowStart().equals(LocalTime.of(17,45)) && w.getArrivals() == 1), "arrival-only evening bucket retained");
+        equal(LocalTime.of(22,30), OpeningCoveragePolicy.evening(fridayDemand, fridayHours).getRecommendedStartTime(), "later pickup beyond nine retained");
+        equal(true, OpeningCoveragePolicy.midday(fridayDemand, fridayHours).hasDemand(), "midday is required opening service");
+        var groups = OpeningCoveragePolicy.reportingPeriods(fridayDemand, fridayHours);
+        equal(fridayDemand.getMovementWindows().stream().mapToInt(TransportationDemandWindow::getDemandCount).sum(),
+                groups.values().stream().mapToInt(TransportationDemandPeriod::getTotalCount).sum(), "report groups count every movement once");
+        var fivePm = new technology.renatus.routepulse.calendar.domain.ParkOperatingDay(DAY,
+                technology.renatus.routepulse.calendar.domain.ParkOperatingStatus.OPEN, LocalTime.of(17,0), LocalTime.of(23,0), false, "TEST", null);
+        equal(LocalTime.of(15,0), WardrobeHoursService.withCalendarOpening(WardrobeHoursService.DEFAULT, fivePm).openingTime(), "calendar enables three PM without saved rules");
+        for (int parkHour : List.of(11, 12)) {
+            var daytime = new technology.renatus.routepulse.calendar.domain.ParkOperatingDay(DAY,
+                    technology.renatus.routepulse.calendar.domain.ParkOperatingStatus.OPEN, LocalTime.of(parkHour,0), LocalTime.of(21,0), false, "TEST", null);
+            var daytimeHours = WardrobeHoursService.withCalendarOpening(WardrobeHoursService.DEFAULT, daytime);
+            equal(LocalTime.of(9,0), daytimeHours.openingTime(), "11 AM / noon calendar opens wardrobe at nine");
+            equal(LocalTime.NOON, daytimeHours.openingEndTime(), "daytime opening run ends at noon");
+            equal(LocalTime.of(19,0), daytimeHours.closingTime(), "calendar opening retains saved close");
+        }
+        var general = new WardrobeHoursService.Hours(LocalTime.of(19,0), "Regular", DAY, DAY, false, LocalTime.of(9,0), null);
+        equal(LocalTime.of(15,0), WardrobeHoursService.withCalendarOpening(general, fivePm).openingTime(), "five PM exception overrides general morning hours");
+        var explicit = new WardrobeHoursService.Hours(LocalTime.of(19,0), "Exception", DAY, DAY, true, LocalTime.of(14,0), null);
+        equal(LocalTime.of(14,0), WardrobeHoursService.withCalendarOpening(explicit, fivePm).openingTime(), "explicit day opening remains authoritative");
+        var unknown = new technology.renatus.routepulse.calendar.domain.ParkOperatingDay(DAY,
+                technology.renatus.routepulse.calendar.domain.ParkOperatingStatus.UNKNOWN, LocalTime.of(17,0), null, false, "TEST", null);
+        equal(null, WardrobeHoursService.withCalendarOpening(WardrobeHoursService.DEFAULT, unknown).openingTime(), "unverified calendar does not invent opening");
+        Fixture weekly = new Fixture();
+        LocalDate friday = DAY.with(java.time.temporal.TemporalAdjusters.nextOrSame(DayOfWeek.FRIDAY));
+        weekly.service.save(1L,WardrobeHoursRule.Scope.SEASON,"Regular",DAY,friday.plusDays(14),LocalTime.of(9,0),LocalTime.of(19,0),null,weekly.actor.getEmail());
+        weekly.service.save(1L,WardrobeHoursRule.Scope.SEASON,"Fridays",DAY,friday.plusDays(14),LocalTime.of(15,0),LocalTime.of(19,0),5,weekly.actor.getEmail());
+        equal(LocalTime.of(15,0),weekly.service.getHours(1L,friday).openingTime(),"Friday opening resolved");
+        equal(LocalTime.of(18,0),weekly.service.getHours(1L,friday).openingEndTime(),"Friday window crosses five");
+        equal(LocalTime.of(9,0),weekly.service.getHours(1L,friday.plusDays(1)).openingTime(),"Saturday keeps regular opening");
+        equal(LocalTime.NOON,weekly.service.getHours(1L,friday.plusDays(1)).openingEndTime(),"Saturday opening ends at noon");
+        weekly.service.save(1L,WardrobeHoursRule.Scope.SEASON,"New general",DAY,friday.plusDays(14),LocalTime.of(10,0),LocalTime.of(19,0),null,weekly.actor.getEmail());
+        equal(LocalTime.of(15,0),weekly.service.getHours(1L,friday).openingTime(),"weekday beats newer general season");
+        weekly.service.save(1L,WardrobeHoursRule.Scope.DAY,"Day",friday,friday,LocalTime.of(14,0),LocalTime.of(19,0),null,weekly.actor.getEmail());
+        equal(LocalTime.of(14,0),weekly.service.getHours(1L,friday).openingTime(),"daily opening beats weekday season");
+        weekly.service.save(1L,WardrobeHoursRule.Scope.DAY,"Reset",friday,friday,null,null,null,weekly.actor.getEmail());
+        equal(LocalTime.of(15,0),weekly.service.getHours(1L,friday).openingTime(),"reset restores Friday hours");
+        equal(null,weekly.service.getHours(2L,friday).openingTime(),"opening hours stay organization scoped");
+        rejects(() -> weekly.service.save(1L,WardrobeHoursRule.Scope.SEASON,"Bad",DAY,friday,LocalTime.of(19,0),LocalTime.of(15,0),null,weekly.actor.getEmail()),"reversed opening hours rejected");
+        rejects(() -> weekly.service.save(1L,WardrobeHoursRule.Scope.SEASON,"Bad",DAY,friday,LocalTime.of(15,0),LocalTime.of(15,0),null,weekly.actor.getEmail()),"equal opening and closing rejected");
+        rejects(() -> weekly.service.save(1L,WardrobeHoursRule.Scope.SEASON,"Bad",DAY,friday,LocalTime.of(15,0),LocalTime.of(19,0),8,weekly.actor.getEmail()),"invalid weekday rejected");
+        weekly.role = OrganizationRole.DRIVER;
+        rejects(() -> weekly.service.save(1L,WardrobeHoursRule.Scope.SEASON,"Driver",DAY,friday,LocalTime.of(15,0),LocalTime.of(19,0),5,weekly.actor.getEmail()),"drivers cannot change opening hours");
     }
     private static TransportationDemandPeriod period(LocalTime from, LocalTime to) {
         return new TransportationDemandPeriod("evening","Evening","Evening","","","","",

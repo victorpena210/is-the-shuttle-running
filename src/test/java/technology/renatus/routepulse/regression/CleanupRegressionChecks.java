@@ -348,13 +348,33 @@ public final class CleanupRegressionChecks {
             equal("MIDDAY", lateModel.get("lateOpeningPeriod"), "late opening recognized in dashboard");
             equal(staffed, lateModel.get("middayRequired"), "opening required only with staffing");
             String lateHtml = render(engine, "manager/dashboard", lateModel);
-            check(lateHtml.contains("Opening coverage"), "opening card label");
+            check(lateHtml.contains("Midday opening coverage"), "opening card label");
             check(!lateHtml.contains("Optional midday driving"), "opening card incorrectly labeled optional");
             equal(!staffed, lateHtml.contains("Opening driving withheld for counter coverage"), "counter explanation");
             equal(staffed, lateHtml.contains("id=\"assign-midday\""), "unsafe manual form hidden");
             var lateAlerts = new ArrayList<technology.renatus.routepulse.attention.model.AttentionItem>();
             new technology.renatus.routepulse.attention.service.checks.CoverageAttentionChecker().addAlerts(latePlan, lateAlerts);
             equal(staffed, lateAlerts.stream().anyMatch(a -> a.key().equals("missing-coverage-MIDDAY")), "opening missing coverage warning");
+        }
+        for (boolean staffed : List.of(false, true)) {
+            var fridayRows = new ArrayList<DriverSchedule>();
+            fridayRows.add(new DriverSchedule(1L, "100", "Scheduled Driver", DATE, LocalTime.of(15,0), LocalTime.of(23,0)));
+            if (staffed) fridayRows.add(new DriverSchedule(2L, "200", "Counter Driver", DATE, LocalTime.of(15,0), LocalTime.of(23,0)));
+            var hours = new technology.renatus.routepulse.wardrobe.WardrobeHoursService.Hours(
+                    LocalTime.of(19,0), "Friday hours", DATE, DATE.plusDays(30), false, LocalTime.of(15,0), 5);
+            var fridayPlan = new DashboardPlan(DATE, DATE, List.of(DATE), true, true, List.of(f.imported()),
+                    demand(), fridayRows, List.of(), f.drivers(), List.of(), List.of(), f.imported(), false, null,
+                    new ParkOperatingDay(DATE, ParkOperatingStatus.OPEN, LocalTime.of(17,0), LocalTime.of(23,0), false, "TEST", null),
+                    "Open", null, false, null, hours);
+            ExtendedModelMap fridayModel = managerModel(); new DashboardModelAssembler().populate(fridayModel, fridayPlan);
+            equal(true, fridayModel.get("configuredOpening"), "configured opening enabled");
+            equal(false, fridayModel.get("morningRequired"), "morning is not required on late-opening days");
+            equal(staffed, fridayModel.get("middayRequired"), "midday opening needs two roster members");
+            String fridayHtml = render(engine, "manager/dashboard", fridayModel);
+            check(fridayHtml.contains("Opening driving window: 3:00 PM–6:00 PM"), "Friday hours cross five without split");
+            check(fridayHtml.contains("name=\"openingTime\"") && fridayHtml.contains("Fridays"), "opening and weekday inputs render");
+            equal(staffed, fridayHtml.contains("id=\"assign-midday\""), "configured opening form gated by staffing");
+            check(!fridayHtml.contains("Optional midday driving"), "configured opening is required");
         }
         ExtendedModelMap empty = managerModel();
         new DashboardModelAssembler().populate(empty, new DashboardPlan(DATE, DATE, List.of(), false,

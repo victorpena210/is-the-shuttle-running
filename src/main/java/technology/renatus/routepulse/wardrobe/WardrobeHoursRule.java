@@ -17,11 +17,19 @@ public class WardrobeHoursRule {
     @Column(name = "ends_on", nullable = false) private LocalDate endsOn;
     // A DAY row with no time resets that day's override to the seasonal rule.
     @Column(name = "closing_time") private LocalTime closingTime;
+    @Column(name = "opening_time") private LocalTime openingTime;
+    @Column(name = "day_of_week") private Integer dayOfWeek;
     @Column(name = "changed_by_user_id", nullable = false) private Long changedByUserId;
     @Column(name = "created_at", nullable = false, updatable = false) private Instant createdAt;
     protected WardrobeHoursRule() {}
     public WardrobeHoursRule(Long organizationId, Scope scope, String label, LocalDate startsOn,
             LocalDate endsOn, LocalTime closingTime, Long changedByUserId, Instant createdAt) {
+        this(organizationId, scope, label, startsOn, endsOn, null, closingTime, null, changedByUserId, createdAt);
+    }
+    public WardrobeHoursRule(Long organizationId, Scope scope, String label, LocalDate startsOn,
+            LocalDate endsOn, LocalTime openingTime, LocalTime closingTime, Integer dayOfWeek,
+            Long changedByUserId, Instant createdAt) {
+        this.openingTime = openingTime; this.dayOfWeek = dayOfWeek;
         this.organizationId = organizationId; this.scope = scope; this.label = label;
         this.startsOn = startsOn; this.endsOn = endsOn; this.closingTime = closingTime;
         this.changedByUserId = changedByUserId; this.createdAt = createdAt;
@@ -33,6 +41,8 @@ public class WardrobeHoursRule {
     public LocalDate getStartsOn() { return startsOn; }
     public LocalDate getEndsOn() { return endsOn; }
     public LocalTime getClosingTime() { return closingTime; }
+    public LocalTime getOpeningTime() { return openingTime; }
+    public Integer getDayOfWeek() { return dayOfWeek; }
     public Long getChangedByUserId() { return changedByUserId; }
     public Instant getCreatedAt() { return createdAt; }
 }

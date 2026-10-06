@@ -62,6 +62,12 @@ public class DriverAssignmentService {
             String label, LocalDate from, LocalDate to, LocalTime closingTime, String actorEmail) {
         assignmentPlanningService.updateWardrobeHours(organizationId, scope, label, from, to, closingTime, actorEmail);
     }
+    @Transactional
+    public void updateWardrobeHours(Long organizationId, technology.renatus.routepulse.wardrobe.WardrobeHoursRule.Scope scope,
+            String label, LocalDate from, LocalDate to, LocalTime opening, LocalTime closing, Integer dayOfWeek, String actorEmail) {
+        assignmentPlanningService.updateWardrobeHours(organizationId, scope, label, from, to, opening, closing, dayOfWeek, actorEmail);
+    }
+
 
     @Transactional(readOnly = true)
     public DriverAssignment getMiddaySuggestion(Long organizationId, LocalDate date) {

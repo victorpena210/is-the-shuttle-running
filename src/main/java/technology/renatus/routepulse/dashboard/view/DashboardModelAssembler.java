@@ -52,6 +52,8 @@ public class DashboardModelAssembler {
         model.addAttribute("latestScheduleImport", plan.latestScheduleImport());
 
         model.addAttribute("wardrobeHours", plan.wardrobeHours());
+        model.addAttribute("configuredOpening", plan.wardrobeHours().usesOpeningWindow());
+        model.addAttribute("openingDrivingDemand", plan.openingDrivingDemand());
         model.addAttribute("eveningDrivingDemand", plan.eveningDrivingDemand());
         model.addAttribute("middayDrivingDemand", plan.middayDrivingDemand());
         model.addAttribute("drivingStartConflict", plan.drivingStartConflict());

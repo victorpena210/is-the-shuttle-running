@@ -79,16 +79,17 @@
             </div>
 
             <div class="alert" th:if="${morningStaffingBlocked}">
-                <strong th:text="${morningAssignmentExists ? 'Review morning wardrobe coverage' : 'No driving assignment—wardrobe office coverage required'}"></strong>
-                <p>At least two staff on the driver roster must be scheduled throughout 9:00 AM–12:00 PM.
+                <strong th:text="${morningAssignmentExists ? 'Review opening wardrobe coverage' : 'No driving assignment—wardrobe office coverage required'}"></strong>
+                <p th:if="${configuredOpening}">Opening driving requires two available roster members: one to drive and one to cover the wardrobe counter until closing.</p>
+                <p th:unless="${configuredOpening}">At least two staff on the driver roster must be scheduled throughout 9:00 AM–12:00 PM.
                     Someone must remain available in wardrobe while the driver is away.</p>
                 <p th:if="${morningAssignmentExists}">The existing assignment has been preserved. Review it before driving.</p>
             </div>
 
             <div class="alert" th:if="${lateOpeningPeriod != ''}">
                 <strong th:text="${openingStaffingBlocked ? 'Opening driving withheld for counter coverage' : 'Afternoon opening coverage'}"></strong>
-                <p>The first demand period is treated like morning opening coverage. Driving starts only during demand,
-                    with a second scheduled driver-roster member available at the counter until wardrobe closes.</p>
+                <p>Midday opening coverage is required and scheduled automatically on late-opening days, just like morning coverage.
+                    The opening run may extend past 5 PM. A second scheduled driver-roster member must remain available at the counter until wardrobe closes.</p>
                 <p th:if="${openingStaffingBlocked}">Only one available roster member must stay at the counter. No automatic opening run can be assigned with the current staffing.</p>
             </div>
 
@@ -122,11 +123,11 @@
                     th:replace="~{fragments/driver-coverage/shift-card :: shiftCard(
                         assignment=${morningAssignment},
                         periodName='MORNING',
-                        periodLabel='Morning',
+                        periodLabel=${configuredOpening and lateOpeningPeriod == '' ? 'Opening coverage' : 'Morning'},
                         periodIcon='☀',
                         assignedDriverSchedule=${morningAssignedDriverSchedule},
-                        recommendedStart=${transportationDemand.morning.recommendedStartTime},
-                        recommendedEnd=${transportationDemand.morning.recommendedEndTime}
+                        recommendedStart=${openingDrivingDemand.recommendedStartTime},
+                        recommendedEnd=${openingDrivingDemand.recommendedEndTime}
                     )}">
                 </div>
 
@@ -134,7 +135,7 @@
                     th:replace="~{fragments/driver-coverage/shift-card :: shiftCard(
                         assignment=${middayAssignment},
                         periodName='MIDDAY',
-                        periodLabel=${lateOpeningPeriod == 'MIDDAY' ? 'Opening coverage' : 'Midday Turnover'},
+                        periodLabel=${lateOpeningPeriod == 'MIDDAY' ? 'Midday opening coverage' : 'Midday Turnover'},
                         periodIcon='↔',
                         assignedDriverSchedule=${middayAssignedDriverSchedule},
                         recommendedStart=${middayDrivingDemand.recommendedStartTime},

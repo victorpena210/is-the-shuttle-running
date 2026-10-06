@@ -33,9 +33,11 @@ public class CoverageAttentionChecker {
         if (plan.morningStaffingBlocked()) {
             boolean assigned = plan.driverAssignments().stream().anyMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING);
             items.add(new AttentionItem("morning-office-coverage", assigned ? AttentionSeverity.WARNING : AttentionSeverity.INFO,
-                    assigned ? "Review morning wardrobe coverage" : "Morning driving withheld for wardrobe coverage",
-                    assigned ? "An existing morning assignment is preserved, but the uploaded roster no longer meets the office staffing rule. Review coverage before driving."
-                            : MorningStaffingPolicy.MESSAGE,
+                    assigned ? "Review opening wardrobe coverage" : "Opening driving withheld for wardrobe coverage",
+                    assigned ? "An existing opening assignment is preserved, but the uploaded roster no longer meets the office staffing rule. Review coverage before driving."
+                            : (plan.wardrobeHours().usesOpeningWindow()
+                                ? "Opening driving needs two available driver-roster staff: one driving and one at the counter until wardrobe closes."
+                                : MorningStaffingPolicy.MESSAGE),
                     "Review staffing", AttentionSupport.dashboardHref(plan, "coverage")));
         }
         if (plan.openingStaffingBlocked()) {
@@ -47,7 +49,7 @@ public class CoverageAttentionChecker {
         if (plan.drivingStartConflict()) {
             items.add(new AttentionItem("driving-before-demand-or-close", AttentionSeverity.WARNING,
                     "Review driving start against demand and wardrobe hours",
-                    "An existing midday or evening assignment conflicts with demand, wardrobe hours, or opening counter coverage. Its history or manager decision was preserved; review the assignment.",
+                    "An existing driving assignment conflicts with demand, wardrobe hours, or opening counter coverage. Its history or manager decision was preserved; review the assignment.",
                     "Review driving coverage", AttentionSupport.dashboardHref(plan, "coverage")));
         }
         addMissingCoverageAlerts(plan, items);
@@ -126,7 +128,8 @@ public class CoverageAttentionChecker {
                 continue;
             }
 
-            String periodLabel = AttentionSupport.periodLabel(period);
+            String periodLabel = plan.wardrobeHours().usesOpeningWindow() && period == ShuttlePeriod.MORNING
+                    ? "Opening" : AttentionSupport.periodLabel(period);
             String requestedWindow =
                     AttentionSupport.requestedWindowLabel(demandPeriod);
             boolean eligibleDriverExists = AttentionSupport.hasEligibleDriver(
@@ -192,9 +195,7 @@ public class CoverageAttentionChecker {
             }
 
             String driverName = assignment.getScheduledDriver().getName();
-            String periodLabel = AttentionSupport.periodLabel(
-                    assignment.getPeriod()
-            );
+            String periodLabel = assignment.getPeriodLabel();
             String requestedWindow = AttentionSupport.requestedWindowLabel(
                     plan,
                     assignment
