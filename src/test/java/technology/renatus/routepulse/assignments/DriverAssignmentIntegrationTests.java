@@ -281,8 +281,17 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
         var two = assignmentService.getOrCreateAssignments(organization.getId(), date);
         assertTrue(two.stream().anyMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING));
         assertTrue(two.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MIDDAY));
+        assertNull(assignmentService.getMiddaySuggestion(organization.getId(), date),
+                "The 1 PM midday demand is before the default 7 PM wardrobe closing time.");
+
+        // Exercise optional midday acceptance on a day with an earlier office close.
+        assignmentService.updateWardrobeHours(organization.getId(),
+                technology.renatus.routepulse.wardrobe.WardrobeHoursRule.Scope.DAY,
+                "Early closing for midday coverage test", date, date, LocalTime.NOON, uploader.getEmail());
         var suggestion = assignmentService.getMiddaySuggestion(organization.getId(), date);
         assertNotNull(suggestion);
+        assertEquals(LocalTime.of(13, 0), suggestion.getScheduledStartTime(),
+                "The suggestion starts at demand, after the noon wardrobe closing time.");
         assertNull(suggestion.getId());
         var accepted = assignmentService.acceptMiddaySuggestion(organization.getId(), date,
                 technology.renatus.routepulse.assignments.service.AssignmentPlanningService.suggestionKey(suggestion));

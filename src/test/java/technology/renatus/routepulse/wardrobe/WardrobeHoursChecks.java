@@ -60,6 +60,16 @@ public final class WardrobeHoursChecks {
         equal(false,EveningClosingPolicy.afterClosing(raw,LocalTime.MIDNIGHT).hasDemand(),"midnight closing is end of day");
         equal(LocalTime.of(19,5),EveningClosingPolicy.afterClosing(raw,LocalTime.of(19,5)).getWindows().get(0).getWindowStart(),"minute cutoff clips actual window");
         equal(LocalTime.of(20,0),EveningClosingPolicy.afterClosing(period(LocalTime.of(20,0),LocalTime.of(21,0)),LocalTime.of(19,0)).getRecommendedStartTime(),"later demand starts later than closing");
+        technology.renatus.routepulse.scheduling.importing.ScheduleProvider provider = (org, date) -> List.of(
+                new ShiftRecord("100", "Rider", "Operations", "Staff", date, LocalTime.of(9,0), LocalTime.of(17,30), "Gate"),
+                new ShiftRecord("200", "Late rider", "Operations", "Staff", date, LocalTime.of(9,0), LocalTime.of(20,0), "Gate"));
+        var morning = new technology.renatus.routepulse.scheduling.planning.MorningDrivingPlanningService(provider, "09:00", "12:00", 15, 15);
+        var forecast = new technology.renatus.routepulse.scheduling.planning.TransportationDemandService(
+                provider, morning, "09:00", "12:00", "17:00", "21:00", 15, 15).getDemandForDate(1L, DAY);
+        equal(LocalTime.of(17,30), forecast.getEvening().getRecommendedStartTime(), "forecast recommends actual first demand, not early buffer");
+        equal(LocalTime.of(20,30), forecast.getEvening().getRecommendedEndTime(), "pickup end buffer remains");
+        equal(LocalTime.of(20,0), EveningClosingPolicy.afterClosing(forecast.getEvening(), LocalTime.of(19,0)).getRecommendedStartTime(),
+                "real forecast waits through closing-time quiet gap");
     }
     private static TransportationDemandPeriod period(LocalTime from, LocalTime to) {
         return new TransportationDemandPeriod("evening","Evening","Evening","","","","",

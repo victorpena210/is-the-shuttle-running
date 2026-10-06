@@ -71,6 +71,9 @@ public interface DriverAssignmentRepository
                     Long driverId
             );
 
+    List<DriverAssignment> findAllByOrganization_IdAndScheduledDriver_IdAndAssignmentDateBetween(
+            Long organizationId, Long driverId, LocalDate fromDate, LocalDate toDate);
+
     long countByOrganization_IdAndScheduledDriver_IdAndAssignmentDateBefore(
             Long organizationId,
             Long driverId,

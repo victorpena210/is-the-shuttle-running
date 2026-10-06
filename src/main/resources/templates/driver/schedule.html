@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#17201c">
+    <title>My Schedule | Is the Shuttle Running</title>
+    <link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/driver-insights.css}">
+</head>
+<body class="app-page">
+<th:block th:replace="~{fragments/navigation :: driverNav}"></th:block>
+<main id="main-content" class="app-main driver-insights">
+    <header class="page-header">
+        <div>
+            <p class="eyebrow" th:text="${organizationName}">Organization</p>
+            <h1>My schedule</h1>
+            <p>Your upcoming shuttle driving assignments. These are driving times, not your full work shifts.</p>
+        </div>
+        <div class="page-date"><span th:text="${driverName}">Driver</span><small th:text="${operationsZone}">America/Chicago</small></div>
+    </header>
+    <section class="insight-panel" aria-labelledby="schedule-filters-heading">
+        <h2 id="schedule-filters-heading">Choose dates</h2>
+        <nav class="insight-presets" aria-label="Schedule date shortcuts">
+            <a class="button button--secondary" th:href="@{/driver/schedule(from=${today},to=${today.plusDays(6)})}">Next 7 days</a>
+            <a class="button button--secondary" th:href="@{/driver/schedule}">Next 4 weeks</a>
+        </nav>
+        <form class="insight-filters" method="get" th:action="@{/driver/schedule}">
+            <div><label for="schedule-from">From</label><input id="schedule-from" name="from" type="date" required th:value="${from}" th:min="${today}"></div>
+            <div><label for="schedule-to">Through</label><input id="schedule-to" name="to" type="date" required th:value="${to}" th:min="${today}"></div>
+            <button class="button" type="submit">View schedule</button>
+        </form>
+        <p class="insight-note">Includes both dates. View up to 93 days at a time.</p>
+        <p th:if="${filterError}" class="alert alert--error" role="alert" th:text="${filterError}"></p>
+    </section>
+    <th:block th:if="${scheduleView != null}">
+        <div class="section-heading">
+            <div><h2 th:text="${#temporals.format(from, 'MMM d, yyyy') + ' – ' + #temporals.format(to, 'MMM d, yyyy')}">Upcoming assignments</h2>
+                <p>Assignments may change when your manager updates the schedule. Optional midday suggestions appear here only after a manager assigns them.</p></div>
+        </div>
+        <section class="insight-panel" th:if="${#lists.isEmpty(scheduleView.assignments)}" aria-labelledby="schedule-empty-heading">
+            <h3 id="schedule-empty-heading">No upcoming driving assignments in these dates.</h3>
+            <p th:if="${scheduleView.uploadedDays == 0}">No work schedule has been uploaded for these dates yet. Check again after your manager uploads and plans coverage.</p>
+            <p th:if="${scheduleView.uploadedDays > 0}">A work schedule is available for some or all of these dates, but no upcoming driving assignments are currently saved for you.</p>
+        </section>
+        <article class="insight-panel upcoming-assignment" th:each="assignment : ${scheduleView.assignments}">
+            <header>
+                <p class="eyebrow" th:text="${#temporals.format(assignment.date, 'EEEE, MMMM d, yyyy')}">Date</p>
+                <h3 th:text="${assignment.period + ' driving'}">Evening driving</h3>
+                <span class="badge" th:text="${assignment.status}">Scheduled</span>
+            </header>
+            <div>
+                <h4>Driving windows</h4>
+                <ul class="upcoming-windows" th:if="${!#lists.isEmpty(assignment.windows)}">
+                    <li th:each="window : ${assignment.windows}" th:text="${#temporals.format(window.start, 'h:mm a') + ' – ' + #temporals.format(window.end, 'h:mm a')}">7:00 PM – 9:00 PM</li>
+                </ul>
+                <p th:if="${#lists.isEmpty(assignment.windows)}">Times not set. Check with your manager.</p>
+            </div>
+            <div th:if="${!#lists.isEmpty(assignment.breaks)}">
+                <h4>Protected break</h4>
+                <p th:each="rest : ${assignment.breaks}" th:text="${#temporals.format(rest.start, 'h:mm a') + ' – ' + #temporals.format(rest.end, 'h:mm a')}">Break</p>
+            </div>
+        </article>
+        <p class="insight-note">Start driving with the shuttle NFC tag or QR code when your driving window begins. <a th:href="@{/driver}">View today’s assignment</a>.</p>
+    </th:block>
+</main>
+<footer th:replace="~{fragments/footer :: footer('app')}"></footer>
+</body>
+</html>

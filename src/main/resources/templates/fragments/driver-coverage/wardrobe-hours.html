@@ -7,10 +7,10 @@
         <span th:if="${wardrobeHours.startsOn != null and !wardrobeHours.dailyOverride}"
               th:text="| · ${#temporals.format(wardrobeHours.startsOn, 'MMM d, yyyy')}–${#temporals.format(wardrobeHours.endsOn, 'MMM d, yyyy')}|"></span>
     </p>
-    <p>Evening driving starts at or after wardrobe closes, based on demand and driver availability.
-        Morning staffing and optional midday coverage use their existing rules.</p>
-    <div class="alert alert--warning" th:if="${eveningClosingConflict}">
-        An existing evening assignment starts before this closing time. Review it below; its history or manager decision has been preserved.
+    <p>Midday and evening driving start with the first demand window at or after wardrobe closes, subject to driver availability.
+        Midday remains optional. Morning driving still requires a second roster member to cover the office.</p>
+    <div class="alert alert--warning" th:if="${drivingStartConflict}">
+        An existing midday or evening assignment starts before eligible demand or wardrobe closing. Review it below; its history or manager decision has been preserved.
     </div>
     <div class="wardrobe-hours__forms">
         <details class="coverage-manager">

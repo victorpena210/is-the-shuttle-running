@@ -125,6 +125,11 @@
                     My assignment
                 </a>
 
+                <a class="app-nav__link" th:href="@{/driver/schedule}"
+                   th:attr="aria-current=${driverPage == 'schedule' ? 'page' : null}">
+                    My schedule
+                </a>
+
                 <a class="app-nav__link" th:href="@{/driver/demand}"
                    th:attr="aria-current=${driverPage == 'demand' ? 'page' : null}">
                     Today’s demand

@@ -248,7 +248,7 @@
                     <button class="button" type="submit">Assign suggested driver</button>
                 </form>
             </div>
-            <p th:if="${optional and middaySuggestion == null}">No upcoming eligible midday suggestion is available for this date.</p>
+            <p th:if="${optional and middaySuggestion == null}">No eligible midday suggestion is available after wardrobe closes. A suggestion requires remaining demand and an available driver.</p>
 
             <div class="coverage-candidate-preview">
 

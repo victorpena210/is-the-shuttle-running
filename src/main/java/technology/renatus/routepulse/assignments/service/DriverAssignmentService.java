@@ -141,7 +141,7 @@ public class DriverAssignmentService {
                 List.of(new PlannedDrivingWindow(scheduledStartTime, scheduledEndTime))
         );
 
-        assignmentPlanningService.validateEveningClosingTime(organizationId, assignment);
+        assignmentPlanningService.validateDemandStartTime(organizationId, assignment);
         assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
         return assignmentRepository.save(assignment);
     }
@@ -191,7 +191,7 @@ public class DriverAssignmentService {
             );
         }
 
-        assignmentPlanningService.validateEveningClosingTime(organizationId, assignment);
+        assignmentPlanningService.validateDemandStartTime(organizationId, assignment);
         assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
         return assignment;
     }
@@ -226,7 +226,7 @@ public class DriverAssignmentService {
 
         assignment.protectManualTimeEdit();
 
-        assignmentPlanningService.validateEveningClosingTime(organizationId, assignment);
+        assignmentPlanningService.validateDemandStartTime(organizationId, assignment);
         assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
         return assignment;
     }
@@ -326,7 +326,7 @@ public class DriverAssignmentService {
                 Instant.now()
         );
 
-        assignmentPlanningService.validateEveningClosingTime(organizationId, assignment);
+        assignmentPlanningService.validateDemandStartTime(organizationId, assignment);
         assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
         return assignment;
     }
@@ -364,7 +364,7 @@ public class DriverAssignmentService {
                 Instant.now()
         );
 
-        assignmentPlanningService.validateEveningClosingTime(organizationId, assignment);
+        assignmentPlanningService.validateDemandStartTime(organizationId, assignment);
         assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
         return assignment;
     }

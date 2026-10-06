@@ -319,12 +319,12 @@ public class FairnessPlanningChecks {
             check(f.assignments.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON), "driving created without demand after closing");
         });
         run("manager evening edits cannot start before closing", () -> {
-            Fixture f = new Fixture(); f.wardrobeClosing = LocalTime.of(19, 0);
+            Fixture f = new Fixture(); f.longPeriods = true; f.wardrobeClosing = LocalTime.of(19, 0);
             var proposed = DriverAssignment.manual(FIRST, ShuttlePeriod.AFTERNOON, f.drivers.get(0), "Test");
             proposed.updateScheduledTimes(LocalTime.of(18, 0), LocalTime.of(20, 0));
-            rejects(() -> f.planner.validateEveningClosingTime(1L, proposed), "manual evening bypassed closing time");
+            rejects(() -> f.planner.validateDemandStartTime(1L, proposed), "manual evening bypassed closing time");
             proposed.updateScheduledTimes(LocalTime.of(19, 0), LocalTime.of(20, 0));
-            f.planner.validateEveningClosingTime(1L, proposed);
+            f.planner.validateDemandStartTime(1L, proposed);
         });
         run("evening planning after closing schedules upcoming minutes without backdating", () -> {
             Fixture f = new Fixture(); f.longPeriods = true; f.wardrobeClosing = LocalTime.of(19, 0);
@@ -342,6 +342,69 @@ public class FairnessPlanningChecks {
             f.planner.getOrCreateAssignments(1L, FIRST);
             check(f.assignments.contains(manual) && manual.getScheduledStartTime().equals(LocalTime.of(17, 0)), "manager decision erased");
             check(AssignmentPlanningService.startsBeforeClosing(manual, f.wardrobeClosing), "closing conflict was not detected");
+        });
+        run("evening starts with demand, not the early buffer or a closing-time gap", () -> {
+            Fixture f = new Fixture(); f.wardrobeClosing = LocalTime.of(17, 0);
+            f.customEvening = bufferedDemand(17, 21, 18, 20);
+            f.planner.getOrCreateAssignments(1L, FIRST);
+            var evening = f.assignments.stream().filter(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON
+                    && a.getAssignmentDate().equals(FIRST)).findFirst().orElseThrow();
+            check(evening.getScheduledStartTime().equals(LocalTime.of(18, 0)), "started in early buffer");
+            Long id = evening.getId();
+            f.wardrobeClosing = LocalTime.of(19, 0);
+            f.planner.getOrCreateAssignments(1L, FIRST);
+            check(evening.getId().equals(id) && evening.getScheduledStartTime().equals(LocalTime.of(20, 0)),
+                    "closing in a quiet gap should wait for the next demand window");
+        });
+        run("partial work shifts start at their first covered demand", () -> {
+            Fixture f = new Fixture(); f.customEvening = bufferedDemand(17, 21, 18, 20);
+            f.customSchedules = List.of(schedule(1L, 19, 21));
+            f.planner.getOrCreateAssignments(1L, FIRST);
+            check(f.assignments.stream().allMatch(a -> a.getScheduledStartTime().equals(LocalTime.of(20, 0))),
+                    "late driver started before their first covered demand");
+            check(f.assignments.size() == 3, "evening coverage missing");
+        });
+        run("work time only in a quiet gap cannot generate evening driving", () -> {
+            Fixture f = new Fixture(); f.customEvening = bufferedDemand(17, 21, 17, 20);
+            f.customSchedules = List.of(schedule(1L, 18, 19));
+            f.planner.getOrCreateAssignments(1L, FIRST);
+            check(f.assignments.isEmpty(), "quiet-gap work time created driving");
+        });
+        run("midday remains optional and requires demand after closing", () -> {
+            Fixture f = new Fixture(); f.wardrobeClosing = LocalTime.of(17, 0);
+            check(f.planner.getMiddaySuggestion(1L, FIRST) == null, "suggested midday while wardrobe is open");
+            f.customMidday = bufferedDemand(12, 17, 13, 15);
+            f.wardrobeClosing = LocalTime.of(13, 15);
+            var suggestion = f.planner.getMiddaySuggestion(1L, FIRST);
+            check(suggestion.getScheduledStartTime().equals(LocalTime.of(13, 15)), "did not clip overlapping demand to close");
+            check(suggestion.getPlannedDrivingWindows().size() == 2, "midday quiet gap was lost");
+            f.wardrobeClosing = LocalTime.of(14, 0);
+            check(f.planner.getMiddaySuggestion(1L, FIRST).getScheduledStartTime().equals(LocalTime.of(15, 0)),
+                    "midday should wait through the closing-time gap");
+            rejects(() -> f.planner.acceptMiddaySuggestion(1L, FIRST, AssignmentPlanningService.suggestionKey(suggestion)),
+                    "stale pre-closing midday suggestion accepted");
+        });
+        run("manager edits follow the first demand window for both later periods", () -> {
+            Fixture f = new Fixture(); f.customEvening = bufferedDemand(17, 21, 18, 20);
+            var evening = DriverAssignment.manual(FIRST, ShuttlePeriod.AFTERNOON, f.drivers.get(0), "Test");
+            evening.updateScheduledTimes(LocalTime.of(17, 0), LocalTime.of(21, 0));
+            rejects(() -> f.planner.validateDemandStartTime(1L, evening), "manual evening used early buffer");
+            evening.updateScheduledTimes(LocalTime.of(18, 0), LocalTime.of(21, 0));
+            f.planner.validateDemandStartTime(1L, evening);
+            var midday = DriverAssignment.manual(FIRST, ShuttlePeriod.MIDDAY, f.drivers.get(0), "Test");
+            midday.updateScheduledTimes(LocalTime.NOON, LocalTime.of(14, 0));
+            rejects(() -> f.planner.validateDemandStartTime(1L, midday), "manual midday started before demand");
+            f.wardrobeClosing = LocalTime.of(14, 0);
+            midday.updateScheduledTimes(LocalTime.of(13, 0), LocalTime.of(15, 0));
+            rejects(() -> f.planner.validateDemandStartTime(1L, midday), "manual midday started before close");
+        });
+        run("protected early starts are flagged without rewriting the manager decision", () -> {
+            Fixture f = new Fixture(); f.customEvening = bufferedDemand(17, 21, 18, 20);
+            var original = f.add(FIRST, ShuttlePeriod.AFTERNOON, f.drivers.get(0), 17, 21);
+            original.protectManualTimeEdit(); f.planner.getOrCreateAssignments(1L, FIRST);
+            check(original.getScheduledStartTime().equals(LocalTime.of(17, 0)), "protected time was silently rewritten");
+            check(AssignmentPlanningService.startsBeforeDrivingDemand(original, f.customEvening, f.wardrobeClosing),
+                    "protected early start was not flagged");
         });
         System.out.println("PASS: " + checks + " fairness planning checks");
     }
@@ -380,7 +443,8 @@ public class FairnessPlanningChecks {
         final List<DriverWorkloadEvent> events = new ArrayList<>();
         final List<DrivingSession> sessions = new ArrayList<>();
         boolean shortLastDay, longPeriods, longMidday;
-        LocalTime wardrobeClosing = LocalTime.of(17, 0);
+        LocalTime wardrobeClosing = LocalTime.NOON;
+        TransportationDemandPeriod customEvening, customMidday;
         List<DriverSchedule> customSchedules;
         final DriverAssignmentRepository assignmentRepository = repository(DriverAssignmentRepository.class, (method, args) -> {
             if (method.equals("flush")) return null;
@@ -431,8 +495,8 @@ public class FairnessPlanningChecks {
             };
             TransportationDemandService demand = new TransportationDemandService(null, morning, "09:00", "12:00", "17:00", "21:00", 15, 15) {
                 @Override public TransportationDemandAnalysis getDemandForDate(Long organizationId, LocalDate date) {
-                    return new TransportationDemandAnalysis(period(9, longPeriods ? 12 : 10), period(13, longMidday ? 17 : 14),
-                            period(longPeriods ? 17 : 18, longPeriods ? 21 : 19), List.of(), 0, null, null, 0, null);
+                    return new TransportationDemandAnalysis(period(9, longPeriods ? 12 : 10), customMidday == null ? period(13, longMidday ? 17 : 14) : customMidday,
+                            customEvening == null ? period(longPeriods ? 17 : 18, longPeriods ? 21 : 19) : customEvening, List.of(), 0, null, null, 0, null);
                 }
             };
             ParkOperatingDayService operatingDays = new ParkOperatingDayService(date -> new ParkOperatingDay(date,
@@ -476,6 +540,13 @@ public class FairnessPlanningChecks {
             return assignments.stream().sorted(Comparator.comparing(DriverAssignment::getId)).map(a -> a.getId() + ":" + a.getAssignmentDate()
                     + ":" + a.getPeriod() + ":" + a.getScheduledDriver().getId() + ":" + a.getScheduledMinutes()).reduce((a, b) -> a + "\n" + b).orElse("");
         }
+    }
+    private static TransportationDemandPeriod bufferedDemand(int from, int to, int... starts) {
+        var windows = java.util.Arrays.stream(starts).mapToObj(hour -> new TransportationDemandWindow(
+                LocalTime.of(hour, 0), LocalTime.of(hour, 30), 1, 1, 1, null)).toList();
+        return new TransportationDemandPeriod("test", "Test", "Test", "", "", "", "", windows,
+                LocalTime.of(from, 0), LocalTime.of(to, 0), windows.size(), windows.get(0).getWindowStart(),
+                windows.get(0).getWindowEnd(), 1);
     }
     private static TransportationDemandPeriod period(int start, int end) {
         LocalTime from = LocalTime.of(start, 0), to = LocalTime.of(end, 0);

@@ -63,11 +63,16 @@ public record DashboardPlan(
     public technology.renatus.routepulse.scheduling.domain.TransportationDemandPeriod eveningDrivingDemand() {
         return EveningClosingPolicy.afterClosing(transportationDemand.getEvening(), wardrobeHours.closingTime());
     }
-    public boolean eveningClosingConflict() {
+    public technology.renatus.routepulse.scheduling.domain.TransportationDemandPeriod middayDrivingDemand() {
+        return EveningClosingPolicy.afterClosing(transportationDemand.getMidday(), wardrobeHours.closingTime());
+    }
+    public boolean drivingStartConflict() {
         return driverAssignments.stream().filter(a -> a.getAssignmentOutcome()
                 != technology.renatus.routepulse.assignments.domain.AssignmentOutcome.CANCELLED
                 && a.getAssignmentOutcome() != technology.renatus.routepulse.assignments.domain.AssignmentOutcome.EXCUSED)
-                .anyMatch(a -> AssignmentPlanningService.startsBeforeClosing(a, wardrobeHours.closingTime()));
+                .anyMatch(a -> AssignmentPlanningService.startsBeforeDrivingDemand(a,
+                        a.getPeriod() == ShuttlePeriod.MIDDAY ? transportationDemand.getMidday() : transportationDemand.getEvening(),
+                        wardrobeHours.closingTime()));
     }
 
     public boolean morningStaffingBlocked() {

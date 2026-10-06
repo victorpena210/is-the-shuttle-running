@@ -35,6 +35,12 @@
 .insight-metrics dd { margin: .5rem 0 0; font-size: clamp(1.4rem, 3vw, 2rem); font-weight: 800; color: var(--ink-950); }
 .insight-secondary { display: flex; flex-wrap: wrap; gap: .5rem 2rem; }
 .insight-explainer[open] summary { margin-bottom: .75rem; }
+.upcoming-assignment { display: grid; grid-template-columns: 1.2fr 1fr 1fr; gap: 1rem 2rem; }
+.upcoming-assignment h3, .upcoming-assignment h4 { margin: 0 0 .65rem; }
+.upcoming-assignment p { margin-top: 0; }
+.upcoming-windows { margin: 0; padding-left: 1.2rem; }
+.upcoming-windows li + li { margin-top: .4rem; }
+@media (max-width: 700px) { .upcoming-assignment { grid-template-columns: 1fr; } }
 @media (max-width: 1200px) { .demand-periods { grid-template-columns: 1fr; } }
 @media (max-width: 700px) { .insight-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; } }
 @media (max-width: 440px) {

@@ -41,19 +41,21 @@ class WardrobeHoursIntegrationTests extends MySqlIntegrationTestSupport {
         assignmentService.updateWardrobeHours(organization.getId(), WardrobeHoursRule.Scope.SEASON, "Summer",
                 date,date.plusDays(30),LocalTime.of(17,0),manager.getEmail());
         var summer = assignmentFor(assignmentService.getExistingAssignments(organization.getId(),date),ShuttlePeriod.AFTERNOON);
-        assertTrue(!summer.getScheduledStartTime().isBefore(LocalTime.of(17,0)) && summer.getScheduledStartTime().isBefore(LocalTime.of(19,0)));
+        assertEquals(LocalTime.of(17,30),summer.getScheduledStartTime());
         Long id=summer.getId();
         assignmentService.updateWardrobeHours(organization.getId(), WardrobeHoursRule.Scope.SEASON, "Fright Fest",
                 date,date.plusDays(30),LocalTime.of(19,0),manager.getEmail());
         var fright = assignmentFor(assignmentService.getExistingAssignments(organization.getId(),date),ShuttlePeriod.AFTERNOON);
         assertEquals(id,fright.getId());
-        assertEquals(LocalTime.of(19,0),fright.getScheduledStartTime());
+        assertEquals(LocalTime.of(20,0),fright.getScheduledStartTime());
         assertEquals("Fright Fest",hours.getHours(organization.getId(),date).label());
         mockMvc.perform(post("/wardrobe-hours/day").with(user(manager.getEmail()).roles("ADMIN")).with(csrf())
                 .param("selectedDate",date.toString()).param("closingTime","18:00"))
                 .andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("successMessage"));
         assertEquals(LocalTime.of(18,0),hours.getHours(organization.getId(),date).closingTime());
         assertTrue(hours.getHours(organization.getId(),date).dailyOverride());
+        assertEquals(LocalTime.of(20,0), assignmentFor(assignmentService.getExistingAssignments(organization.getId(),date),
+                ShuttlePeriod.AFTERNOON).getScheduledStartTime());
         mockMvc.perform(post("/wardrobe-hours/day/reset").with(user(manager.getEmail()).roles("ADMIN")).with(csrf())
                 .param("selectedDate",date.toString())).andExpect(status().is3xxRedirection());
         assertEquals(LocalTime.of(19,0),hours.getHours(organization.getId(),date).closingTime());

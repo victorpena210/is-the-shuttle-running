@@ -37,6 +37,7 @@
                 or scan the backup QR posted in the shuttle when it is time to
                 start, pause, resume, or end driving.
             </p>
+            <a class="button button--secondary" th:href="@{/driver/schedule}">View my upcoming schedule</a>
         </div>
 
         <div class="page-date">
@@ -92,7 +93,7 @@
                 ? 'Morning driving'
                 : (primaryAssignment.period.name() == 'MIDDAY'
                     ? 'Midday driving'
-                    : 'Afternoon driving')}">
+                    : 'Evening driving')}">
             Morning driving
         </h2>
 
@@ -184,7 +185,7 @@
                     <td
                         th:text="${assignment.period.name() == 'MORNING'
                             ? 'Morning'
-                            : (assignment.period.name() == 'MIDDAY' ? 'Midday' : 'Afternoon')}">
+                            : (assignment.period.name() == 'MIDDAY' ? 'Midday' : 'Evening')}">
                         Morning
                     </td>
 

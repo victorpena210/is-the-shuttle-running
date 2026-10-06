@@ -4,7 +4,7 @@ import java.time.LocalTime;
 import technology.renatus.routepulse.scheduling.domain.TransportationDemandPeriod;
 import technology.renatus.routepulse.scheduling.domain.TransportationDemandWindow;
 
-/** Limits assignment windows while preserving the original transportation forecast elsewhere. */
+/** Limits midday/evening driving to demand after closing; preserves the raw forecast elsewhere. */
 public final class EveningClosingPolicy {
     private EveningClosingPolicy() {}
     public static TransportationDemandPeriod afterClosing(TransportationDemandPeriod demand, LocalTime closingTime) {
@@ -18,7 +18,9 @@ public final class EveningClosingPolicy {
                 .map(w -> new TransportationDemandWindow(w.getWindowStart().isBefore(earliest) ? earliest : w.getWindowStart(),
                         w.getWindowEnd(), w.getArrivals(), w.getDepartures(), w.getDemandCount(), w.getPriority())).toList();
         if (windows.isEmpty() || !demand.getRecommendedEndTime().isAfter(earliest)) return empty(demand);
-        LocalTime start = demand.getRecommendedStartTime().isBefore(earliest) ? earliest : demand.getRecommendedStartTime();
+        // Start at real remaining demand, never at a buffer or in a quiet gap after closing.
+        LocalTime start = windows.stream().map(TransportationDemandWindow::getWindowStart)
+                .min(LocalTime::compareTo).orElseThrow();
         var peak = windows.stream().max(java.util.Comparator.comparingInt(TransportationDemandWindow::getDemandCount)).orElseThrow();
         return new TransportationDemandPeriod(demand.getKey(), demand.getTitle(), demand.getSummaryTitle(), demand.getDescription(),
                 demand.getIcon(), demand.getTotalLabel(), demand.getPeakLabel(), windows, start, demand.getRecommendedEndTime(),

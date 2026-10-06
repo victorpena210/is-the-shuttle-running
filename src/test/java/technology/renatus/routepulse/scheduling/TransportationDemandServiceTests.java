@@ -52,7 +52,7 @@ class TransportationDemandServiceTests {
     }
 
     @Test
-    void usesMorningClockInPlanAndBuffersEveningPickups() {
+    void usesMorningClockInPlanAndStartsEveningAtFirstPickupWindow() {
 
         ScheduleProvider provider = (organizationId, date) -> List.of(
                 shift("2001", LocalTime.of(9, 0), LocalTime.of(17, 30)),
@@ -76,7 +76,7 @@ class TransportationDemandServiceTests {
         );
 
         assertEquals(
-                LocalTime.of(17, 15),
+                LocalTime.of(17, 30),
                 analysis.getEvening().getRecommendedStartTime()
         );
 

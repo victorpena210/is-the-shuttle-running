@@ -84,7 +84,7 @@ public class TransportationDemandService {
         TransportationDemandPeriod evening = periodBuilder.buildPeriodFromWindows(
                 TransportationPeriodType.EVENING,
                 eveningWindows,
-                periodBuilder.bufferedStart(eveningWindows),
+                periodBuilder.firstWindowStart(eveningWindows),
                 periodBuilder.bufferedEnd(eveningWindows)
         );
 
