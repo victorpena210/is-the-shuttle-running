@@ -20,7 +20,12 @@ public final class ServiceReviewCalculator {
     public record Demand(Span span, int count) {}
     public record Input(LocalDate date, String period, String title, String calendar, String demandSource,
                         List<Span> scopes, List<Demand> demand, List<Assignment> assignments,
-                        List<Activity> activities, List<Ride> rides, String coverageExemption) {
+                        List<Activity> activities, List<Ride> rides, String coverageExemption, Instant serviceNotBefore) {
+        public Input(LocalDate date, String period, String title, String calendar, String demandSource,
+                List<Span> scopes, List<Demand> demand, List<Assignment> assignments,
+                List<Activity> activities, List<Ride> rides, String coverageExemption) {
+            this(date, period, title, calendar, demandSource, scopes, demand, assignments, activities, rides, coverageExemption, null);
+        }
         public Input(LocalDate date, String period, String title, String calendar, String demandSource,
                 List<Span> scopes, List<Demand> demand, List<Assignment> assignments,
                 List<Activity> activities, List<Ride> rides) {
@@ -99,16 +104,19 @@ public final class ServiceReviewCalculator {
             long confirmations = rides.stream().filter(r -> inside(r.at(), scope)).count();
             boolean completed = !span.end().isAfter(now);
             // Coverage flags always assess all recorded service, including substitute/unscheduled drivers.
-            boolean gap = evaluate && completed && demand >= minimumDemand
-                    && serviceSeconds(allActivities, scope, now) == 0
-                    && allRides.stream().noneMatch(r -> inside(r.at(), scope));
+            Instant reviewStart = input.serviceNotBefore() == null ? span.start() : max(span.start(), input.serviceNotBefore());
+            List<Span> reviewScope = reviewStart.isBefore(span.end()) ? List.of(new Span(reviewStart, span.end())) : List.of();
+            boolean gap = evaluate && completed && !reviewScope.isEmpty() && demand >= minimumDemand
+                    && serviceSeconds(allActivities, reviewScope, now) == 0
+                    && allRides.stream().noneMatch(r -> inside(r.at(), reviewScope));
             if (gap) gaps++;
             String status = !operating ? "Not evaluated: " + input.calendar().toLowerCase(Locale.ROOT)
                     : !knownDemand ? "No schedule to compare"
                     : archived ? "Archived demand totals only"
                     : reviewed ? "Outcome already reviewed"
                     : exemption != null ? (seconds > 0 || confirmations > 0 ? evidence(seconds, confirmations) : exemption)
-                    : !completed ? (now.isBefore(span.start()) ? "Upcoming" : "In progress")
+                    : reviewScope.isEmpty() ? "Before wardrobe closes—driving not required"
+                    : !completed ? (now.isBefore(reviewStart) ? "Upcoming" : "In progress")
                     : gap ? "No recorded service evidence"
                     : seconds > 0 || confirmations > 0 ? evidence(seconds, confirmations)
                     : demand < minimumDemand ? "Below review threshold" : "Service recorded by another driver";
@@ -118,6 +126,7 @@ public final class ServiceReviewCalculator {
         long seconds = serviceSeconds(activities, scopes, now);
         long unscheduled = serviceSeconds(activities.stream().filter(Activity::unscheduled).toList(), scopes, now);
         Instant first = scopes.get(0).start();
+        if (input.serviceNotBefore() != null && input.serviceNotBefore().isAfter(first)) first = input.serviceNotBefore();
         Instant last = scopes.get(scopes.size() - 1).end();
         String state = !operating ? input.calendar() + " · coverage not evaluated"
                 : !knownDemand ? "No schedule available"

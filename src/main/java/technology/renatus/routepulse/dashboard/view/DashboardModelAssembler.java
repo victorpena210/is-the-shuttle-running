@@ -51,6 +51,9 @@ public class DashboardModelAssembler {
         model.addAttribute("assignmentReviewRequired", plan.assignmentReviewRequired());
         model.addAttribute("latestScheduleImport", plan.latestScheduleImport());
 
+        model.addAttribute("wardrobeHours", plan.wardrobeHours());
+        model.addAttribute("eveningDrivingDemand", plan.eveningDrivingDemand());
+        model.addAttribute("eveningClosingConflict", plan.eveningClosingConflict());
         model.addAttribute("morningStaffingBlocked", plan.morningStaffingBlocked());
         model.addAttribute("middaySuggestion", plan.middaySuggestion());
         model.addAttribute("middaySuggestionKey", AssignmentPlanningService

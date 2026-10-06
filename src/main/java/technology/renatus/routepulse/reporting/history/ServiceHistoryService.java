@@ -41,6 +41,7 @@ public class ServiceHistoryService {
     private final LocalTime morningStart, middayStart, eveningStart, operatingEnd;
     private final ServiceReviewCalculator calculator;
     private final DriverScheduleService driverScheduleService;
+    private final technology.renatus.routepulse.wardrobe.WardrobeHoursService wardrobeHoursService;
 
     public ServiceHistoryService(DrivingSessionRepository sessions, PassengerRideConfirmationRepository confirmations,
             DriverAssignmentRepository assignments, DriverRepository drivers, CsvScheduleProvider schedules,
@@ -48,6 +49,7 @@ public class ServiceHistoryService {
             ParkOperatingDaySnapshotRepository calendars, ParkCalendarOverrideRepository overrides,
             ParkOperatingDayService calendarService,
             DriverScheduleService driverScheduleService,
+            technology.renatus.routepulse.wardrobe.WardrobeHoursService wardrobeHoursService,
             @Value("${app.operations-zone:America/Chicago}") String zone,
             @Value("${sixflags.calendar.park-id:914}") int parkId,
             @Value("${app.service-verification.minimum-demand-for-review:10}") int minimumDemand,
@@ -57,6 +59,7 @@ public class ServiceHistoryService {
             @Value("${app.transportation-demand.evening-start:17:00}") String eveningStart,
             @Value("${app.transportation-demand.operating-end:21:00}") String operatingEnd) {
         this.driverScheduleService = driverScheduleService;
+        this.wardrobeHoursService = wardrobeHoursService;
         this.sessions = sessions; this.confirmations = confirmations; this.assignments = assignments;
         this.drivers = drivers; this.schedules = schedules; this.demandService = demandService;
         this.snapshots = snapshots; this.calendars = calendars; this.overrides = overrides;
@@ -111,6 +114,7 @@ public class ServiceHistoryService {
                 }
             }
             String calendar = calendar(organizationId, date);
+            LocalTime closingTime = wardrobeHoursService.getHours(organizationId, date).closingTime();
             LocalDate staffingDate = date;
             boolean morningStaffed = !available.contains(date) || MorningStaffingPolicy
                     .hasMorningStaffing(driverScheduleService.getDriverSchedulesForDate(organizationId, date).scheduledDrivers(),
@@ -127,10 +131,22 @@ public class ServiceHistoryService {
                 List<Span> scopes = new ArrayList<>(scopes(date, key));
                 windows.forEach(d -> scopes.add(d.span()));
                 scheduledAssignments.forEach(a -> addAssignmentScopes(scopes, day, a));
+                Instant eveningNotBefore = null;
+                if ("evening".equals(key)) {
+                    eveningNotBefore = (closingTime.equals(LocalTime.MIDNIGHT) ? day.plusDays(1) : day)
+                            .atTime(closingTime).atZone(zone).toInstant();
+                    // An explicitly preserved earlier assignment still has its promised service reviewed.
+                    for (var assignment : scheduledAssignments) {
+                        if (assignment.getScheduledStartTime() != null) {
+                            Instant promised = day.atTime(assignment.getScheduledStartTime()).atZone(zone).toInstant();
+                            if (promised.isBefore(eveningNotBefore)) eveningNotBefore = promised;
+                        }
+                    }
+                }
                 Row row = calculator.calculate(new Input(date, key, title(key), calendar, source, scopes, windows,
                         periodAssignments, activity, rides,
                         "morning".equals(key) && periodAssignments.isEmpty() && !morningStaffed
-                                ? "Morning not assigned—wardrobe office coverage required" : null), filters.driverId(), filters.driverRole(), now);
+                                ? "Morning not assigned—wardrobe office coverage required" : null, eveningNotBefore), filters.driverId(), filters.driverRole(), now);
                 if (row == null) continue;
                 if (archivedTotals.containsKey(key)) row = row.withDemandTotal(archivedTotals.get(key));
                 if ("off-hours".equals(key) && row.demand() == 0 && row.seconds() == 0 && row.confirmations() == 0) continue;

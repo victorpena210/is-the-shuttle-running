@@ -179,8 +179,8 @@ class DriverAssignmentIntegrationTests extends MySqlIntegrationTestSupport {
                         assignmentDate.plusDays(1),
                         ShuttlePeriod.AFTERNOON,
                         bob.getId(),
-                        LocalTime.of(15, 0),
-                        LocalTime.of(17, 0),
+                        LocalTime.of(19, 0),
+                        LocalTime.of(21, 0),
                         "No uploaded schedule"
                 );
 

@@ -90,6 +90,20 @@ public final class ServiceReviewChecks {
         var officeRow = CALC.calculate(office,null,"actual",at(10,0));
         equal(false, officeRow.needsReview(), "office exemption does not require service review");
         equal(900L, officeRow.seconds(), "office exemption preserves actual driving evidence");
+        var eveningWindows = List.of(new Span(at(18, 45), at(19, 0)), new Span(at(19, 0), at(19, 15)));
+        var eveningInput = new Input(DAY,"evening","Evening","Open","Uploaded schedule",eveningWindows,
+                eveningWindows.stream().map(w -> new Demand(w,20)).toList(),List.of(),List.of(),List.of(),null,at(19,0));
+        var eveningRow = CALC.calculate(eveningInput,null,"actual",at(20,0));
+        equal(1, eveningRow.gaps(), "only demand after wardrobe closes requires service evidence");
+        equal("Before wardrobe closes—driving not required", eveningRow.windows().get(0).status(), "pre-close demand is labeled");
+        equal(40, eveningRow.demand(), "pre-close demand stays visible");
+        var partialClosing = new Input(DAY,"evening","Evening","Open","Uploaded schedule",List.of(WINDOW),
+                List.of(new Demand(WINDOW,20)),List.of(),List.of(unscheduled),List.of(),null,at(9,10));
+        equal(false, CALC.calculate(partialClosing,null,"actual",at(10,0)).needsReview(), "post-close evidence in partial window counts");
+        var beforeOnly = new Activity(8L,20L,"Driver",true,at(9,0),at(9,5));
+        partialClosing = new Input(DAY,"evening","Evening","Open","Uploaded schedule",List.of(WINDOW),
+                List.of(new Demand(WINDOW,20)),List.of(),List.of(beforeOnly),List.of(),null,at(9,10));
+        equal(true, CALC.calculate(partialClosing,null,"actual",at(10,0)).needsReview(), "pre-close activity cannot cover the later required window");
         ServiceReviewFilters today = filters(null,null,null);
         equal(DAY,today.from(),"default is today");
         equal(DAY,today.to(),"default single day");

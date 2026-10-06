@@ -53,6 +53,17 @@ public class DriverAssignmentService {
     }
 
     @Transactional(readOnly = true)
+    public technology.renatus.routepulse.wardrobe.WardrobeHoursService.Hours getWardrobeHours(Long organizationId, LocalDate date) {
+        return assignmentPlanningService.getWardrobeHours(organizationId, date);
+    }
+
+    @Transactional
+    public void updateWardrobeHours(Long organizationId, technology.renatus.routepulse.wardrobe.WardrobeHoursRule.Scope scope,
+            String label, LocalDate from, LocalDate to, LocalTime closingTime, String actorEmail) {
+        assignmentPlanningService.updateWardrobeHours(organizationId, scope, label, from, to, closingTime, actorEmail);
+    }
+
+    @Transactional(readOnly = true)
     public DriverAssignment getMiddaySuggestion(Long organizationId, LocalDate date) {
         return assignmentPlanningService.getMiddaySuggestion(organizationId, date);
     }
@@ -130,6 +141,7 @@ public class DriverAssignmentService {
                 List.of(new PlannedDrivingWindow(scheduledStartTime, scheduledEndTime))
         );
 
+        assignmentPlanningService.validateEveningClosingTime(organizationId, assignment);
         assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
         return assignmentRepository.save(assignment);
     }
@@ -179,6 +191,7 @@ public class DriverAssignmentService {
             );
         }
 
+        assignmentPlanningService.validateEveningClosingTime(organizationId, assignment);
         assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
         return assignment;
     }
@@ -213,6 +226,7 @@ public class DriverAssignmentService {
 
         assignment.protectManualTimeEdit();
 
+        assignmentPlanningService.validateEveningClosingTime(organizationId, assignment);
         assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
         return assignment;
     }
@@ -312,6 +326,7 @@ public class DriverAssignmentService {
                 Instant.now()
         );
 
+        assignmentPlanningService.validateEveningClosingTime(organizationId, assignment);
         assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
         return assignment;
     }
@@ -349,6 +364,7 @@ public class DriverAssignmentService {
                 Instant.now()
         );
 
+        assignmentPlanningService.validateEveningClosingTime(organizationId, assignment);
         assignmentPlanningService.validateMorningCoverageAfterChange(organizationId, assignment);
         return assignment;
     }

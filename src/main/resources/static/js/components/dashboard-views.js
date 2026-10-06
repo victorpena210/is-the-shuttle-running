@@ -44,7 +44,7 @@ const viewCopy = {
     coverage: {
         heading: 'Driver coverage',
         description:
-            'Assign drivers to the morning and afternoon shuttle shifts for the selected date.',
+            'Manage wardrobe hours, morning and evening assignments, and optional midday driving.',
         documentTitle: 'Driver Coverage | Is the Shuttle Running',
         showPlanningDate: true
     }

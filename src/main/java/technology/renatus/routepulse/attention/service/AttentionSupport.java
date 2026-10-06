@@ -38,7 +38,7 @@ public final class AttentionSupport {
         return switch (period) {
             case MORNING -> plan.transportationDemand().getMorning();
             case MIDDAY -> plan.transportationDemand().getMidday();
-            case AFTERNOON -> plan.transportationDemand().getEvening();
+            case AFTERNOON -> plan.eveningDrivingDemand();
         };
     }
 

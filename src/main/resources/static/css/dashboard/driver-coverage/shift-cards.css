@@ -169,3 +169,15 @@
     font-size: 0.74rem;
     line-height: 1.45;
 }
+
+.wardrobe-hours__forms {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr));
+    align-items: start;
+    gap: 1rem;
+}
+.wardrobe-hours form { display: grid; gap: 1rem; }
+.wardrobe-hours .coverage-manager__panel { position: static; }
+
+.wardrobe-hours .coverage-manager > summary { margin-left: 0; }
+.wardrobe-hours .coverage-manager[open] > summary { display: flex; }

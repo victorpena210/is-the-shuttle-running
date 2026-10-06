@@ -1,6 +1,7 @@
 package technology.renatus.routepulse.assignments.service;
 
 import java.time.LocalDate;
+import technology.renatus.routepulse.wardrobe.*;
 import java.time.LocalTime;
 import technology.renatus.routepulse.assignments.service.planning.MorningStaffingPolicy;
 import java.time.LocalDateTime;
@@ -63,6 +64,7 @@ public class AssignmentPlanningService {
     private final ParkOperatingDayService operatingDayService;
     private final ParkCalendarOverrideService calendarOverrideService;
     private final Clock clock;
+    private final WardrobeHoursService wardrobeHoursService;
 
     public AssignmentPlanningService(
             DriverAssignmentRepository assignmentRepository,
@@ -76,6 +78,7 @@ public class AssignmentPlanningService {
             OrganizationRepository organizationRepository,
             ParkOperatingDayService operatingDayService,
             ParkCalendarOverrideService calendarOverrideService,
+            WardrobeHoursService wardrobeHoursService,
             @Value("${app.operations-zone:America/Chicago}") String operationsZone) {
         this.assignmentRepository = assignmentRepository;
         this.driverRepository = driverRepository;
@@ -90,6 +93,7 @@ public class AssignmentPlanningService {
         this.organizationRepository = organizationRepository;
         this.operatingDayService = operatingDayService;
         this.calendarOverrideService = calendarOverrideService;
+        this.wardrobeHoursService = wardrobeHoursService;
         this.clock = Clock.system(ZoneId.of(operationsZone));
     }
 
@@ -119,6 +123,30 @@ public class AssignmentPlanningService {
                 .findAllByOrganization_IdAndAssignmentDate(organizationId, assignmentDate));
     }
 
+    @Transactional(readOnly = true)
+    public WardrobeHoursService.Hours getWardrobeHours(Long organizationId, LocalDate date) {
+        return wardrobeHoursService.getHours(organizationId, date);
+    }
+
+    @Transactional
+    public void updateWardrobeHours(Long organizationId, WardrobeHoursRule.Scope scope, String label,
+            LocalDate from, LocalDate to, LocalTime closingTime, String actorEmail) {
+        wardrobeHoursService.save(organizationId, scope, label, from, to, closingTime, actorEmail);
+        getOrCreateAssignments(organizationId, from.isBefore(LocalDate.now(clock)) ? LocalDate.now(clock) : from);
+    }
+
+    public static boolean startsBeforeClosing(DriverAssignment assignment, LocalTime closingTime) {
+        return assignment.getPeriod() == ShuttlePeriod.AFTERNOON && assignment.getScheduledStartTime() != null
+                && (closingTime.equals(LocalTime.MIDNIGHT) || assignment.getScheduledStartTime().isBefore(closingTime));
+    }
+
+    public void validateEveningClosingTime(Long organizationId, DriverAssignment assignment) {
+        if (!assignment.getAssignmentDate().isBefore(LocalDate.now(clock))
+                && startsBeforeClosing(assignment, wardrobeHoursService.getHours(organizationId, assignment.getAssignmentDate()).closingTime())) {
+            throw new IllegalStateException("Evening driving cannot start before wardrobe closes. Update wardrobe hours or choose a later start.");
+        }
+    }
+
     public void lockPlanning(Long organizationId) {
         organizationRepository.findByIdForUpdate(organizationId)
                 .orElseThrow(() -> new IllegalStateException("Organization was not found."));
@@ -142,6 +170,8 @@ public class AssignmentPlanningService {
 
         MorningDrivingPlan morningPlan = morningDrivingPlanningService.getPlanForDate(organizationId, date);
         TransportationDemandAnalysis demand = transportationDemandService.getDemandForDate(organizationId, date);
+        var eveningDemand = EveningClosingPolicy.afterClosing(demand.getEvening(),
+                wardrobeHoursService.getHours(organizationId, date).closingTime());
         ScheduleImport sourceImport = uploadedShiftRepository
                 .findLatestScheduleImportForDate(organizationId, date).orElse(null);
 
@@ -173,17 +203,27 @@ public class AssignmentPlanningService {
                 ranked = ranked.stream().sorted(Comparator.comparing(
                         (DriverSchedule schedule) -> used.contains(schedule.driverId()))
                         .thenComparing(schedule -> findAssignment(assigned, ShuttlePeriod.AFTERNOON) == null
-                                && coversPeriod(schedules.get(schedule.driverId()), demand.getEvening())))
+                                && coversPeriod(schedules.get(schedule.driverId()), eveningDemand)))
                         .toList();
                 plan = createMorningAssignment(organizationId, date, ranked, schedules,
                         morningPlan, demand.getMorning(), sourceImport, assigned);
             } else {
-                plan = createContinuousPeriodAssignment(organizationId, date, period, demand.getEvening(),
+                var upcomingEvening = eveningDemand;
+                if (date.equals(now.toLocalDate())) {
+                    LocalTime nextMinute = now.toLocalTime().withSecond(0).withNano(0).plusMinutes(1);
+                    upcomingEvening = nextMinute.equals(LocalTime.MIDNIGHT)
+                            ? EveningClosingPolicy.afterClosing(eveningDemand, LocalTime.MIDNIGHT)
+                            : EveningClosingPolicy.notBefore(eveningDemand, nextMinute);
+                }
+                plan = createContinuousPeriodAssignment(organizationId, date, period, upcomingEvening,
                         ranked, schedules, used, sourceImport);
             }
             if (plan == null) {
                 if (original != null) {
-                    if (period == ShuttlePeriod.MORNING && !MorningStaffingPolicy.canAssign(
+                    if (period == ShuttlePeriod.AFTERNOON && (!eveningDemand.hasDemand()
+                            || startsBeforeClosing(original, wardrobeHoursService.getHours(organizationId, date).closingTime()))) {
+                        assignmentRepository.delete(original);
+                    } else if (period == ShuttlePeriod.MORNING && !MorningStaffingPolicy.canAssign(
                             result.scheduledDrivers(), assigned, original.getScheduledDriver().getId(),
                             original.getScheduledStartTime(), original.getScheduledEndTime())) {
                         assignmentRepository.delete(original);

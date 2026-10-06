@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<section th:fragment="wardrobeHours" class="section wardrobe-hours" data-dashboard-section="coverage" aria-labelledby="wardrobe-hours-heading">
+    <h2 id="wardrobe-hours-heading">Wardrobe hours</h2>
+    <p><strong th:text="|Closes at ${#temporals.format(wardrobeHours.closingTime, 'h:mm a')}|"></strong>
+        <span th:text="| · ${wardrobeHours.label}|"></span>
+        <span th:if="${wardrobeHours.startsOn != null and !wardrobeHours.dailyOverride}"
+              th:text="| · ${#temporals.format(wardrobeHours.startsOn, 'MMM d, yyyy')}–${#temporals.format(wardrobeHours.endsOn, 'MMM d, yyyy')}|"></span>
+    </p>
+    <p>Evening driving starts at or after wardrobe closes, based on demand and driver availability.
+        Morning staffing and optional midday coverage use their existing rules.</p>
+    <div class="alert alert--warning" th:if="${eveningClosingConflict}">
+        An existing evening assignment starts before this closing time. Review it below; its history or manager decision has been preserved.
+    </div>
+    <div class="wardrobe-hours__forms">
+        <details class="coverage-manager">
+            <summary class="button button--secondary">Set seasonal hours</summary>
+            <div class="coverage-manager__panel">
+                <p>Choose the dates for the season. A newer seasonal rule replaces older rules on overlapping dates.</p>
+                <form th:action="@{/wardrobe-hours/season}" method="post" data-wardrobe-season-form>
+                    <input type="hidden" name="selectedDate" th:value="${selectedDate}">
+                    <div class="coverage-form-actions">
+                        <button type="button" class="button button--secondary" data-wardrobe-preset="Summer" data-closing-time="17:00">Summer · 5 PM</button>
+                        <button type="button" class="button button--secondary" data-wardrobe-preset="Fright Fest" data-closing-time="19:00">Fright Fest · 7 PM</button>
+                    </div>
+                    <div class="form-group"><label for="wardrobe-season-name">Season name</label>
+                        <input id="wardrobe-season-name" name="label" maxlength="80" placeholder="Summer or Fright Fest" required></div>
+                    <div class="coverage-time-fields">
+                        <div class="form-group"><label for="wardrobe-season-from">First day</label>
+                            <input id="wardrobe-season-from" name="from" type="date" th:value="${selectedDate}" required></div>
+                        <div class="form-group"><label for="wardrobe-season-to">Last day</label>
+                            <input id="wardrobe-season-to" name="to" type="date" th:value="${selectedDate}" th:min="${currentOperationsDate}" required></div>
+                    </div>
+                    <div class="form-group"><label for="wardrobe-season-close">Wardrobe closes</label>
+                        <input id="wardrobe-season-close" name="closingTime" type="time" step="60" th:value="${wardrobeHours.closingTime}" required></div>
+                    <button class="button" type="submit">Save season and update assignments</button>
+                </form>
+            </div>
+        </details>
+        <details class="coverage-manager" th:if="${!selectedDate.isBefore(currentOperationsDate)}">
+            <summary class="button button--secondary">Change this day only</summary>
+            <div class="coverage-manager__panel">
+                <p>A daily override takes priority over seasonal hours. It affects only the selected date.</p>
+                <form th:action="@{/wardrobe-hours/day}" method="post">
+                    <input type="hidden" name="selectedDate" th:value="${selectedDate}">
+                    <div class="form-group"><label for="wardrobe-day-close">Wardrobe closes</label>
+                        <input id="wardrobe-day-close" name="closingTime" type="time" step="60" th:value="${wardrobeHours.closingTime}" required></div>
+                    <button class="button" type="submit">Save this day</button>
+                </form>
+                <form th:if="${wardrobeHours.dailyOverride}" th:action="@{/wardrobe-hours/day/reset}" method="post">
+                    <input type="hidden" name="selectedDate" th:value="${selectedDate}">
+                    <button class="button button--secondary" type="submit">Use seasonal hours again</button>
+                </form>
+            </div>
+        </details>
+    </div>
+    <p class="muted">Dates without a matching season use 7 PM. Midnight means the end of the selected day.
+        Hours are saved for this organization; changing them updates upcoming automatic assignments.</p>
+</section>
+</body></html>

@@ -190,6 +190,9 @@ public final class CleanupRegressionChecks {
                 assignmentCalls[0]++;
                 return List.of(f.assignment());
             }
+            @Override public technology.renatus.routepulse.wardrobe.WardrobeHoursService.Hours getWardrobeHours(Long organizationId, LocalDate date) {
+                return technology.renatus.routepulse.wardrobe.WardrobeHoursService.DEFAULT;
+            }
             @Override public DriverAssignment getMiddaySuggestion(Long organizationId, LocalDate date) { return null; }
             @Override public LocalDate getCurrentOperationsDate() { return DATE.plusDays(2); }
         };
@@ -319,6 +322,9 @@ public final class CleanupRegressionChecks {
         new DashboardModelAssembler().populate(optionalModel, optionalPlan);
         equal(1, optionalModel.get("needsAttentionShiftCount"), "only afternoon requires assignment with one morning staff member");
         String optionalHtml = render(engine, "manager/dashboard", optionalModel);
+        check(optionalHtml.contains("/wardrobe-hours/season") && optionalHtml.contains("Summer · 5 PM")
+                && optionalHtml.contains("Fright Fest · 7 PM"), "seasonal wardrobe hours form and presets render");
+        check(optionalHtml.contains("/wardrobe-hours/day"), "daily wardrobe override form renders");
         check(optionalHtml.contains("/assignments/midday-suggestion"), "suggestion acceptance form renders");
         check(optionalHtml.contains("Assign suggested driver"), "suggestion action label");
         check(optionalHtml.contains("wardrobe office coverage required"), "office explanation renders");

@@ -229,7 +229,8 @@
                 <p th:if="${optional}">A suggestion is not a driving assignment. Leaving it unassigned creates no missing-coverage or missed-service alert.</p>
                 <p th:if="${officeBlocked}">Two roster members must be scheduled throughout 9:00 AM–12:00 PM so one can remain in wardrobe.</p>
                 <p th:if="${!optional and !officeBlocked and requiredPeriod == true}">Choose a driver before transportation begins.</p>
-                <p th:if="${!optional and !officeBlocked and requiredPeriod != true}">No transportation demand is forecast for this period.</p>
+                <p th:if="${!optional and !officeBlocked and requiredPeriod != true}"
+                   th:text="${periodName == 'AFTERNOON' ? 'No evening demand is forecast after wardrobe closes.' : 'No transportation demand is forecast for this period.'}"></p>
             </div>
 
             <div class="coverage-driving-plan" th:if="${optional and middaySuggestion != null}">

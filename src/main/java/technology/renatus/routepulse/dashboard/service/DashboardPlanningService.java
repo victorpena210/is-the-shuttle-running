@@ -81,6 +81,7 @@ public class DashboardPlanningService {
         if (selectedDate == null) {
             selectedDate = driverAssignmentService.getCurrentOperationsDate();
         }
+        var wardrobeHours = driverAssignmentService.getWardrobeHours(organizationId, selectedDate);
         boolean selectedDateAvailable = availableDates.contains(selectedDate);
         TransportationDemandAnalysis demand = TransportationDemandAnalysis.empty();
         List<DriverSchedule> driverSchedules = List.of();
@@ -130,10 +131,12 @@ public class DashboardPlanningService {
                 boolean morningRequired = demand.getMorning().hasDemand()
                         && MorningStaffingPolicy
                                 .hasMorningStaffing(driverSchedules, assignments);
-                int requiredPeriods = (morningRequired ? 1 : 0) + (demand.getEvening().hasDemand() ? 1 : 0);
+                boolean eveningRequired = technology.renatus.routepulse.wardrobe.EveningClosingPolicy
+                        .afterClosing(demand.getEvening(), wardrobeHours.closingTime()).hasDemand();
+                int requiredPeriods = (morningRequired ? 1 : 0) + (eveningRequired ? 1 : 0);
                 int coveredRequiredPeriods = (morningRequired && assignments.stream()
                         .anyMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING) ? 1 : 0)
-                        + (demand.getEvening().hasDemand() && assignments.stream()
+                        + (eveningRequired && assignments.stream()
                         .anyMatch(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON) ? 1 : 0);
                 int missingRequiredPeriods = Math.max(0, requiredPeriods - coveredRequiredPeriods);
 
@@ -167,7 +170,7 @@ public class DashboardPlanningService {
                 operatingDay,
                 calendarMessage,
                 calendarOverride,
-                overrideActive, middaySuggestion);
+                overrideActive, middaySuggestion, wardrobeHours);
     }
 
     private String describeCalendar(ParkOperatingDay day, boolean overrideActive) {

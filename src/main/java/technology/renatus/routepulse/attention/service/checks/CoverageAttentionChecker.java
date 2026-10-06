@@ -38,6 +38,12 @@ public class CoverageAttentionChecker {
                             : MorningStaffingPolicy.MESSAGE,
                     "Review staffing", AttentionSupport.dashboardHref(plan, "coverage")));
         }
+        if (plan.eveningClosingConflict()) {
+            items.add(new AttentionItem("evening-before-wardrobe-close", AttentionSeverity.WARNING,
+                    "Review evening start against wardrobe hours",
+                    "An existing assignment starts before wardrobe closes. Its history or manager decision was preserved; review its start time.",
+                    "Review evening coverage", AttentionSupport.dashboardHref(plan, "coverage")));
+        }
         addMissingCoverageAlerts(plan, items);
         addAssignedDriverScheduleAlerts(
                 plan,

@@ -1,5 +1,7 @@
 'use strict';
 
+import { initializeWardrobeHours } from '../components/wardrobe-hours.js';
+
 import {
     initializeAttentionCenter
 } from '../components/attention-center.js';
@@ -21,6 +23,7 @@ function initializeDashboard() {
     initializeAttentionCenter();
     initializePlanningCalendar();
     initializeDriverCoverage();
+    initializeWardrobeHours();
 }
 
 if (document.readyState === 'loading') {

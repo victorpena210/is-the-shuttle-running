@@ -83,7 +83,7 @@ class RememberMeSecurityTests {
         assertThat(remembered.getAttribute("SameSite")).isEqualTo("Lax");
 
         // Deliberately send only the persistent cookie, no previous session.
-        mvc.perform(get("/driver/tap").secure(true).param("code", "tag-code").cookie(remembered))
+        mvc.perform(get("/driver/tap").secure(true).queryParam("code", "tag-code").cookie(remembered))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("checkpointMethod", DrivingActionMethod.NFC));
         verify(portal).getCheckpointPreview(
@@ -94,7 +94,9 @@ class RememberMeSecurityTests {
 
     @Test
     void signedOutTapReturnsToOriginalCheckpointAfterLogin() throws Exception {
-        MvcResult tap = mvc.perform(get("/driver/tap").secure(true).param("code", "tag-code"))
+        // Saved-request redirects use the URL query string. param() alone only
+        // populates the mock parameter map; queryParam() models the NFC link.
+        MvcResult tap = mvc.perform(get("/driver/tap").secure(true).queryParam("code", "tag-code"))
                 .andExpect(status().is3xxRedirection()).andReturn();
         MvcResult login = mvc.perform(post("/login").secure(true).with(csrf())
                         .session((MockHttpSession) tap.getRequest().getSession(false))
@@ -115,7 +117,7 @@ class RememberMeSecurityTests {
     void passwordChangeInvalidatesOldRememberedSignIn() throws Exception {
         Cookie remembered = signIn(true).getResponse().getCookie(COOKIE);
         users.updateUser(User.withUsername(EMAIL).password("{noop}new-password").roles("DRIVER").build());
-        mvc.perform(get("/driver/tap").secure(true).param("code", "tag-code").cookie(remembered))
+        mvc.perform(get("/driver/tap").secure(true).queryParam("code", "tag-code").cookie(remembered))
                 .andExpect(status().is3xxRedirection()).andExpect(cookie().maxAge(COOKIE, 0));
         verify(portal, never()).getCheckpointPreview(any(), any(), any());
     }
@@ -125,7 +127,7 @@ class RememberMeSecurityTests {
         Cookie remembered = signIn(true).getResponse().getCookie(COOKIE);
         users.updateUser(User.withUsername(EMAIL).password("{noop}test-password")
                 .roles("DRIVER").disabled(true).build());
-        mvc.perform(get("/driver/tap").secure(true).param("code", "tag-code").cookie(remembered))
+        mvc.perform(get("/driver/tap").secure(true).queryParam("code", "tag-code").cookie(remembered))
                 .andExpect(status().is3xxRedirection()).andExpect(cookie().maxAge(COOKIE, 0));
         verify(portal, never()).getCheckpointPreview(any(), any(), any());
     }

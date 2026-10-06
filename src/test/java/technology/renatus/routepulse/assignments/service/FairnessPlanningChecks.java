@@ -291,6 +291,58 @@ public class FairnessPlanningChecks {
             morning.protectManualTimeEdit();
             check(f.planner.getMiddaySuggestion(1L, FIRST) == null, "suggested the only office backup during morning driving");
         });
+        run("summer and Fright Fest closing times constrain evening assignments", () -> {
+            Fixture f = new Fixture(); f.longPeriods = true;
+            f.planner.getOrCreateAssignments(1L, FIRST);
+            var evening = f.assignments.stream().filter(a -> a.getAssignmentDate().equals(FIRST)
+                    && a.getPeriod() == ShuttlePeriod.AFTERNOON).findFirst().orElseThrow();
+            check(evening.getScheduledStartTime().equals(LocalTime.of(17, 0)), "summer does not start at five");
+            Long id = evening.getId();
+            f.wardrobeClosing = LocalTime.of(19, 0);
+            f.planner.getOrCreateAssignments(1L, FIRST);
+            check(evening.getId().equals(id) && evening.getScheduledStartTime().equals(LocalTime.of(19, 0)), "Fright Fest did not replan to seven");
+            check(evening.getScheduledMinutes() == 120, "workload not reduced to post-close driving");
+        });
+        run("one roster member can drive evening after the office closes", () -> {
+            Fixture f = new Fixture(); f.longPeriods = true; f.wardrobeClosing = LocalTime.of(19, 0);
+            f.customSchedules = f.schedules(FIRST).subList(0, 1);
+            f.planner.getOrCreateAssignments(1L, FIRST);
+            check(f.assignments.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.MORNING), "morning office requirement lost");
+            check(f.assignments.stream().anyMatch(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON
+                    && a.getScheduledStartTime().equals(LocalTime.of(19, 0))), "one driver could not drive after close");
+        });
+        run("no evening assignment when all demand ends by closing", () -> {
+            Fixture f = new Fixture(); f.wardrobeClosing = LocalTime.of(19, 0);
+            var old = f.add(FIRST, ShuttlePeriod.AFTERNOON, f.drivers.get(0), 18, 19);
+            f.planner.getOrCreateAssignments(1L, FIRST);
+            check(!f.assignments.contains(old), "unsafe future automatic assignment retained");
+            check(f.assignments.stream().noneMatch(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON), "driving created without demand after closing");
+        });
+        run("manager evening edits cannot start before closing", () -> {
+            Fixture f = new Fixture(); f.wardrobeClosing = LocalTime.of(19, 0);
+            var proposed = DriverAssignment.manual(FIRST, ShuttlePeriod.AFTERNOON, f.drivers.get(0), "Test");
+            proposed.updateScheduledTimes(LocalTime.of(18, 0), LocalTime.of(20, 0));
+            rejects(() -> f.planner.validateEveningClosingTime(1L, proposed), "manual evening bypassed closing time");
+            proposed.updateScheduledTimes(LocalTime.of(19, 0), LocalTime.of(20, 0));
+            f.planner.validateEveningClosingTime(1L, proposed);
+        });
+        run("evening planning after closing schedules upcoming minutes without backdating", () -> {
+            Fixture f = new Fixture(); f.longPeriods = true; f.wardrobeClosing = LocalTime.of(19, 0);
+            set(f, "dates", List.of(TODAY));
+            set(f.planner, "clock", Clock.fixed(TODAY.atTime(19, 5, 30).atZone(ZONE).toInstant(), ZONE));
+            f.planner.getOrCreateAssignments(1L, TODAY);
+            var evening = f.assignments.stream().filter(a -> a.getPeriod() == ShuttlePeriod.AFTERNOON).findFirst().orElseThrow();
+            check(evening.getScheduledStartTime().equals(LocalTime.of(19, 6)), "evening assignment was backdated");
+        });
+        run("changed seasonal hours preserve manager evening decisions", () -> {
+            Fixture f = new Fixture(); f.longPeriods = true;
+            var manual = f.add(FIRST, ShuttlePeriod.AFTERNOON, f.drivers.get(0), 17, 21);
+            manual.protectManualTimeEdit();
+            f.wardrobeClosing = LocalTime.of(19, 0);
+            f.planner.getOrCreateAssignments(1L, FIRST);
+            check(f.assignments.contains(manual) && manual.getScheduledStartTime().equals(LocalTime.of(17, 0)), "manager decision erased");
+            check(AssignmentPlanningService.startsBeforeClosing(manual, f.wardrobeClosing), "closing conflict was not detected");
+        });
         System.out.println("PASS: " + checks + " fairness planning checks");
     }
 
@@ -328,6 +380,7 @@ public class FairnessPlanningChecks {
         final List<DriverWorkloadEvent> events = new ArrayList<>();
         final List<DrivingSession> sessions = new ArrayList<>();
         boolean shortLastDay, longPeriods, longMidday;
+        LocalTime wardrobeClosing = LocalTime.of(17, 0);
         List<DriverSchedule> customSchedules;
         final DriverAssignmentRepository assignmentRepository = repository(DriverAssignmentRepository.class, (method, args) -> {
             if (method.equals("flush")) return null;
@@ -390,8 +443,13 @@ public class FairnessPlanningChecks {
                     return Optional.empty();
                 }
             };
+            var wardrobe = new technology.renatus.routepulse.wardrobe.WardrobeHoursService(null, null, null, null, ZONE.getId()) {
+                @Override public Hours getHours(Long org, LocalDate date) {
+                    return new Hours(wardrobeClosing, "Test season", FIRST, FIRST.plusDays(2), false);
+                }
+            };
             planner = new AssignmentPlanningService(assignmentRepository, driverRepository, schedules, shifts, workload,
-                    morning, demand, 0, organizations, operatingDays, overrides, ZONE.getId());
+                    morning, demand, 0, organizations, operatingDays, overrides, wardrobe, ZONE.getId());
             set(planner, "clock", Clock.fixed(TODAY.atTime(8, 0).atZone(ZONE).toInstant(), ZONE));
         }
         Driver driver(Long id) { return drivers.stream().filter(d -> d.getId().equals(id)).findFirst().orElseThrow(); }

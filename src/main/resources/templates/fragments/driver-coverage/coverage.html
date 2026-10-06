@@ -44,7 +44,7 @@
                     </strong>
 
                     <p>
-                        Review the required morning and afternoon coverage below. Midday driving is optional.
+                        Review the required morning and evening coverage below. Midday driving is optional.
                     </p>
 
                 </div>
@@ -139,11 +139,11 @@
                     th:replace="~{fragments/driver-coverage/shift-card :: shiftCard(
                         assignment=${afternoonAssignment},
                         periodName='AFTERNOON',
-                        periodLabel='Afternoon',
+                        periodLabel='Evening',
                         periodIcon='🌆',
                         assignedDriverSchedule=${afternoonAssignedDriverSchedule},
-                        recommendedStart=${transportationDemand.evening.recommendedStartTime},
-                        recommendedEnd=${transportationDemand.evening.recommendedEndTime}
+                        recommendedStart=${eveningDrivingDemand.recommendedStartTime},
+                        recommendedEnd=${eveningDrivingDemand.recommendedEndTime}
                     )}">
                 </div>
 
