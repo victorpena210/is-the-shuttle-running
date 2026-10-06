@@ -114,6 +114,46 @@ class RememberMeSecurityTests {
     }
 
     @Test
+    void driverLoginDiscardsSavedManagerDestinationsAndUsesDriverHome() throws Exception {
+        for (String path : java.util.List.of("/app", "/driving-records", "/driving-qr")) {
+            MvcResult visit = mvc.perform(get(path).secure(true))
+                    .andExpect(status().is3xxRedirection()).andReturn();
+            MvcResult login = signInAfter(visit);
+            assertThat(login.getResponse().getRedirectedUrl()).isEqualTo("/post-login");
+            var session = (MockHttpSession) login.getRequest().getSession(false);
+            assertThat(session.getAttribute("SPRING_SECURITY_SAVED_REQUEST")).isNull();
+            mvc.perform(get("/post-login").secure(true).session(session))
+                    .andExpect(redirectedUrl("/driver"));
+            // Redirecting to the right home must not grant manager access.
+            mvc.perform(get(path).secure(true).session(session)).andExpect(status().isForbidden());
+        }
+    }
+
+    @Test
+    void driverLoginKeepsSavedPersonalScheduleFilters() throws Exception {
+        MvcResult visit = mvc.perform(get("/driver/schedule").secure(true)
+                        .queryParam("from", "2026-10-10").queryParam("to", "2026-10-16"))
+                .andExpect(status().is3xxRedirection()).andReturn();
+        assertThat(signInAfter(visit).getResponse().getRedirectedUrl())
+                .contains("/driver/schedule", "from=2026-10-10", "to=2026-10-16");
+    }
+
+    @Test
+    void managerLoginKeepsSavedDashboardDate() throws Exception {
+        users.updateUser(User.withUsername(EMAIL).password("{noop}test-password").roles("ADMIN").build());
+        MvcResult visit = mvc.perform(get("/app").secure(true).queryParam("date", "2026-10-10"))
+                .andExpect(status().is3xxRedirection()).andReturn();
+        assertThat(signInAfter(visit).getResponse().getRedirectedUrl()).contains("/app", "date=2026-10-10");
+    }
+
+    private MvcResult signInAfter(MvcResult visit) throws Exception {
+        return mvc.perform(post("/login").secure(true).with(csrf())
+                        .session((MockHttpSession) visit.getRequest().getSession(false))
+                        .param("email", EMAIL).param("password", "test-password"))
+                .andExpect(status().is3xxRedirection()).andReturn();
+    }
+
+    @Test
     void passwordChangeInvalidatesOldRememberedSignIn() throws Exception {
         Cookie remembered = signIn(true).getResponse().getCookie(COOKIE);
         users.updateUser(User.withUsername(EMAIL).password("{noop}new-password").roles("DRIVER").build());

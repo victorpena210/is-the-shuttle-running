@@ -8,6 +8,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
+import org.springframework.security.web.savedrequest.HttpSessionRequestCache;
 
 @Configuration
 public class SecurityConfig {
@@ -34,7 +35,10 @@ public class SecurityConfig {
                         publicRequestThrottle
                 );
 
+        HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
+
         http
+                .requestCache(cache -> cache.requestCache(requestCache))
                 .authorizeHttpRequests(authorize ->
                         authorize
 
@@ -155,18 +159,9 @@ public class SecurityConfig {
                                         "email"
                                 )
 
-                                /*
-                                 * false matters here.
-                                 *
-                                 * If a driver used the checkpoint
-                                 * while signed out, Spring keeps
-                                 * the original /driver/scan or /driver/tap URL
-                                 * and returns them there after login.
-                                 */
-                                .defaultSuccessUrl(
-                                        "/post-login",
-                                        false
-                                )
+                                // Keep checkpoint/query links, but never send a driver-only
+                                // account back to a saved manager page after signing in.
+                                .successHandler(new RoleAwareLoginSuccessHandler(requestCache))
                                 .failureUrl(
                                         "/login?error"
                                 )
