@@ -257,6 +257,7 @@ public class DriverAssignment {
                 "Scheduled times cannot be changed after driving has started."
         );
 
+        availabilityUpdateHold = false;
         this.scheduledStartTime = scheduledStartTime;
         this.scheduledEndTime = scheduledEndTime;
 
@@ -343,6 +344,7 @@ public class DriverAssignment {
             return false;
         }
 
+        availabilityUpdateHold = false;
         this.scheduledDriver = newDriver;
 
         if (assignmentSource == AssignmentSource.AUTO) {
@@ -377,8 +379,24 @@ public class DriverAssignment {
         };
     }
 
+    @Column(name = "availability_update_hold", nullable = false)
+    private boolean availabilityUpdateHold;
+
+    public boolean isAvailabilityUpdateHold() { return availabilityUpdateHold; }
+    public void holdForAvailabilityUpdate() {
+        if (!hasDrivingSessions() && assignmentOutcome == AssignmentOutcome.PENDING) availabilityUpdateHold = true;
+    }
+    public void confirmAvailabilityReview(UserAccount actor) {
+        ensureDrivingHasNotStarted("Driving history must remain unchanged.");
+        availabilityUpdateHold = false;
+        if (assignmentSource == AssignmentSource.AUTO) assignmentSource = AssignmentSource.OVERRIDE;
+        changedAt = Instant.now();
+        changedBy = Objects.requireNonNull(actor);
+        changeReason = "Manager confirmed coverage after a driver schedule update.";
+    }
+
     public boolean canAutomaticallyRebalance(LocalDateTime now) {
-        return assignmentSource == AssignmentSource.AUTO
+        return !availabilityUpdateHold && assignmentSource == AssignmentSource.AUTO
                 && assignmentOutcome == AssignmentOutcome.PENDING
                 && !hasDrivingSessions()
                 && scheduleReviewedAt == null

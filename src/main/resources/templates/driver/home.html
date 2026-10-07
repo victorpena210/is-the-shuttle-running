@@ -49,6 +49,10 @@
             </span>
         </div>
     </header>
+    <section class="alert" aria-label="Schedule updates">
+        <a class="button button--secondary" th:href="@{/driver/availability}">Update my work schedule</a>
+        <p th:if="${availabilityHeldCount != null and availabilityHeldCount > 0}">Your updated work hours affect driving assignments. Your manager can review them.</p>
+    </section>
 
     <div
         th:if="${successMessage}"

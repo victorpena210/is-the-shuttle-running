@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="_csrf" th:content="${_csrf.token}"><meta name="_csrf_header" th:content="${_csrf.headerName}">
+    <title>Update my schedule | Is the Shuttle Running</title>
+    <link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/driver-insights.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/schedule-updates.css}">
+    <script defer th:src="@{/js/pages/schedule-updates.js}"></script>
+</head>
+<body class="app-page">
+<th:block th:replace="~{fragments/navigation :: driverNav}"></th:block>
+<main id="main-content" class="app-main driver-insights">
+    <header class="page-header"><div><p class="eyebrow" th:text="${organizationName}"></p><h1>Update my schedule</h1>
+        <p>Keep your work hours current so shuttle assignments can account for schedule changes.</p></div>
+        <div class="page-date"><span th:text="${driverName}"></span><small th:text="${operationsZone}"></small></div></header>
+    <p th:if="${successMessage}" class="alert alert--success" role="status" th:text="${successMessage}"></p>
+    <p th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></p>
+    <section class="insight-panel" aria-labelledby="upload-heading">
+        <p class="eyebrow">Step 1 · Optional</p><h2 id="upload-heading">Read a schedule screenshot</h2>
+        <p>Use a clear daily list showing your dates and start/end times. Crop out other people’s schedules.
+            Screenshots are read privately on the server and deleted after reading.</p>
+        <form id="screenshot-upload" th:action="@{/driver/availability/preview}" method="post" enctype="multipart/form-data">
+            <label for="screenshots">Schedule screenshots (PNG or JPEG)</label>
+            <input id="screenshots" name="screenshots" type="file" accept="image/png,image/jpeg" multiple required>
+            <p class="insight-note">Up to 3 images · 5 MB each · 12 MB total. Choose the year to use when it is missing from an image.</p>
+            <label for="schedule-year">Schedule year</label>
+            <input id="schedule-year" name="year" type="number" th:value="${today.year}" th:min="${today.year}" th:max="${today.plusDays(366).year}" required>
+            <button class="button" type="submit">Read screenshots</button>
+            <p id="upload-status" role="status" aria-live="polite"></p>
+        </form>
+        <noscript><p>Screenshot upload needs JavaScript. You can enter and confirm hours below without it.</p></noscript>
+    </section>
+    <section class="insight-panel" aria-labelledby="review-heading">
+        <p class="eyebrow">Step 2</p><h2 id="review-heading">Review your work hours</h2>
+        <p>Check every date, year, and AM/PM. End times earlier than start times mean the next day.
+            These are your <strong>work hours</strong>; driving duties and counter coverage still apply.</p>
+        <ul th:if="${warnings != null}" class="alert"><li th:each="warning : ${warnings}" th:text="${warning}"></li></ul>
+        <details th:if="${ocrText != null}"><summary>Show text read from the screenshots</summary><pre class="ocr-text" th:text="${ocrText}"></pre></details>
+        <form th:action="@{/driver/availability/confirm}" method="post" th:object="${availabilityForm}" id="availability-form">
+            <input type="hidden" th:field="*{token}">
+            <div id="schedule-rows">
+                <fieldset class="schedule-row" th:each="row, state : *{rows}">
+                    <legend th:text="|Work entry ${state.count}|"></legend>
+                    <label>Date<input type="date" th:field="*{rows[__${state.index}__].date}" th:min="${today}" th:max="${today.plusDays(366)}"></label>
+                    <label>Start<input type="time" th:field="*{rows[__${state.index}__].start}"></label>
+                    <label>End<input type="time" th:field="*{rows[__${state.index}__].end}"></label>
+                    <label class="off-toggle"><input type="checkbox" th:field="*{rows[__${state.index}__].off}">Off / unavailable</label>
+                    <button type="button" class="button button--secondary remove-row">Remove</button>
+                </fieldset>
+            </div>
+            <button type="button" class="button button--secondary" id="add-row">Add another shift or day off</button>
+            <p class="insight-note">All entries for a listed date replace your previous hours on that date. Include every shift if you work a split shift.
+                Dates you leave out remain unchanged. A missing day in a screenshot never counts as a day off.</p>
+            <label class="confirm-hours"><input type="checkbox" th:field="*{confirmed}" required>
+                I checked these dates and times against my current schedule, and these are all my work shifts on the listed dates.</label>
+            <button class="button" type="submit">Confirm and update availability</button>
+            <a class="button button--secondary" th:href="@{/driver/availability}">Start over</a>
+        </form>
+    </section>
+    <section class="insight-panel" th:unless="${#lists.isEmpty(conflicts)}" aria-labelledby="conflict-heading">
+        <h2 id="conflict-heading">Driving assignments need review</h2>
+        <p>Your manager can review these assignments. Check with them before driving outside your confirmed work hours.</p>
+        <article class="schedule-update" th:each="item : ${conflicts}">
+            <strong th:text="${#temporals.format(item.date,'EEE, MMM d') + ' · ' + item.period}"></strong>
+            <p th:text="|Driving: ${item.drivingHours}. Work hours: ${item.workHours}.|"></p>
+            <p th:text="${item.covered ? 'Coverage still fits; manager confirmation is pending.' : 'Work hours, another driving duty, or counter coverage need review.'}"></p>
+        </article>
+    </section>
+    <section class="insight-panel" aria-labelledby="saved-heading">
+        <h2 id="saved-heading">Your confirmed updates</h2>
+        <p th:if="${#lists.isEmpty(updates)}">No personal schedule updates yet. Your imported work hours apply until you confirm an update.</p>
+        <article class="schedule-update" th:each="item : ${updates}">
+            <h3 th:text="${#temporals.format(item.date,'EEEE, MMM d, yyyy')}"></h3><strong th:text="${item.hours}"></strong>
+            <p th:text="|Driver confirmed · ${timestampDisplay.format(item.confirmedAt, 'MMM d, h:mm a z')}|"></p>
+            <p th:if="${item.importConflict}" th:text="|Imported schedule differs: ${item.imported}. Your confirmed hours are in use.|"></p>
+        </article>
+    </section>
+    <a th:href="@{/driver/schedule}">Back to my driving schedule</a>
+</main>
+<footer th:replace="~{fragments/footer :: footer('app')}"></footer>
+</body></html>

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Driver schedule updates | Is the Shuttle Running</title>
+    <link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/driver-insights.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/schedule-updates.css}">
+</head>
+<body class="app-page">
+<th:block th:replace="~{fragments/navigation :: managerNav('schedule-updates')}"></th:block>
+<main id="main-content" class="app-main driver-insights">
+    <header class="page-header"><div><p class="eyebrow" th:text="${organizationName}"></p><h1>Driver schedule updates</h1>
+        <p>Confirmed work hours are used for future planning. Existing assignments stay available for your review.</p></div></header>
+    <p th:if="${successMessage}" class="alert alert--success" role="status" th:text="${successMessage}"></p>
+    <p th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></p>
+    <section class="insight-panel" aria-labelledby="review-heading">
+        <h2 id="review-heading">Assignments to review</h2>
+        <p th:if="${#lists.isEmpty(conflicts)}">No assignments currently need review because of driver updates.</p>
+        <article class="schedule-update" th:each="item : ${conflicts}">
+            <p class="eyebrow" th:text="${#temporals.format(item.date,'EEEE, MMM d, yyyy')}"></p>
+            <h3 th:text="|${item.driver} · ${item.period}|"></h3>
+            <dl class="schedule-comparison"><div><dt>Assigned driving</dt><dd th:text="${item.drivingHours}"></dd></div>
+                <div><dt>Current work hours</dt><dd th:text="${item.workHours}"></dd></div></dl>
+            <p th:text="${item.covered ? 'Coverage still fits. Confirm this assignment to keep it as your decision.' : 'Work hours, another driving duty, or wardrobe counter coverage conflict with this assignment.'}"></p>
+            <p th:if="${!#lists.isEmpty(item.replacements)}"><strong>Replacement options:</strong> <span th:text="${#strings.listJoin(item.replacements, ', ')}"></span>.
+                These drivers cover the full window and pass current duty and counter checks. Recheck when changing the assignment.</p>
+            <p th:if="${!item.covered and #lists.isEmpty(item.replacements) and !item.started}">No replacement currently passes all coverage checks. Review the driving times and staffing.</p>
+            <p th:if="${item.started}">Driving has started. Recorded driving history is preserved; coordinate any changes through the live driving controls.</p>
+            <div class="schedule-actions">
+                <a class="button button--secondary" th:href="@{/app(date=${item.date})} + '#coverage'">Review day’s coverage</a>
+                <form th:if="${item.covered and item.held and !item.started}" th:action="@{/schedule-updates/assignments/{id}/keep(id=${item.id})}" method="post">
+                    <button class="button" type="submit">Confirm current assignment</button>
+                </form>
+            </div>
+        </article>
+    </section>
+    <section class="insight-panel" aria-labelledby="updates-heading">
+        <h2 id="updates-heading">Confirmed work hours</h2>
+        <p>Driver updates remain in use when a CSV import differs. Reverting a date uses the latest import and preserves the change history.</p>
+        <p th:if="${#lists.isEmpty(updates)}">No active driver updates for today or upcoming dates.</p>
+        <article class="schedule-update" th:each="item : ${updates}">
+            <h3 th:text="${item.driver + ' · ' + #temporals.format(item.date,'EEE, MMM d, yyyy')}"></h3>
+            <dl class="schedule-comparison"><div><dt>Driver confirmed</dt><dd th:text="${item.hours}"></dd></div>
+                <div><dt>Latest import</dt><dd th:text="${item.imported}"></dd></div></dl>
+            <p th:text="|Updated ${timestampDisplay.format(item.confirmedAt, 'MMM d, h:mm a z')}|"></p>
+            <p th:if="${item.importConflict}"><strong>Schedules differ.</strong> The driver’s confirmed hours are in use.</p>
+            <form th:action="@{/schedule-updates/{id}/use-import(id=${item.id})}" method="post">
+                <button class="button button--secondary" type="submit">Use latest import for this date</button>
+            </form>
+        </article>
+    </section>
+</main>
+<footer th:replace="~{fragments/footer :: footer('app')}"></footer>
+</body></html>

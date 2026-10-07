@@ -193,6 +193,10 @@ public class AssignmentPlanningService {
         return !eligible.hasDemand() || assignment.getScheduledStartTime().isBefore(eligible.getRecommendedStartTime());
     }
 
+    public List<DriverSchedule> getCurrentDriverSchedules(Long organizationId, LocalDate date) {
+        return driverScheduleService.getDriverSchedulesForDate(organizationId, date).scheduledDrivers();
+    }
+
     public void lockPlanning(Long organizationId) {
         organizationRepository.findByIdForUpdate(organizationId)
                 .orElseThrow(() -> new IllegalStateException("Organization was not found."));

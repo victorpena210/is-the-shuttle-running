@@ -51,3 +51,17 @@ Anonymous demand snapshots are retained for a rolling 12 months by default so a
 future forecasting engine can learn weekday, seasonal, peak-window, arrival, and
 departure patterns without requiring long-term storage of ordinary employees'
 schedule identities. Configure the window with `FORECAST_HISTORY_MONTHS`.
+
+
+## Driver-confirmed schedule updates
+
+Schedule screenshots are processed locally with Tesseract using temporary files;
+the application deletes the temporary images and extracted text files after each
+read. Images are not published, saved in the database, or sent to a third-party OCR
+service. The review page displays extracted text only to the submitting driver.
+
+`driver_availability_revisions` stores confirmed dates, work hours, previous hours,
+imported comparison hours, confirmation time, actor, and screenshot SHA-256 hashes
+(not image bytes). These registered-driver operational audit records are retained
+with driver records; they are separate from the ordinary employee CSV rows removed
+by nightly retention. `scripts/purge-application-data.sql` includes this table.

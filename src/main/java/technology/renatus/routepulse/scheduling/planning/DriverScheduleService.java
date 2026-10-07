@@ -23,10 +23,19 @@ public class DriverScheduleService {
     private final DriverRepository driverRepository;
     private final ScheduleProvider scheduleProvider;
 
+    private final technology.renatus.routepulse.driver.availability.DriverAvailabilityRepository availability;
+
+    public DriverScheduleService(DriverRepository drivers, ScheduleProvider provider) {
+        this(drivers, provider, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
     public DriverScheduleService(
             DriverRepository driverRepository,
-            ScheduleProvider scheduleProvider) {
+            ScheduleProvider scheduleProvider,
+            technology.renatus.routepulse.driver.availability.DriverAvailabilityRepository availability) {
 
+        this.availability = availability;
         this.driverRepository = driverRepository;
         this.scheduleProvider = scheduleProvider;
     }
@@ -87,6 +96,21 @@ public class DriverScheduleService {
                                         )
                         )
                         .toList();
+
+        if (availability != null) {
+            var effective = new java.util.ArrayList<>(scheduledDrivers);
+            for (var revision : availability.latest(organizationId, date, date)) {
+                if (revision.isUseImported()) continue;
+                var driver = revision.getDriver();
+                effective.removeIf(s -> s.driverId().equals(driver.getId()));
+                if (driver.isActive()) for (var window : technology.renatus.routepulse.driver.availability.AvailabilityWindows.decode(revision.getWorkWindows())) {
+                    effective.add(new DriverSchedule(driver.getId(), driver.getEmployeeId(), driver.getName(),
+                            date, window.start(), window.end()));
+                }
+            }
+            scheduledDrivers = effective.stream().sorted(Comparator.comparing(DriverSchedule::startTime)
+                    .thenComparing(DriverSchedule::driverName)).toList();
+        }
 
         Set<String> scheduledEmployeeIds =
                 scheduledDrivers.stream()

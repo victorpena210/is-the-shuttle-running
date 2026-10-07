@@ -15,6 +15,7 @@ DELETE FROM historical_demand_windows;
 DELETE FROM historical_demand_snapshots;
 DELETE FROM uploaded_shifts;
 DELETE FROM driver_assignments;
+DELETE FROM driver_availability_revisions;
 DELETE FROM schedule_imports;
 DELETE FROM organization_invitations;
 DELETE FROM email_verification_tokens;

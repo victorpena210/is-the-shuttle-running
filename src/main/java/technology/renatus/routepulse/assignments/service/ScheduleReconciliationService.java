@@ -39,9 +39,18 @@ public class ScheduleReconciliationService {
     private final UploadedShiftRepository uploadedShiftRepository;
     private final DriverWorkloadService driverWorkloadService;
 
+    private final technology.renatus.routepulse.driver.availability.DriverAvailabilityRepository availability;
+
+    public ScheduleReconciliationService(UploadedShiftRepository shifts, DriverWorkloadService workload) {
+        this(shifts, workload, null);
+    }
+
+    @org.springframework.beans.factory.annotation.Autowired
     public ScheduleReconciliationService(
             UploadedShiftRepository uploadedShiftRepository,
-            DriverWorkloadService driverWorkloadService) {
+            DriverWorkloadService driverWorkloadService,
+            technology.renatus.routepulse.driver.availability.DriverAvailabilityRepository availability) {
+        this.availability = availability;
         this.uploadedShiftRepository = uploadedShiftRepository;
         this.driverWorkloadService = driverWorkloadService;
     }
@@ -97,6 +106,11 @@ public class ScheduleReconciliationService {
                 || assignment.getScheduledDriver() == null) {
             return null;
         }
+
+        // Driver corrections have their own review panel, including manual assignments.
+        // Do not recommend replacements based on superseded CSV hours.
+        if (availability != null && availability.latest(organizationId, assignment.getAssignmentDate(), assignment.getAssignmentDate()).stream()
+                .anyMatch(r -> !r.isUseImported() && r.getDriver().getId().equals(assignment.getScheduledDriver().getId()))) return null;
 
         ScheduleImport baselineImport = assignment.getReviewedScheduleImport() == null
                 ? assignment.getSourceScheduleImport()

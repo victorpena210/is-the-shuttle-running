@@ -102,6 +102,11 @@
 		     </div>
 
 		 </header>
+    <section class="alert" th:if="${availabilityUpdateCount != null and (availabilityUpdateCount > 0 or availabilityHeldCount > 0)}" aria-label="Driver schedule updates">
+        <strong>Driver work schedules have updates.</strong>
+        <p th:if="${availabilityHeldCount > 0}" th:text="|${availabilityHeldCount} assignment(s) are preserved for your review.|"></p>
+        <a class="button button--secondary" th:href="@{/schedule-updates}">Review schedule updates</a>
+    </section>
 
     <div
         th:if="${successMessage}"

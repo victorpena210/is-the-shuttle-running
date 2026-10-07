@@ -82,6 +82,9 @@
                     Drivers
                 </a>
 
+                <a class="app-nav__link" th:href="@{/schedule-updates}"
+                   th:attr="aria-current=${activePage == 'schedule-updates' ? 'page' : null}">Schedule updates</a>
+
                 <a
                     class="app-nav__link"
                     th:if="${canManageDrivingQr}"

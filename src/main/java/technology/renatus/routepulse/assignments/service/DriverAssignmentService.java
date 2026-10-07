@@ -265,30 +265,13 @@ public class DriverAssignmentService {
                 recommendedDriverId
         );
 
-        List<UploadedShift> latestDriverShifts = uploadedShiftRepository
-                .findAllByOrganization_IdAndScheduleImport_IdAndShiftDateAndEmployeeIdOrderByStartTimeAsc(
-                        organizationId,
-                        latestImport.getId(),
-                        assignment.getAssignmentDate(),
-                        recommendedDriver.getEmployeeId()
-                );
-
-        if (latestDriverShifts.isEmpty()) {
-            throw new IllegalStateException(
-                    "That recommendation is no longer on the latest uploaded schedule. Refresh coverage and try again."
-            );
-        }
-
-        List<DriverSchedule> recommendedSchedules = latestDriverShifts.stream()
-                .map(shift -> new DriverSchedule(
-                        recommendedDriver.getId(),
-                        recommendedDriver.getEmployeeId(),
-                        recommendedDriver.getName(),
-                        assignment.getAssignmentDate(),
-                        shift.getStartTime(),
-                        shift.getEndTime()
-                ))
+        List<DriverSchedule> recommendedSchedules = assignmentPlanningService
+                .getCurrentDriverSchedules(organizationId, assignment.getAssignmentDate()).stream()
+                .filter(schedule -> schedule.driverId().equals(recommendedDriver.getId()))
                 .toList();
+        if (recommendedSchedules.isEmpty()) {
+            throw new IllegalStateException("That driver is no longer available. Refresh coverage and try again.");
+        }
 
         boolean recommendationStillCovers = assignment.hasPlannedDrivingWindows()
                 ? assignment.getPlannedDrivingWindows().stream()

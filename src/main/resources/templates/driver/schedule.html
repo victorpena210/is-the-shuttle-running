@@ -20,6 +20,10 @@
         </div>
         <div class="page-date"><span th:text="${driverName}">Driver</span><small th:text="${operationsZone}">America/Chicago</small></div>
     </header>
+    <section class="alert" aria-label="Schedule updates">
+        <a class="button button--secondary" th:href="@{/driver/availability}">Update my work schedule</a>
+        <p th:if="${availabilityHeldCount != null and availabilityHeldCount > 0}">Your updated work hours affect driving assignments. Your manager can review them.</p>
+    </section>
     <section class="insight-panel" aria-labelledby="schedule-filters-heading">
         <h2 id="schedule-filters-heading">Choose dates</h2>
         <nav class="insight-presets" aria-label="Schedule date shortcuts">
