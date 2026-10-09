@@ -96,18 +96,13 @@ public class RiderStatusService {
                 : lastEnded == null ? null : inactivityTimeout ? lastEnded.getLastConfirmedAt() : lastEnded.getEndedAt();
         boolean manual = latestUpdate != null && latestUpdate.getStatusOverride() != OperationalStatusOverride.AUTOMATIC;
         boolean expired = latestUpdate != null && latestUpdate.isExpired(eventNow);
-        boolean newerActivity = latestUpdate != null && lastConfirmed != null
-                && lastConfirmed.isAfter(latestUpdate.getExpiresAt());
         RiderOperationalStatus effectiveStatus;
-        if (manual && expired && !newerActivity) {
-            effectiveStatus = RiderOperationalStatus.CONFIRMATION_NEEDED;
-        } else if (manual && !expired) {
+        // Temporary manager overrides return to the recorded session state on expiry.
+        if (manual && !expired) {
             effectiveStatus = mapOverride(latestUpdate.getStatusOverride());
             if (effectiveStatus == RiderOperationalStatus.SERVICE_ENDING_SOON
                     && !freshness.isFresh(activeSession, eventNow))
                 effectiveStatus = RiderOperationalStatus.CONFIRMATION_NEEDED;
-        } else if (activeSession != null && !freshness.isFresh(activeSession, eventNow)) {
-            effectiveStatus = RiderOperationalStatus.CONFIRMATION_NEEDED;
         } else if (inactivityTimeout) {
             effectiveStatus = RiderOperationalStatus.CONFIRMATION_NEEDED;
         } else if (activeSession != null && activeSession.getMovement().waiting()) {
@@ -131,9 +126,6 @@ public class RiderStatusService {
                     || effectiveStatus == RiderOperationalStatus.SERVICE_ENDING_SOON
                     || effectiveStatus == RiderOperationalStatus.WAITING_AT_PICKUP);
         String detail = defaultDetail(effectiveStatus);
-        if (effectiveStatus == RiderOperationalStatus.CONFIRMATION_NEEDED && activeSession != null && activeSession.getMovement().enabled()
-                && !activeSession.getMovement().fresh(eventNow))
-            detail = "Reliable location updates are unavailable. Missing location data does not mean the shuttle stopped. Check the last confirmation time or contact your shuttle coordinator.";
         if (effectiveStatus == RiderOperationalStatus.CONFIRMATION_NEEDED && inactivityTimeout)
             detail = "The last session was automatically closed after sustained inactivity and needs a service check. Contact your shuttle coordinator before waiting for a ride.";
         if (manual && !expired) {

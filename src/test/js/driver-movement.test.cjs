@@ -16,7 +16,7 @@ async function setup() {
             append(child) { elements.set(child.id, child); }});
         return elements.get(id);
     }
-    const responses = ['WAITING', 'BREAK', 'END'].map(response => {
+    const responses = ['RUNNING', 'WAITING', 'BREAK', 'END'].map(response => {
         const button = element(response); button.dataset.movementResponse = response; return button;
     });
     const panel = element('movement-monitor'); panel.dataset.sessionId = '10';
@@ -41,11 +41,12 @@ async function setup() {
             if (options.method === 'POST') {
                 assert.equal(options.headers['X-CSRF-TOKEN'], 'test-token');
                 const body = JSON.parse(options.body); posts.push({url,body});
-                if (url.endsWith('/enable')) Object.assign(state, {enabled:true, state:'UNCONFIRMED'});
+                if (url.endsWith('/enable')) Object.assign(state, {enabled:true, state:'LOCATION_UNAVAILABLE'});
                 if (url.endsWith('/location')) state.state = 'MONITORING';
-                if (url.endsWith('/signal-lost')) state.state = 'UNCONFIRMED';
+                if (url.endsWith('/signal-lost')) state.state = 'LOCATION_UNAVAILABLE';
                 if (url.endsWith('/response')) {
                     if (body.response === 'WAITING') state.state = 'WAITING';
+                    else if (body.response === 'RUNNING') state.state = state.enabled ? 'MONITORING' : 'DISABLED';
                     else Object.assign(state, {active:false, state:'ENDED', endReason:body.response === 'BREAK' ? 'PAUSE' : 'COMPLETED'});
                 }
             }
@@ -67,11 +68,8 @@ test('enable sends a fresh GPS fix and CSRF; waiting keeps controls active', asy
     await f.click('WAITING'); assert.match(f.element('movement-status').textContent,/Waiting at pickup/);
     assert.equal(f.element('movement-responses').hidden,false);
 });
-test('prompt shows deadline; break closes UI and stops later telemetry', async () => {
+test('break closes UI and stops later telemetry without a check-in prompt', async () => {
     const f = await setup(); await f.click('movement-enable');
-    Object.assign(f.state,{state:'PROMPT',timeoutAt:new Date(Date.now()+600000).toISOString()});
-    await f.intervals[0](); assert.equal(f.element('movement-prompt').hidden,false);
-    assert.match(f.element('movement-deadline').textContent,/close for review/);
     await f.click('BREAK'); assert.match(f.element('movement-status').textContent,/On break/);
     assert.equal(f.element('movement-responses').hidden,true);
     const count=f.posts.length; await f.intervals[1](); await flush(); assert.equal(f.posts.length,count);
@@ -82,13 +80,24 @@ test('denied permission is reported; resume and stop sharing work', async () => 
     assert(f.posts.some(p=>p.url.endsWith('/signal-lost')));
     f.setMode('success'); await f.click('movement-enable');
     assert.match(f.element('movement-status').textContent,/Receiving reliable/);
-    await f.click('movement-stop'); assert.match(f.element('movement-status').textContent,/Status unconfirmed/);
+    await f.click('movement-stop'); assert.match(f.element('movement-status').textContent,/Service is active/);
     assert.equal(f.element('movement-enable').hidden,false);
 });
-test('end and automatic timeout both remove active controls', async () => {
+test('end and historical timeout both remove active controls', async () => {
     const f=await setup(); await f.click('movement-enable'); await f.click('END');
     assert.equal(f.state.endReason,'COMPLETED'); assert.equal(f.element('movement-enable').hidden,true);
     const timeout=await setup(); Object.assign(timeout.state,{active:false,state:'ENDED',endReason:'INACTIVITY_TIMEOUT'});
     await timeout.intervals[0](); assert.match(timeout.element('movement-status').textContent,/needs review/);
     assert.equal(timeout.element('movement-enable').hidden,true);
+});
+
+test('manual controls work without enabling location and require no recurring confirmation', async () => {
+    const f = await setup();
+    assert.equal(f.element('movement-responses').hidden, false);
+    assert.match(f.element('movement-status').textContent, /no check-ins/);
+    await f.click('WAITING'); assert.equal(f.state.active, true);
+    await f.click('RUNNING'); assert.equal(f.state.active, true);
+    assert.match(f.element('movement-status').textContent, /Service is active/);
+    assert.equal(f.posts.some(p => p.url.endsWith('/enable') || p.url.endsWith('/location')), false);
+    await f.click('END'); assert.equal(f.state.endReason, 'COMPLETED');
 });

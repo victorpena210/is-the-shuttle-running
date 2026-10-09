@@ -45,17 +45,18 @@ class MovementMonitoringTests {
     private static void feed(MovementState state,long from,long through) {
         for (long s=from;s<=through;s+=30) { state.accept(point(s,29.405,8,0.0),ROUTE,at(s));state.evaluate(at(s)); }
     }
-    @Test void promptAtTenAndTimeoutAtTwentyMinutes() {
+    @Test void stationaryServiceNeverPromptsOrTimesOut() {
         var state=stationary(570);assertNull(state.getPromptedAt());assertFalse(state.timedOut(at(599)));
-        feed(state,600,600);assertEquals(at(600),state.getPromptedAt());assertFalse(state.timedOut(at(1199)));
-        feed(state,630,1200);assertTrue(state.timedOut(at(1200)));assertEquals(at(1200),state.timeoutAt());
+        feed(state,600,600);assertNull(state.getPromptedAt());assertFalse(state.timedOut(at(1199)));
+        feed(state,630,1200);assertFalse(state.timedOut(at(1200)));assertNull(state.timeoutAt());
+        feed(state,1230,10800);assertNull(state.getPromptedAt());assertFalse(state.timedOut(at(10800)));
     }
-    @Test void waitingResetsBothTimersAndRequiresAnotherUnansweredCheck() {
+    @Test void waitingNeverRequiresAnotherCheckIn() {
         var state=stationary(600);state.acknowledge(at(600),true);
         assertTrue(state.waiting());assertNull(state.getPromptedAt());
         feed(state,630,1170);assertNull(state.getPromptedAt());
-        feed(state,1200,1200);assertEquals(at(1200),state.getPromptedAt());assertFalse(state.timedOut(at(1200)));
-        feed(state,1230,1800);assertTrue(state.timedOut(at(1800)));
+        feed(state,1200,1200);assertNull(state.getPromptedAt());assertFalse(state.timedOut(at(1200)));
+        feed(state,1230,1800);assertFalse(state.timedOut(at(1800)));
     }
     @Test void missingLocationsNeverCloseAndRecoveryStartsNewObservation() {
         var state=stationary(1110);state.evaluate(at(1200));
@@ -85,13 +86,13 @@ class MovementMonitoringTests {
         assertFalse(state.accept(point(615,29.405,8,3.0),ROUTE,at(615)));
         assertNull(state.getMovingAt());assertFalse(state.timedOut(at(1200)));
     }
-    @Test void routeIsRequiredForAutomaticConfirmationButNotInactivity() {
+    @Test void routeIsOptionalAndStationaryServiceNeverTimesOut() {
         var state=new MovementState();state.start(START);var noRoute=ShuttleRoute.parse("");
         state.accept(point(0,29.405,8,0.0),noRoute,START);
         assertFalse(state.accept(point(30,29.406,8,4.0),noRoute,at(30)));assertNull(state.getMovingAt());
         state=new MovementState();state.start(START);
         for (int t=0;t<=1200;t+=30) {state.accept(point(t,29.405,8,0.0),noRoute,at(t));state.evaluate(at(t));}
-        assertTrue(state.timedOut(at(1200)));
+        assertFalse(state.timedOut(at(1200)));
     }
     @Test void offRouteAndImpossibleJumpsAreUnconfirmedNotStationary() {
         var state=stationary(1170);
@@ -103,7 +104,7 @@ class MovementMonitoringTests {
     @Test void gpsJitterDoesNotConfirmMovement() {
         var state=stationary(0);
         for (int s=30;s<=600;s+=30) assertFalse(state.accept(point(s,29.405+(s%60==0 ? .00008 : -.00008),12,0.0),ROUTE,at(s)));
-        state.evaluate(at(600));assertNotNull(state.getPromptedAt());assertNull(state.getMovingAt());
+        state.evaluate(at(600));assertNull(state.getPromptedAt());assertNull(state.getMovingAt());
     }
     @Test void duplicateAndOutOfOrderFixesCannotKeepFeedAlive() {
         var state=stationary(600);
@@ -127,25 +128,45 @@ class MovementMonitoringTests {
         assertThrows(IllegalArgumentException.class,()->ShuttleRoute.parse("29,-98\n39,-98"));
         assertTrue(ROUTE.contains(29.405,-98.5,8));assertFalse(ROUTE.contains(29.405,-98.51,8));
     }
-    @Test void delayedSchedulerStillAllowsTenMinutesToAnswerPrompt() {
+    @Test void delayedSchedulerDoesNotCreatePrompt() {
         var state=new MovementState();state.start(START);
         for (int s=0;s<=1200;s+=30) state.accept(point(s,29.405,8,0.0),ROUTE,at(s));
-        state.evaluate(at(1200));assertFalse(state.timedOut(at(1200)));assertEquals(at(1800),state.timeoutAt());
+        state.evaluate(at(1200));assertFalse(state.timedOut(at(1200)));assertNull(state.timeoutAt());
     }
-    @Test void lossSignalIsImmediateAndCannotBeUndoneByHumanConfirmationAlone() {
+    @Test void lostLocationDoesNotDowngradeActiveService() {
         var f=new Fixture();var s=f.session;var m=s.getMovement();m.start(START);feed(m,0,600);
         m.loseSignal();s.confirmRunning(at(630),f.user);assertFalse(m.fresh(at(630)));assertFalse(m.timedOut(at(1200)));
-        var policy=new ServiceFreshnessPolicy("America/Chicago",120,15);assertFalse(policy.isFresh(s,at(630)));
+        var policy=new ServiceFreshnessPolicy();assertTrue(policy.isFresh(s,at(630)));
     }
-    @Test void timeoutClosesOnceWithSystemAttributionAndReviewFlag() {
+    @Test void schedulerNeverClosesStationaryOrDisconnectedSession() throws Exception {
         var f=new Fixture();var s=f.session;s.getMovement().start(START);feed(s.getMovement(),0,1200);
+        // An old persisted prompt must not restore the removed cutoff.
+        var prompt=MovementState.class.getDeclaredField("promptedAt");prompt.setAccessible(true);prompt.set(s.getMovement(),at(600));
+        assertNull(MovementMonitoringService.snapshot(s,at(1200)).promptedAt());
+        assertNull(MovementMonitoringService.snapshot(s,at(1200)).timeoutAt());
         f.monitor.evaluateOrganization(1L,at(1200));
-        assertFalse(s.isActive());assertEquals(DrivingSessionEndReason.INACTIVITY_TIMEOUT,s.getEndReason());
-        assertEquals(DrivingActionMethod.AUTOMATIC,s.getEndMethod());assertNull(s.getEndedBy());assertTrue(s.isInactivityReviewNeeded());
-        f.monitor.evaluateOrganization(1L,at(1230));assertEquals(at(1200),s.getEndedAt());
-        s.reviewInactivity(f.user,"Driver confirmed break; <script>text</script>",at(1260));
-        assertFalse(s.isInactivityReviewNeeded());assertEquals(DrivingSessionEndReason.INACTIVITY_TIMEOUT,s.getEndReason());
-        assertThrows(IllegalStateException.class,()->s.reviewInactivity(f.user,"Again",at(1290)));
+        assertTrue(s.isActive());assertNull(s.getEndReason());assertNull(s.getEndedAt());
+        assertNull(s.getMovement().getPromptedAt());assertFalse(s.isInactivityReviewNeeded());
+        f.monitor.evaluateOrganization(1L,at(10800));
+        assertTrue(s.isActive());assertEquals(RiderOperationalStatus.RUNNING,f.riderAt(at(10800)).operationalStatus());
+        assertTrue(f.riderAt(at(10800)).confirmationAvailable());
+    }
+    @Test void optionalControlsWorkWithoutLocationAndWaitingSurvivesSignalLoss() throws Exception {
+        var f=new Fixture();
+        f.monitor.respond(f.auth,10L,MovementMonitoringService.Response.WAITING);
+        assertFalse(f.session.getMovement().enabled());
+        assertEquals("WAITING",f.monitor.signalLost(f.auth,10L).state());
+        assertEquals(RiderOperationalStatus.WAITING_AT_PICKUP,f.riderAt(Instant.now()).operationalStatus());
+        f.monitor.respond(f.auth,10L,MovementMonitoringService.Response.RUNNING);
+        assertTrue(f.session.isActive());assertFalse(f.session.getMovement().waiting());
+        assertEquals(RiderOperationalStatus.RUNNING,f.riderAt(Instant.now()).operationalStatus());
+    }
+    @Test void enablingLocationWithoutPermissionDoesNotDowngradeService() throws Exception {
+        var f=new Fixture();f.monitor.enable(f.auth,10L);
+        assertEquals("LOCATION_UNAVAILABLE",f.monitor.status(f.auth,10L).state());
+        assertEquals(RiderOperationalStatus.RUNNING,f.riderAt(Instant.now()).operationalStatus());
+        f.monitor.signalLost(f.auth,10L);
+        assertEquals(RiderOperationalStatus.RUNNING,f.riderAt(Instant.now().plusSeconds(86400)).operationalStatus());
     }
     @Test void scheduledTimeoutDoesNotAwardCompletionOrMakeupCredit() {
         var f=new Fixture();var a=DriverAssignment.automatic(LocalDate.of(2026,10,6),ShuttlePeriod.MORNING,f.driver);a.updateScheduledTimes(LocalTime.of(9,0),LocalTime.NOON);
@@ -191,12 +212,13 @@ class MovementMonitoringTests {
         var f=new Fixture();String text=MovementMonitoringService.snapshot(f.session,START).toString();
         assertFalse(text.contains("latitude"));assertFalse(text.contains("longitude"));assertFalse(text.contains("29.4"));
     }
-    @Test void riderSeesWaitingThenUnconfirmedWithTrueConfirmationTime() throws Exception {
+    @Test void riderSeesWaitingEvenWhenLocationStops() throws Exception {
         var f=new Fixture();var m=f.session.getMovement();m.start(START);feed(m,0,600);
         f.session.confirmRunning(at(600),f.user);m.acknowledge(at(600),true);
         var status=f.riderAt(at(600));assertEquals(RiderOperationalStatus.WAITING_AT_PICKUP,status.operationalStatus());assertTrue(status.running());
-        status=f.riderAt(at(690));assertEquals(RiderOperationalStatus.CONFIRMATION_NEEDED,status.operationalStatus());assertEquals(at(600),status.lastConfirmedAt());
-        assertFalse(status.confirmationAvailable());assertTrue(status.detail().contains("does not mean"));
+        f.monitor.evaluateOrganization(1L,at(10800));
+        status=f.riderAt(at(10800));assertEquals(RiderOperationalStatus.WAITING_AT_PICKUP,status.operationalStatus());assertEquals(at(600),status.lastConfirmedAt());
+        assertTrue(status.confirmationAvailable());assertNull(status.confirmationDueAt());
     }
     @Test void automaticCloseIsNotAServiceConfirmation() throws Exception {
         var f=new Fixture();f.session.end(at(1200),null,DrivingActionMethod.AUTOMATIC,DrivingSessionEndReason.INACTIVITY_TIMEOUT);
@@ -216,7 +238,9 @@ class MovementMonitoringTests {
         model.put("timestampDisplay",new TimestampDisplay("America/Chicago"));
         model.put("_csrf",Map.of("token","test-token","headerName","X-CSRF-TOKEN","parameterName","_csrf"));
         String html=engine.process("driver/home",WebTemplateContext.create(model));
-        assertTrue(html.contains("data-session-id=\"10\""));assertTrue(html.contains("Waiting for passengers"));assertTrue(html.contains("Respond only while safely parked"));
+        assertTrue(html.contains("data-session-id=\"10\""));assertTrue(html.contains("Waiting for passengers"));assertTrue(html.contains("Use these controls only while safely parked"));
+        assertTrue(html.contains("No repeat check-ins are required"));assertFalse(html.contains("Next confirmation due"));
+        assertFalse(html.contains("id=\"movement-prompt\""));
         assertTrue(html.contains("test-token"));assertTrue(html.contains("/js/pages/driver-movement.js"));
         f.session.end(at(1200),null,DrivingActionMethod.AUTOMATIC,DrivingSessionEndReason.INACTIVITY_TIMEOUT);
         model.put("movementRoute",ROUTE.normalized());model.put("reviews",List.of(f.session));
@@ -301,7 +325,7 @@ class MovementMonitoringTests {
         RiderStatusService.RiderStatus riderAt(Instant now) throws Exception {
             var operations=new OperationalStatusService(null,null,null) {@Override public Optional<technology.renatus.routepulse.operations.model.OperationalStatusUpdate> findLatest(Long id){return Optional.empty();}};
             var rider=new RiderStatusService(organizations(),repository(),proxy(DriverAssignmentRepository.class,(m,a)->List.of()),operations,
-                    new ServiceFreshnessPolicy("America/Chicago",120,15),"America/Chicago",10,15);
+                    new ServiceFreshnessPolicy(),"America/Chicago",10,15);
             var method=RiderStatusService.class.getDeclaredMethod("getStatus",String.class,Instant.class);method.setAccessible(true);
             return (RiderStatusService.RiderStatus)method.invoke(rider,"test",now);
         }

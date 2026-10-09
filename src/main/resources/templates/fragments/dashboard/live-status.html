@@ -14,7 +14,7 @@
            target="_blank" rel="noopener">Open rider page</a>
     </div>
 
-    <p><a class="button button--secondary" th:href="@{/operations/movement}">Movement monitoring &amp; timeout reviews</a></p>
+    <p><a class="button button--secondary" th:href="@{/operations/movement}">Optional location &amp; historical reviews</a></p>
 
     <div class="live-status-current">
         <div>
@@ -32,7 +32,7 @@
             </small>
             <p th:if="${operationalStatusUpdate != null}">
                 Update expires <strong th:text="${timestampDisplay.format(operationalStatusUpdate.expiresAt, 'MMM d, h:mm a z')}"></strong>.
-                Expired temporary overrides require a fresh confirmation or a return to automatic status.
+                When a temporary override expires, rider status returns to the recorded session state.
             </p>
         </div>
         <div>
@@ -45,14 +45,9 @@
     </div>
 
     <div class="alert" th:if="${currentRiderStatus.activeSessionId != null}">
-        <h3>Confirm or close the active session</h3>
-        <p>Confirm only after checking that the shuttle is still operating. Closing records the actual end time you enter.</p>
-        <p>Session confirmation due:
-            <strong th:text="${timestampDisplay.format(currentRiderStatus.confirmationDueAt, 'MMM d, h:mm a z')}"></strong>.</p>
-        <form th:action="@{/operations/confirm-running}" method="post">
-            <input type="hidden" name="sessionId" th:value="${currentRiderStatus.activeSessionId}">
-            <button class="button" type="submit">Confirm shuttle is still running</button>
-        </form>
+        <h3>Manage the active session</h3>
+        <p>Sessions stay active without repeat check-ins or location updates. A driver can pause or end service,
+            another driver can take over, or a manager can close the session using its actual end time.</p>
         <form th:action="@{/operations/close-session}" method="post" class="live-status-form">
             <input type="hidden" name="sessionId" th:value="${currentRiderStatus.activeSessionId}">
             <label for="actual-service-end">Actual service end <span th:text="${currentRiderStatus.scheduleZone}"></span></label>

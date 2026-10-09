@@ -39,8 +39,6 @@ public class DriverPortalController {
         var active = driverPortalService.getActiveConfirmation(authentication);
         if (active != null) {
             model.addAttribute("activeSessionId", active.sessionId());
-            model.addAttribute("confirmationDueAt", active.dueAt());
-            model.addAttribute("confirmationOverdue", active.overdue());
         }
         model.addAttribute("driverPage", "assignment");
         model.addAttribute(

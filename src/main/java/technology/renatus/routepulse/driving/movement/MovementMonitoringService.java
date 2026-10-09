@@ -20,7 +20,7 @@ import technology.renatus.routepulse.organization.service.CurrentOrganizationSer
 @Service
 @Transactional
 public class MovementMonitoringService {
-    public enum Response { WAITING, BREAK, END }
+    public enum Response { RUNNING, WAITING, BREAK, END }
     private final DriverPortalAccessService access;
     private final CurrentOrganizationService current;
     private final OrganizationMembershipRepository memberships;
@@ -69,9 +69,10 @@ public class MovementMonitoringService {
         var session=owned(auth,sessionId); requireActive(session);
         UserAccount user=access.requireCurrentUser(auth);
         Instant now=Instant.now();
-        if (response==Response.WAITING) {
+        if (response==null) throw new IllegalArgumentException("Choose a session action.");
+        if (response==Response.WAITING || response==Response.RUNNING) {
             session.confirmRunning(now,user);
-            session.getMovement().acknowledge(now,true);
+            session.getMovement().acknowledge(now,response==Response.WAITING);
         } else {
             sessions.endSession(session.getAssignment(),session,user,now,DrivingActionMethod.DRIVER,
                     response==Response.BREAK ? DrivingSessionEndReason.PAUSE : DrivingSessionEndReason.COMPLETED);
@@ -85,11 +86,8 @@ public class MovementMonitoringService {
         if (session!=null) evaluate(session,now);
     }
     void evaluate(DrivingSession session, Instant now) {
+        // Optional location telemetry must never end a driving session.
         session.getMovement().evaluate(now);
-        if (session.isActive() && session.getMovement().timedOut(now)) {
-            sessions.endSession(session.getAssignment(),session,null,now,DrivingActionMethod.AUTOMATIC,
-                    DrivingSessionEndReason.INACTIVITY_TIMEOUT);
-        }
     }
     private UserAccount manager(Authentication auth, Long organizationId) {
         var user=access.requireCurrentUser(auth);
@@ -117,12 +115,11 @@ public class MovementMonitoringService {
     }
     static Snapshot snapshot(DrivingSession session, Instant now) {
         var m=session.getMovement();
-        String state=!session.isActive() ? "ENDED" : !m.enabled() ? "DISABLED"
-                : !m.fresh(now) ? "UNCONFIRMED" : m.getPromptedAt()!=null ? "PROMPT"
-                : m.waiting() ? "WAITING" : "MONITORING";
+        String state=!session.isActive() ? "ENDED" : m.waiting() ? "WAITING"
+                : !m.enabled() ? "DISABLED" : !m.fresh(now) ? "LOCATION_UNAVAILABLE" : "MONITORING";
         return new Snapshot(session.getId(),session.isActive(),m.enabled(),state,
                 session.getOrganization().getMovementRoute()!=null && !session.getOrganization().getMovementRoute().isBlank(),
-                session.getLastConfirmedAt(),m.getReceivedAt(),m.getMovingAt(),m.getStationarySince(),m.getPromptedAt(),m.timeoutAt(),
+                session.getLastConfirmedAt(),m.getReceivedAt(),m.getMovingAt(),m.getStationarySince(),null,null,
                 session.getEndReason()==null ? null : session.getEndReason().name());
     }
     public record Snapshot(Long sessionId, boolean active, boolean enabled, String state, boolean routeConfigured,

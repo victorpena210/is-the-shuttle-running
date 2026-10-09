@@ -195,5 +195,4 @@
 .movement-panel p { max-width: 76ch; }
 .movement-actions { display: flex; flex-wrap: wrap; gap: .75rem; margin: 1rem 0; }
 .movement-actions .button { min-height: 48px; }
-#movement-prompt { border: 2px solid #946815; padding: 1rem; margin-top: 1.25rem; }
 #movement-connection:empty { display: none; }

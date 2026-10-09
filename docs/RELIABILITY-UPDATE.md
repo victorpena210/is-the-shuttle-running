@@ -1,3 +1,6 @@
+> Updated October 9, 2026: confirmation deadlines and inactivity cutoffs below are historical.
+> Active sessions now follow manual session actions; see [MANUAL-SESSION-STATUS.md](MANUAL-SESSION-STATUS.md).
+
 # Coverage and rider-status reliability update
 
 ## Apply and verify

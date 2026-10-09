@@ -2,7 +2,7 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Movement monitoring | Is the Shuttle Running</title>
+    <title>Optional location sharing | Is the Shuttle Running</title>
     <link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
     <link rel="stylesheet" th:href="@{/css/site.css}">
 </head>
@@ -10,8 +10,8 @@
 <th:block th:replace="~{fragments/navigation :: managerNav('live-status')}"></th:block>
 <main id="main-content" class="app-main">
     <a th:href="@{/app#live-status}">← Back to live shuttle status</a>
-    <header class="page-header"><div><p class="eyebrow">Service reliability</p><h1>Movement monitoring</h1>
-        <p>Confirm service from reliable route movement and review sessions closed after inactivity.</p></div></header>
+    <header class="page-header"><div><p class="eyebrow">Service reliability</p><h1>Optional location sharing</h1>
+        <p>Location is optional. Active sessions do not expire or require driver check-ins.</p></div></header>
     <p class="alert alert--success" role="status" th:if="${successMessage}" th:text="${successMessage}"></p>
     <p class="alert alert--error" role="alert" th:if="${errorMessage}" th:text="${errorMessage}"></p>
     <section class="panel" aria-labelledby="route-heading">
@@ -23,16 +23,17 @@
                 <textarea id="movement-route" name="route" rows="8" maxlength="12000" th:text="${movementRoute}"
                           aria-describedby="route-help" spellcheck="false"></textarea>
                 <p id="route-help">Copy coordinates from your map. Use 2–100 points, with adjacent points within 10 km.
-                    Leaving this empty disables automatic confirmation from movement. Stationary monitoring still works.</p></div>
+                    Leaving this empty disables recording of route movement. Service remains active either way.</p></div>
             <button class="button" type="submit">Save shuttle route</button>
         </form>
         <p>The active driver enables location from their driver page on a device kept in the shuttle.
             A browser needs an open page and location permission. It cannot guarantee updates while the screen is locked.</p>
-        <p>Accurate stationary updates trigger a parked-only check-in after 10 minutes. Waiting restarts the check-in period.
-            After 20 minutes without a response, the session closes for review. Missing or unreliable updates never trigger a timeout.</p>
+        <p>Stationary time, locking the phone, closing the browser, or losing location updates does not change service status.
+            Drivers do not need to respond to prompts to keep service active.</p>
     </section>
     <section class="panel" aria-labelledby="reviews-heading">
-        <h2 id="reviews-heading">Inactivity timeouts — needs review</h2>
+        <h2 id="reviews-heading">Historical inactivity timeouts — needs review</h2>
+        <p>Automatic inactivity closure has been removed. These records are from the previous policy.</p>
         <p>A timeout is an automatic session close, not proof of an employee’s work or the exact time service stopped.
             Check with the driver before drawing a conclusion. Reviewing records your note; it does not change the original times or confirm live service.</p>
         <p th:if="${#lists.isEmpty(reviews)}">No inactivity timeouts are waiting for review.</p>

@@ -5,12 +5,10 @@ import jakarta.persistence.Embeddable;
 import java.time.Duration;
 import java.time.Instant;
 
-/** A bounded snapshot, not a location history. All inactivity decisions require continuous evidence. */
+/** Optional location snapshot; location quality never determines whether service is active. */
 @Embeddable
 public class MovementState {
     public static final long FRESH_SECONDS = 90;
-    public static final long PROMPT_SECONDS = 600;
-    public static final long TIMEOUT_SECONDS = 1200;
     @Column(name="monitoring_started_at") private Instant startedAt;
     @Column(name="location_captured_at") private Instant capturedAt;
     @Column(name="location_received_at") private Instant receivedAt;
@@ -40,7 +38,7 @@ public class MovementState {
     public void loseSignal() { uncertain = true; resetContinuity(); }
     private void resetContinuity() {
         stationarySince = null; promptedAt = null; anchorLat = null; anchorLon = null;
-        anchorAccuracy = null; anchorAt = null; waiting = false;
+        anchorAccuracy = null; anchorAt = null;
     }
     private void anchor(LocationSample p, Instant now) {
         anchorLat=p.latitude(); anchorLon=p.longitude(); anchorAccuracy=p.accuracy(); anchorAt=now;
@@ -81,18 +79,17 @@ public class MovementState {
         return confirmed;
     }
     public void evaluate(Instant now) {
-        if (!fresh(now)) { if (enabled()) loseSignal(); return; }
-        if (stationarySince!=null && !now.isBefore(stationarySince.plusSeconds(PROMPT_SECONDS)) && promptedAt==null)
-            promptedAt=now;
+        // Clear prompts persisted before manual session control was introduced.
+        promptedAt=null;
+        if (!fresh(now) && enabled()) loseSignal();
     }
     public boolean timedOut(Instant now) {
-        return fresh(now) && stationarySince!=null && promptedAt!=null
-                && !now.isBefore(stationarySince.plusSeconds(TIMEOUT_SECONDS))
-                && !now.isBefore(promptedAt.plusSeconds(TIMEOUT_SECONDS-PROMPT_SECONDS));
+        // Retained for compatibility; automatic inactivity closure is disabled.
+        return false;
     }
     public void acknowledge(Instant now, boolean waitingForPassengers) {
         promptedAt=null; waiting=waitingForPassengers;
-        // A human response restarts the observation period, never makes a missing GPS feed fresh.
+        // Optional driver actions do not fabricate location evidence.
         stationarySince=fresh(now) ? now : null;
         if (lastLat!=null) { anchorLat=lastLat; anchorLon=lastLon; anchorAccuracy=lastAccuracy; anchorAt=now; }
     }
@@ -104,9 +101,7 @@ public class MovementState {
     public Instant getStationarySince() { return stationarySince; }
     public Instant getPromptedAt() { return promptedAt; }
     public Instant timeoutAt() {
-        if (promptedAt==null || stationarySince==null) return null;
-        Instant nominal=stationarySince.plusSeconds(TIMEOUT_SECONDS), reply=promptedAt.plusSeconds(PROMPT_SECONDS);
-        return nominal.isAfter(reply) ? nominal : reply;
+        return null;
     }
     public void clearCoordinates() {
         anchorLat=null; anchorLon=null; anchorAccuracy=null; anchorAt=null;

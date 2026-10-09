@@ -40,36 +40,30 @@
     function render(data) {
         if (ended && data.active) return;
         const messages = {
-            DISABLED: 'Location monitoring is off. Enable it while safely parked to begin.',
-            UNCONFIRMED: 'Status unconfirmed — waiting for reliable location updates.',
-            PROMPT: 'Stationary check-in needed. Respond only while safely parked.',
+            DISABLED: 'Service is active. Location sharing is optional; no check-ins are required.',
+            LOCATION_UNAVAILABLE: 'Service is active. Location updates are unavailable; no action is required.',
             WAITING: 'Waiting at pickup — service remains active.',
-            MONITORING: 'Receiving reliable location updates. Stationary time is being monitored.',
-            ENDED: data.endReason === 'INACTIVITY_TIMEOUT' ? 'Inactivity timeout — needs review. Your session has closed automatically.'
+            MONITORING: 'Receiving reliable location updates. Service stays active without check-ins.',
+            ENDED: data.endReason === 'INACTIVITY_TIMEOUT' ? 'This session was closed by the previous inactivity policy and needs review. Start a new session to drive.'
                 : data.endReason === 'PAUSE' ? 'On break — service is paused. Use the NFC/QR checkpoint to resume.' : 'This session has ended.'
         };
         get('movement-status').textContent = messages[data.state] || 'Checking status…';
         get('movement-confirmed').textContent = 'Last service confirmation: ' + time(data.lastConfirmedAt)
             + (data.movementConfirmedAt ? '. Last route movement: ' + time(data.movementConfirmedAt) : '.');
         get('movement-route-note').hidden = data.routeConfigured || !data.active;
-        get('movement-prompt').hidden = data.state !== 'PROMPT';
-        get('movement-deadline').textContent = data.timeoutAt
-            ? 'If reliable stationary updates continue with no response, this session will close for review at ' + time(data.timeoutAt) + '.' : '';
-        get('movement-responses').hidden = !data.enabled || !data.active;
+        get('movement-responses').hidden = !data.active;
         if (!data.active) {
             ended = true; sharing = false; storage('off');
             clearInterval(pollTimer); clearInterval(locationTimer);
-            const confirmation = document.getElementById('service-confirmation-heading')?.closest('section');
-            if (confirmation) confirmation.hidden = true;
             if (!get('movement-refresh')) {
                 const link = document.createElement('a'); link.id = 'movement-refresh'; link.href = '/driver';
                 link.textContent = 'Refresh assignments and driving records'; panel.append(link);
             }
         }
         enable.hidden = sharing || ended; stop.hidden = !sharing || ended;
-        enable.textContent = data.enabled ? 'Resume sharing location' : 'Enable location for this session';
+        enable.textContent = data.enabled ? 'Resume sharing location' : 'Share location for this session';
     }
-    function error(ex) { get('movement-connection').textContent = ex.message || 'Unable to connect. Status cannot be confirmed.'; }
+    function error(ex) { get('movement-connection').textContent = ex.message || 'Unable to connect. Your last recorded session status has not changed.'; }
     async function lost(message) {
         get('movement-connection').textContent = message;
         if (!lastLost && !ended) {
@@ -116,7 +110,7 @@
     enable.addEventListener('click',begin);
     stop.addEventListener('click', async () => {
         sharing = false; storage('off'); enable.hidden = false; stop.hidden = true;
-        await lost('Location sharing stopped. Rider status will remain unconfirmed until reliable updates resume.');
+        await lost('Location sharing stopped. Your session remains active.');
     });
     panel.querySelectorAll('[data-movement-response]').forEach(button => button.addEventListener('click', async () => {
         if (responding || ended) return;

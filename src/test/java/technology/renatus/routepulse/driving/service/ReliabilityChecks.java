@@ -87,21 +87,24 @@ public final class ReliabilityChecks {
 
     private static void freshness() {
         Fixture f = new Fixture();
-        var policy = new ServiceFreshnessPolicy("America/Chicago",120,15);
+        var policy = new ServiceFreshnessPolicy();
         var a = assignment(f.driver,ShuttlePeriod.AFTERNOON,"19:00","23:00");
         var session = DrivingSession.start(a,f.driver,NOW.minusSeconds(3600),f.user,DrivingActionMethod.MANAGER);
         equal(true, policy.isFresh(session,NOW), "recent session is fresh");
-        equal(false, policy.isFresh(session,NOW.plusSeconds(3600)), "exact two-hour boundary is stale");
+        equal(true, policy.isFresh(session,NOW.plusSeconds(3600)), "two-hour boundary does not expire service");
         session.confirmRunning(NOW,f.user);
-        equal(Instant.parse("2026-10-10T04:15:00Z"), policy.confirmationDueAt(session), "scheduled end plus grace caps deadline");
+        equal(null, policy.confirmationDueAt(session), "no scheduled-end confirmation deadline");
+        equal(true,policy.isFresh(session,NOW.plusSeconds(86400)),"open session remains active beyond scheduled end");
         session.confirmRunning(Instant.parse("2026-10-10T04:10:00Z"),f.user);
         equal(true,policy.isFresh(session,Instant.parse("2026-10-10T04:30:00Z")),"explicit late-service confirmation extends service");
         var overnight = assignment(f.driver,ShuttlePeriod.AFTERNOON,"23:00","01:00");
         var nightSession = DrivingSession.start(overnight,f.driver,Instant.parse("2026-10-10T04:30:00Z"),f.user,DrivingActionMethod.MANAGER);
-        equal(Instant.parse("2026-10-10T06:15:00Z"),policy.confirmationDueAt(nightSession),"overnight deadline uses next date");
+        equal(null,policy.confirmationDueAt(nightSession),"overnight sessions have no confirmation deadline");
         var unscheduled = DrivingSession.startUnscheduled(f.org,f.driver,NOW.minusSeconds(7200),f.user,DrivingActionMethod.MANAGER);
-        equal(false,policy.isFresh(unscheduled,NOW),"unscheduled sessions also expire");
-        equal(true,unscheduled.isActive(),"freshness never silently ends history");
+        equal(true,policy.isFresh(unscheduled,NOW),"unscheduled sessions stay active");
+        unscheduled.end(NOW,f.user,DrivingActionMethod.DRIVER);
+        equal(false,policy.isFresh(unscheduled,NOW),"explicit end stops service");
+        equal(false,policy.isFresh(null,NOW),"missing session cannot claim running");
         var expired = new OperationalStatusUpdate(1L,OperationalStatusOverride.TEMPORARILY_PAUSED,"Old",2L,"Manager","test@example.com",NOW.minusSeconds(7200));
         equal(true,expired.isExpired(NOW),"legacy override expires without migration backfill");
         equal(false,expired.isExpired(NOW.minusSeconds(1)),"expiry boundary exclusive");
@@ -112,8 +115,9 @@ public final class ReliabilityChecks {
         f.active = DrivingSession.startUnscheduled(f.org,f.driver,NOW.minusSeconds(10800),f.user,DrivingActionMethod.MANAGER); id(f.active,10L);
         var service = f.riderService();
         var stale = service.getStatus("test",NOW);
-        equal(RiderOperationalStatus.CONFIRMATION_NEEDED,stale.operationalStatus(),"old session cannot report running");
-        equal(false,stale.confirmationAvailable(),"no passenger confirmation for stale status");
+        equal(RiderOperationalStatus.RUNNING,stale.operationalStatus(),"open session keeps running after three hours");
+        equal(true,stale.confirmationAvailable(),"passenger confirmation stays available for active service");
+        equal(null,stale.confirmationDueAt(),"rider status has no check-in deadline");
         equal(f.active.getStartedAt(),stale.lastConfirmedAt(),"page refresh does not advance confirmation");
         service.getStatus("test",NOW.plusSeconds(20));
         equal(f.active.getStartedAt(),f.active.getLastConfirmedAt(),"GET is read only");
@@ -123,7 +127,7 @@ public final class ReliabilityChecks {
         equal(RiderOperationalStatus.TEMPORARILY_PAUSED,service.getStatus("test",NOW).operationalStatus(),"live manager pause wins");
         f.update = update(OperationalStatusOverride.TEMPORARILY_PAUSED,NOW.minusSeconds(7300));
         f.active = DrivingSession.startUnscheduled(f.org,f.driver,NOW.minusSeconds(3600),f.user,DrivingActionMethod.MANAGER); id(f.active,11L);
-        equal(RiderOperationalStatus.CONFIRMATION_NEEDED,service.getStatus("test",NOW).operationalStatus(),"expired override cannot reveal older session as running");
+        equal(RiderOperationalStatus.RUNNING,service.getStatus("test",NOW).operationalStatus(),"expired override returns to active session without check-in");
         f.active.confirmRunning(NOW,f.user);
         equal(RiderOperationalStatus.RUNNING,service.getStatus("test",NOW).operationalStatus(),"new evidence supersedes expired override");
         f.update = update(OperationalStatusOverride.SERVICE_ENDING_SOON,NOW.minusSeconds(60));
@@ -149,11 +153,17 @@ public final class ReliabilityChecks {
             if (status == running) {
                 check(html.indexOf("pickup-heading") < html.indexOf("schedule-heading") && html.indexOf("schedule-heading") < html.indexOf("id=\"confirm-ride\""),"rider information precedes confirmation");
                 check(html.contains("&lt;script&gt;") && !html.contains("<script>alert(1)</script>"),"public rider text is escaped");
-            } else check(!html.contains("Confirm my ride"),"stale template has no confirmation action");
+            } else check(html.contains("Confirm my ride"),"long-running session keeps passenger confirmation action");
         }
         f.active = DrivingSession.startUnscheduled(f.org,f.driver,Instant.now().minusSeconds(10800),f.user,DrivingActionMethod.MANAGER); id(f.active,13L);
-        var passenger = new PassengerRideService(f.organizations(),f.sessions(),proxy(PassengerRideConfirmationRepository.class,(m,a)-> {throw new AssertionError("stale service must not write ride confirmations");}),service,30);
-        equal(PassengerRideService.ConfirmationResult.NO_ACTIVE_SHUTTLE,passenger.confirmRide("test","device"),"direct POST cannot bypass freshness");
+        var passenger = new PassengerRideService(f.organizations(),f.sessions(),proxy(PassengerRideConfirmationRepository.class,(m,a)-> {
+            if (m.startsWith("exists")) return false;
+            if (m.equals("saveAndFlush")) return a[0];
+            throw new AssertionError("Unexpected passenger repository call: " + m);
+        }),service,30);
+        equal(PassengerRideService.ConfirmationResult.RECORDED,passenger.confirmRide("test","device"),"ride POST works after three hours without driver check-in");
+        f.active = null;
+        equal(PassengerRideService.ConfirmationResult.NO_ACTIVE_SHUTTLE,passenger.confirmRide("test","device"),"ride POST requires an active session");
     }
 
     private static void authorization() {
@@ -238,6 +248,6 @@ public final class ReliabilityChecks {
         });}
         OperationalStatusService operations(){return new OperationalStatusService(null,null,null){@Override public Optional<OperationalStatusUpdate> findLatest(Long org){return Optional.ofNullable(update);}};}
         RiderStatusService riderService(){return new RiderStatusService(organizations(),sessions(),
-                proxy(DriverAssignmentRepository.class,(m,a)-> DAY.equals(a[1])?assignments:List.of()),operations(),new ServiceFreshnessPolicy("America/Chicago",120,15),"America/Chicago",10,15);}
+                proxy(DriverAssignmentRepository.class,(m,a)-> DAY.equals(a[1])?assignments:List.of()),operations(),new ServiceFreshnessPolicy(),"America/Chicago",10,15);}
     }
 }
