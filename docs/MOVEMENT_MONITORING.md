@@ -1,3 +1,8 @@
+> **Historical design note:** the current application has optional location sharing, but
+> no 10-minute check-in requirement or 20-minute automatic inactivity closure.
+> See [current session behavior](MANUAL-SESSION-STATUS.md). The earlier timeout
+> design below is retained for context and must not be used as current setup guidance.
+
 # Optional movement monitoring
 
 Updated October 9, 2026. Service now follows the recorded driving session, independently of phone location.

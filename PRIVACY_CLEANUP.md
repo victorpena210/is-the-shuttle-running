@@ -1,6 +1,8 @@
 # Privacy cleanup
 
-This copy of RoutePulse contains no bundled driver records or saved schedule data.
+The current source tree contains no bundled employee schedule exports or real
+driver seed records. Template fallback labels and test examples use fictional
+drivers. This describes the source files, not a production database.
 
 The cleanup removed:
 
@@ -65,3 +67,25 @@ imported comparison hours, confirmation time, actor, and screenshot SHA-256 hash
 (not image bytes). These registered-driver operational audit records are retained
 with driver records; they are separate from the ordinary employee CSV rows removed
 by nightly retention. `scripts/purge-application-data.sql` includes this table.
+
+## Public repository history cleanup — October 2026
+
+Earlier commits retained schedule files and real driver seed values after the
+working tree had been cleaned. A later audit also found real names and employee
+IDs in template fallback text and a test fixture. These need cleaning in both
+the current source and every retained branch, not just a new deletion commit.
+
+The cleanup removes the historical `src/main/resources/data/` directory,
+including CSV and Numbers files, and replaces the known employee names and IDs
+in historical source with fictional demo values. Original commit history is
+preserved apart from the affected content and resulting commit hashes.
+
+After a history rewrite, use a fresh clone. Do not merge or push an old clone's
+branches, because that can restore the removed data. No production database
+purge or Flyway reset is part of this repository cleanup.
+
+Rewriting branches does not guarantee that GitHub has purged cached commits or
+references in existing pull requests. Follow GitHub's
+[sensitive-data removal procedure](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)
+and request Support cleanup where needed. Any downloaded copies remain outside
+the repository owner's control.

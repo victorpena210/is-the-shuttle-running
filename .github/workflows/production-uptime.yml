@@ -1,4 +1,4 @@
-name: RoutePulse Production Uptime
+name: Is the Shuttle Running Uptime
 
 on:
   schedule:
@@ -11,14 +11,14 @@ permissions:
 
 jobs:
   readiness-check:
-    # Add ROUTEPULSE_PRODUCTION_URL as a repository Actions variable.
-    # Until it exists, this workflow intentionally remains dormant.
-    if: ${{ vars.ROUTEPULSE_PRODUCTION_URL != '' }}
+    # Monitor this project's public origin by default. Forks must opt in with
+    # their own URL instead of polling the original project's production app.
+    if: ${{ github.repository == 'victorpena210/is-the-shuttle-running' || vars.ROUTEPULSE_PRODUCTION_URL != '' }}
     runs-on: ubuntu-latest
     timeout-minutes: 3
 
     env:
-      ROUTEPULSE_PRODUCTION_URL: ${{ vars.ROUTEPULSE_PRODUCTION_URL }}
+      ROUTEPULSE_PRODUCTION_URL: ${{ vars.ROUTEPULSE_PRODUCTION_URL || 'https://istheshuttlerunning.com' }}
       INCIDENT_TITLE: "[Uptime] RoutePulse production readiness check failed"
 
     steps:
@@ -47,7 +47,7 @@ jobs:
             if (!existing) {
               await github.rest.issues.create({
                 owner, repo, title,
-                body: `The scheduled production readiness check failed at ${new Date().toISOString()}.\n\nEndpoint: ${process.env.ROUTEPULSE_PRODUCTION_URL.replace(/\/$/, '')}/actuator/health/readiness\n\nReview the Railway deployment/database logs and Sentry before managers are affected.`
+                body: `The scheduled production readiness check failed at ${new Date().toISOString()}.\n\nEndpoint: ${process.env.ROUTEPULSE_PRODUCTION_URL.replace(/\/$/, '')}/actuator/health/readiness\n\nReview the application host, database logs, and configured error reporting.`
               });
             }
 

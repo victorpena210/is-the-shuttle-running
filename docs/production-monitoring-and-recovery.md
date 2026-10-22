@@ -40,12 +40,14 @@ The readiness probe includes application readiness, MySQL connectivity, disk
 space, and ping. The liveness probe intentionally excludes MySQL: a database
 outage should make RoutePulse *not ready*, but it should not cause a restart loop.
 
-In GitHub repository settings, create this Actions variable:
+The `Is the Shuttle Running Uptime` workflow defaults to
+`https://istheshuttlerunning.com` in the original repository. Set the optional
+Actions variable `ROUTEPULSE_PRODUCTION_URL` to override it with another public
+HTTPS origin, with no path. Forks must explicitly set their own URL to opt in.
 
-- `ROUTEPULSE_PRODUCTION_URL` = the public HTTPS origin, with no path.
-
-The `RoutePulse Production Uptime` workflow then checks readiness every five
-minutes. A failure makes the workflow red and opens one GitHub issue titled
+The workflow is scheduled every five minutes. GitHub Actions can delay scheduled
+runs, so this is not a guaranteed five-minute interval. Use **Run workflow** in
+Actions for an immediate manual check. A failure makes the workflow red and opens one GitHub issue titled
 `[Uptime] RoutePulse production readiness check failed`. When service recovers,
 the workflow comments on and closes that issue. Enable GitHub Actions/issue
 notifications for the repository so those incidents reach you.
@@ -116,8 +118,8 @@ normal traffic.
 ## Operating-day incident order
 
 1. Confirm `/actuator/health/readiness` and check the uptime incident timestamp.
-2. Check Railway application and MySQL status/logs.
-3. Check the newest Sentry exception and correlate its timestamp/route with Railway logs;
+2. Check the application host and MySQL status/logs.
+3. Check the newest Sentry exception and correlate its timestamp/route with application logs;
    if a manager has an error-page reference ID, search Railway logs for that ID.
 4. If the app is unhealthy but the database is healthy, redeploy/restart the app.
 5. If the database is damaged or data was deleted incorrectly, stop writes before

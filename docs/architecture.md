@@ -1,6 +1,6 @@
-# RoutePulse architecture
+# Is the Shuttle Running? architecture
 
-RoutePulse is a Java 17 / Spring Boot application. The application entry point is
+Is the Shuttle Running? (formerly RoutePulse) is a Java 17 / Spring Boot application. The application entry point is
 `technology.renatus.routepulse.RoutePulseApplication` and the Maven artifact is
 `routepulse`. Spring scans the feature packages beneath the application package.
 
@@ -90,7 +90,7 @@ and snapshot schema remain unchanged.
 ## Database and configuration
 
 Repositories stay scoped to organizations. JPA entity names, tables, columns,
-relationships and the 27 existing Flyway migrations are unchanged. The default
+relationships and versioned Flyway migrations are managed in `src/main/resources/db/migration`. The default
 local database name `shuttleflow` remains valid. Database credentials, SMTP
 settings, public URLs and existing environment-variable names keep their current
 meaning.
@@ -115,4 +115,7 @@ inherited JUnit `@Container`, which would be stopped between feature classes.
 Testcontainers manages process cleanup.
 
 The full gate remains `./mvnw clean verify` with Docker available. The existing
-GitHub Actions workflow runs that gate and then builds the production image.
+GitHub Actions workflow also runs `node --test src/test/js/*.test.cjs` before
+that gate and then builds the production image. The driving lifecycle integration
+test substitutes a controlled park calendar and covers 11 AM, noon, and 5 PM
+openings; it does not depend on an external calendar changing while CI runs.

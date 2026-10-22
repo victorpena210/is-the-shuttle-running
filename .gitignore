@@ -41,6 +41,9 @@ local-data/
 src/main/resources/data/
 *.csv
 *.tsv
+*.xls
+*.xlsx
+*.numbers
 *.log
 *.dump
 *.sql.gz

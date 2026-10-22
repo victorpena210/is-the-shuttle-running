@@ -4,13 +4,20 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import technology.renatus.routepulse.assignments.domain.ShuttlePeriod;
 import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.auth.model.UserAccount;
+import technology.renatus.routepulse.calendar.domain.ParkOperatingDay;
+import technology.renatus.routepulse.calendar.domain.ParkOperatingStatus;
+import technology.renatus.routepulse.calendar.service.ParkOperatingDayService;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.organization.domain.OrganizationRole;
 import technology.renatus.routepulse.organization.model.Organization;
@@ -19,8 +26,12 @@ import technology.renatus.routepulse.support.MySqlIntegrationTestSupport;
 
 class DrivingSessionIntegrationTests extends MySqlIntegrationTestSupport {
 
-    @Test
-    void startAndEndDrivingEnforceTheLifecycleRules() {
+    @MockitoBean
+    private ParkOperatingDayService operatingDays;
+
+    @ParameterizedTest
+    @ValueSource(ints = {11, 12, 17})
+    void startAndEndDrivingEnforceTheLifecycleRules(int parkOpeningHour) {
         Organization organization = createOrganization(
                 "Driving Organization",
                 "driving-organization"
@@ -60,19 +71,29 @@ class DrivingSessionIntegrationTests extends MySqlIntegrationTestSupport {
         LocalDate today =
                 assignmentService.getCurrentOperationsDate();
 
+        // Exercise real opening/staffing validation without calling the live
+        // park calendar. A Friday-style opening uses the midday service period.
+        when(operatingDays.getOperatingDay(any())).thenAnswer(invocation ->
+                new ParkOperatingDay(invocation.getArgument(0), ParkOperatingStatus.OPEN,
+                        LocalTime.of(parkOpeningHour, 0), LocalTime.of(22, 0), false, "TEST", null));
+        LocalTime serviceStart = LocalTime.of(parkOpeningHour == 17 ? 15 : 9, 0);
+        LocalTime serviceEnd = serviceStart.plusHours(2);
+        ShuttlePeriod openingPeriod = parkOpeningHour == 17 ? ShuttlePeriod.MIDDAY : ShuttlePeriod.MORNING;
+        String riderArrival = parkOpeningHour == 17 ? "3:00 PM" : "9:00 AM";
         String csvDate = today.format(java.time.format.DateTimeFormatter.ofPattern("M/d/yyyy"));
         csvScheduleProvider.loadSchedule(organization.getId(), operator.getEmail(), csvFile("wardrobe.csv",
-                "100,First Driver," + csvDate + " 8:00 AM," + csvDate + " 5:00 PM,Park/Ops/Wardrobe,Staff",
-                "200,Second Driver," + csvDate + " 8:00 AM," + csvDate + " 5:00 PM,Park/Ops/Wardrobe,Staff"));
+                "100,First Driver," + csvDate + " 8:00 AM," + csvDate + " 11:00 PM,Park/Ops/Wardrobe,Staff",
+                "200,Second Driver," + csvDate + " 8:00 AM," + csvDate + " 11:00 PM,Park/Ops/Wardrobe,Staff",
+                "300,Sample Rider," + csvDate + " " + riderArrival + "," + csvDate + " 9:00 PM,Park/Ops/Rides,Operator"));
 
         DriverAssignment assignment =
                 assignmentService.createManualAssignment(
                         organization.getId(),
                         today,
-                        ShuttlePeriod.MORNING,
+                        openingPeriod,
                         firstDriver.getId(),
-                        LocalTime.of(8, 0),
-                        LocalTime.of(10, 0),
+                        serviceStart,
+                        serviceEnd,
                         "Daily coverage"
                 );
 
@@ -113,8 +134,8 @@ class DrivingSessionIntegrationTests extends MySqlIntegrationTestSupport {
                 () -> assignmentService.updateScheduledTimes(
                         organization.getId(),
                         assignment.getId(),
-                        LocalTime.of(8, 30),
-                        LocalTime.of(10, 30)
+                        serviceStart.plusMinutes(30),
+                        serviceEnd.plusMinutes(30)
                 )
         );
 
