@@ -1,6 +1,11 @@
 name: Is the Shuttle Running Uptime
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/production-uptime.yml
+      - scripts/check-production-health.sh
   schedule:
     - cron: "*/5 * * * *"
   workflow_dispatch:
