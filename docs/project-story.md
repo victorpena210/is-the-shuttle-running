@@ -17,20 +17,6 @@ role-specific interfaces, NFC/QR workflows, tests, deployment configuration,
 and ongoing changes. AI tools have assisted development. The source, tests,
 and decisions below provide concrete material for technical review.
 This is an independent project, not an employer-sponsored product or endorsement.
-No adoption, time-saving, uptime, or performance figures are claimed here.
-
-## Why the scope changed
-
-The earlier application imported employee schedules and assigned driving shifts.
-The current product deliberately focuses on actual activity: drivers record the
-run, riders see status, and managers review history. An assignment was never
-proof that a shuttle was operating.
-
-Simplification required preserving existing records. New sessions are independent
-of assignments; older assignment-linked sessions still appear in the same history.
-Retired planning GETs redirect and submissions return HTTP 410 before their
-handlers execute. Existing Flyway migrations and historical data remain intact.
-The retained planning implementation is compatibility code, not a current feature.
 
 ## Decisions worth reviewing
 
@@ -40,7 +26,7 @@ The retained planning implementation is compatibility code, not a current featur
 | Lock before changing the active run | An organization lock and active-session query serialize competing checkpoint actions. Stale start/end/handoff forms are rejected. | `driver/service/portal/DriverCheckpointService.java`, `DriverCheckpointServiceTests` |
 | Enforce organization boundaries | A signed-in user still must belong to the organization and have permission for the action. A tag code does not replace authentication. | `driver/service/portal/DriverPortalAccessService.java`, `OrganizationIsolationIntegrationTests` |
 | Calculate time within the selected range | Reports use the operations timezone and clip overlapping sessions to date boundaries. Active runs contribute elapsed time. | `reporting/workload/service/ActualDrivingRecordService.java`, `ActualDrivingRecordServiceTests` |
-| Keep public status minimal | The public controller provides only organization name, binary status, and the active driver's first name. Ride confirmation is retired. | `driving/controller/RiderStatusController.java`, `PublicRiderStatusTests` |
+| Keep public status minimal | The public controller provides only organization name, binary status, and the active driver's first name. | `driving/controller/RiderStatusController.java`, `PublicRiderStatusTests` |
 | Keep session endings explicit | Missing phone location is not proof that service stopped. Drivers or managers must end forgotten runs. | `docs/MANUAL-SESSION-STATUS.md`, `src/test/js/driver-movement.test.cjs` |
 | Use server-rendered screens | Spring MVC and Thymeleaf keep business rules in Java; focused scripts handle browser interactions. | `templates/`, `static/js/pages/driver-movement.js` |
 | Test against MySQL | Testcontainers exercises migrations, mappings, and transactions; Docker is required for the full suite. | `support/MySqlIntegrationTestSupport.java`, `.github/workflows/routepulse-ci.yml` |
@@ -67,5 +53,3 @@ tests are under `src/test/java/technology/renatus/routepulse/`.
 - Optional location sharing never automatically closes a session or exposes coordinates to riders.
 - Screenshots use fictional fixture data rendered through current templates. They
   demonstrate the interface, not production adoption or a live operational state.
-- The old scheduling code and illustrated video remain as historical material.
-  They are not the current review path and are candidates for later cleanup.

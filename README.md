@@ -4,7 +4,6 @@
 
 A Java / Spring Boot application that gives riders a shared shuttle-status page,
 drivers simple service controls, and managers a record of who drove and when.
-The active workflow records actual driving history; it does not assign shifts.
 
 **Built and maintained by Victor Peña at [Renatus Technology](https://renatus.technology).**
 The project grew from firsthand experience with employee transportation and
@@ -24,15 +23,14 @@ not imply employer ownership or endorsement.
 [Review the code and decisions](docs/project-story.md#a-short-code-review-path) ·
 [Developer portfolio](https://victorpena210.github.io/#shuttle)
 
-These are current Thymeleaf templates rendered with fixed, fictional data.
-They are not production records. The earlier illustrated scheduling video is
-retained only as historical material in `docs/video/`.
+These application screens use fixed, fictional sample data rendered through
+the Thymeleaf templates.
 
 ## The problem and the implementation
 
 Riders need to know whether the shuttle is running. Drivers record actual
 service at the shuttle checkpoint, and managers review who drove, when, and
-for how long. Starting a run does not require a schedule or planned assignment.
+for how long.
 
 | Area | Implemented behavior |
 | --- | --- |
@@ -51,10 +49,8 @@ time. [Current status behavior](docs/MANUAL-SESSION-STATUS.md).
 Managers land on driving history at `/app` (`/driving-records` is an alias).
 Live status and run corrections are at `/app/live-status`. Drivers use the
 existing NFC/QR checkpoints to start, pause, resume, hand off, and end a run.
-The public rider page contains no schedules or ride-confirmation controls.
-Old planning screens redirect and old planning submissions return HTTP 410;
-existing session history and database migrations are preserved.
-[Driving-log workflow](docs/DRIVING-LOG-2026-10-23.md).
+The public rider page at `/ride/{slug}` shows whether the shuttle is running
+and the active driver’s first name.
 
 ## Stack and code tour
 

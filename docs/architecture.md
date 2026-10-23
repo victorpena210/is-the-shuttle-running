@@ -101,7 +101,7 @@ the current dashboard does not call `DashboardPlanningService`.
 
 The historical calendar adapter, scheduling documents, and old walkthrough are
 useful records of earlier iterations, not descriptions of current product features.
-See [the scope decision](project-story.md#why-the-scope-changed).
+See [the project overview](project-story.md).
 
 ## Verification
 
