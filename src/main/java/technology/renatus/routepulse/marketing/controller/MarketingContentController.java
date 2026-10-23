@@ -15,26 +15,26 @@ public class MarketingContentController {
 
     @GetMapping("/employee-shuttle-management-software")
     public String employeeShuttleManagementSoftware() {
-        return "public/employee-shuttle-management-software";
+        return "redirect:/#how-it-works";
     }
 
     @GetMapping("/workforce-transportation-planning")
     public String workforceTransportationPlanning() {
-        return "public/workforce-transportation-planning";
+        return "redirect:/#how-it-works";
     }
 
     @GetMapping("/shuttle-driver-scheduling")
     public String shuttleDriverScheduling() {
-        return "public/shuttle-driver-scheduling";
+        return "redirect:/#how-it-works";
     }
 
     @GetMapping("/shuttle-operations-verification")
     public String shuttleOperationsVerification() {
-        return "public/shuttle-operations-verification";
+        return "redirect:/#how-it-works";
     }
 
     @GetMapping("/employee-shuttle-software-vs-spreadsheets")
     public String employeeShuttleSoftwareVsSpreadsheets() {
-        return "public/employee-shuttle-software-vs-spreadsheets";
+        return "redirect:/#how-it-works";
     }
 }

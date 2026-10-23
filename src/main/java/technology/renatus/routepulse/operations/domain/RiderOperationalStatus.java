@@ -6,7 +6,7 @@ public enum RiderOperationalStatus {
     CONFIRMATION_NEEDED("Status unconfirmed"),
     TEMPORARILY_PAUSED("Temporarily paused"),
     DELAYED("Delayed"),
-    NO_SERVICE_SCHEDULED("No service scheduled"),
+    NO_SERVICE_SCHEDULED("Service unavailable"),
     SERVICE_ENDING_SOON("Service ending soon"),
     NOT_RUNNING("Not running");
 

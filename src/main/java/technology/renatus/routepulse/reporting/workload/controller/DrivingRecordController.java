@@ -10,37 +10,33 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import technology.renatus.routepulse.assignments.domain.AssignmentOutcome;
 import technology.renatus.routepulse.driving.service.DrivingActionService;
-import technology.renatus.routepulse.assignments.service.AssignmentReviewService;
+import technology.renatus.routepulse.driver.service.DriverService;
+import technology.renatus.routepulse.reporting.workload.service.ActualDrivingRecordService;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import technology.renatus.routepulse.organization.service.CurrentOrganizationService;
-import technology.renatus.routepulse.reporting.workload.model.DrivingRecordPage;
-import technology.renatus.routepulse.reporting.workload.service.DrivingRecordPageService;
-import technology.renatus.routepulse.reporting.workload.view.DrivingRecordModelAssembler;
 
 @Controller
 public class DrivingRecordController {
 
+    private final ActualDrivingRecordService actualRecords;
+    private final DriverService drivers;
     private final DrivingActionService drivingActionService;
-    private final AssignmentReviewService assignmentReviewService;
     private final CurrentOrganizationService currentOrganizationService;
-    private final DrivingRecordPageService pageService;
-    private final DrivingRecordModelAssembler modelAssembler;
 
     public DrivingRecordController(
-            AssignmentReviewService assignmentReviewService,
+            ActualDrivingRecordService actualRecords,
+            DriverService drivers,
             DrivingActionService drivingActionService,
-            CurrentOrganizationService currentOrganizationService,
-            DrivingRecordPageService pageService,
-            DrivingRecordModelAssembler modelAssembler) {
+            CurrentOrganizationService currentOrganizationService) {
+        this.actualRecords = actualRecords;
+        this.drivers = drivers;
         this.drivingActionService = drivingActionService;
-        this.assignmentReviewService = assignmentReviewService;
         this.currentOrganizationService = currentOrganizationService;
-        this.pageService = pageService;
-        this.modelAssembler = modelAssembler;
     }
 
-    @GetMapping("/driving-records")
+    @GetMapping({"/app", "/driving-records"})
     public String showDrivingRecords(
             Authentication authentication,
             @RequestParam(name = "from", required = false)
@@ -48,56 +44,29 @@ public class DrivingRecordController {
             @RequestParam(name = "to", required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
             @RequestParam(required = false) Long driverId,
-            @RequestParam(name = "view", required = false) String view,
             Model model) {
 
-        DrivingRecordPage page = pageService.build(
-                authentication,
-                fromDate,
-                toDate,
-                driverId,
-                view);
-        modelAssembler.addTo(model, page);
+        var organization = currentOrganizationService.requireOrganization(authentication);
+        LocalDate to = toDate == null ? actualRecords.today() : toDate;
+        LocalDate from = fromDate == null ? to.minusDays(30) : fromDate;
+        model.addAttribute("organizationName", organization.getDisplayName());
+        model.addAttribute("drivers", drivers.getAllDrivers(organization.getId()));
+        model.addAttribute("fromDate", from);
+        model.addAttribute("toDate", to);
+        model.addAttribute("selectedDriverId", driverId);
+        model.addAttribute("operationsZone", actualRecords.zoneName());
+        try {
+            model.addAttribute("report", actualRecords.build(organization.getId(), from, to, driverId));
+        } catch (IllegalArgumentException exception) {
+            model.addAttribute("filterError", exception.getMessage());
+        }
         return "manager/driving-records";
     }
 
+    /** Old outcome forms must never change assignments or create make-up priority. */
     @PostMapping("/driving-records/{assignmentId}/outcome")
-    public String reviewOutcome(
-            Authentication authentication,
-            @PathVariable Long assignmentId,
-            @RequestParam AssignmentOutcome outcome,
-            @RequestParam(defaultValue = "false") boolean requireMakeup,
-            @RequestParam(required = false) String reason,
-            @RequestParam(name = "from", required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fromDate,
-            @RequestParam(name = "to", required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate toDate,
-            @RequestParam(required = false) Long driverId,
-            RedirectAttributes redirectAttributes) {
-
-        Long organizationId = currentOrganizationService.requireOrganizationId(authentication);
-
-        try {
-            assignmentReviewService.reviewAssignmentOutcome(
-                    organizationId,
-                    assignmentId,
-                    outcome,
-                    requireMakeup,
-                    reason,
-                    authentication.getName());
-
-            redirectAttributes.addFlashAttribute(
-                    "successMessage",
-                    requireMakeup
-                            ? "Outcome saved. The scheduled driver now has future make-up priority."
-                            : "Outcome saved. No make-up priority is being applied.");
-        } catch (IllegalArgumentException | IllegalStateException exception) {
-            redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
-        }
-
-        preserveFilters(redirectAttributes, fromDate, toDate, driverId);
-        redirectAttributes.addAttribute("view", "records");
-        return "redirect:/driving-records#record-" + assignmentId;
+    public String reviewOutcome() {
+        throw new ResponseStatusException(HttpStatus.GONE, "Shift assignments have been retired.");
     }
 
     @PostMapping("/driving-records/unscheduled/{sessionId}/end")
@@ -106,26 +75,11 @@ public class DrivingRecordController {
         Long organizationId = currentOrganizationService.requireOrganizationId(authentication);
         try {
             drivingActionService.endUnscheduledDriving(organizationId, sessionId, authentication.getName());
-            redirectAttributes.addFlashAttribute("successMessage", "Unscheduled driving ended. The end time and your account were recorded.");
+            redirectAttributes.addFlashAttribute("successMessage", "Driving ended. The end time and your account were recorded.");
         } catch (IllegalArgumentException | IllegalStateException exception) {
             redirectAttributes.addFlashAttribute("errorMessage", exception.getMessage());
         }
-        return "redirect:/driving-records?view=records";
+        return "redirect:/driving-records";
     }
 
-    private void preserveFilters(
-            RedirectAttributes redirectAttributes,
-            LocalDate fromDate,
-            LocalDate toDate,
-            Long driverId) {
-        if (fromDate != null) {
-            redirectAttributes.addAttribute("from", fromDate);
-        }
-        if (toDate != null) {
-            redirectAttributes.addAttribute("to", toDate);
-        }
-        if (driverId != null) {
-            redirectAttributes.addAttribute("driverId", driverId);
-        }
-    }
 }

@@ -167,7 +167,7 @@ public final class DriverInsightsChecks {
             model.put("report", calculate(range, ZONE, now, sessions, List.of()));
             String html = engine.process("driver/analytics", WebTemplateContext.create(model));
             check(html.contains("My analytics") && html.contains("Daily activity"), "analytics renders");
-            check(html.contains("href=\"/driver/analytics\" aria-current=\"page\""), "analytics nav active");
+            check(html.contains("My driving") && html.contains("My records"), "current driver navigation");
             check(!html.contains("/driving-records") && !html.contains("/service-history"), "no manager report links");
             check(html.contains(sessions.isEmpty() ? "No recorded activity" : "Still recording"), "analytics empty/active state");
         }
@@ -185,7 +185,7 @@ public final class DriverInsightsChecks {
             String html = engine.process("driver/demand", WebTemplateContext.create(model));
             check(html.contains(calendar) && html.contains("Busiest operating window") && html.contains("Off-hours movements"), "demand and calendar render");
             check(!html.contains("PRIVATE EMPLOYEE"), "only aggregate demand exposed");
-            check(html.contains("href=\"/driver/demand\" aria-current=\"page\""), "demand nav active");
+            check(html.contains("My driving") && html.contains("My records"), "current driver navigation");
         }
         model.put("demandView", new DriverInsightsService.DemandView(DATE, false, null, "Open", TransportationDemandAnalysis.empty()));
         String missing = engine.process("driver/demand", WebTemplateContext.create(model));

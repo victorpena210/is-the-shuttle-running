@@ -9,7 +9,7 @@
 <body class="app-page">
 <th:block th:replace="~{fragments/navigation :: managerNav('live-status')}"></th:block>
 <main id="main-content" class="app-main">
-    <a th:href="@{/app#live-status}">← Back to live shuttle status</a>
+    <a th:href="@{/app/live-status#live-status}">← Back to live shuttle status</a>
     <header class="page-header"><div><p class="eyebrow">Service reliability</p><h1>Optional location sharing</h1>
         <p>Location is optional. Active sessions do not expire or require driver check-ins.</p></div></header>
     <p class="alert alert--success" role="status" th:if="${successMessage}" th:text="${successMessage}"></p>

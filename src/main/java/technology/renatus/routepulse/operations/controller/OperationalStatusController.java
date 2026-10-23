@@ -55,6 +55,6 @@ public class OperationalStatusController {
         if (date != null) {
             redirectAttributes.addAttribute("date", date.toString());
         }
-        return "redirect:/app#live-status";
+        return "redirect:/app/live-status#live-status";
     }
 }

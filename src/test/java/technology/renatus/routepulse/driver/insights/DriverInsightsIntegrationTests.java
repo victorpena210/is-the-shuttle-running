@@ -65,10 +65,7 @@ class DriverInsightsIntegrationTests extends MySqlIntegrationTestSupport {
         mockMvc.perform(get("/driver/analytics").with(user(account.getEmail()).roles("DRIVER"))
                 .param("from", date.toString()).param("to", date.toString())
                 .param("driverId", colleague.getId().toString()).param("organizationId", elsewhere.getId().toString()))
-                .andExpect(status().isOk()).andExpect(view().name("driver/analytics"))
-                .andExpect(content().string(containsString("45 min")))
-                .andExpect(content().string(not(containsString("PRIVATE COLLEAGUE"))))
-                .andExpect(content().string(not(containsString("PRIVATE FOREIGN"))));
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/driver"));
         for (String route : java.util.List.of("/driver/analytics", "/driver/demand")) {
             mockMvc.perform(get(route)).andExpect(status().is3xxRedirection());
             mockMvc.perform(get(route).with(user(account.getEmail()).roles("ADMIN"))).andExpect(status().isForbidden());
@@ -80,8 +77,7 @@ class DriverInsightsIntegrationTests extends MySqlIntegrationTestSupport {
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/driver/analytics").with(user(account.getEmail()).roles("DRIVER"))
                 .param("from", date.toString()).param("to", date.minusDays(1).toString()))
-                .andExpect(status().isOk()).andExpect(model().attributeExists("filterError"))
-                .andExpect(model().attributeDoesNotExist("report"));
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/driver"));
     }
 
     @Test
@@ -109,9 +105,7 @@ class DriverInsightsIntegrationTests extends MySqlIntegrationTestSupport {
         assertThat(demand.analysis().getEvening().getTotalCount()).isEqualTo(1);
         mockMvc.perform(get("/driver/demand").with(user(account.getEmail()).roles("DRIVER"))
                 .param("organizationId", elsewhere.getId().toString()).param("date", date.minusDays(1).toString()))
-                .andExpect(status().isOk()).andExpect(view().name("driver/demand"))
-                .andExpect(content().string(not(containsString("PRIVATE EMPLOYEE"))))
-                .andExpect(content().string(not(containsString("PRIVATE FOREIGN"))));
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/driver"));
         assertThat(assignmentRepository.count()).isEqualTo(before);
     }
 }

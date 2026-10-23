@@ -37,10 +37,8 @@
         </div>
         <div>
             <span class="live-status-current__label">Riders currently see</span>
-            <strong th:text="${currentRiderStatus.headline}">The shuttle is running.</strong>
-            <p th:text="${currentRiderStatus.operationalMessage != null
-                    ? currentRiderStatus.operationalMessage
-                    : currentRiderStatus.detail}">Service is currently active.</p>
+            <strong th:text="${currentRiderStatus.running() ? 'The shuttle is running.' : 'The shuttle is not running.'}">The shuttle is running.</strong>
+            <p th:if="${currentRiderStatus.driverName != null}" th:text="|Driver: ${currentRiderStatus.driverName}|"></p>
         </div>
     </div>
 
@@ -57,7 +55,6 @@
     </div>
 
     <form class="live-status-form" th:action="@{/operations/status}" method="post">
-        <input type="hidden" name="date" th:value="${selectedDate}">
         <div class="form-grid">
             <div class="form-group">
                 <label for="operational-status">Rider status</label>
@@ -76,7 +73,7 @@
                     </option>
                     <option value="NO_SERVICE_SCHEDULED"
                             th:selected="${operationalStatusUpdate != null and operationalStatusUpdate.statusOverride.name() == 'NO_SERVICE_SCHEDULED'}">
-                        No service scheduled
+                        Service unavailable
                     </option>
                     <option value="SERVICE_ENDING_SOON"
                             th:selected="${operationalStatusUpdate != null and operationalStatusUpdate.statusOverride.name() == 'SERVICE_ENDING_SOON'}">
@@ -99,11 +96,11 @@
                 <small>Applies to the temporary status and message. Automatic mode itself does not expire.</small>
             </div>
             <div class="form-group form-group--full">
-                <label for="operational-message">Operational message <span class="muted">(optional)</span></label>
+                <label for="operational-message">Manager note <span class="muted">(optional)</span></label>
                 <textarea id="operational-message" name="message" maxlength="500"
                           placeholder="Example: Shuttle temporarily unavailable — vehicle issue."
                           th:text="${operationalStatusUpdate != null ? operationalStatusUpdate.operationalMessage : ''}"></textarea>
-                <small class="muted">Shown publicly beneath the rider status. Use this for vehicle, weather, traffic, or facility issues.</small>
+                <small class="muted">Visible to managers only. Riders see the running status and driver name.</small>
             </div>
         </div>
         <div class="live-status-actions">
@@ -114,23 +111,10 @@
     <form class="live-status-reset-form"
           th:if="${operationalStatusUpdate != null and (operationalStatusUpdate.statusOverride.name() != 'AUTOMATIC' or operationalStatusUpdate.operationalMessage != null)}"
           th:action="@{/operations/status}" method="post">
-        <input type="hidden" name="date" th:value="${selectedDate}">
         <input type="hidden" name="status" value="AUTOMATIC">
         <button class="button button--secondary" type="submit">Return to automatic</button>
     </form>
 
-    <details class="rider-information-settings">
-        <summary>Pickup locations and rider help</summary>
-        <p>This information appears publicly on your organization’s rider page.</p>
-        <form class="live-status-form" th:action="@{/operations/rider-information}" method="post">
-            <label for="pickup-instructions">Where should riders wait?</label>
-            <textarea id="pickup-instructions" name="pickupInstructions" maxlength="1500" rows="4"
-                      th:text="${currentRiderStatus.pickupInstructions}"></textarea>
-            <label for="rider-help">Help contact (phone, email, or location)</label>
-            <input id="rider-help" name="helpContact" maxlength="300" th:value="${currentRiderStatus.helpContact}">
-            <button class="button" type="submit">Save rider information</button>
-        </form>
-    </details>
 </section>
 </body>
 </html>

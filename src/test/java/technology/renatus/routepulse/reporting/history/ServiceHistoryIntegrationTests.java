@@ -47,9 +47,7 @@ class ServiceHistoryIntegrationTests extends MySqlIntegrationTestSupport {
         assertThatThrownBy(() -> history.build(other.getId(), foreignDriver)).isInstanceOf(IllegalArgumentException.class);
         mockMvc.perform(get("/service-history").with(user(admin.getEmail()).roles("ADMIN"))
                 .param("from", date.toString()).param("to", date.toString()))
-                .andExpect(status().isOk()).andExpect(view().name("manager/service-history"))
-                .andExpect(content().string(containsString("Review Driver")))
-                .andExpect(content().string(containsString("Unscheduled service time")));
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/driving-records"));
         mockMvc.perform(get("/service-history").with(user(admin.getEmail()).roles("DRIVER")))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/service-history")).andExpect(status().is3xxRedirection());

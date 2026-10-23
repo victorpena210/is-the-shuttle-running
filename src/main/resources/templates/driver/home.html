@@ -8,7 +8,7 @@
     <meta name="_csrf" th:content="${_csrf.token}">
     <meta name="_csrf_header" th:content="${_csrf.headerName}">
 
-    <title>My Driving Assignment | Is the Shuttle Running</title>
+    <title>My Driving | Is the Shuttle Running</title>
 
     <link
         rel="icon"
@@ -34,12 +34,9 @@
                 <span th:text="${driver.name}">Driver Name</span>
             </h1>
 
-            <p>
-                Your next driving window is shown first. Tap the Is the Shuttle Running NFC tag
-                or scan the backup QR posted in the shuttle when it is time to
-                start, pause, resume, or end driving.
-            </p>
-            <a class="button button--secondary" th:href="@{/driver/schedule}">View my upcoming schedule</a>
+            <p>Tap the NFC tag or scan the QR code in the shuttle to start, pause, resume, or end driving.
+                Each driving segment is saved with your name and actual times.</p>
+            <a class="button button--secondary" th:href="@{/ride/{slug}(slug=${organizationSlug})}">View rider status</a>
         </div>
 
         <div class="page-date">
@@ -49,10 +46,7 @@
             </span>
         </div>
     </header>
-    <section class="alert" aria-label="Schedule updates">
-        <a class="button button--secondary" th:href="@{/driver/availability}">Update my work schedule</a>
-        <p th:if="${availabilityHeldCount != null and availabilityHeldCount > 0}">Automatic schedules have been updated. Some protected assignments still need manager review.</p>
-    </section>
+
 
     <div
         th:if="${successMessage}"
@@ -101,245 +95,24 @@
         <noscript><p>Use the NFC/QR checkpoint to pause or end driving, or ask a manager to close the session.</p></noscript>
     </section>
 
-    <section class="driver-focus" th:if="${unscheduledActive}" aria-labelledby="unscheduled-active-heading">
-        <span class="driver-focus__eyebrow">Driving now</span>
-        <h2 id="unscheduled-active-heading">Unscheduled driving is active.</h2>
-        <p>Your start time has been recorded. Tap the NFC tag or scan the QR again to pause or end driving.</p>
+    <section class="driver-focus" th:if="${activeSessionId == null}">
+        <p class="eyebrow">Ready to drive?</p><h2>Start a shuttle run</h2>
+        <p>Tap the shuttle’s NFC tag or scan its QR code and confirm Start driving.
+            On a break? Tap or scan again when you resume. Break time is excluded from driving time.</p>
+    </section>
+    <section id="driving-history" aria-labelledby="history-heading">
+        <div class="section-heading"><div><h2 id="history-heading">My recent driving records</h2>
+        <p>Your latest 20 driving segments. Times are shown in your organization’s timezone.</p></div></div>
+        <p th:if="${#lists.isEmpty(drivingRecords)}">No driving sessions recorded yet.</p>
+        <div class="table-shell" th:unless="${#lists.isEmpty(drivingRecords)}"><table>
+        <thead><tr><th>Started</th><th>Ended</th><th>Driving time</th><th>Status</th></tr></thead>
+        <tbody><tr th:each="record : ${drivingRecords}">
+        <td th:text="${#temporals.format(record.startedAt, 'MMM d, yyyy h:mm a')}"></td>
+        <td th:text="${record.endedAt == null ? 'In progress' : #temporals.format(record.endedAt, 'MMM d, h:mm a')}"></td>
+        <td><span th:text="${record.actualMinutes}"></span> min<span th:if="${record.active}"> so far</span></td>
+        <td th:text="${record.status}"></td></tr></tbody></table></div>
     </section>
 
-    <section
-        class="driver-focus"
-        th:if="${primaryAssignment != null}"
-        aria-labelledby="driver-focus-heading">
-
-        <div class="driver-focus__topline">
-            <span
-                class="driver-focus__eyebrow"
-                th:text="${primaryAssignment.driving ? 'Driving now' : 'Next driving window'}">
-                Next driving window
-            </span>
-
-            <span
-                class="badge badge--active"
-                th:if="${primaryAssignment.driving}">
-                Active
-            </span>
-        </div>
-
-        <h2
-            id="driver-focus-heading"
-            th:text="${primaryAssignment.periodLabel + ' driving'}">
-            Morning driving
-        </h2>
-
-        <div
-            class="driver-focus__span"
-            th:if="${primaryAssignment.scheduledStartTime != null and primaryAssignment.scheduledEndTime != null}"
-            th:text="${#temporals.format(primaryAssignment.scheduledStartTime, 'h:mm a') + ' – ' + #temporals.format(primaryAssignment.scheduledEndTime, 'h:mm a')}">
-            9:00 AM – 12:00 PM
-        </div>
-
-        <div
-            class="driver-focus__break"
-            th:if="${primaryAssignment.period.name() != 'MIDDAY' and !#lists.isEmpty(primaryAssignment.plannedBreakWindows)}"
-            th:with="breakWindow=${primaryAssignment.plannedBreakWindows[0]}">
-            <span>Protected break</span>
-            <strong
-                th:text="${#temporals.format(breakWindow.startTime, 'h:mm a') + ' – ' + #temporals.format(breakWindow.endTime, 'h:mm a')}">
-                10:30 AM – 10:45 AM
-            </strong>
-            <small>Water / restroom</small>
-        </div>
-
-        <div
-            class="driver-focus__windows"
-            th:if="${primaryAssignment.period.name() == 'MIDDAY' and primaryAssignment.hasPlannedDrivingWindows()}">
-            <span class="driver-focus__windows-label">Drive only during these windows</span>
-
-            <div class="driver-focus__window-list">
-                <strong
-                    th:each="window : ${primaryAssignment.plannedDrivingWindows}"
-                    th:text="${#temporals.format(window.startTime, 'h:mm a') + ' – ' + #temporals.format(window.endTime, 'h:mm a')}">
-                    12:10 PM – 12:35 PM
-                </strong>
-            </div>
-        </div>
-
-        <div class="driver-focus__scan">
-            <span>TAP NFC OR SCAN QR</span>
-            <small>Use the NFC tag first, or scan the QR as a backup.</small>
-        </div>
-
-    </section>
-
-    <section
-        class="driver-focus driver-focus--complete"
-        th:if="${!unscheduledActive and primaryAssignment == null and !#lists.isEmpty(todayAssignments)}"
-        aria-labelledby="driver-complete-heading">
-
-        <span class="driver-focus__eyebrow">Today</span>
-        <h2 id="driver-complete-heading">No more scheduled driving windows.</h2>
-        <p>Your completed assignments are listed below for reference.</p>
-    </section>
-
-    <section
-        class="driver-focus driver-focus--empty"
-        th:if="${!unscheduledActive and #lists.isEmpty(todayAssignments)}"
-        aria-labelledby="driver-empty-heading">
-
-        <span class="driver-focus__eyebrow">Today</span>
-        <h2 id="driver-empty-heading">No driving assignment scheduled.</h2>
-        <p>
-            Asked to drive anyway? Tap the NFC tag or scan the shuttle QR.
-            You can cover an available assignment or start an unscheduled driving record.
-        </p>
-    </section>
-
-    <section aria-labelledby="today-heading" class="driver-schedule-section">
-        <div class="section-heading">
-            <div>
-                <h2 id="today-heading">Today’s schedule</h2>
-                <p>Detailed scheduled and actual driving activity.</p>
-            </div>
-        </div>
-
-        <div class="table-shell">
-            <table>
-                <thead>
-                <tr>
-                    <th scope="col">Shift</th>
-                    <th scope="col">Scheduled</th>
-                    <th scope="col">Actual start</th>
-                    <th scope="col">Actual end</th>
-                    <th scope="col">Status</th>
-                </tr>
-                </thead>
-
-                <tbody>
-                <tr th:each="assignment : ${todayAssignments}">
-                    <td
-                        th:text="${assignment.periodLabel}">
-                        Morning
-                    </td>
-
-                    <td>
-                        <div th:if="${assignment.hasPlannedDrivingWindows()}">
-                            <div
-                                th:each="window : ${assignment.plannedDrivingWindows}"
-                                th:text="${#temporals.format(window.startTime, 'h:mm a') + ' – ' + #temporals.format(window.endTime, 'h:mm a')}">
-                                9:00 AM – 10:30 AM
-                            </div>
-
-                            <small
-                                class="muted"
-                                th:if="${assignment.period.name() != 'MIDDAY' and !#lists.isEmpty(assignment.plannedBreakWindows)}"
-                                th:with="breakWindow=${assignment.plannedBreakWindows[0]}"
-                                th:text="|Break ${#temporals.format(breakWindow.startTime, 'h:mm a')}–${#temporals.format(breakWindow.endTime, 'h:mm a')} · ${breakWindow.minutes} min water / restroom|">
-                                Break 10:30 AM–10:45 AM · 15 min water / restroom
-                            </small>
-
-                            <small
-                                class="muted"
-                                th:if="${assignment.period.name() == 'MIDDAY' and assignment.hasMultiplePlannedDrivingWindows()}">
-                                Start/stop only at the listed midday windows
-                            </small>
-                        </div>
-
-                        <span
-                            th:if="${!assignment.hasPlannedDrivingWindows() and assignment.scheduledStartTime != null and assignment.scheduledEndTime != null}"
-                            th:text="${#temporals.format(assignment.scheduledStartTime, 'h:mm a') + ' – ' + #temporals.format(assignment.scheduledEndTime, 'h:mm a')}">
-                            9:00 AM – 12:00 PM
-                        </span>
-
-                        <span
-                            th:if="${!assignment.hasPlannedDrivingWindows() and (assignment.scheduledStartTime == null or assignment.scheduledEndTime == null)}">
-                            Not set
-                        </span>
-                    </td>
-
-                    <td
-                        th:text="${assignment.actualStartedAt != null ? timestampDisplay.format(assignment.actualStartedAt, 'h:mm a') : '—'}">
-                        —
-                    </td>
-
-                    <td
-                        th:text="${assignment.actualEndedAt != null ? timestampDisplay.format(assignment.actualEndedAt, 'h:mm a') : '—'}">
-                        —
-                    </td>
-
-                    <td>
-                        <p th:if="${assignment.inactivityReviewNeeded}">Inactivity timeout — needs review</p>
-                        <span
-                            class="badge badge--active"
-                            th:if="${assignment.driving}">
-                            Driving now
-                        </span>
-
-                        <span
-                            class="badge badge--inactive"
-                            th:if="${assignment.drivingPaused}">
-                            Paused
-                        </span>
-
-                        <span
-                            class="badge badge--inactive"
-                            th:if="${assignment.drivingCompleted and !assignment.drivingPaused}">
-                            Stopped
-                        </span>
-
-                        <span
-                            class="muted"
-                            th:if="${assignment.drivingCompleted and #lists.size(assignment.drivingSessions) > 1}"
-                            th:text="| · ${#lists.size(assignment.drivingSessions)} sessions|">
-                            · 2 sessions
-                        </span>
-
-                        <span
-                            class="badge"
-                            th:if="${!assignment.driving and !assignment.drivingCompleted}">
-                            Not started
-                        </span>
-                    </td>
-                </tr>
-
-                <tr th:if="${#lists.isEmpty(todayAssignments)}">
-                    <td class="empty-cell" colspan="5">No scheduled assignments today.</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    </section>
-
-    <details class="driver-help panel panel--raised">
-        <summary>How NFC and QR driving records work</summary>
-
-        <div class="driver-help__body">
-            <p>
-                Tap the NFC tag or scan the QR when a driving stretch starts. Use
-                either checkpoint method again when you need to pause or end. If
-                you resume later in the same assignment, Is the Shuttle Running opens another
-                actual driving session and keeps the earlier one in the record.
-            </p>
-
-            <p>
-                If you cover for another scheduled driver, Is the Shuttle Running keeps
-                the original schedule intact and records you separately as the
-                actual driver.
-            </p>
-
-            <div class="alert alert--info" role="status">
-                An active driver is never silently replaced. Is the Shuttle Running shows a
-                handoff confirmation before ending the previous actual session and
-                starting the replacement driver's session.
-            </div>
-        </div>
-    </details>
-
-    <section class="driver-schedule-section" th:if="${!#lists.isEmpty(unscheduledRecords)}">
-        <h2>My recent unscheduled driving</h2>
-        <p>Your latest 20 unscheduled driving segments. Completed durations count toward actual driving time.</p>
-        <th:block th:replace="~{fragments/driving-records/unscheduled :: table}"></th:block>
-    </section>
 </main>
 
 <footer th:replace="~{fragments/footer :: footer('app')}"></footer>

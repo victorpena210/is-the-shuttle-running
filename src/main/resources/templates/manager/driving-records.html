@@ -1,122 +1,40 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#17201c">
-
-    <title>Service History | Is the Shuttle Running</title>
-
-    <link
-        rel="icon"
-        th:href="@{/images/shuttle-mark.svg}"
-        type="image/svg+xml">
-
-    <link
-        rel="stylesheet"
-        th:href="@{/css/site.css}">
-
-    <link
-        rel="stylesheet"
-        th:href="@{/css/pages/driving-records.css}">
-</head>
-
-<body class="app-page driving-records-page">
-
-<th:block th:replace="~{fragments/navigation :: managerNav('service-history')}"></th:block>
-
-<main
-    id="main-content"
-    class="app-main">
-
-    <header class="page-header records-page-header">
-
-        <div>
-
-            <p
-                class="eyebrow"
-                th:text="${organizationName}">
-                Organization
-            </p>
-
-            <h1>
-                Service history
-            </h1>
-
-            <p>
-                Review scheduled coverage, actual driving activity,
-                driver workload, and management changes.
-            </p>
-
-        </div>
-
-    </header>
-
-    <!-- FILTERS                                                   -->
-
-    <th:block th:replace="~{fragments/driving-records/filters :: filters}"></th:block>
-
-    <!-- ALERTS                                                    -->
-
-    <div
-        th:if="${successMessage != null}"
-        class="alert alert--success records-alert"
-        role="status"
-        th:text="${successMessage}">
-
-        Saved.
-
-    </div>
-
-    <div
-        th:if="${errorMessage != null}"
-        class="alert alert--error records-alert"
-        role="alert"
-        th:text="${errorMessage}">
-
-        Error
-
-    </div>
-
-    <div
-        th:if="${filterError != null}"
-        class="alert alert--error records-alert"
-        role="alert"
-        th:text="${filterError}">
-
-        Filter error
-
-    </div>
-
-    <!-- TABS                                                      -->
-
-    <th:block th:replace="~{fragments/driving-records/tabs :: tabs}"></th:block>
-
-    <!-- DRIVER SUMMARY                                            -->
-
-    <th:block th:replace="~{fragments/driving-records/summary :: summary}"></th:block>
-
-    <!-- INDIVIDUAL RECORDS                                        -->
-
-    <th:block th:replace="~{fragments/driving-records/records :: records}"></th:block>
-
-    <section th:if="${selectedView == 'records'}" aria-labelledby="unscheduled-heading">
-        <h2 id="unscheduled-heading">Unscheduled driving</h2>
-        <p>Recorded without a scheduled assignment. Dates use each segment's start date in the operations time zone.
-            Completed minutes are included in actual hours; these records do not add scheduled shifts or makeup credit.</p>
-        <th:block th:replace="~{fragments/driving-records/unscheduled :: table}"></th:block>
-        <form th:each="record : ${unscheduledRecords}" th:if="${record.active}" method="post"
-              th:action="@{/driving-records/unscheduled/{id}/end(id=${record.id})}">
-            <button class="button button--secondary" type="submit"
-                    th:text="${'End unscheduled driving for ' + record.driverName}">End unscheduled driving</button>
-        </form>
-    </section>
-
-</main>
-
-<footer
-    th:replace="~{fragments/footer :: footer('app')}">
-</footer>
-
-</body>
-</html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Driving history | Is the Shuttle Running</title><link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
+<link rel="stylesheet" th:href="@{/css/site.css}"><link rel="stylesheet" th:href="@{/css/pages/actual-records.css}"></head>
+<body class="app-page"><th:block th:replace="~{fragments/navigation :: managerNav('driving-records')}"></th:block>
+<main id="main-content" class="app-main"><header class="page-header"><div>
+<p class="eyebrow" th:text="${organizationName}"></p><h1>Driving history</h1>
+<p>A log of who drove, when they started and stopped, and how long they drove. Paused time is excluded.</p></div>
+<a class="button button--secondary" th:href="@{/app/live-status}">Who is driving now?</a></header>
+<div th:if="${successMessage}" class="alert alert--success" role="status" th:text="${successMessage}"></div>
+<div th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></div>
+<form class="record-filters" th:action="@{/driving-records}" method="get">
+<div class="form-group"><label for="from">From</label><input id="from" type="date" name="from" th:value="${fromDate}" required></div>
+<div class="form-group"><label for="to">Through</label><input id="to" type="date" name="to" th:value="${toDate}" required></div>
+<div class="form-group"><label for="driverId">Driver</label><select id="driverId" name="driverId"><option value="">All drivers</option>
+<option th:each="driver : ${drivers}" th:value="${driver.id}" th:text="${driver.name}" th:selected="${driver.id == selectedDriverId}"></option></select></div>
+<button type="submit" class="button">Show records</button></form>
+<p>Times shown in <span th:text="${operationsZone}"></span>.</p>
+<div class="alert alert--error" role="alert" th:if="${filterError}" th:text="${filterError}"></div>
+<th:block th:if="${report != null}">
+<div class="record-metrics"><div><strong th:text="${#lists.size(report.rows)}"></strong><span>Driving segments</span></div>
+<div><strong th:text="${report.minutes}"></strong><span>Driving minutes in this range</span></div>
+<div><strong th:text="${report.activeSessions}"></strong><span>Active segments</span></div></div>
+<p>Totals include elapsed time for active runs. Runs crossing the date range count only the time inside it.</p>
+<section th:unless="${#lists.isEmpty(report.drivers)}"><h2>Time by driver</h2><div class="table-shell"><table>
+<thead><tr><th>Driver</th><th>Segments</th><th>Driving minutes</th></tr></thead><tbody>
+<tr th:each="total : ${report.drivers}"><td th:text="${total.name}"></td><td th:text="${total.sessions}"></td><td th:text="${total.minutes()}"></td></tr>
+</tbody></table></div></section>
+<section><h2>Recorded driving</h2><p th:if="${#lists.isEmpty(report.rows)}">No driving sessions match these filters. A driver’s NFC tap or QR scan records the next run.</p>
+<div class="table-shell" th:unless="${#lists.isEmpty(report.rows)}"><table><thead><tr>
+<th>Driver</th><th>Started</th><th>Ended</th><th>Minutes in range</th><th>Status</th><th>Recorded using</th></tr></thead><tbody>
+<tr th:each="row : ${report.rows}" th:with="record=${row.record}">
+<td th:text="${record.driverName}"></td><td th:text="${#temporals.format(record.startedAt, 'MMM d, yyyy h:mm a')}"></td>
+<td th:text="${record.endedAt == null ? 'In progress' : #temporals.format(record.endedAt, 'MMM d, yyyy h:mm a')}"></td>
+<td th:text="${row.minutesInRange}"></td><td><span th:text="${record.status}"></span>
+<a th:if="${record.active}" th:href="@{/app/live-status#live-status}">Manage active run</a></td>
+<td><span th:text="${record.startMethod}"></span><span th:if="${record.endMethod != null}" th:text="| / ${record.endMethod}|"></span></td>
+</tr></tbody></table></div></section></th:block>
+</main><footer th:replace="~{fragments/footer :: footer('app')}"></footer></body></html>

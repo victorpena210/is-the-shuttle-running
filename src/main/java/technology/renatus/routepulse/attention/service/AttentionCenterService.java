@@ -63,7 +63,7 @@ public class AttentionCenterService {
             if (status.operationalStatus() == technology.renatus.routepulse.operations.domain.RiderOperationalStatus.CONFIRMATION_NEEDED) {
                 items.add(new AttentionItem("service-confirmation-overdue",
                         technology.renatus.routepulse.attention.model.AttentionSeverity.URGENT,
-                        "Rider status needs confirmation", status.detail(), "Resolve live status", "/app#live-status"));
+                        "Rider status needs confirmation", status.detail(), "Resolve live status", "/app/live-status#live-status"));
             }
         });
 

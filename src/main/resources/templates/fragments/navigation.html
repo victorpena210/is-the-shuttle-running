@@ -17,73 +17,12 @@
             </a>
 
             <nav class="app-nav app-nav--manager" aria-label="Primary navigation">
-                <span class="app-nav__group-label">Operations</span>
-                <a
-                    class="app-nav__link"
-                    th:href="@{/app#overview}"
-                    data-dashboard-link="overview"
-                    th:attr="aria-current=${activePage == 'overview' ? 'page' : null}">
-                    Overview
-                </a>
-
-                <a
-                    class="app-nav__link"
-                    th:href="@{/app#live-status}"
-                    data-dashboard-link="live-status"
-                    th:attr="aria-current=${activePage == 'live-status' ? 'page' : null}">
-                    Live shuttle status
-                </a>
-
-                <span class="app-nav__group-label">Planning</span>
-                <a
-                    class="app-nav__link"
-                    th:href="@{/app#schedules}"
-                    data-dashboard-link="schedules"
-                    th:attr="aria-current=${activePage == 'schedules' ? 'page' : null}">
-                    Schedule imports
-                </a>
-
-                <a
-                    class="app-nav__link"
-                    th:href="@{/app#demand}"
-                    data-dashboard-link="demand"
-                    th:attr="aria-current=${activePage == 'demand' ? 'page' : null}">
-                    Transportation demand
-                </a>
-
-                <a
-                    class="app-nav__link"
-                    th:href="@{/app#coverage}"
-                    data-dashboard-link="coverage"
-                    th:attr="aria-current=${activePage == 'coverage' ? 'page' : null}">
-                    Driver coverage
-                </a>
-
-                <span class="app-nav__group-label">Reports</span>
-                <a
-                    class="app-nav__link"
-                    th:href="@{/service-history}"
-                    th:attr="aria-current=${activePage == 'service-history' or activePage == 'driving-records' ? 'page' : null}">
-                    Service history
-                </a>
-
-                <a
-                    class="app-nav__link"
-                    th:href="@{/pilot-analytics}"
-                    th:attr="aria-current=${activePage == 'pilot-analytics' ? 'page' : null}">
-                    Analytics
-                </a>
-
-                <span class="app-nav__group-label">Administration</span>
-                <a
-                    class="app-nav__link"
-                    th:href="@{/drivers}"
-                    th:attr="aria-current=${activePage == 'drivers' ? 'page' : null}">
-                    Drivers
-                </a>
-
-                <a class="app-nav__link" th:href="@{/schedule-updates}"
-                   th:attr="aria-current=${activePage == 'schedule-updates' ? 'page' : null}">Schedule updates</a>
+                <a class="app-nav__link" th:href="@{/driving-records}"
+                   th:attr="aria-current=${activePage == 'driving-records' ? 'page' : null}">Driving history</a>
+                <a class="app-nav__link" th:href="@{/app/live-status}"
+                   th:attr="aria-current=${activePage == 'live-status' ? 'page' : null}">Live shuttle status</a>
+                <a class="app-nav__link" th:href="@{/drivers}"
+                   th:attr="aria-current=${activePage == 'drivers' ? 'page' : null}">Drivers</a>
 
                 <a
                     class="app-nav__link"
@@ -123,26 +62,8 @@
             </a>
 
             <nav class="app-nav" aria-label="Driver navigation">
-                <a class="app-nav__link" th:href="@{/driver}"
-                   th:attr="aria-current=${driverPage == 'assignment' ? 'page' : null}">
-                    My assignment
-                </a>
-
-                <a class="app-nav__link" th:href="@{/driver/schedule}"
-                   th:attr="aria-current=${driverPage == 'schedule' ? 'page' : null}">
-                    My schedule
-                </a>
-
-                <a class="app-nav__link" th:href="@{/driver/demand}"
-                   th:attr="aria-current=${driverPage == 'demand' ? 'page' : null}">
-                    Today’s demand
-                </a>
-
-                <a class="app-nav__link" th:href="@{/driver/analytics}"
-                   th:attr="aria-current=${driverPage == 'analytics' ? 'page' : null}">
-                    My analytics
-                </a>
-
+                <a class="app-nav__link" th:href="@{/driver}">My driving</a>
+                <a class="app-nav__link" th:href="@{/driver#driving-history}">My records</a>
                 <form class="app-nav__form" th:action="@{/logout}" method="post">
                     <button class="app-nav__button" type="submit">Sign out</button>
                 </form>

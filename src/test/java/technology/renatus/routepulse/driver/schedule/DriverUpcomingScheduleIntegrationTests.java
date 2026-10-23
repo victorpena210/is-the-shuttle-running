@@ -47,10 +47,7 @@ class DriverUpcomingScheduleIntegrationTests extends MySqlIntegrationTestSupport
         mockMvc.perform(get("/driver/schedule").with(user(account.getEmail()).roles("DRIVER"))
                 .param("from", today.toString()).param("to", today.plusDays(6).toString())
                 .param("driverId", colleague.getId().toString()).param("organizationId", foreignOrg.getId().toString()))
-                .andExpect(status().isOk()).andExpect(view().name("driver/schedule"))
-                .andExpect(content().string(containsString("8:00 PM")))
-                .andExpect(content().string(not(containsString("PRIVATE COLLEAGUE"))))
-                .andExpect(content().string(not(containsString("PRIVATE FOREIGN"))));
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/driver"));
         assertThat(assignmentRepository.count()).isEqualTo(before);
         var narrowed = schedule.upcoming(authenticationFor(account, OrganizationRole.DRIVER), new DateRange(today.plusDays(2), today.plusDays(2)));
         assertThat(narrowed.assignments()).hasSize(1);
@@ -61,8 +58,7 @@ class DriverUpcomingScheduleIntegrationTests extends MySqlIntegrationTestSupport
         }
         mockMvc.perform(get("/driver/schedule").with(user(account.getEmail()).roles("DRIVER"))
                 .param("from", today.toString()).param("to", today.plusDays(93).toString()))
-                .andExpect(status().isOk()).andExpect(model().attributeExists("filterError"))
-                .andExpect(model().attributeDoesNotExist("scheduleView"));
+                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/driver"));
     }
 
     private DriverAssignment save(Driver driver, LocalDate date, ShuttlePeriod period, int start) {

@@ -21,6 +21,7 @@ public record UnscheduledDrivingRecord(Long id, String driverName,
                             case HANDOFF -> "Handed off";
                             case COMPLETED -> "Ended";
                         },
-                session.getActualMinutes(), session.isActive());
+                session.isActive() ? Math.max(0, java.time.Duration.between(session.getStartedAt(), java.time.Instant.now()).toMinutes())
+                        : session.getActualMinutes(), session.isActive());
     }
 }

@@ -254,199 +254,26 @@ public final class CleanupRegressionChecks {
     }
 
     public static void renderDashboardStates() throws Exception {
-        SpringTemplateEngine engine = engine();
-        Fixture f = fixture();
-        Field sessions = DriverAssignment.class.getDeclaredField("drivingSessions");
-        sessions.setAccessible(true);
-        sessions.set(f.assignment(), new ArrayList<DrivingSession>());
-        List<DriverSchedule> schedules = List.of(new DriverSchedule(1L, "100", "Scheduled Driver", DATE,
-                LocalTime.of(9, 0), LocalTime.of(17, 0)));
-        for (ParkOperatingStatus status : ParkOperatingStatus.values()) {
-            for (boolean override : List.of(false, true)) {
-                boolean allowed = status == ParkOperatingStatus.OPEN || (status != ParkOperatingStatus.OPEN && override);
-                ParkOperatingDay day = new ParkOperatingDay(DATE, status, LocalTime.of(10, 0),
-                        LocalTime.of(21, 0), false, "LIVE_API", null);
-                List<ScheduleReconciliation> reconciliations = allowed
-                        ? List.of(new ScheduleReconciliation(
-                                1L,
-                                ShuttlePeriod.MORNING,
-                                "Morning",
-                                1L,
-                                "Scheduled Driver",
-                                1L,
-                                2L,
-                                "9:00 AM–5:00 PM",
-                                "12:00 PM–8:00 PM",
-                                "9:00 AM–12:00 PM",
-                                ScheduleReconciliationStatus.REPLACEMENT_RECOMMENDED,
-                                2L,
-                                "Covering Driver",
-                                "9:00 AM–5:00 PM",
-                                "Scheduled Driver no longer fully covers the morning driving window."
-                        ))
-                        : List.of();
-                ParkCalendarOverride calendarOverride = override && status != ParkOperatingStatus.OPEN
-                        ? new ParkCalendarOverride(10L, DATE, status, ParkOperatingStatus.OPEN, "TEST",
-                                "CALENDAR_TEST", "Employee event", 1L, "Test Manager",
-                                "manager@example.com", LocalDateTime.of(2026, 9, 7, 8, 4).atZone(ZoneId.of("America/Chicago")).toInstant())
-                        : null;
-                DashboardPlan plan = new DashboardPlan(DATE, DATE, List.of(DATE), true, true, List.of(f.imported()),
-                        demand(), schedules, List.of(f.drivers().get(1)), f.drivers(),
-                        allowed ? List.of(f.assignment()) : List.of(), reconciliations, f.imported(), allowed, null, day,
-                        "Calendar status", calendarOverride, calendarOverride != null);
-                ExtendedModelMap model = managerModel();
-                new DashboardModelAssembler().populate(model, plan);
-                String html = render(engine, "manager/dashboard", model);
-                check(html.contains("transportation-demand-heading"), "demand must remain available for " + status);
-                equal(allowed, html.contains("id=\"driver-coverage-heading\""), "calendar coverage gate " + status);
-                if (allowed) {
-                    check(html.contains("assign-midday") && html.contains("assign-afternoon"), "all three shift fragments render");
-                    check(html.contains("/assignments/manual"), "manual assignment action");
-                    check(html.contains("/assignments/1/driver"), "driver-change action");
-                    check(html.contains("/assignments/1/accept-schedule-recommendation"),
-                            "schedule reconciliation accept action");
-                    check(html.contains("/assignments/1/keep-current-after-schedule-change"),
-                            "schedule reconciliation keep action");
-                }
-            }
-        }
-        DriverAssignment suggestion = DriverAssignment.automatic(DATE, ShuttlePeriod.MIDDAY, f.drivers().get(0));
-        suggestion.updateScheduledTimes(LocalTime.of(13, 0), LocalTime.of(14, 0));
-        suggestion.replacePlannedDrivingWindows(List.of(new technology.renatus.routepulse.assignments.model.PlannedDrivingWindow(
-                LocalTime.of(13, 0), LocalTime.of(14, 0))));
-        DashboardPlan optionalPlan = new DashboardPlan(DATE, DATE, List.of(DATE), true, true, List.of(f.imported()),
-                demand(), schedules, List.of(), f.drivers(), List.of(), List.of(), f.imported(), false, null,
-                new ParkOperatingDay(DATE, ParkOperatingStatus.OPEN, LocalTime.of(9, 0), LocalTime.of(21, 0), false, "TEST", null),
-                "Open", null, false, suggestion);
-        ExtendedModelMap optionalModel = managerModel();
-        new DashboardModelAssembler().populate(optionalModel, optionalPlan);
-        equal(2, optionalModel.get("needsAttentionShiftCount"), "blocked opening demand remains visible alongside afternoon demand");
-        String optionalHtml = render(engine, "manager/dashboard", optionalModel);
-        check(optionalHtml.contains("Demand shown") && optionalHtml.contains("9:00 AM–11:59 PM"), "demand horizon renders through end of day");
-        check(!optionalHtml.contains("Normal operations · 9:00 AM–9:00 PM"), "old hard-coded demand cutoff removed");
-        check(optionalHtml.contains("/wardrobe-hours/season") && optionalHtml.contains("Summer · 5 PM")
-                && optionalHtml.contains("Fright Fest · 7 PM"), "seasonal wardrobe hours form and presets render");
-        check(optionalHtml.contains("/wardrobe-hours/day"), "daily wardrobe override form renders");
-        check(optionalHtml.contains("/assignments/midday-suggestion"), "suggestion acceptance form renders");
-        check(optionalHtml.contains("Assign suggested driver"), "suggestion action label");
-        check(optionalHtml.contains("wardrobe office coverage required"), "office explanation renders");
-        check(!optionalHtml.contains("id=\"assign-morning\""), "manual morning form hidden when office staffing blocked");
-        List<technology.renatus.routepulse.attention.model.AttentionItem> alerts = new ArrayList<>();
-        new technology.renatus.routepulse.attention.service.checks.CoverageAttentionChecker().addAlerts(optionalPlan, alerts);
-        check(alerts.stream().noneMatch(a -> a.key().contains("MIDDAY")), "regular midday remains optional");
-        check(alerts.stream().anyMatch(a -> a.key().equals("morning-office-coverage")), "office staffing notice present");
-        for (boolean staffed : List.of(false, true)) {
-            var afternoonRows = new ArrayList<DriverSchedule>();
-            afternoonRows.add(new DriverSchedule(1L, "100", "Scheduled Driver", DATE, LocalTime.NOON, LocalTime.of(21, 0)));
-            if (staffed) afternoonRows.add(new DriverSchedule(2L, "200", "Counter Driver", DATE, LocalTime.NOON, LocalTime.of(21, 0)));
-            var raw = demand();
-            var lateDemand = new TransportationDemandAnalysis(TransportationDemandAnalysis.empty().getMorning(), raw.getMidday(),
-                    raw.getEvening(), List.of(), 0, null, null, 0, null);
-            var latePlan = new DashboardPlan(DATE, DATE, List.of(DATE), true, true, List.of(f.imported()),
-                    lateDemand, afternoonRows, List.of(), f.drivers(), List.of(), List.of(), f.imported(), false, null,
-                    new ParkOperatingDay(DATE, ParkOperatingStatus.OPEN, LocalTime.of(17, 0), LocalTime.of(21, 0), false, "TEST", null),
-                    "Open", null, false);
-            ExtendedModelMap lateModel = managerModel(); new DashboardModelAssembler().populate(lateModel, latePlan);
-            equal("MIDDAY", lateModel.get("lateOpeningPeriod"), "late opening recognized in dashboard");
-            equal(true, lateModel.get("middayRequired"), "opening demand remains required when staffing is blocked");
-            String lateHtml = render(engine, "manager/dashboard", lateModel);
-            check(lateHtml.contains("Midday opening coverage"), "opening card label");
-            check(!lateHtml.contains("Optional midday driving"), "opening card incorrectly labeled optional");
-            equal(!staffed, lateHtml.contains("Opening driving withheld for counter coverage"), "counter explanation");
-            equal(staffed, lateHtml.contains("id=\"assign-midday\""), "unsafe manual form hidden");
-            var lateAlerts = new ArrayList<technology.renatus.routepulse.attention.model.AttentionItem>();
-            new technology.renatus.routepulse.attention.service.checks.CoverageAttentionChecker().addAlerts(latePlan, lateAlerts);
-            equal(true, lateAlerts.stream().anyMatch(a -> a.key().equals("coverage-gap-MIDDAY")), "opening gap remains visible until resolved");
-        }
-        for (boolean staffed : List.of(false, true)) {
-            var fridayRows = new ArrayList<DriverSchedule>();
-            fridayRows.add(new DriverSchedule(1L, "100", "Scheduled Driver", DATE, LocalTime.of(15,0), LocalTime.of(23,0)));
-            if (staffed) fridayRows.add(new DriverSchedule(2L, "200", "Counter Driver", DATE, LocalTime.of(15,0), LocalTime.of(23,0)));
-            var hours = new technology.renatus.routepulse.wardrobe.WardrobeHoursService.Hours(
-                    LocalTime.of(19,0), "Friday hours", DATE, DATE.plusDays(30), false, LocalTime.of(15,0), 5);
-            var fridayPlan = new DashboardPlan(DATE, DATE, List.of(DATE), true, true, List.of(f.imported()),
-                    demand(), fridayRows, List.of(), f.drivers(), List.of(), List.of(), f.imported(), false, null,
-                    new ParkOperatingDay(DATE, ParkOperatingStatus.OPEN, LocalTime.of(17,0), LocalTime.of(23,0), false, "TEST", null),
-                    "Open", null, false, null, hours);
-            ExtendedModelMap fridayModel = managerModel(); new DashboardModelAssembler().populate(fridayModel, fridayPlan);
-            equal(true, fridayModel.get("configuredOpening"), "configured opening enabled");
-            equal(false, fridayModel.get("morningRequired"), "morning is not required on late-opening days");
-            equal(true, fridayModel.get("middayRequired"), "midday opening demand remains visible while staffing is resolved");
-            String fridayHtml = render(engine, "manager/dashboard", fridayModel);
-            check(fridayHtml.contains("Opening driving window: 3:00 PM–6:00 PM"), "Friday hours cross five without split");
-            check(fridayHtml.contains("name=\"openingTime\"") && fridayHtml.contains("Fridays"), "opening and weekday inputs render");
-            equal(staffed, fridayHtml.contains("id=\"assign-midday\""), "configured opening form gated by staffing");
-            check(!fridayHtml.contains("Optional midday driving"), "configured opening is required");
-        }
-        ExtendedModelMap empty = managerModel();
-        new DashboardModelAssembler().populate(empty, new DashboardPlan(DATE, DATE, List.of(), false,
-                false, List.of(), TransportationDemandAnalysis.empty(), List.of(), List.of(), List.of(),
-                List.of(), List.of(), null, false, null, null, null, null, false));
-        check(render(engine, "manager/dashboard", empty).contains("scheduleFile"), "empty dashboard still permits import");
+        String html = render(engine(), "manager/dashboard", managerModel());
+        check(html.contains("Live shuttle status") && html.contains("View driving history"), "live operations render");
+        check(!html.contains("scheduleFile") && !html.contains("/park-calendar/confirm-open"), "planning removed");
     }
 
     public static void renderReportingStates() throws Exception {
         Fixture f = fixture();
-        WorkloadCalculator calculator = new WorkloadCalculator();
-        SpringTemplateEngine engine = engine();
-        PilotAnalyticsReport pilotReport = new PilotAnalyticsReport(
-                DATE,
-                DATE.plusDays(6),
-                true,
-                525,
-                0,
-                1,
-                1,
-                100.0,
-                0,
-                0,
-                0,
-                0,
-                0.0,
-                0,
-                8.75,
-                1,
-                List.of(new DriverFairnessRow(
-                        1L,
-                        "Irons, Jody L",
-                        525,
-                        0,
-                        1,
-                        0
-                )),
-                List.of(),
-                "RoutePulse planned one assignment this week."
-        );
-        ExtendedModelMap pilotModel = managerModel();
-        pilotModel.addAttribute("report", pilotReport);
-        pilotModel.addAttribute("currentWeekStart", DATE);
-        String fairnessHtml = render(engine, "fragments/pilot-analytics/fairness", pilotModel);
-        check(fairnessHtml.contains("8.8h"), "pilot fairness scheduled hours");
-        check(fairnessHtml.contains("-8.8h"), "pilot fairness difference hours");
-        check(fairnessHtml.contains("analytics-table__negative"), "pilot fairness difference class");
-
-        for (String view : List.of("summary", "records")) {
-            for (Long driverId : new Long[] { null, 1L, 2L }) {
-                ExtendedModelMap model = managerModel();
-                WorkloadSummary summary = calculator.calculate(DATE, DATE, driverId, f.drivers(), List.of(f.assignment()));
-                model.addAttribute("records", List.of(f.assignment()));
-                model.addAttribute("workloadSummary", summary);
-                model.addAttribute("selectedDriverSummary", driverId == null ? null : summary.getDrivers().get(0));
-                model.addAttribute("drivers", f.drivers());
-                model.addAttribute("selectedDriverId", driverId);
-                model.addAttribute("selectedView", view);
-                model.addAttribute("fromDate", DATE);
-                model.addAttribute("toDate", DATE);
-                model.addAttribute("makeupStatus", Map.of(1L, true));
-                model.addAttribute("outcomes", AssignmentOutcome.values());
-                String html = render(engine, "manager/driving-records", model);
-                if (view.equals("records")) {
-                    check(html.contains("/driving-records/1/outcome"), "management review form action");
-                    check(html.contains("Scheduled Driver") && html.contains("Covering Driver"), "scheduled and actual driver details");
-                } else {
-                    check(html.contains("3.00 hrs") || driverId != null, "workload hours");
-                }
-            }
+        var row = new technology.renatus.routepulse.reporting.workload.service.ActualDrivingRecordService.SessionRow(
+                technology.renatus.routepulse.driving.model.UnscheduledDrivingRecord.from(
+                        f.assignment().getDrivingSessions().get(0), ZoneId.of("America/Chicago")), 30);
+        for (boolean populated : List.of(false, true)) {
+            var model = managerModel();
+            model.addAttribute("drivers", f.drivers()); model.addAttribute("fromDate", DATE); model.addAttribute("toDate", DATE);
+            model.addAttribute("operationsZone", "America/Chicago");
+            model.addAttribute("report", new technology.renatus.routepulse.reporting.workload.service.ActualDrivingRecordService.Report(
+                    populated ? List.of(row) : List.of(), List.of(), populated ? 30 : 0, 0));
+            String html = render(engine(), "manager/driving-records", model);
+            check(html.contains("Driving history"), "actual records render");
+            check(populated ? html.contains("Covering Driver") : html.contains("No driving sessions match"), "records and empty state");
+            check(!html.contains("/outcome") && !html.contains("Scheduled Driver</td>"), "no planned record is presented as actual");
         }
     }
 

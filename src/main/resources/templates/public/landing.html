@@ -6,7 +6,7 @@
     <meta name="theme-color" content="#17201c">
     <meta
         name="description"
-        content="Clear shuttle status for riders. Schedule imports, driver coverage, live operations, and verified driving records for your team.">
+        content="See whether the shuttle is running and who is driving. Record actual driving time with simple NFC and QR checkpoints.">
 
     <title>Is the Shuttle Running? | Employee Shuttle Status &amp; Operations</title>
     <meta name="robots" content="index, follow, max-image-preview:large">
@@ -15,7 +15,7 @@
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="Is the Shuttle Running?">
     <meta property="og:title" content="Employee Shuttle Operations Software | Is the Shuttle Running">
-    <meta property="og:description" content="Turn workforce schedules into transportation demand, driver coverage, live shuttle operations, and verified service records with Is the Shuttle Running.">
+    <meta property="og:description" content="Track actual shuttle runs and give riders a clear answer about service and their driver.">
     <meta property="og:url" content="https://istheshuttlerunning.com/">
     <meta property="og:image" content="https://istheshuttlerunning.com/images/shuttle-og.png">
     <meta property="og:image:width" content="1200">
@@ -24,7 +24,7 @@
 
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Employee Shuttle Operations Software | Is the Shuttle Running">
-    <meta name="twitter:description" content="Plan, operate, and verify employee shuttle service from one schedule-driven workflow.">
+    <meta name="twitter:description" content="Start a shuttle run, update riders, and keep an accurate driving history.">
     <meta name="twitter:image" content="https://istheshuttlerunning.com/images/shuttle-og.png">
     <meta name="twitter:image:alt" content="Is the Shuttle Running employee shuttle operations software">
 
@@ -61,16 +61,16 @@
           "operatingSystem": "Web",
           "brand": {"@id": "https://istheshuttlerunning.com/#brand"},
           "publisher": {"@id": "https://renatus.technology/#organization"},
-          "description": "Employee shuttle operations software that turns workforce schedules into transportation demand, driver coverage, live operations, and verified driving records.",
+          "description": "Shuttle status and actual driving records for drivers, managers, and riders.",
           "featureList": [
-            "Workforce schedule import",
-            "Transportation demand planning",
-            "Driver coverage planning",
-            "Schedule-change reconciliation",
+            "Actual driving sessions",
+            "Driver time records",
+            "Driver handoffs",
+            "Driver registration",
             "QR and NFC driver checkpoints",
             "Live shuttle operating status",
-            "Planned-versus-actual driving records",
-            "Pilot operations analytics"
+            "Actual driving history",
+            "Driving time by driver"
           ]
         },
         {
@@ -78,7 +78,7 @@
           "@id": "https://istheshuttlerunning.com/#webpage",
           "url": "https://istheshuttlerunning.com/",
           "name": "Is the Shuttle Running | Employee Shuttle Operations Software",
-          "description": "Clear shuttle status for riders. Schedule imports, driver coverage, live operations, and verified driving records for your team.",
+          "description": "See whether the shuttle is running and who is driving. Record actual driving time with simple NFC and QR checkpoints.",
           "isPartOf": {"@id": "https://istheshuttlerunning.com/#website"},
           "about": {"@id": "https://istheshuttlerunning.com/#software"},
           "inLanguage": "en-US"
@@ -134,7 +134,7 @@
                 <p class="shuttle-eyebrow"><span class="signal-dot" aria-hidden="true"></span> Employee shuttle operations, connected</p>
                 <h1 id="hero-heading">Is the shuttle<br><span>running?</span></h1>
                 <p class="shuttle-hero__lead">A simple question deserves a clear answer.</p>
-                <p class="shuttle-hero__description">Give riders the status they need. Give your team the tools to plan coverage, coordinate drivers, and keep the day moving.</p>
+                <p class="shuttle-hero__description">See whether the shuttle is running and who is driving. Keep a clear record of every driver’s actual driving time.</p>
                 <div class="shuttle-actions">
                     <a class="button" href="#demo-request">Bring clarity to your shuttle <span aria-hidden="true">↗</span></a>
                     <a class="shuttle-text-link" href="#how-it-works">See how it works <span aria-hidden="true">↓</span></a>
@@ -174,10 +174,10 @@
 
     <section class="shuttle-section" id="operations" aria-labelledby="operations-heading">
         <div class="shuttle-container">
-            <div class="shuttle-section__heading"><p class="shuttle-eyebrow">One operation. Everyone in the loop.</p><h2 id="operations-heading">A clear answer out front.<br>A coordinated team behind it.</h2><p>From the person planning the shift to the person waiting for a ride, keep everyone connected to the same operation.</p></div>
+            <div class="shuttle-section__heading"><p class="shuttle-eyebrow">One operation. Everyone in the loop.</p><h2 id="operations-heading">A clear answer out front.<br>A coordinated team behind it.</h2><p>Drivers record their runs. Managers review the time. Riders see the current status.</p></div>
             <div class="audience-grid">
-                <article class="audience-card"><div class="audience-card__top"><span class="shuttle-mono">01 / MANAGERS</span><span aria-hidden="true">↗</span></div><div class="mini-schedule" aria-hidden="true"><span>AM</span><i></i><span>PM</span><i></i><span>EVE</span><i></i></div><h3>A plan you can work with.</h3><p>Turn employee schedules into demand and driver coverage. Adjust assignments when the day changes.</p><a th:href="@{/shuttle-driver-scheduling}">Explore driver planning <span aria-hidden="true">↗</span></a></article>
-                <article class="audience-card"><div class="audience-card__top"><span class="shuttle-mono">02 / DRIVERS</span><span aria-hidden="true">↗</span></div><div class="mini-checkpoint" aria-hidden="true"><span>↗</span><div><b>Ready when you are.</b><small>Start · Pause · Resume · End</small></div></div><h3>Your shift, made clearer.</h3><p>See your assignment. Use QR or NFC checkpoints to record when service starts, pauses, and ends.</p><a th:href="@{/shuttle-operations-verification}">Explore service records <span aria-hidden="true">↗</span></a></article>
+                <article class="audience-card"><div class="audience-card__top"><span class="shuttle-mono">01 / MANAGERS</span><span aria-hidden="true">↗</span></div><div class="mini-schedule" aria-hidden="true"><span>AM</span><i></i><span>PM</span><i></i><span>EVE</span><i></i></div><h3>Know who drove and when.</h3><p>Review actual starts, stops, and total driving time. Filter records by date and driver.</p><a th:href="@{/#how-it-works}">Explore driving records <span aria-hidden="true">↗</span></a></article>
+                <article class="audience-card"><div class="audience-card__top"><span class="shuttle-mono">02 / DRIVERS</span><span aria-hidden="true">↗</span></div><div class="mini-checkpoint" aria-hidden="true"><span>↗</span><div><b>Ready when you are.</b><small>Start · Pause · Resume · End</small></div></div><h3>Tap. Confirm. Drive.</h3><p>Use QR or NFC checkpoints to start, pause, resume, or end a run. Your driving time is recorded automatically.</p><a th:href="@{/#how-it-works}">Explore service records <span aria-hidden="true">↗</span></a></article>
                 <article class="audience-card audience-card--rider"><div class="audience-card__top"><span class="shuttle-mono">03 / RIDERS</span><span aria-hidden="true">↗</span></div><div class="mini-status" aria-hidden="true"><span class="signal-dot"></span> Is it running? <b>Yes.</b></div><h3>Less waiting. More knowing.</h3><p>Check service status from one link. See operational updates and confirm a ride while service is active.</p><a href="#status-preview">Try the status preview <span aria-hidden="true">↗</span></a></article>
             </div>
         </div>
@@ -185,51 +185,24 @@
 
     <section class="shuttle-section shuttle-workflow" id="how-it-works" aria-labelledby="workflow-heading">
         <div class="shuttle-container shuttle-workflow__grid">
-            <div class="shuttle-workflow__intro"><p class="shuttle-eyebrow">Built around the working day</p><h2 id="workflow-heading">From a schedule<br>to a shuttle<br>that’s moving.</h2><p>The planning, the changes, and the record of what happened — connected in one workflow.</p><a class="shuttle-text-link" th:href="@{/employee-shuttle-management-software}">Explore the platform <span aria-hidden="true">↗</span></a></div>
+            <div class="shuttle-workflow__intro"><p class="shuttle-eyebrow">Built around the working day</p><h2 id="workflow-heading">A simple record.<br>A clear answer.</h2><p>Actual driver activity keeps your team and your riders informed.</p><a class="shuttle-text-link" th:href="@{/#how-it-works}">Explore the platform <span aria-hidden="true">↗</span></a></div>
             <ol class="workflow-steps">
-                <li><span class="workflow-number">01</span><div><h3>Start with the schedule.</h3><p>Import employee schedules to see morning arrivals, midday turnover, and evening pickup demand.</p></div></li>
-                <li><span class="workflow-number">02</span><div><h3>Put coverage in place.</h3><p>Plan around driver availability and fair distribution. Managers can review and adjust assignments.</p></div></li>
+                <li><span class="workflow-number">01</span><div><h3>Add your drivers.</h3><p>Invite drivers by name and email, and place an NFC tag or QR code in the shuttle.</p></div></li>
+                <li><span class="workflow-number">02</span><div><h3>Record the drive.</h3><p>The driver taps or scans and confirms Start driving. Pauses and handoffs keep each person’s time separate.</p></div></li>
                 <li><span class="workflow-number">03</span><div><h3>Keep everyone updated.</h3><p>Driver activity and manager updates inform the public shuttle status, including pauses and delays.</p></div></li>
-                <li><span class="workflow-number">04</span><div><h3>Know what actually happened.</h3><p>Compare scheduled coverage with actual driving records, ride confirmations, and weekly analytics.</p></div></li>
+                <li><span class="workflow-number">04</span><div><h3>Know what actually happened.</h3><p>Review actual driving segments and total minutes by driver. Break time is excluded.</p></div></li>
             </ol>
         </div>
     </section>
 
-    <section class="shuttle-section shuttle-walkthrough" id="product-demo" aria-labelledby="walkthrough-heading">
-        <div class="shuttle-container">
-            <div class="shuttle-section__heading"><p class="shuttle-eyebrow">Take a closer look</p><h2 id="walkthrough-heading">One shuttle day. Three perspectives.</h2><p>See how managers, drivers, and riders stay connected in this 80-second illustrated walkthrough.</p></div>
-            <div class="walkthrough-frame">
-                <video controls playsinline preload="none" th:poster="@{/images/istheshuttlerunning-demo-poster.png}" aria-label="Is the Shuttle Running? Illustrated walkthrough for managers, drivers, and riders">
-                    <source th:src="@{/video/istheshuttlerunning-manager-driver-rider-demo.mp4}" type="video/mp4">
-                    Your browser does not support embedded video. <a th:href="@{/video/istheshuttlerunning-manager-driver-rider-demo.mp4}">Download the walkthrough</a>.
-                </video>
-            </div>
-            <p class="walkthrough-note">80 seconds · Silent with on-screen explanations · Illustrated screens with sample data</p>
-            <details class="walkthrough-transcript">
-                <summary>Read the video transcript</summary>
-                <p>This silent, illustrated walkthrough uses sample data to explain the manager, driver, and rider workflows.</p>
-                <ol>
-                    <li><strong>00:00 — One shuttle day. Three perspectives.</strong> Is the Shuttle Running? connects planning, actual driving activity, and rider-facing service status.</li>
-                    <li><strong>00:08 — Start with the schedule.</strong> Import a Dayforce CSV and retain import history. Employee shifts inform morning arrivals, midday turnover, and evening pickup demand.</li>
-                    <li><strong>00:18 — Know when the shuttle is needed.</strong> Review transportation demand by service window. These example counts represent schedule-derived demand, not confirmed rides.</li>
-                    <li><strong>00:27 — Put coverage in place.</strong> Review driver availability and fair assignments. Managers can adjust coverage and preserve the reason for an override.</li>
-                    <li><strong>00:37 — Tap. Confirm. Drive.</strong> A signed-in driver taps the NFC tag or scans the shuttle QR code and confirms the action. Start, pause, resume, and end events record actual activity separately from the planned assignment.</li>
-                    <li><strong>00:48 — One link. A clear answer.</strong> Riders open their organization’s public shuttle link without an account. The example changes from running to temporarily paused and back to running. Riders can confirm a ride while service is active.</li>
-                    <li><strong>01:00 — Know what actually happened.</strong> Managers compare scheduled coverage with actual driving records and ride confirmations. Example totals show nine scheduled hours, eight hours and forty-five minutes of driving, and eighty-four ride confirmations.</li>
-                    <li><strong>01:10 — Plan. Operate. Verify.</strong> Less guesswork at the stop. More clarity behind the scenes. Visit istheshuttlerunning.com to request a demo.</li>
-                </ol>
-            </details>
-        </div>
-    </section>
-
     <section class="shuttle-section shuttle-faq" aria-labelledby="faq-heading"><div class="shuttle-container shuttle-faq__grid"><div><p class="shuttle-eyebrow">A few helpful answers</p><h2 id="faq-heading">Before you<br>come aboard.</h2></div><div class="faq-items">
-        <details><summary>Is this only a shuttle-status page?</summary><p>The status page is what riders see. Behind it are schedule imports, demand planning, driver assignments, QR and NFC checkpoints, driving records, and operational analytics.</p></details>
+        <details><summary>Is this only a shuttle-status page?</summary><p>Riders see whether service is active and the driver’s first name. Drivers use NFC or QR checkpoints, and managers review actual driving records.</p></details>
         <details><summary>Do riders need an account?</summary><p>No. Riders open the organization’s public link to check status. While service is active, they can also confirm a ride without providing a name, employee ID, or email address.</p></details>
         <details><summary>Does it show the shuttle on a GPS map?</summary><p>The current product shows service status based on driver activity and operational updates. It does not provide live GPS tracking or predicted arrival times.</p></details>
-        <details><summary>What happened to RoutePulse?</summary><p>RoutePulse is becoming Is the Shuttle Running? The new name puts the question riders ask at the center, while keeping the planning and operations tools behind it.</p></details>
+        <details><summary>What happened to RoutePulse?</summary><p>RoutePulse is now Is the Shuttle Running? The app focuses on actual driving records and a clear live status for riders.</p></details>
     </div></div></section>
 
-    <section class="shuttle-section shuttle-demo" id="demo-program" aria-labelledby="demo-heading"><div class="shuttle-container shuttle-demo__grid"><div class="shuttle-demo__copy"><p class="shuttle-eyebrow">Bring your team on board</p><h2 id="demo-heading">Better shuttle days<br>start here.</h2><p>Tell us about your operation. We’ll walk through how your schedules, drivers, and riders can work together.</p><div class="demo-expectations"><p><span aria-hidden="true">↗</span> A walkthrough built around your workflow</p><p><span aria-hidden="true">↗</span> Direct feedback during the demo phase</p><p><span aria-hidden="true">↗</span> Access reviewed for each organization</p></div><a href="mailto:victor@renatus.technology">Prefer email? Talk to Victor <span aria-hidden="true">↗</span></a></div>
+    <section class="shuttle-section shuttle-demo" id="demo-program" aria-labelledby="demo-heading"><div class="shuttle-container shuttle-demo__grid"><div class="shuttle-demo__copy"><p class="shuttle-eyebrow">Bring your team on board</p><h2 id="demo-heading">Better shuttle days<br>start here.</h2><p>Tell us about your operation. We’ll walk through driver check-ins, actual driving records, and your rider status page.</p><div class="demo-expectations"><p><span aria-hidden="true">↗</span> A walkthrough built around your workflow</p><p><span aria-hidden="true">↗</span> Direct feedback during the demo phase</p><p><span aria-hidden="true">↗</span> Access reviewed for each organization</p></div><a href="mailto:victor@renatus.technology">Prefer email? Talk to Victor <span aria-hidden="true">↗</span></a></div>
         <section class="demo-request-card" id="demo-request" aria-labelledby="request-heading"><p class="shuttle-eyebrow">Let’s talk shuttles</p><h2 id="request-heading">Tell us about your operation.</h2><p class="demo-request-card__intro">We’ll follow up using the email address you provide.</p>
                 <div
                     th:if="${demoRequestSent}"
@@ -315,7 +288,7 @@
                                 th:field="*{message}"
                                 rows="5"
                                 maxlength="1200"
-                                placeholder="Tell us a little about your shuttle operation, current planning process, or what you want to test."></textarea>
+                                placeholder="Tell us a little about your shuttle operation, current driving records, or what you want to test."></textarea>
                         </div>
                     </div>
 

@@ -18,7 +18,7 @@
 
     <meta name="robots" content="noindex, nofollow">
     <title
-        th:text="|Shuttle status · ${status.organizationName}|">
+        th:text="|Shuttle status · ${organizationName}|">
         Shuttle status · Is the Shuttle Running
     </title>
 
@@ -31,11 +31,7 @@
         rel="stylesheet"
         th:href="@{/css/site.css}">
 
-    <link
-        rel="stylesheet"
-        th:href="@{/css/pages/passenger-ride.css}">
-		
-		<!-- Google tag (gtag.js) -->
+    <!-- Google tag (gtag.js) -->
 		<script async src="https://www.googletagmanager.com/gtag/js?id=G-RT9N792J8N"></script>
 		<script>
 		  window.dataLayer = window.dataLayer || [];
@@ -47,266 +43,20 @@
 </head>
 
 <body class="rider-status-page">
-
 <header class="rider-brand-header">
     <a class="brand" th:href="@{/}" aria-label="Is the Shuttle Running home">
         <img class="brand-mark" th:src="@{/images/shuttle-mark.svg}" alt="">
         <span class="brand-copy"><span class="brand-name">Is the shuttle<br>running?</span></span>
     </a>
-    <span>Shuttle status</span>
+    <span th:text="${organizationName}">Your organization</span>
 </header>
-<main class="rider-status-shell rider-status-shell--passenger">
-    <div class="rider-location">
-        <p class="eyebrow">Your shuttle</p>
-        <h2 th:text="${status.organizationName}">Your organization</h2>
-        <p>Page refreshes every 20 seconds. Refreshing does not confirm service.</p>
-    </div>
-
-    <section
-        class="rider-status-card"
-        th:classappend="| rider-status-card--${status.tone}|"
-        aria-live="polite">
-
-        <div
-            class="rider-status-indicator"
-            aria-hidden="true">
-        </div>
-
-        <p class="rider-status-label" th:text="${status.operationalStatus.label}">Running</p>
-
-        <h1 th:text="${status.headline}">The shuttle is running.</h1>
-
-        <p class="rider-status-detail" th:text="${status.detail}">Service is currently active.</p>
-
-        <div class="rider-operational-message"
-             th:if="${status.operationalMessage != null}"
-             role="status">
-            <strong>Operational update</strong>
-            <p th:text="${status.operationalMessage}">Shuttle temporarily unavailable — vehicle issue.</p>
-        </div>
-
-        <p
-            class="rider-status-driver"
-            th:if="${status.confirmationAvailable and status.driverName != null}"
-            th:text="|Driver: ${status.driverName}|">
-            Driver: Driver name
-        </p>
-
-        <div class="rider-confirmation-time">
-            <p th:if="${status.lastConfirmedAt != null}">Last operational confirmation:
-                <strong th:text="${timestampDisplay.format(status.lastConfirmedAt, 'MMM d, h:mm a z')}"></strong>
-            </p>
-            <p th:if="${status.lastConfirmedAt == null}">No driver or manager confirmation recorded yet.</p>
-            <p>Page refreshed: <span th:text="${timestampDisplay.format(status.pageRefreshedAt, 'h:mm:ss a z')}"></span></p>
-        </div>
+<main class="rider-status-shell rider-status-shell--simple">
+    <section class="rider-status-card" aria-live="polite"
+             th:classappend="${running ? 'rider-status-card--running' : 'rider-status-card--stopped'}">
+        <div class="rider-status-indicator" aria-hidden="true"></div>
+        <h1 th:text="${running ? 'The shuttle is running.' : 'The shuttle is not running.'}">The shuttle is not running.</h1>
+        <p class="rider-status-driver" th:if="${driverName != null}" th:text="|Driver: ${driverName}|">Driver: Driver name</p>
     </section>
-
-    <section class="rider-day-schedule" th:with="next=${status.nextPlannedWindow()}">
-        <h2>Next planned service</h2>
-        <p th:if="${next != null}"><strong th:text="${next.timeRange}"></strong>
-            · <span th:text="${next.driverName}"></span> · <span th:text="${next.label}"></span></p>
-        <p th:if="${next == null}">No remaining planned service window today.</p>
-        <p>Planned times do not confirm that service is running.</p>
-    </section>
-
-    <section class="rider-day-schedule rider-pickup" aria-labelledby="pickup-heading">
-        <h2 id="pickup-heading">Pickup locations &amp; help</h2>
-        <p th:if="${status.pickupInstructions != null}" th:text="${status.pickupInstructions}"></p>
-        <p th:if="${status.pickupInstructions == null}">Your organization has not added pickup instructions yet.</p>
-        <p th:if="${status.helpContact != null}"><strong>Need help?</strong> <span th:text="${status.helpContact}"></span></p>
-        <p th:if="${status.helpContact == null}">Ask your organization’s shuttle coordinator for pickup or service help.</p>
-    </section>
-
-    <section class="rider-day-schedule" aria-labelledby="schedule-heading">
-        <p class="eyebrow">Plan your ride</p>
-        <h2 id="schedule-heading">Today’s shuttle schedule</h2>
-        <p><span th:text="${status.scheduleDate}"></span> · <span th:text="${status.scheduleZone}"></span></p>
-        <p class="rider-schedule-help">These are planned driving times. Check the live status above to see whether the shuttle is running.</p>
-        <p th:if="${#lists.isEmpty(status.schedule)}">No driving windows are scheduled for today.</p>
-        <ul class="rider-schedule-list" th:if="${!#lists.isEmpty(status.schedule)}">
-            <li th:each="window : ${status.schedule}" class="rider-schedule-window"
-                th:classappend="| rider-schedule-window--${window.tone}|">
-                <div class="rider-schedule-top"><strong th:text="${window.driverName}">Driver</strong>
-                    <span class="rider-schedule-label" th:text="${window.label}">Upcoming</span></div>
-                <p><span th:text="${window.timeRange}">2:00 PM – 4:00 PM</span>
-                    · <span th:text="${window.duration}">2 hr</span></p>
-            </li>
-        </ul>
-    </section>
-
-    <section class="rider-status-card rider-confirmation-card">
-        <section
-            id="confirm-ride"
-            class="passenger-ride-section"
-            th:if="${status.confirmationAvailable}">
-
-            <div
-                class="passenger-ride-message passenger-ride-message--success"
-                th:if="${rideResult == 'confirmed'}"
-                role="status">
-
-                <strong>
-                    Ride confirmed.
-                </strong>
-
-                <span>
-                    Thank you. Your ride has been counted.
-                </span>
-
-            </div>
-
-            <div
-                class="passenger-ride-message passenger-ride-message--info"
-                th:if="${rideResult == 'duplicate'}"
-                role="status">
-
-                <strong>
-                    Your recent ride is already counted.
-                </strong>
-
-                <span
-                    th:text="|You can submit another ride after the ${passengerRide.cooldownMinutes}-minute ride window expires.|">
-
-                    You can submit another ride later.
-
-                </span>
-
-            </div>
-
-            <div
-                class="passenger-ride-heading">
-
-                <p class="passenger-ride-eyebrow">
-                    Passenger confirmation
-                </p>
-
-                <h2>
-                    Did you ride the shuttle?
-                </h2>
-
-                <p>
-                    Confirm your ride so your organization can record
-                    shuttle usage.
-                </p>
-
-            </div>
-
-            <div class="passenger-current-driver">
-
-                <span>
-                    Current driver
-                </span>
-
-                <strong
-                    th:text="${status.driverName}">
-                    Driver name
-                </strong>
-
-            </div>
-
-            <div
-                th:if="${!passengerRide.alreadyConfirmedRecently}">
-
-                <form
-                    class="passenger-confirmation-form"
-                    th:action="@{/ride/{slug}/confirm(slug=${organizationSlug})}"
-                    method="post">
-
-                    <button
-                        class="passenger-confirmation-button"
-                        type="submit">
-
-                        Confirm my ride
-
-                    </button>
-
-                </form>
-
-                <p class="passenger-confirmation-help">
-                    We’ll automatically record the current
-                    driver and the time you submit.
-                </p>
-
-            </div>
-
-            <div
-                class="passenger-confirmation-cooldown"
-                th:if="${passengerRide.alreadyConfirmedRecently}">
-
-                <strong>
-                    Your recent ride is already counted.
-                </strong>
-
-                <p
-                    th:text="|You can confirm another ride from this device after the ${passengerRide.cooldownMinutes}-minute window expires.|">
-
-                    You can confirm another ride later.
-
-                </p>
-
-            </div>
-
-            <div class="passenger-qr-area">
-
-                <div class="passenger-qr-copy">
-
-                    <h3>
-                        Scan to confirm
-                    </h3>
-
-                    <p>
-                        If this status page is displayed on another
-                        device or screen, scan this code with your phone.
-                    </p>
-
-                    <p>
-                        The QR opens this same shuttle-status page directly
-                        at the ride confirmation section.
-                    </p>
-
-                </div>
-
-                <a
-                    class="passenger-qr-link"
-                    th:href="@{/ride/{slug}(slug=${organizationSlug})} + '#confirm-ride'"
-                    aria-label="Open passenger ride confirmation">
-
-                    <img
-                        class="passenger-qr-image"
-                        th:src="@{/ride/{slug}/passenger-qr.png(slug=${organizationSlug})}"
-                        alt="QR code to confirm a passenger shuttle ride">
-
-                </a>
-
-            </div>
-
-            <p class="passenger-privacy-note">
-                No passenger name, employee ID, email address,
-                phone number, or GPS location is required.
-                A random browser identifier is used only to
-                reduce duplicate submissions.
-            </p>
-
-        </section>
-
-        <div
-            class="passenger-stopped-message"
-            th:if="${!status.confirmationAvailable}">
-
-            Ride confirmations are available only while shuttle service is actively running.
-
-        </div>
-
-    </section>
-
-    <p class="rider-status-footnote">Service status comes from driver activity and manager confirmations. Ride confirmations are recorded submissions, not a count of every passenger.</p>
 </main>
-
-<script
-    type="module"
-    th:if="${rideResult != null}"
-    th:src="@{/js/pages/rider-status.js}">
-</script>
-
 </body>
 </html>

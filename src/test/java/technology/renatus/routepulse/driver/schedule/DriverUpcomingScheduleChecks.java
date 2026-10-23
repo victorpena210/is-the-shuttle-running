@@ -108,7 +108,7 @@ public final class DriverUpcomingScheduleChecks {
         check(html.contains("My schedule") && html.contains("Evening driving") && html.contains("Protected break"), "schedule renders");
         check(html.contains("7:00 PM") && html.contains("Times not set"), "windows and missing time render");
         check(!html.contains("PRIVATE OTHER") && !html.contains("PRIVATE FOREIGN"), "no other driver information");
-        check(html.contains("aria-current=\"page\""), "selected navigation rendered");
+        check(html.contains("My driving") && html.contains("My records"), "current driver navigation");
         for (int days : List.of(0, 2)) {
             model.put("scheduleView", new ScheduleView(view.dates(), List.of(), days));
             String empty = engine.process("driver/schedule", WebTemplateContext.create(model));

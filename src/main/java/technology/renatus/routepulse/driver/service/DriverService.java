@@ -114,6 +114,7 @@ public class DriverService {
     public Driver registerDriver(
             Long organizationId,
             String employeeId,
+            String name,
             String email,
             boolean active) {
 
@@ -159,11 +160,10 @@ public class DriverService {
             );
         }
 
-        String employeeName =
-                findEmployeeName(
-                        organizationId,
-                        cleanedEmployeeId
-                );
+        String employeeName = name == null ? "" : name.trim();
+        if (employeeName.isBlank()) {
+            throw new IllegalArgumentException("Driver name is required.");
+        }
 
         if (employeeName.length() > 200) {
             throw new IllegalArgumentException(

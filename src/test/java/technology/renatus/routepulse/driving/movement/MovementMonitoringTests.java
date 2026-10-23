@@ -324,8 +324,8 @@ class MovementMonitoringTests {
         });}
         RiderStatusService.RiderStatus riderAt(Instant now) throws Exception {
             var operations=new OperationalStatusService(null,null,null) {@Override public Optional<technology.renatus.routepulse.operations.model.OperationalStatusUpdate> findLatest(Long id){return Optional.empty();}};
-            var rider=new RiderStatusService(organizations(),repository(),proxy(DriverAssignmentRepository.class,(m,a)->List.of()),operations,
-                    new ServiceFreshnessPolicy(),"America/Chicago",10,15);
+            var rider=new RiderStatusService(organizations(),repository(),operations,
+                    new ServiceFreshnessPolicy(),"America/Chicago");
             var method=RiderStatusService.class.getDeclaredMethod("getStatus",String.class,Instant.class);method.setAccessible(true);
             return (RiderStatusService.RiderStatus)method.invoke(rider,"test",now);
         }

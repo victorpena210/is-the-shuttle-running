@@ -92,6 +92,7 @@ public class DriverController {
             Authentication authentication,
             @RequestParam
             String employeeId,
+            @RequestParam String name,
             @RequestParam
             String email,
             @RequestParam(
@@ -107,6 +108,7 @@ public class DriverController {
                     .registerAndInviteDriver(
                             authentication,
                             employeeId,
+                            name,
                             email,
                             active
                     );

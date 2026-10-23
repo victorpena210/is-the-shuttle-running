@@ -70,6 +70,9 @@ public interface DrivingSessionRepository
             @Param("organizationId") Long organizationId, @Param("driverId") Long driverId,
             @Param("start") Instant start, @Param("end") Instant end);
 
+    List<DrivingSession> findTop20ByOrganization_IdAndDriver_IdOrderByStartedAtDesc(
+            Long organizationId, Long driverId);
+
     List<DrivingSession> findTop20ByOrganization_IdAndDriver_IdAndAssignmentIsNullOrderByStartedAtDesc(
             Long organizationId, Long driverId);
 

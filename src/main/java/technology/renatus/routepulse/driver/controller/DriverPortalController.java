@@ -1,6 +1,5 @@
 package technology.renatus.routepulse.driver.controller;
 
-import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -8,7 +7,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import technology.renatus.routepulse.assignments.model.DriverAssignment;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driver.service.DriverPortalService;
 import technology.renatus.routepulse.driver.service.portal.DriverCheckpointService.CheckpointAction;
@@ -40,23 +38,15 @@ public class DriverPortalController {
         if (active != null) {
             model.addAttribute("activeSessionId", active.sessionId());
         }
-        model.addAttribute("driverPage", "assignment");
+        model.addAttribute("driverPage", "driving");
         model.addAttribute(
                 "organizationName",
                 driver.getOrganization().getDisplayName());
         model.addAttribute(
                 "today",
                 driverPortalService.currentOperationsDate());
-        List<DriverAssignment> todayAssignments =
-                driverPortalService.getTodayAssignments(authentication);
-
-        var unscheduledRecords = driverPortalService.getRecentUnscheduledRecords(authentication);
-        model.addAttribute("unscheduledRecords", unscheduledRecords);
-        model.addAttribute("unscheduledActive", unscheduledRecords.stream().anyMatch(record -> record.active()));
-        model.addAttribute("todayAssignments", todayAssignments);
-        model.addAttribute(
-                "primaryAssignment",
-                driverPortalService.selectPrimaryTodayAssignment(todayAssignments));
+        model.addAttribute("drivingRecords", driverPortalService.getRecentDrivingRecords(authentication));
+        model.addAttribute("organizationSlug", driver.getOrganization().getSlug());
 
         return "driver/home";
     }
@@ -192,52 +182,11 @@ public class DriverPortalController {
         String methodLabel = checkpointLabel(result.method());
 
         return switch (result.action()) {
-            case START_UNSCHEDULED -> "Unscheduled driving started by " + methodLabel
-                    + ". Your name and actual start time have been saved in the driving records.";
-            case RESUME -> {
-                String coverageMessage = result.coveragePerformed()
-                        && result.scheduledDriver() != null
-                                ? " " + result.scheduledDriver().getName()
-                                        + " remains the scheduled driver."
-                                : "";
-
-                yield "Driving resumed by " + methodLabel
-                        + ". Is the Shuttle Running opened a new actual driving session on the same "
-                        + result.assignment().getPeriod()
-                        + " assignment and preserved the earlier session."
-                        + coverageMessage;
-            }
-            case START -> {
-                if (result.coveragePerformed() && result.scheduledDriver() != null) {
-                    yield "Driving started by " + methodLabel + ". "
-                            + result.scheduledDriver().getName()
-                            + " remains the scheduled driver for the "
-                            + result.assignment().getPeriod()
-                            + " shift, and Is the Shuttle Running recorded you separately as the actual driver.";
-                }
-
-                yield "Driving started by " + methodLabel
-                        + ". Is the Shuttle Running recorded your actual start time.";
-            }
-            case TAKEOVER -> {
-                String previousDriver = result.previousActualDriver() == null
-                        ? "The previous driver's"
-                        : result.previousActualDriver().getName() + "'s";
-                String coverageMessage = result.coveragePerformed()
-                        && result.scheduledDriver() != null
-                                ? " " + result.scheduledDriver().getName()
-                                        + " remains the scheduled driver."
-                                : "";
-
-                yield "Driving handoff recorded by " + methodLabel + ". "
-                        + previousDriver
-                        + " actual driving session ended and yours started."
-                        + coverageMessage;
-            }
-            case PAUSE -> "Driving paused by " + methodLabel
-                    + ". Is the Shuttle Running saved this driving segment. Tap the NFC tag or scan the QR code when you are ready to resume.";
-            case END -> "Driving ended by " + methodLabel
-                    + ". Is the Shuttle Running saved the final actual end time for this driving segment.";
+            case START_UNSCHEDULED, START, RESUME -> "Driving started by " + methodLabel
+                    + ". Your name and start time have been recorded.";
+            case TAKEOVER -> "Driving handoff recorded. The previous driver's session ended and yours started.";
+            case PAUSE -> "Driving paused. Your driving time was saved. Tap or scan again to resume.";
+            case END -> "Driving ended. Your driving time was saved.";
         };
     }
 

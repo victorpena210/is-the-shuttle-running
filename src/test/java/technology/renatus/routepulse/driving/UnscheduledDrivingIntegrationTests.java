@@ -52,7 +52,7 @@ class UnscheduledDrivingIntegrationTests extends MySqlIntegrationTestSupport {
         var auth = user(f.user().getEmail()).roles("DRIVER");
         mockMvc.perform(get("/driver/tap").with(auth).param("code", f.org().getDrivingQrCode()))
                 .andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Start unscheduled driving")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Confirm start driving")));
         assertThat(sessionRepository.count()).isEqualTo(initialCount); // GET is read-only
         mockMvc.perform(post("/driver/tap").with(auth).param("code", f.org().getDrivingQrCode())
                 .param("action", "START_UNSCHEDULED")).andExpect(status().isForbidden());
@@ -67,7 +67,7 @@ class UnscheduledDrivingIntegrationTests extends MySqlIntegrationTestSupport {
         assertThat(active.getStartMethod()).isEqualTo(DrivingActionMethod.NFC);
         assertThat(assignmentRepository.findAllByOrganization_IdAndAssignmentDate(f.org().getId(), LocalDate.now(ZoneOffset.UTC))).isEmpty();
         mockMvc.perform(get("/driver").with(auth)).andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Unscheduled driving is active")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Your shuttle session is active")));
         assertThat(riderStatus.getStatus(f.org().getSlug()).confirmationAvailable()).isTrue();
         assertThat(rides.confirmRide(f.org().getSlug(), "test-device")).isEqualTo(PassengerRideService.ConfirmationResult.RECORDED);
         assertThat(rides.confirmRide(f.org().getSlug(), "test-device")).isEqualTo(PassengerRideService.ConfirmationResult.ALREADY_CONFIRMED);
@@ -105,7 +105,7 @@ class UnscheduledDrivingIntegrationTests extends MySqlIntegrationTestSupport {
         membershipRepository.save(new OrganizationMembership(f.org(), admin, OrganizationRole.ADMIN));
         mockMvc.perform(get("/driving-records").with(user(admin.getEmail()).roles("ADMIN"))
                 .param("view", "records")).andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Driver reports")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Driving history")));
     }
 
     @Test

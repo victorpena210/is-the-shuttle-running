@@ -38,7 +38,7 @@ public class ServiceConfirmationController {
             service.confirm(organizations.requireOrganization(auth).getId(), sessionId, auth.getName(), driver);
             flash.addFlashAttribute("successMessage", "Service confirmed. Any active manager status override still applies.");
         } catch (IllegalArgumentException | IllegalStateException ex) { flash.addFlashAttribute("errorMessage", ex.getMessage()); }
-        return driver ? "redirect:/driver" : "redirect:/app#live-status";
+        return driver ? "redirect:/driver" : "redirect:/app/live-status#live-status";
     }
 
     @PostMapping("/operations/close-session")
@@ -51,7 +51,7 @@ public class ServiceConfirmationController {
             service.close(organizations.requireOrganization(auth).getId(), sessionId, endedAt.toInstant(offsets.get(0)), auth.getName());
             flash.addFlashAttribute("successMessage", "Session closed at the actual end time. Any manager status override still applies.");
         } catch (IllegalArgumentException | IllegalStateException ex) { flash.addFlashAttribute("errorMessage", ex.getMessage()); }
-        return "redirect:/app#live-status";
+        return "redirect:/app/live-status#live-status";
     }
 
     @PostMapping("/operations/rider-information")
@@ -61,6 +61,6 @@ public class ServiceConfirmationController {
             service.updateRiderInformation(organizations.requireOrganization(auth).getId(), pickupInstructions, helpContact, auth.getName());
             flash.addFlashAttribute("successMessage", "Public pickup and help information updated.");
         } catch (IllegalArgumentException | IllegalStateException ex) { flash.addFlashAttribute("errorMessage", ex.getMessage()); }
-        return "redirect:/app#live-status";
+        return "redirect:/app/live-status#live-status";
     }
 }

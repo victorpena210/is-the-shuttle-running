@@ -15,7 +15,7 @@ const states = {
     stopped: {
         label: 'Not running',
         heading: 'Off duty.\nStay in the loop.',
-        detail: 'The shuttle is not running right now. Check with your organization for the next service window.'
+        detail: 'The shuttle is not running right now. Check back for an update or contact your shuttle coordinator.'
     }
 };
 if (preview && controls) {

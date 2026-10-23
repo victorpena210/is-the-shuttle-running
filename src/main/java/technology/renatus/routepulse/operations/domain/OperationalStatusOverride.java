@@ -4,7 +4,7 @@ public enum OperationalStatusOverride {
     AUTOMATIC("Automatic"),
     TEMPORARILY_PAUSED("Temporarily paused"),
     DELAYED("Delayed"),
-    NO_SERVICE_SCHEDULED("No service scheduled"),
+    NO_SERVICE_SCHEDULED("Service unavailable"),
     SERVICE_ENDING_SOON("Service ending soon");
 
     private final String label;

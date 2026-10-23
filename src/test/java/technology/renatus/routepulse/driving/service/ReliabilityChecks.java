@@ -134,26 +134,28 @@ public final class ReliabilityChecks {
         f.active = null;
         equal(RiderOperationalStatus.CONFIRMATION_NEEDED,service.getStatus("test",NOW).operationalStatus(),"ending-soon override cannot invent active service");
         f.update = null;
-        equal(RiderOperationalStatus.NO_SERVICE_SCHEDULED,service.getStatus("test",NOW).operationalStatus(),"empty day remains clear");
+        equal(RiderOperationalStatus.NOT_RUNNING,service.getStatus("test",NOW).operationalStatus(),"no active run means not running");
         rejects(() -> service.getStatus("other",NOW),"public lookup is organization-scoped");
 
         f.org.updateRiderInformation("Wait at gate <script>alert(1)</script>","Dispatch: 555-0100");
         f.active = DrivingSession.startUnscheduled(f.org,f.driver,NOW.minusSeconds(60),f.user,DrivingActionMethod.MANAGER); id(f.active,12L);
         f.assignments = List.of(assignment(f.driver,ShuttlePeriod.AFTERNOON,"23:00","23:59"));
         var running = service.getStatus("test",NOW);
-        check(running.nextPlannedWindow()!=null,"next valid planned window shown");
+        check(running.nextPlannedWindow()==null,"old assignments do not publish planned service");
         var engine = engine();
         var model = new HashMap<String,Object>();
-        model.put("timestampDisplay",new TimestampDisplay("America/Chicago")); model.put("organizationSlug","test");
-        model.put("passengerRide",new PassengerRideService.PassengerRideState(true,"Test",false,30));
         for (var status : List.of(running,stale)) {
-            model.put("status",status);
+            model.put("organizationName", status.organizationName());
+            model.put("running", status.running());
+            model.put("driverName", status.driverName());
             String html = engine.process("public/rider-status",WebTemplateContext.create(model));
-            check(html.contains("Page refreshed:") && html.contains("Last operational confirmation:"),"refresh and confirmation have separate labels");
-            if (status == running) {
-                check(html.indexOf("pickup-heading") < html.indexOf("schedule-heading") && html.indexOf("schedule-heading") < html.indexOf("id=\"confirm-ride\""),"rider information precedes confirmation");
-                check(html.contains("&lt;script&gt;") && !html.contains("<script>alert(1)</script>"),"public rider text is escaped");
-            } else check(html.contains("Confirm my ride"),"long-running session keeps passenger confirmation action");
+            check(html.contains("The shuttle is running.") && html.contains("Driver: " + status.driverName()),
+                    "public page shows running and the current driver");
+            check(!html.contains("confirm-ride") && !html.contains("Confirm my ride") && !html.contains("<form"),
+                    "public page has no passenger confirmation");
+            check(!html.contains("pickup-heading") && !html.contains("Last operational confirmation:")
+                    && !html.contains("Wait at gate") && !html.contains("Dispatch:"),
+                    "public page omits pickup, confirmation and operational details");
         }
         f.active = DrivingSession.startUnscheduled(f.org,f.driver,Instant.now().minusSeconds(10800),f.user,DrivingActionMethod.MANAGER); id(f.active,13L);
         var passenger = new PassengerRideService(f.organizations(),f.sessions(),proxy(PassengerRideConfirmationRepository.class,(m,a)-> {
@@ -248,6 +250,6 @@ public final class ReliabilityChecks {
         });}
         OperationalStatusService operations(){return new OperationalStatusService(null,null,null){@Override public Optional<OperationalStatusUpdate> findLatest(Long org){return Optional.ofNullable(update);}};}
         RiderStatusService riderService(){return new RiderStatusService(organizations(),sessions(),
-                proxy(DriverAssignmentRepository.class,(m,a)-> DAY.equals(a[1])?assignments:List.of()),operations(),new ServiceFreshnessPolicy(),"America/Chicago",10,15);}
+                operations(),new ServiceFreshnessPolicy(),"America/Chicago");}
     }
 }

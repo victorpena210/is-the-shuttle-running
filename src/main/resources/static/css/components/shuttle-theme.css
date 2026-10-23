@@ -31,7 +31,7 @@
 .rider-status-page { background: #17201c; color: #f7f8f2; }
 .rider-brand-header { width: min(calc(100% - 2rem), 800px); margin: auto; padding: 1.5rem 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #3b4835; }
 .rider-brand-header > span { font: 600 .66rem Consolas, monospace; text-transform: uppercase; letter-spacing: .08em; color: #b6c2ad; }
-.rider-status-shell.rider-status-shell--passenger { min-height: auto; display: block; padding-top: 2rem; }
+.rider-status-shell.rider-status-shell--simple { min-height: auto; display: block; padding-top: 2rem; }
 .rider-location { text-align: center; margin-bottom: 1.7rem; }
 .rider-location .eyebrow { color: #c8f36b; font-size: .65rem; }
 .rider-location h2 { font-size: 1.1rem; margin-bottom: .5rem; }

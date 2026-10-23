@@ -43,18 +43,9 @@
         <div th:if="${scanError == null}">
             <p class="auth-panel__intro">
                 Signed in as <strong th:text="${driver.name}">Driver Name</strong>.
-                <span th:if="${assignment != null}">Is the Shuttle Running matched this checkpoint to the
-                <strong th:text="${assignment.periodLabel}">MORNING</strong> shift for
-                <strong th:text="${#temporals.format(assignment.assignmentDate, 'MMMM d, yyyy')}">
-                    September 4, 2026
-                </strong>.</span>
-                <span th:if="${assignment == null}">This is an unscheduled driving record.</span>
             </p>
-
-            <div th:if="${checkpointAction.name() == 'START_UNSCHEDULED'}" class="alert alert--info" role="status">
-                <strong>No scheduled assignment is available.</strong>
-                If you have been asked to drive, confirm below. Your name, start time and checkpoint
-                method will be saved as unscheduled driving. Tap again when you stop.
+            <div th:if="${checkpointAction.name() == 'START' or checkpointAction.name() == 'START_UNSCHEDULED'}" class="alert alert--info" role="status">
+                Confirm when you begin driving. Your name, actual start time, and checkpoint method will be recorded.
             </div>
 
             <div th:if="${takeoverRequired}" class="alert alert--info" role="status">
@@ -63,12 +54,12 @@
                 is currently recorded as driving. Continuing will end that driver's current
                 session and immediately start a new session for
                 <strong th:text="${driver.name}">New Driver</strong>.
-                The scheduled assignment itself will not be rewritten.
+                Both drivers’ actual times will remain in the driving records.
             </div>
 
             <div th:if="${checkpointAction.name() == 'RESUME'}" class="alert alert--info" role="status">
                 <strong>Previous driving session found.</strong>
-                Is the Shuttle Running will keep the earlier session in this assignment's history and open
+                Is the Shuttle Running will keep the earlier session in your driving history and open
                 a new actual driving session at this checkpoint time.
             </div>
 
@@ -78,54 +69,21 @@
                 <strong>End driving</strong> when this stretch of service is finished.
             </div>
 
-            <div th:if="${coverageRequired}" class="alert alert--info" role="status">
-                <strong>Fill-in driver detected.</strong>
-                <span th:text="${scheduledDriver != null ? scheduledDriver.name : 'No driver'}">Scheduled Driver</span>
-                is scheduled for this shift. Continuing keeps the original schedule intact and records
-                <strong th:text="${driver.name}">Fill-in Driver</strong>
-                separately as the actual driver.
-            </div>
-
             <div class="form-group">
                 <span class="field-label">Checkpoint method</span>
                 <div class="readonly-field" th:text="${checkpointLabel}">NFC tap</div>
             </div>
 
-            <div class="form-group" th:if="${assignment != null}">
-                <span class="field-label">Scheduled driver</span>
-                <div class="readonly-field"
-                     th:text="${scheduledDriver != null ? scheduledDriver.name : 'Unassigned'}">Driver Name</div>
-            </div>
 
             <div class="form-group">
                 <span class="field-label">Signed-in driver</span>
                 <div class="readonly-field" th:text="${driver.name}">Driver Name</div>
             </div>
 
-            <div class="form-group" th:if="${assignment != null}">
-                <span class="field-label">Scheduled time</span>
-                <div class="readonly-field">
-                    <th:block th:if="${assignment.hasPlannedDrivingWindows()}">
-                        <div th:each="window : ${assignment.plannedDrivingWindows}"
-                             th:text="${#temporals.format(window.startTime, 'h:mm a') + ' – ' + #temporals.format(window.endTime, 'h:mm a')}">
-                            9:00 AM – 10:30 AM
-                        </div>
-                        <small th:if="${assignment.period.name() != 'MIDDAY' and !#lists.isEmpty(assignment.plannedBreakWindows)}"
-                               th:with="breakWindow=${assignment.plannedBreakWindows[0]}"
-                               th:text="|Break ${#temporals.format(breakWindow.startTime, 'h:mm a')}–${#temporals.format(breakWindow.endTime, 'h:mm a')} · ${breakWindow.minutes} min water / restroom|">
-                            Break 10:30 AM–10:45 AM · 15 min water / restroom
-                        </small>
-                    </th:block>
-                    <span th:unless="${assignment.hasPlannedDrivingWindows()}"
-                          th:text="${#temporals.format(assignment.scheduledStartTime, 'h:mm a') + ' – ' + #temporals.format(assignment.scheduledEndTime, 'h:mm a')}">
-                        9:00 AM – 12:00 PM
-                    </span>
-                </div>
-            </div>
 
             <div class="form-group">
                 <span class="field-label">Action</span>
-                <div class="readonly-field" th:if="${checkpointAction.name() == 'START_UNSCHEDULED'}">Start unscheduled driving</div>
+                <div class="readonly-field" th:if="${checkpointAction.name() == 'START_UNSCHEDULED'}">Start driving</div>
                 <div class="readonly-field" th:if="${checkpointAction.name() == 'START'}">Start driving</div>
                 <div class="readonly-field" th:if="${checkpointAction.name() == 'RESUME'}">Resume driving</div>
                 <div class="readonly-field" th:if="${checkpointAction.name() == 'TAKEOVER'}">Take over active driving</div>
@@ -137,7 +95,7 @@
 
                 <button class="button button--block" type="submit" name="action"
                         value="START_UNSCHEDULED" th:if="${checkpointAction.name() == 'START_UNSCHEDULED'}">
-                    Start unscheduled driving
+                    Start driving
                 </button>
 
                 <button class="button button--block"
@@ -187,7 +145,7 @@
         </div>
 
         <p class="auth-panel__footer">
-            <a th:href="@{/driver}">Back to my assignment</a>
+            <a th:href="@{/driver}">Back to my driving</a>
         </p>
     </section>
 </main>

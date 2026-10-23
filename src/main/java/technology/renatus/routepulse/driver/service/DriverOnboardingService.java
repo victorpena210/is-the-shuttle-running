@@ -40,6 +40,7 @@ public class DriverOnboardingService {
     public Driver registerAndInviteDriver(
             Authentication authentication,
             String employeeId,
+            String name,
             String email,
             boolean active) {
 
@@ -53,6 +54,7 @@ public class DriverOnboardingService {
                 driverService.registerDriver(
                         organizationId,
                         employeeId,
+                        name,
                         email,
                         active
                 );

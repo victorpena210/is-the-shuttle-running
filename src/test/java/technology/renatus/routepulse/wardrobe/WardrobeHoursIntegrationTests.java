@@ -50,19 +50,14 @@ class WardrobeHoursIntegrationTests extends MySqlIntegrationTestSupport {
         assertEquals(id,fright.getId());
         assertEquals(LocalTime.of(20,0),fright.getScheduledStartTime());
         assertEquals("Fright Fest",hours.getHours(organization.getId(),date).label());
+        long before = rules.count();
         mockMvc.perform(post("/wardrobe-hours/day").with(user(manager.getEmail()).roles("ADMIN")).with(csrf())
                 .param("selectedDate",date.toString()).param("closingTime","18:00"))
-                .andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("successMessage"));
-        assertEquals(LocalTime.of(18,0),hours.getHours(organization.getId(),date).closingTime());
-        assertTrue(hours.getHours(organization.getId(),date).dailyOverride());
-        assertEquals(LocalTime.of(20,0), assignmentFor(assignmentService.getExistingAssignments(organization.getId(),date),
-                ShuttlePeriod.AFTERNOON).getScheduledStartTime());
+                .andExpect(status().isGone());
         mockMvc.perform(post("/wardrobe-hours/day/reset").with(user(manager.getEmail()).roles("ADMIN")).with(csrf())
-                .param("selectedDate",date.toString())).andExpect(status().is3xxRedirection());
+                .param("selectedDate",date.toString())).andExpect(status().isGone());
+        assertEquals(before, rules.count());
         assertEquals(LocalTime.of(19,0),hours.getHours(organization.getId(),date).closingTime());
-        assertFalse(hours.getHours(organization.getId(),date).dailyOverride());
-        assertEquals(4,rules.findAllByOrganizationIdAndStartsOnLessThanEqualAndEndsOnGreaterThanEqualOrderByCreatedAtDescIdDesc(
-                organization.getId(),date,date).size());
         assertThrows(IllegalStateException.class, () -> assignmentService.updateScheduledTimes(organization.getId(),id,
                 LocalTime.of(18,0),LocalTime.of(20,0)));
     }
@@ -93,7 +88,10 @@ class WardrobeHoursIntegrationTests extends MySqlIntegrationTestSupport {
         mockMvc.perform(post("/wardrobe-hours/season").with(user(manager.getEmail()).roles("ADMIN")).with(csrf())
                 .param("label","Fridays").param("from",date.toString()).param("to",date.plusDays(30).toString())
                 .param("selectedDate",date.toString()).param("openingTime","15:00").param("closingTime","19:00").param("dayOfWeek","5"))
-                .andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("successMessage"));
+                .andExpect(status().isGone());
+        // Exercise the retained historical service directly; the retired web form cannot save a rule.
+        assignmentService.updateWardrobeHours(org.getId(), WardrobeHoursRule.Scope.SEASON, "Fridays",
+                date,date.plusDays(30),LocalTime.of(15,0),LocalTime.of(19,0),5,manager.getEmail());
         assertEquals(LocalTime.of(15,0), hours.getHours(org.getId(),date).openingTime());
         assertEquals(LocalTime.of(15,0), hours.getHours(org.getId(),date.plusDays(1)).openingTime()); // mocked calendar is 5 PM on every date
         var assigned = assignmentService.getExistingAssignments(org.getId(),date);

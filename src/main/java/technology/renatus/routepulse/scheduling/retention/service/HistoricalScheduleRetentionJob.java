@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /** Nightly privacy/forecasting retention job for completed operating days. */
-@Component
+// Retired: schedule forecasting is no longer part of the active application.
 @ConditionalOnProperty(
         name = "app.retention.enabled",
         havingValue = "true",

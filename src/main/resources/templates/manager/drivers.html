@@ -57,9 +57,7 @@
             </h1>
 
             <p>
-                Register a driver with an employee ID and email address.
-                Is the Shuttle Running will verify the employee from the uploaded schedule
-                and send the driver an account invitation.
+                Enter the driver’s name, employee ID, and email address to create an account invitation.
             </p>
 
         </div>
@@ -127,8 +125,7 @@
                     </h2>
 
                     <p>
-                        The employee ID must exist in this
-                        organization’s uploaded schedules.
+                        Enter the driver’s details below.
                     </p>
 
                 </div>
@@ -156,18 +153,14 @@
                             required>
 
                         <p class="help-text">
-                            Is the Shuttle Running will match this ID to an
-                            employee in your uploaded schedules.
+                            Use a unique employee ID for this driver.
                         </p>
 
                     </div>
 
-                    <div
-                        id="employeeLookupResult"
-                        class="alert"
-                        role="status"
-                        aria-live="polite"
-                        hidden>
+                    <div class="form-group">
+                        <label for="driverName">Driver name</label>
+                        <input id="driverName" name="name" type="text" maxlength="200" autocomplete="name" required>
                     </div>
 
                     <div class="form-group">
@@ -202,7 +195,7 @@
                             checked>
 
                         <label for="active">
-                            Available for assignments
+                            Active driver
                         </label>
 
                     </div>
@@ -502,7 +495,7 @@
     th:replace="~{fragments/footer :: footer('app')}">
 </footer>
 
-<script type="module" th:src="@{/js/pages/drivers.js}"></script>
+
 </body>
 
 </html>

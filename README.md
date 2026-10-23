@@ -4,7 +4,7 @@
 
 A Java / Spring Boot application that gives riders a shared shuttle-status page,
 drivers simple service controls, and managers a record of who drove and when.
-It also contains schedule-based demand planning and coverage tools.
+The active workflow records actual driving history; it does not assign shifts.
 
 **Built and maintained by Victor Peña at [Renatus Technology](https://renatus.technology).**
 The project grew from firsthand experience with employee transportation and
@@ -18,23 +18,22 @@ not imply employer ownership or endorsement.
 
 [![Illustrated rider-status example using fictional sample data](src/main/resources/static/images/istheshuttlerunning-demo-poster.png)](https://istheshuttlerunning.com/video/istheshuttlerunning-manager-driver-rider-demo.mp4)
 
-**Preview:** the linked 80-second walkthrough uses illustrated screens and
+**Earlier preview:** the linked 80-second walkthrough predates the simplified
+driving-log workflow and uses illustrated screens and
 fictional sample data. It is not a production recording or evidence of usage
 metrics. [Video source and scene guide](docs/video/README.md).
 
 ## The problem and the implementation
 
-A schedule says who is expected to drive; it does not establish whether a
-shuttle is actually running. Staff also need to balance driving with keeping
-the wardrobe counter staffed. This application separates planned assignments
-from actual driving sessions and exposes a simpler status view to riders.
+Riders need to know whether the shuttle is running. Drivers record actual
+service at the shuttle checkpoint, and managers review who drove, when, and
+for how long. Starting a run does not require a schedule or planned assignment.
 
 | Area | Implemented behavior |
 | --- | --- |
-| Riders | Public organization-specific status pages, limited driver-name display, and ride confirmations |
+| Riders | Public organization-specific pages showing running/not running and the active driver’s first name |
 | Drivers | Role-restricted portal, NFC/QR checkpoint actions, start/resume, waiting, break, and end controls |
-| Managers | Driver records, manual coverage, overrides, session history, and scheduled-versus-actual reports |
-| Planning | Dayforce CSV imports, 15-minute demand windows, roster availability, and opening/counter staffing rules |
+| Managers | Actual driving history, date/driver filters, driving-time totals, and active-run controls |
 | Accounts | Organization-scoped access, invitations, email verification, password reset, and optional persistent sign-in |
 | Operations | Versioned MySQL migrations, health probes, optional Sentry reporting, and backup/restore tooling |
 
@@ -43,6 +42,14 @@ active until an explicit pause, end, handoff, or manager close. Missing phone
 location and inactivity do not automatically close sessions. Location sharing
 is optional. Temporary manager status overrides still expire at their chosen
 time. [Current status behavior](docs/MANUAL-SESSION-STATUS.md).
+
+Managers land on driving history at `/app` (`/driving-records` is an alias).
+Live status and run corrections are at `/app/live-status`. Drivers use the
+existing NFC/QR checkpoints to start, pause, resume, hand off, and end a run.
+The public rider page contains no schedules or ride-confirmation controls.
+Old planning screens redirect and old planning submissions return HTTP 410;
+existing session history and database migrations are preserved.
+[Driving-log workflow](docs/DRIVING-LOG-2026-10-23.md).
 
 ## Stack and code tour
 
@@ -55,7 +62,7 @@ time. [Current status behavior](docs/MANUAL-SESSION-STATUS.md).
 Java code is organized by feature under
 `src/main/java/technology/renatus/routepulse/`. Start with `driving/` for session
 lifecycle and rider status, `organization/` for access boundaries, and
-`assignments/` for coverage rules. See [architecture](docs/architecture.md) and
+`reporting/workload/` for actual driving history. See [architecture](docs/architecture.md) and
 [frontend organization](FRONTEND_ORGANIZATION.md) for the full map.
 
 The former name **RoutePulse** remains in Java packages, artifact names, and
@@ -67,8 +74,7 @@ point is `technology.renatus.routepulse.RoutePulseApplication`; the built JAR is
 
 Requirements: Java 17 and MySQL 8.4 (or compatible). The executable Maven
 wrapper downloads Maven. Docker is required for the integration tests, and
-Node.js 22 is used for browser-script tests. Screenshot OCR additionally needs
-Tesseract on the local PATH; the production Docker image installs it.
+Node.js 22 is used for browser-script tests.
 
 Create a dedicated local database:
 
@@ -117,7 +123,7 @@ JavaScript and Maven checks, then builds the production Docker image.
 For a focused set of unit/template checks without Docker:
 
 ```bash
-./mvnw -Dtest=CleanupRegressionTests,DriverScheduleAvailabilityTests,TransportationDemandServiceTests,SixFlagsCalendarProviderTests test
+./mvnw -Dtest=DrivingHistoryTests,PublicRiderStatusTests,SimpleDrivingScreensTests,DriverCheckpointServiceTests test
 node --test src/test/js/*.test.cjs
 ```
 

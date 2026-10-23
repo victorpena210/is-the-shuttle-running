@@ -11,7 +11,7 @@ import technology.renatus.routepulse.driver.service.portal.DriverPortalAccessSer
 import technology.renatus.routepulse.organization.service.CurrentOrganizationService;
 import technology.renatus.routepulse.assignments.repository.DriverAssignmentRepository;
 
-@ControllerAdvice(assignableTypes = {DashboardController.class, DriverPortalController.class, DriverScheduleController.class})
+// Retired: schedule notices are no longer part of the application workflow.
 public class AvailabilityNoticeAdvice {
     private final DriverAvailabilityRepository revisions;
     private final AvailabilityUpdateService updates;
