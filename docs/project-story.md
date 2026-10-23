@@ -1,43 +1,71 @@
 # Project story and engineering decisions
 
-## Context and role
+Is the Shuttle Running? is an independent Java / Spring Boot application by
+Victor Peña at Renatus Technology. It records actual driving sessions and
+publishes a simple running/not-running status with the active driver's first name.
+[Current screens](screenshots/README.md) · [Architecture](architecture.md) ·
+[Victor's portfolio](https://victorpena210.github.io/#shuttle)
 
-Victor Peña developed Is the Shuttle Running? through Renatus Technology,
-drawing on firsthand employee-shuttle and wardrobe-counter experience. The
-work spans the application, scheduling rules, account and organization access,
-database schema, public rider page, driver controls, and deployment tooling.
-AI tools have assisted development; the code, tests, and documented tradeoffs
-are the evidence available for review. No adoption or time-savings figures are
-claimed here.
+## Problem and role
+
+The idea came from firsthand employee-shuttle and wardrobe-counter work.
+Riders need a quick answer about service; drivers need a small set of actions;
+managers need a record of who drove and for how long.
+
+Victor's work spans requirements, the Java application and relational schema,
+role-specific interfaces, NFC/QR workflows, tests, deployment configuration,
+and ongoing changes. AI tools have assisted development. The source, tests,
+and decisions below provide concrete material for technical review.
+This is an independent project, not an employer-sponsored product or endorsement.
+No adoption, time-saving, uptime, or performance figures are claimed here.
+
+## Why the scope changed
+
+The earlier application imported employee schedules and assigned driving shifts.
+The current product deliberately focuses on actual activity: drivers record the
+run, riders see status, and managers review history. An assignment was never
+proof that a shuttle was operating.
+
+Simplification required preserving existing records. New sessions are independent
+of assignments; older assignment-linked sessions still appear in the same history.
+Retired planning GETs redirect and submissions return HTTP 410 before their
+handlers execute. Existing Flyway migrations and historical data remain intact.
+The retained planning implementation is compatibility code, not a current feature.
 
 ## Decisions worth reviewing
 
-| Decision | Reason and tradeoff | Where to look |
+| Decision | Reason and tradeoff | Evidence |
 | --- | --- | --- |
-| Separate assignments from sessions | A planned shift is not proof of service. Multiple actual sessions can belong to one assignment. | `driving/service/DrivingSessionService.java`, `assignments/model/DriverAssignment.java` |
-| Organization-scoped access | Driver and assignment lookups must remain inside the acting user's organization. | `organization/`, `OrganizationIsolationIntegrationTests` |
-| Preserve a counter staff member | Opening service must consider who remains available when another roster member drives. | `wardrobe/OpeningCoveragePolicy.java`, `assignments/service/planning/` |
-| Explicit session controls | A stopped or disconnected phone is not enough evidence that the shuttle stopped operating. Manual controls trade automatic expiry for operator responsibility. | `docs/MANUAL-SESSION-STATUS.md`, `src/test/js/driver-movement.test.cjs` |
-| Server-rendered screens | Spring MVC and Thymeleaf keep most application logic in one Java service; browser scripts handle focused interactions. | `templates/`, `static/js/` |
-| Real MySQL in integration tests | Testcontainers exercises Flyway, mappings, and transactions against MySQL, at the cost of requiring Docker. | `support/MySqlIntegrationTestSupport.java` |
-| An adapter around the operating calendar | External calendar responses can fail or change; the provider boundary, cache, and manual fallback isolate that dependency. | `calendar/`, `docs/architecture.md` |
+| Record each actual segment | Pausing closes a segment; resuming opens another. Breaks are excluded without rewriting history. | `driving/model/DrivingSession.java`, `driving/service/DrivingSessionService.java` |
+| Lock before changing the active run | An organization lock and active-session query serialize competing checkpoint actions. Stale start/end/handoff forms are rejected. | `driver/service/portal/DriverCheckpointService.java`, `DriverCheckpointServiceTests` |
+| Enforce organization boundaries | A signed-in user still must belong to the organization and have permission for the action. A tag code does not replace authentication. | `driver/service/portal/DriverPortalAccessService.java`, `OrganizationIsolationIntegrationTests` |
+| Calculate time within the selected range | Reports use the operations timezone and clip overlapping sessions to date boundaries. Active runs contribute elapsed time. | `reporting/workload/service/ActualDrivingRecordService.java`, `ActualDrivingRecordServiceTests` |
+| Keep public status minimal | The public controller provides only organization name, binary status, and the active driver's first name. Ride confirmation is retired. | `driving/controller/RiderStatusController.java`, `PublicRiderStatusTests` |
+| Keep session endings explicit | Missing phone location is not proof that service stopped. Drivers or managers must end forgotten runs. | `docs/MANUAL-SESSION-STATUS.md`, `src/test/js/driver-movement.test.cjs` |
+| Use server-rendered screens | Spring MVC and Thymeleaf keep business rules in Java; focused scripts handle browser interactions. | `templates/`, `static/js/pages/driver-movement.js` |
+| Test against MySQL | Testcontainers exercises migrations, mappings, and transactions; Docker is required for the full suite. | `support/MySqlIntegrationTestSupport.java`, `.github/workflows/routepulse-ci.yml` |
 
 Java paths are relative to `src/main/java/technology/renatus/routepulse/`;
-test names are under `src/test/java/technology/renatus/routepulse/`.
+tests are under `src/test/java/technology/renatus/routepulse/`.
 
-## Current boundaries
+## A short code review path
 
-- This is a single application with organization isolation, not a distributed system.
-- One configured operating-calendar source is shared by the application instance;
-  per-organization provider selection is not implemented.
-- Live status records operator actions. It is not a guaranteed GPS location or arrival-time prediction.
-- Optional location sharing does not auto-close sessions after inactivity.
-- The illustrated walkthrough uses fictional data and is not a production recording.
-- Public source does not grant access to production accounts, records, or credentials.
+1. Follow `/driver/tap` from `DriverPortalController` through `DriverPortalService`
+   to `DriverCheckpointService` and `DrivingSessionService`.
+2. Inspect the active-driver, stale-request, handoff, and organization checks.
+3. Follow `/app` through `DrivingRecordController` to `ActualDrivingRecordService`.
+   Compare date-boundary calculations with its tests.
+4. Inspect the small public model in `RiderStatusController` and its rendering tests.
+5. Run the JavaScript tests and `./mvnw clean verify` with Docker available.
 
-## Review path
+## Boundaries and remaining tradeoffs
 
-Start with the README and architecture notes. Run the JavaScript tests and the
-Maven verification suite with Docker. Then follow a manager start/end request
-through `DrivingActionService`, `DrivingSessionService`, and the session
-repository, and inspect the organization and lifecycle integration tests.
+- One application and database with organization isolation; not a distributed system.
+- Current active service is modeled per organization, not a multi-vehicle fleet.
+- Status reflects recorded actions and temporary manager overrides; it is not an ETA.
+- A driver who forgets to end a run can leave stale status until a manager corrects it.
+- Optional location sharing never automatically closes a session or exposes coordinates to riders.
+- Screenshots use fictional fixture data rendered through current templates. They
+  demonstrate the interface, not production adoption or a live operational state.
+- The old scheduling code and illustrated video remain as historical material.
+  They are not the current review path and are candidates for later cleanup.

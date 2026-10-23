@@ -1,3 +1,6 @@
+> Historical preview: this illustrated video predates the October 23, 2026
+> simplification. It is not the current application. See [current screens](../screenshots/README.md).
+
 # Is the Shuttle Running? — product walkthrough
 
 This replaces the former-brand walkthrough in the supplied project. The new film is an **80-second, 1920 × 1080, 30 fps MP4**, encoded as H.264 / yuv420p with fast-start metadata for web playback. It is silent, with on-screen explanations, matching the original video's silent format.

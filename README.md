@@ -16,12 +16,17 @@ not imply employer ownership or endorsement.
 [Architecture](docs/architecture.md) ·
 [Local setup](#local-development) · [Tests](#automated-tests)
 
-[![Illustrated rider-status example using fictional sample data](src/main/resources/static/images/istheshuttlerunning-demo-poster.png)](https://istheshuttlerunning.com/video/istheshuttlerunning-manager-driver-rider-demo.mp4)
+## See the current application
 
-**Earlier preview:** the linked 80-second walkthrough predates the simplified
-driving-log workflow and uses illustrated screens and
-fictional sample data. It is not a production recording or evidence of usage
-metrics. [Video source and scene guide](docs/video/README.md).
+![Driving history rendered from the current application with fictional records](docs/screenshots/history.jpg)
+
+[View rider and driver screens](docs/screenshots/README.md) ·
+[Review the code and decisions](docs/project-story.md#a-short-code-review-path) ·
+[Developer portfolio](https://victorpena210.github.io/#shuttle)
+
+These are current Thymeleaf templates rendered with fixed, fictional data.
+They are not production records. The earlier illustrated scheduling video is
+retained only as historical material in `docs/video/`.
 
 ## The problem and the implementation
 
@@ -127,8 +132,9 @@ For a focused set of unit/template checks without Docker:
 node --test src/test/js/*.test.cjs
 ```
 
-The driving lifecycle integration test uses a controlled calendar and covers
-11 AM, noon, and 5 PM park openings. Its staffing validation remains enabled.
+Current-workflow tests cover independent driving sessions, stale checkpoint
+actions, handoffs, organization isolation, date boundaries, and the minimal
+rider page. Retained legacy planning tests also use a controlled calendar.
 The CI badge shows the latest workflow result; it is not a claim about the
 currently deployed service.
 

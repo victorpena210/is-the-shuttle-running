@@ -1,121 +1,117 @@
 # Is the Shuttle Running? architecture
 
-Is the Shuttle Running? (formerly RoutePulse) is a Java 17 / Spring Boot application. The application entry point is
-`technology.renatus.routepulse.RoutePulseApplication` and the Maven artifact is
-`routepulse`. Spring scans the feature packages beneath the application package.
+Java 17, Spring Boot, Spring MVC, Spring Security, Thymeleaf, Spring Data JPA,
+MySQL, and Flyway form one server-rendered application. The entry point remains
+`technology.renatus.routepulse.RoutePulseApplication`; the Maven artifact remains
+`routepulse` for compatibility. Updated October 23, 2026 for the driving-log workflow.
 
-## Feature packages
+## Current request paths
 
-All paths below are relative to `src/main/java/technology/renatus/routepulse/`.
+| Request | Controller and service | Result |
+| --- | --- | --- |
+| `/driver` | `DriverPortalController` → `DriverPortalService` | Current run and the driver's recent history |
+| `/driver/tap`, `/driver/scan` | `DriverPortalController` → `DriverCheckpointService` → `DrivingSessionService` | Authenticated NFC/QR start, pause, end, or handoff |
+| `/app`, `/driving-records` | `DrivingRecordController` → `ActualDrivingRecordService` | Organization-scoped date/driver filters and actual time totals |
+| `/app/live-status` | `DashboardController` → `RiderStatusService`, `OperationalStatusService` | Manager status controls and active-run correction |
+| `/ride/{slug}` | `RiderStatusController` → `RiderStatusService` | Public running/not-running status and driver's first name |
 
-| Package | Owns |
+```mermaid
+flowchart TD
+  Driver["Authenticated driver"] --> Checkpoint["Checkpoint service"]
+  Checkpoint --> Session["Transactional session changes"]
+  Session --> DB["MySQL records"]
+  DB --> History["Manager driving history"]
+  DB --> Status["Public status"]
+```
+
+## Session lifecycle and concurrency
+
+A checkpoint validates the current user, active driver, organization, and tag code.
+The service locks the organization and reads the active session for update before
+choosing an action. With no active run, a confirmed start creates an independent
+session. The current driver can pause or end it; another driver must explicitly
+confirm a handoff. Stale actions fail instead of silently changing another run.
+
+Pausing ends a segment; resuming starts another. Handoffs close the previous
+segment and open the next in the same transaction. A manager can close a forgotten
+run with its actual end time. Phone inactivity and missing GPS do not end runs.
+
+`DrivingSession` stores the organization, actual driver, timestamps, initiating and
+ending users, checkpoint methods, and end reason. Its optional assignment link
+preserves older records. New runs do not require an assignment or work schedule.
+The active-session model is per organization, not per vehicle.
+
+## Reporting and time
+
+`ActualDrivingRecordService` loads overlapping sessions for the authenticated
+organization and validates an optional driver against that organization. Date
+boundaries are calculated in the configured operations timezone and converted
+to instants. Each segment is clipped to the selected interval; active segments
+use the current time. Driver totals aggregate seconds before displaying minutes.
+Pauses occupy no segment and therefore add no driving time.
+
+## Public status
+
+`RiderStatusService` combines recorded activity with unexpired manager overrides.
+`RiderStatusController` exposes only organization name, a boolean running state,
+and the active driver's first name. Waiting and ending-soon states count as
+running; paused, delayed, unavailable, unconfirmed, and stopped states do not.
+The page refreshes every 20 seconds and responses disallow caching.
+
+Public ride-confirmation POSTs and passenger-QR requests return HTTP 410.
+Operational notes, pickup instructions, schedules, and passenger confirmations
+are not rendered on the public page. Internal legacy fields remain for compatibility.
+
+## Access and persistence
+
+Spring Security protects role-restricted routes and CSRF-protected actions.
+Organization-aware services validate membership and resource ownership.
+`OrganizationActorService` centralizes checks for audited changes;
+`DriverPortalAccessService` validates driver checkpoints. Invitations, email
+verification, password resets, and persistent sign-in remain supported.
+
+Flyway owns the versioned database schema in `src/main/resources/db/migration`.
+Do not rewrite applied migrations. This simplification adds no migration and
+preserves existing accounts, tag codes, and driving history. Credentials and
+hosting settings remain external configuration; see `.env.example` and README.
+
+## Feature map
+
+Paths are relative to `src/main/java/technology/renatus/routepulse/`.
+
+| Package | Current responsibility |
 | --- | --- |
-| `auth/` | Account registration, login, email verification, password reset and account email delivery |
-| `organization/` | Organizations, memberships, invitations and checks on acting users |
-| `driver/` | Driver records, onboarding and the driver's portal |
-| `scheduling/` | Uploaded schedules, import history and demand/availability calculations |
-| `assignments/` | Planned coverage, fair recommendations, overrides, outcome reviews and make-up priority |
-| `driving/` | Actual driving sessions, NFC/QR checkpoint actions, passenger confirmations and public rider status |
-| `reporting/workload/` | Historical record queries and scheduled-versus-actual workload reports |
-| `calendar/` | Operating-calendar contract, configured provider, parsed values and saved snapshots |
-| `dashboard/` | Dashboard request handling, planning-date data and the template model |
-| `marketing/` | Public landing page and demo requests |
-| `shared/` | Security configuration, request throttling, shared web advice and exceptions |
+| `auth/`, `organization/` | Accounts, invitations, membership and access checks |
+| `driver/` | Driver registration, portal and physical checkpoints |
+| `driving/` | Actual sessions, manual controls, optional movement data and rider status |
+| `reporting/workload/` | Actual history through `ActualDrivingRecordService`; older report services are legacy |
+| `dashboard/`, `operations/` | Live status, temporary overrides and run corrections |
+| `shared/` | Security, throttling, common web support and retired-route interception |
+| `marketing/` | Landing page and demo requests |
+| `scheduling/`, `assignments/`, `calendar/`, `wardrobe/` | Retained planning implementation and historical compatibility |
 
-Feature subfolders separate `controller`, `service`, `repository`, `model`,
-`domain`, `dto` and `email` as needed. JPA entities live in feature `model`
-packages. Enums and planning values live in `domain`; workload presentation
-values live in `reporting/workload/model`. `DashboardPlan` is a view-data record.
+## Retired functionality
 
-`scheduling/importing` is used because `import` is a Java keyword.
+`RetiredPlanningRoutes` intercepts schedule imports, assignment edits, availability,
+calendar and wardrobe planning, and older planning reports. Reads redirect to the
+current workflow and writes return HTTP 410 before the old handlers run. The
+retention/forecasting job and availability notices are no longer registered as
+active components. Historical planning services and tests remain in the repository;
+the current dashboard does not call `DashboardPlanningService`.
 
-## HTTP and dashboard flow
+The historical calendar adapter, scheduling documents, and old walkthrough are
+useful records of earlier iterations, not descriptions of current product features.
+See [the scope decision](project-story.md#why-the-scope-changed).
 
-`DashboardController` resolves the current organization and delegates to
-`DashboardPlanningService`. That service selects the planning date, calculates
-demand, resolves the calendar and requests assignments only when the existing
-calendar gate allows them. `DashboardModelAssembler` builds the template model,
-including morning, midday and afternoon coverage attributes.
+## Verification
 
-Separate controllers handle `/upload`, `/park-calendar/confirm-open`, assignment
-edits, and manager start/end actions. Existing route paths and request parameters
-are retained. Authorization remains in the security configuration and the
-organization-aware services.
+Run `node --test src/test/js/*.test.cjs` and `./mvnw clean verify` with Docker.
+GitHub Actions runs those checks and builds the production Docker image.
+The shared MySQL Testcontainers fixture applies migrations to a temporary database;
+integration methods roll back their test data.
 
-## Scheduled work and actual driving
-
-`AssignmentPlanningService` owns automatic selection and schedule-window logic.
-`DriverAssignmentService` handles manual coverage, driver changes and schedule
-review. Its small planning/start/end compatibility methods delegate to the
-focused services, preserving existing Java consumers.
-
-`DrivingActionService` owns manager start/end requests; `DrivingSessionService`
-owns the actual session lifecycle. `AssignmentReviewService` records reviewed
-outcomes and make-up priority. Transactional boundaries and repository locks are
-kept on the services that perform these operations.
-
-`DrivingRecordService` loads organization-scoped records in a read transaction.
-`WorkloadCalculator` computes the report using those loaded records:
-
-- scheduled minutes belong to `DriverAssignment.scheduledDriver`;
-- actual minutes belong to each completed `DrivingSession.driver`;
-- multiple sessions for one driver on one assignment count as one shift driven;
-- active sessions do not contribute a final completed duration.
-
-`DriverAssignmentRepository` owns assignment queries, including the date-range
-query formerly in `DrivingRecordRepository`.
-
-## Invitations
-
-`OrganizationInvitationService` issues and refreshes invitations and sends their
-links. `InvitationAccessService` checks who may invite managers or drivers.
-`InvitationAcceptanceService` validates a token and creates the invited user and
-membership in a transaction. Existing token locks, role checks and email
-interfaces are retained. `OrganizationActorService` centralizes membership checks
-for users making audited assignment changes.
-
-## Operating calendar
-
-`ParkOperatingDayService` depends on `OperatingCalendarProvider`.
-`calendar/sixflags/` contains the current implementation, HTTP client, response
-records and parser. It preserves the monthly cache, persisted fallback,
-manager-confirmed opening and diagnostic codes.
-
-There is still one configured park/calendar source per application instance,
-selected by the existing Six Flags settings. Adding a provider now has a clear
-integration boundary; organization-specific provider selection is a future
-feature and is not implemented by this cleanup. The existing database park IDs
-and snapshot schema remain unchanged.
-
-## Database and configuration
-
-Repositories stay scoped to organizations. JPA entity names, tables, columns,
-relationships and versioned Flyway migrations are managed in `src/main/resources/db/migration`. The default
-local database name `shuttleflow` remains valid. Database credentials, SMTP
-settings, public URLs and existing environment-variable names keep their current
-meaning.
-
-## Tests
-
-Tests are grouped under feature packages in `src/test/java/technology/renatus/routepulse/`:
-
-- `migration`: migration/schema initialization;
-- `auth`: registration, security and password reset;
-- `organization`: invitations and organization isolation;
-- `scheduling`: imports, demand and availability;
-- `assignments`: automatic/manual/override coverage;
-- `driving`: session lifecycle;
-- `calendar/sixflags`: adapter response and caching behavior;
-- `regression`: cleanup-specific behavior and real Thymeleaf rendering.
-
-`support/MySqlIntegrationTestSupport` shares one MySQL Testcontainers instance for
-the test JVM. Spring caches the common application context, and integration tests
-roll back their data after each method. The container is intentionally not an
-inherited JUnit `@Container`, which would be stopped between feature classes.
-Testcontainers manages process cleanup.
-
-The full gate remains `./mvnw clean verify` with Docker available. The existing
-GitHub Actions workflow also runs `node --test src/test/js/*.test.cjs` before
-that gate and then builds the production image. The driving lifecycle integration
-test substitutes a controlled park calendar and covers 11 AM, noon, and 5 PM
-openings; it does not depend on an external calendar changing while CI runs.
+Review `DriverCheckpointServiceTests`, `UnscheduledDrivingIntegrationTests`,
+`OrganizationIsolationIntegrationTests`, `ActualDrivingRecordServiceTests`,
+`DrivingHistoryTests`, and `PublicRiderStatusTests` for the current workflow.
+Legacy planning tests remain regression coverage for retained source. A passing
+CI build verifies its commit; it does not alone establish production deployment.

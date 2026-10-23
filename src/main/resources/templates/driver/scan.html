@@ -44,30 +44,30 @@
             <p class="auth-panel__intro">
                 Signed in as <strong th:text="${driver.name}">Driver Name</strong>.
             </p>
-            <div th:if="${checkpointAction.name() == 'START' or checkpointAction.name() == 'START_UNSCHEDULED'}" class="alert alert--info" role="status">
+            <div th:if="${checkpointAction.name() == 'START' or checkpointAction.name() == 'START_UNSCHEDULED'}" class="alert alert--info" role="status"><p style="margin:0">
                 Confirm when you begin driving. Your name, actual start time, and checkpoint method will be recorded.
-            </div>
+            </p></div>
 
-            <div th:if="${takeoverRequired}" class="alert alert--info" role="status">
+            <div th:if="${takeoverRequired}" class="alert alert--info" role="status"><p style="margin:0">
                 <strong>Active-driver handoff detected.</strong>
                 <span th:text="${currentActualDriver.name}">Current Driver</span>
                 is currently recorded as driving. Continuing will end that driver's current
                 session and immediately start a new session for
                 <strong th:text="${driver.name}">New Driver</strong>.
                 Both drivers’ actual times will remain in the driving records.
-            </div>
+            </p></div>
 
-            <div th:if="${checkpointAction.name() == 'RESUME'}" class="alert alert--info" role="status">
+            <div th:if="${checkpointAction.name() == 'RESUME'}" class="alert alert--info" role="status"><p style="margin:0">
                 <strong>Previous driving session found.</strong>
                 Is the Shuttle Running will keep the earlier session in your driving history and open
                 a new actual driving session at this checkpoint time.
-            </div>
+            </p></div>
 
-            <div th:if="${checkpointAction.name() == 'PAUSE_OR_END'}" class="alert alert--info" role="status">
+            <div th:if="${checkpointAction.name() == 'PAUSE_OR_END'}" class="alert alert--info" role="status"><p style="margin:0">
                 <strong>You are currently driving.</strong>
                 Choose <strong>Pause driving</strong> for a break or temporary stop. Choose
                 <strong>End driving</strong> when this stretch of service is finished.
-            </div>
+            </p></div>
 
             <div class="form-group">
                 <span class="field-label">Checkpoint method</span>
