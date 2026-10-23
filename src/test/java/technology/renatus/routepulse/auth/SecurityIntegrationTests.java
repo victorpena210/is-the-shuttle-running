@@ -98,7 +98,7 @@ void httpSecurityProtectsOrganizationRoutesAndPostRequests()
     ).andExpect(
             status().is3xxRedirection()
     ).andExpect(
-            redirectedUrl("/")
+            redirectedUrl("/#how-it-works")
     );
 
     mockMvc.perform(
