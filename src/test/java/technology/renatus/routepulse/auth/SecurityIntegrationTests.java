@@ -1,5 +1,7 @@
 package technology.renatus.routepulse.auth;
 
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -94,7 +96,9 @@ void httpSecurityProtectsOrganizationRoutesAndPostRequests()
     mockMvc.perform(
             get("/employee-shuttle-management-software")
     ).andExpect(
-            status().isOk()
+            status().is3xxRedirection()
+    ).andExpect(
+            redirectedUrl("/")
     );
 
     mockMvc.perform(
