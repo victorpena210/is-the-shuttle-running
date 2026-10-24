@@ -35,6 +35,6 @@ public class OrganizationAccessExceptionHandler {
                 "The schedule file is too large. Upload a CSV no larger than 5 MB."
         );
 
-        return "redirect:/app";
+        return "redirect:/transportation-demand#upload";
     }
 }

@@ -20,13 +20,6 @@ public class DriverInsightsController {
         this.access = access; this.insights = insights;
     }
 
-    @GetMapping("/driver/demand")
-    public String demand(Authentication authentication, Model model) {
-        populate(authentication, model, "demand");
-        model.addAttribute("demandView", insights.todayDemand(authentication));
-        return "driver/demand";
-    }
-
     @GetMapping("/driver/analytics")
     public String analytics(Authentication authentication,
             @RequestParam(name = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
