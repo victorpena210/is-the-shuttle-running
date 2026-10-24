@@ -19,6 +19,8 @@
             <nav class="app-nav app-nav--manager" aria-label="Primary navigation">
                 <a class="app-nav__link" th:href="@{/driving-records}"
                    th:attr="aria-current=${activePage == 'driving-records' ? 'page' : null}">Driving history</a>
+                <a class="app-nav__link" th:href="@{/driving-records/reviews}"
+                   th:attr="aria-current=${activePage == 'session-reviews' ? 'page' : null}">Session reviews</a>
                 <a class="app-nav__link" th:href="@{/app/live-status}"
                    th:attr="aria-current=${activePage == 'live-status' ? 'page' : null}">Live shuttle status</a>
                 <a class="app-nav__link" th:href="@{/drivers}"
@@ -46,6 +48,14 @@
             </nav>
         </div>
     </header>
+    <aside class="alert alert--warning" role="status" aria-live="polite" data-session-review-alert
+           th:attr="hidden=${pendingReviewCount == null or pendingReviewCount == 0 ? 'hidden' : null}"
+           th:data-count-url="@{/driving-records/reviews/count}">
+        <strong>Driving time needs review.</strong>
+        <span data-review-message th:text="|${pendingReviewCount == null ? 0 : pendingReviewCount} session(s) reached the four-hour limit.|"></span>
+        <a th:href="@{/driving-records/reviews}">Correct times or approve</a>
+    </aside>
+    <script th:src="@{/js/components/session-review-alert.js}" defer></script>
 </th:block>
 
 <th:block th:fragment="driverNav">

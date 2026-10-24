@@ -14,6 +14,7 @@ public record UnscheduledDrivingRecord(Long id, String driverName,
                 session.getStartMethod().name(),
                 session.getEndMethod() == null ? null : session.getEndMethod().name(),
                 session.isActive() ? "Driving now"
+                        : session.getTimeReviewedAt() != null ? "Manager reviewed"
                         : session.getEndReason() == null ? "Ended"
                         : switch (session.getEndReason()) {
                             case INACTIVITY_TIMEOUT -> session.isInactivityReviewNeeded() ? "Inactivity timeout — needs review" : "Inactivity timeout — reviewed";

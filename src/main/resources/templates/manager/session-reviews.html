@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Session reviews | Is the Shuttle Running</title>
+<link rel="stylesheet" th:href="@{/css/site.css}"><link rel="stylesheet" th:href="@{/css/pages/actual-records.css}"></head>
+<body class="app-page"><th:block th:replace="~{fragments/navigation :: managerNav('session-reviews')}"></th:block>
+<main id="main-content" class="app-main"><header class="page-header"><div><p class="eyebrow">Manager review</p>
+<h1>Sessions needing review</h1><p>These sessions reached four hours. Approve the recorded times or correct them if a driver forgot to stop.</p>
+<p>Automatic stops stay in place while you review. Older sessions over four hours are included, regardless of your history filters.</p></div></header>
+<p th:if="${pendingReviewCount == 0}" class="alert alert--success" role="status">All caught up. No driving sessions need review.</p>
+<p th:if="${pendingReviewCount > 50}">Showing the 50 oldest pending reviews. More will appear as you resolve them.</p>
+<div class="table-shell" th:unless="${#lists.isEmpty(pendingReviews)}"><table><thead><tr>
+<th>Driver</th><th>Started</th><th>Recorded end</th><th>Minutes</th><th>Action</th></tr></thead><tbody>
+<tr th:each="record : ${pendingReviews}"><td th:text="${record.driverName}"></td>
+<td th:text="${#temporals.format(record.startedAt, 'MMM d, yyyy h:mm a z')}"></td>
+<td th:text="${#temporals.format(record.endedAt, 'MMM d, yyyy h:mm a z')}"></td>
+<td th:text="${record.actualMinutes}"></td><td><a class="button button--secondary"
+th:href="@{/driving-records/sessions/{id}/review(id=${record.id})}">Review session</a></td></tr></tbody></table></div>
+<p><a th:href="@{/driving-records}">View all driving history</a></p>
+</main><footer th:replace="~{fragments/footer :: footer('app')}"></footer></body></html>

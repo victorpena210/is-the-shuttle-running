@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review driving time | Is the Shuttle Running</title>
+<link rel="stylesheet" th:href="@{/css/site.css}"><link rel="stylesheet" th:href="@{/css/pages/actual-records.css}"></head>
+<body class="app-page"><th:block th:replace="~{fragments/navigation :: managerNav('session-reviews')}"></th:block>
+<main id="main-content" class="app-main"><header class="page-header"><div><p class="eyebrow">Manager review</p>
+<h1 th:text="|Review driving time: ${review.record.driverName}|"></h1>
+<p>Times are shown in <strong th:text="${review.zone}"></strong>. Corrections update the driver’s recorded time and totals.</p></div>
+<a class="button button--secondary" th:href="@{/driving-records/reviews}">Back to reviews</a></header>
+<p th:if="${successMessage}" class="alert alert--success" role="status" th:text="${successMessage}"></p>
+<p th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></p>
+<p th:if="${review.needsReview}" class="alert alert--warning">This session reached the four-hour limit and needs your approval or a time correction.</p>
+<section class="session-review-card"><h2>Current record</h2>
+<p><strong th:text="${#temporals.format(review.record.startedAt, 'MMM d, yyyy h:mm:ss a z')}"></strong> to
+<strong th:text="${review.record.endedAt == null ? 'Still active' : #temporals.format(review.record.endedAt, 'MMM d, yyyy h:mm:ss a z')}"></strong></p>
+<p><span th:text="${review.record.actualMinutes}"></span> minutes · <span th:text="${review.record.status}"></span></p>
+<form th:if="${review.needsReview}" th:action="@{/driving-records/sessions/{id}/review(id=${review.record.id})}" method="post">
+<input type="hidden" name="revision" th:value="${review.form.revision}">
+<input type="hidden" name="expectedStart" th:value="${review.form.expectedStart}">
+<input type="hidden" name="expectedEnd" th:value="${review.form.expectedEnd}">
+<input type="hidden" name="action" value="APPROVED">
+<button class="button" type="submit">Approve recorded times</button>
+<p>Approval clears the alert and keeps the times shown above.</p></form></section>
+<section class="session-review-card"><h2>Correct the driving period</h2>
+<p>Enter the actual start and end. If verified driving lasted longer than four hours, you can record that here.</p>
+<p th:if="${review.record.active}" class="alert alert--warning">Saving this correction will end the active session.</p>
+<form th:action="@{/driving-records/sessions/{id}/review(id=${review.record.id})}" method="post" th:object="${form}">
+<input type="hidden" th:field="*{revision}"><input type="hidden" th:field="*{expectedStart}"><input type="hidden" th:field="*{expectedEnd}">
+<input type="hidden" name="action" value="CORRECTED">
+<div class="session-time-fields"><div class="form-group"><label for="startedAt">Actual start</label>
+<input id="startedAt" type="datetime-local" step="1" th:field="*{startedAt}" required></div>
+<div class="form-group"><label for="endedAt">Actual end</label>
+<input id="endedAt" type="datetime-local" step="1" th:field="*{endedAt}" required></div></div>
+<details><summary>Times during the fall clock change</summary><p>If a clock time occurs twice, choose which occurrence you mean.</p>
+<div class="session-time-fields"><div class="form-group"><label for="startOccurrence">Start occurrence</label>
+<select id="startOccurrence" th:field="*{startOccurrence}"><option value="earlier">First occurrence</option><option value="later">Second occurrence</option></select></div>
+<div class="form-group"><label for="endOccurrence">End occurrence</label>
+<select id="endOccurrence" th:field="*{endOccurrence}"><option value="earlier">First occurrence</option><option value="later">Second occurrence</option></select></div></div></details>
+<div class="form-group"><label for="note">Reason for correction</label><textarea id="note" th:field="*{note}" maxlength="1000" rows="3" required
+placeholder="For example: driver stopped at 2:15 PM but forgot to end the session."></textarea></div>
+<button class="button" type="submit" th:text="${review.record.active ? 'End session and save corrected times' : 'Save and approve corrected times'}"></button>
+<p>The previous times, your account, and this reason will be saved in the review history. A closed session stays closed.</p></form></section>
+<section><h2>Review history</h2><p th:if="${#lists.isEmpty(review.audit)}">No manager reviews yet.</p>
+<article class="session-review-card" th:each="entry : ${review.audit}">
+<h3 th:text="${entry.action == 'APPROVED' ? 'Times approved' : 'Times corrected'}"></h3>
+<p><span th:text="${entry.reviewer}"></span> · <span th:text="${#temporals.format(entry.reviewedAt, 'MMM d, yyyy h:mm a z')}"></span></p>
+<p>Before: <span th:text="${#temporals.format(entry.previousStart, 'MMM d, yyyy h:mm:ss a z')}"></span> to
+<span th:text="${entry.previousEnd == null ? 'Active (no end recorded)' : #temporals.format(entry.previousEnd, 'MMM d, yyyy h:mm:ss a z')}"></span></p>
+<p>Approved: <span th:text="${#temporals.format(entry.correctedStart, 'MMM d, yyyy h:mm:ss a z')}"></span> to
+<span th:text="${#temporals.format(entry.correctedEnd, 'MMM d, yyyy h:mm:ss a z')}"></span></p><p th:text="${entry.note}"></p></article></section>
+</main><footer th:replace="~{fragments/footer :: footer('app')}"></footer></body></html>

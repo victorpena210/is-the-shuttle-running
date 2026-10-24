@@ -44,7 +44,7 @@ public class DrivingSession {
     @JoinColumn(name = "driver_id", nullable = false, updatable = false)
     private Driver driver;
 
-    @Column(name = "started_at", nullable = false, updatable = false)
+    @Column(name = "started_at", nullable = false)
     private Instant startedAt;
 
     @Column(name = "ended_at")
@@ -76,6 +76,39 @@ public class DrivingSession {
     @Enumerated(EnumType.STRING)
     @Column(name = "end_reason", length = 20)
     private DrivingSessionEndReason endReason;
+
+    @Column(name = "duration_review_required", nullable = false)
+    private boolean durationReviewRequired;
+
+    @Column(name = "time_reviewed_at")
+    private Instant timeReviewedAt;
+
+    @Column(name = "time_review_revision", nullable = false)
+    private long timeReviewRevision;
+
+    public boolean isDurationReviewNeeded() { return durationReviewRequired && timeReviewedAt == null; }
+    public Instant getTimeReviewedAt() { return timeReviewedAt; }
+    public long getTimeReviewRevision() { return timeReviewRevision; }
+
+    /** Only the manager review service may call this, after locking and recording an audit entry. */
+    public void reviewTimes(Instant start, Instant end, UserAccount actor, Instant now) {
+        Objects.requireNonNull(actor, "A reviewing manager is required.");
+        if (start == null || end == null || !end.isAfter(start) || end.isAfter(now))
+            throw new IllegalArgumentException("The end must be after the start and cannot be in the future.");
+        boolean wasActive = isActive();
+        durationReviewRequired = durationReviewRequired || hasReachedDurationLimit(now)
+                || Duration.between(start, end).compareTo(MAX_DURATION) >= 0;
+        if (wasActive) {
+            endMethod = DrivingActionMethod.MANAGER;
+            endReason = DrivingSessionEndReason.COMPLETED;
+            endedBy = actor;
+            getMovement().clearCoordinates();
+        }
+        startedAt = start;
+        endedAt = end;
+        timeReviewedAt = now;
+        timeReviewRevision++;
+    }
 
     @jakarta.persistence.Embedded
     private technology.renatus.routepulse.driving.movement.MovementState movement = new technology.renatus.routepulse.driving.movement.MovementState();
@@ -234,6 +267,7 @@ public class DrivingSession {
                 endReason,
                 "Driving end reason is required."
         );
+        if (endReason == DrivingSessionEndReason.DURATION_LIMIT) durationReviewRequired = true;
     }
 
     @PrePersist
