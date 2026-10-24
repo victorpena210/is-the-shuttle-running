@@ -16,6 +16,7 @@
 <p th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></p>
 <p>Assignments refresh every five minutes for the next 28 days. Times are in <strong th:text="${operationsZone}"></strong>.</p>
 <p>Use the shuttle NFC/QR checkpoint when you actually start driving. A scheduled shift does not start the shuttle or add driving time to your record.</p>
+<p>Past and current dates also show recorded driving, including days when no schedule was saved. Recorded times come from driving history and reflect any manager corrections.</p>
 <p th:if="${managerView}">Saved driver availability and verified park hours are enough to create assignments. Opening service and required scare-actor transport keep another scheduled roster member at the wardrobe counter while it is open. Later service runs from wardrobe closing through park closing; <a th:href="@{/transportation-demand}">employee-demand uploads</a> can add pickup windows and are optional.
 <a th:href="@{/drivers}">Check driver availability and UKG calendars</a>.</p>
 <form class="demand-date" th:action="@{${scheduleUrl}}" method="get">
@@ -24,20 +25,36 @@
 <a th:href="@{${scheduleUrl}(date=${from.minusDays(7)})}">Previous week</a>
 <a th:href="@{${scheduleUrl}(date=${today})}">Today</a>
 <a th:href="@{${scheduleUrl}(date=${from.plusDays(7)})}">Next week</a></form>
-<section class="demand-empty" th:if="${#lists.isEmpty(days)}"><h2>No saved assignments for this week</h2>
+<section class="demand-empty" th:if="${#lists.isEmpty(days)}"><h2>No saved assignments or recorded driving for this week</h2>
 <p>Automatic planning covers today through the next 27 days. New schedules appear after the next refresh.</p>
 <p th:if="${managerView}">Use Refresh assignments above to generate them now from your saved driver schedules and park hours. An employee-demand upload is not required.</p></section>
 <section class="driver-suggestions" th:each="day : ${days}">
 <h2 th:text="${#temporals.format(day.date, 'EEEE, MMMM d')}"></h2>
-<p><strong th:text="${day.status == 'OPEN' ? 'Park open' : (day.status == 'CLOSED' ? 'Park closed' : 'Park hours need verification')}"></strong>
+<p><strong th:text="${day.status == 'HISTORY' ? 'No saved schedule' : (day.status == 'OPEN' ? 'Park open' : (day.status == 'CLOSED' ? 'Park closed' : 'Park hours need verification'))}"></strong>
 <span th:if="${day.status == 'UNKNOWN' and day.parkOpening != null}"> · Last known hours:</span>
 <span th:if="${day.parkOpening != null}" th:text="| · ${#temporals.format(day.parkOpening, 'h:mm a')}–${#temporals.format(day.parkClosing, 'h:mm a')}|"></span></p>
 <p th:if="${managerView}" th:text="${day.message}"></p>
 <p th:if="${managerView and day.wardrobeOpening != null}">Wardrobe:
 <strong th:text="|${#temporals.format(day.wardrobeOpening, 'h:mm a')}–${#temporals.format(day.wardrobeClosing, 'h:mm a')}|"></strong>.</p>
-<p class="demand-note">Updated <span th:text="${#temporals.format(day.refreshedAt, 'MMM d, h:mm a z')}"></span>
+<p th:if="${managerView and day.openingEnd() != null}">Opening shuttle:
+<strong th:text="|${#temporals.format(day.openingStart(), 'h:mm a')}–${#temporals.format(day.openingEnd(), 'h:mm a')}|"></strong>.
+Another scheduled person must cover the wardrobe counter.</p>
+<p th:if="${managerView and day.openingPlanMissing()}">No opening assignment was saved. Recorded driving below shows the time actually logged.</p>
+<p class="demand-note" th:if="${day.savedPlan}">Updated <span th:text="${#temporals.format(day.refreshedAt, 'MMM d, h:mm a z')}"></span>
 <span th:if="${managerView}" th:text="| · Calendar: ${day.source}|"></span>.</p>
-<p th:if="${#lists.isEmpty(day.slots)}" th:text="${managerView ? 'No shifts assigned for this date.' : 'You have no assigned driving shifts for this date.'}"></p>
+<div th:if="${!day.date.isAfter(today)}" class="recorded-driving">
+<h3>Recorded driving</h3>
+<p th:if="${#lists.isEmpty(day.recordedRuns)}" th:text="${managerView ? 'No driving was recorded for this date.' : 'You have no recorded driving for this date.'}"></p>
+<div class="suggestion-window" th:each="run : ${day.recordedRuns}">
+<strong class="suggestion-time"><span th:text="${#temporals.format(run.start, 'h:mm a')}"></span>–<span th:text="${run.inProgress ? 'In progress' : #temporals.format(run.end, 'h:mm a')}"></span>
+<span th:if="${!run.inProgress and run.end.toLocalDate().isAfter(run.start.toLocalDate())}"> (next day)</span></strong>
+<div><p><strong th:text="${run.driverName}"></strong> <span class="badge" th:text="${run.state}"></span></p>
+<p th:text="|${run.minutes} recorded minutes on this date.|"></p>
+<p th:if="${run.continuedFromPreviousDay}">Continued from the previous day.</p>
+<a th:if="${managerView}" th:href="@{/driving-records/sessions/{id}/review(id=${run.sessionId})}">Review driving record</a></div>
+</div></div>
+<h3 th:if="${!#lists.isEmpty(day.slots)}">Scheduled driving</h3>
+<p th:if="${#lists.isEmpty(day.slots) and day.savedPlan}" th:text="${managerView ? 'No driving assignments were saved for this date.' : 'You have no saved driving assignments for this date.'}"></p>
 <div class="suggestion-window" th:each="slot : ${day.slots}">
 <strong class="suggestion-time"><span th:text="${#temporals.format(slot.start, 'h:mm a')}"></span>–<span th:text="${#temporals.format(slot.end, 'h:mm a')}"></span>
 <span th:if="${slot.end.toLocalDate().isAfter(slot.start.toLocalDate())}"> (next day)</span></strong>

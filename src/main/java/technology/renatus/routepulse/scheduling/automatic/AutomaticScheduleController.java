@@ -59,7 +59,7 @@ public class AutomaticScheduleController {
             schedules.refresh(org,auth.getName());
             redirect.addFlashAttribute("successMessage","Wardrobe hours and upcoming assignments updated.");
         } catch(IllegalArgumentException|IllegalStateException error){redirect.addFlashAttribute("errorMessage",error.getMessage());}
-        redirect.addAttribute("date",date);return "redirect:/driving-schedule";
+        redirect.addAttribute("date",date.toString());return "redirect:/driving-schedule";
     }
     @PostMapping("/driving-schedule/confirm-open")
     public String confirm(Authentication auth,@RequestParam @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate date,
@@ -71,6 +71,6 @@ public class AutomaticScheduleController {
             schedules.refresh(org,auth.getName());
             redirect.addFlashAttribute("successMessage","Park opening confirmed. Set wardrobe hours if they are not already saved.");
         } catch(IllegalArgumentException|IllegalStateException error){redirect.addFlashAttribute("errorMessage",error.getMessage());}
-        redirect.addAttribute("date",date);return "redirect:/driving-schedule";
+        redirect.addAttribute("date",date.toString());return "redirect:/driving-schedule";
     }
 }

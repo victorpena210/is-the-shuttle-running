@@ -10,6 +10,7 @@ import technology.renatus.routepulse.calendar.service.ParkCalendarOverrideServic
 import technology.renatus.routepulse.organization.repository.OrganizationRepository;
 import technology.renatus.routepulse.scheduling.demand.*;
 import technology.renatus.routepulse.wardrobe.WardrobeHoursService;
+import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
 
 @Service
 public class AutomaticScheduleStore {
@@ -21,14 +22,17 @@ public class AutomaticScheduleStore {
     private final ParkCalendarOverrideService overrides;
     private final DriverScheduleIdentityService access;
     private final FrightFestTransportPolicy frightFest;
+    private final DrivingSessionRepository sessions;
     private final ZoneId zone;
     public AutomaticScheduleStore(AutomaticScheduleRepository schedules,OrganizationRepository organizations,
             DemandForecastService forecasts,DriverSuggestionService suggestions,WardrobeHoursService wardrobe,
             ParkCalendarOverrideService overrides,DriverScheduleIdentityService access,FrightFestTransportPolicy frightFest,
+            DrivingSessionRepository sessions,
             @Value("${app.operations-zone:America/Chicago}") String zone) {
         this.schedules=schedules; this.organizations=organizations; this.forecasts=forecasts;
         this.suggestions=suggestions; this.wardrobe=wardrobe; this.overrides=overrides; this.access=access; this.zone=ZoneId.of(zone);
         this.frightFest=frightFest;
+        this.sessions=sessions;
     }
     @Transactional
     public void refresh(Long org,List<ParkOperatingDay> calendar,Instant instant) {
@@ -73,6 +77,23 @@ public class AutomaticScheduleStore {
         return views(org,from,to,driver);
     }
     private List<AutomaticScheduleDay.View> views(Long org,LocalDate from,LocalDate to,Long driver) {
-        return schedules.findAllByOrganizationIdAndDateBetweenOrderByDate(org,from,to).stream().map(d->d.view(zone,driver)).toList();
+        var now=Instant.now();
+        var today=now.atZone(zone).toLocalDate();
+        var saved=new TreeMap<LocalDate,AutomaticScheduleDay.View>();
+        for(var day:schedules.findAllByOrganizationIdAndDateBetweenOrderByDate(org,from,to)) {
+            var view=day.view(zone,driver); saved.put(view.date(),view);
+        }
+        var start=from.atStartOfDay(zone).toInstant();
+        var end=to.plusDays(1).atStartOfDay(zone).toInstant();
+        var history=driver==null?sessions.findOverlappingForServiceReview(org,start,end)
+                :sessions.findPersonalAnalyticsSessions(org,driver,start,end);
+        for(var date=from;!date.isAfter(to)&&!date.isAfter(today);date=date.plusDays(1)) {
+            var view=saved.get(date);
+            if(view==null) view=new AutomaticScheduleDay.View(date,"HISTORY","DRIVING_HISTORY",null,null,null,null,
+                    now.atZone(zone),"No schedule was saved for this date. Recorded driving shows the runs that were logged.",
+                    List.of(),List.of(),false);
+            saved.put(date,view.withHistory(AutomaticScheduleHistory.forDay(history,date,zone,now)));
+        }
+        return List.copyOf(saved.values());
     }
 }
