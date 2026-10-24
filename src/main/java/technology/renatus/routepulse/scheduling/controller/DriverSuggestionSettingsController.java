@@ -34,9 +34,9 @@ public class DriverSuggestionSettingsController {
         try {
             wardrobe.save(current.requireOrganizationId(auth), WardrobeHoursRule.Scope.DAY, "Day override", date, date,
                     openingTime, closingTime, null, auth.getName());
-            redirect.addFlashAttribute("successMessage", "Wardrobe hours saved. Driver suggestions now use these hours.");
+            redirect.addFlashAttribute("successMessage", "Wardrobe hours saved. Upcoming assignments update within five minutes.");
         } catch (IllegalArgumentException | IllegalStateException exception) { redirect.addFlashAttribute("errorMessage", exception.getMessage()); }
         redirect.addAttribute("date", date);
-        return "redirect:/transportation-demand#driver-suggestions";
+        return "redirect:/driving-schedule";
     }
 }

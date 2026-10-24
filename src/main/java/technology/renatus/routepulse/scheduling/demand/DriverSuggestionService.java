@@ -41,6 +41,17 @@ public class DriverSuggestionService {
     }
 
     Suggestions page(Long org, DemandForecastService.Forecast forecast, Instant now) {
+        return calculate(org, forecast, now, wardrobe.getSavedHours(org, forecast.date()), false);
+    }
+
+    /** Shared availability/counter checks for saved, calendar-based assignments. */
+    public Suggestions forAssignments(Long org, DemandForecastService.Forecast forecast, Instant now,
+            WardrobeHoursService.Hours hours) {
+        return calculate(org, forecast, now, hours, true);
+    }
+
+    private Suggestions calculate(Long org, DemandForecastService.Forecast forecast, Instant now,
+            WardrobeHoursService.Hours hours, boolean openingCoverage) {
         var date = forecast.date();
         // Historical previews use only history known before that day; future previews use today's history.
         var asOf = date.isBefore(now.atZone(zone).toLocalDate()) ? date.atStartOfDay(zone).toInstant() : now;
@@ -60,7 +71,6 @@ public class DriverSuggestionService {
                 seconds(history.getOrDefault(d.getId(), List.of()), since, asOf),
                 seconds(history.getOrDefault(d.getId(), List.of()), date.atStartOfDay(zone).toInstant(), asOf) > 0,
                 last.containsKey(d.getId()) ? last.get(d.getId()).atZone(zone) : null)).sorted(ORDER).toList();
-        var hours = wardrobe.getSavedHours(org, date);
         var opening = hours.openingStartTime();
         // An afternoon-start roster supplies opening service on late-opening days.
         var earliest = work.values().stream().flatMap(List::stream).map(DriverScheduleWindow::getStartsAt)
@@ -74,10 +84,37 @@ public class DriverSuggestionService {
         var openingEnd = opening.isBefore(LocalTime.NOON) ? earlier(openingStart.plusHours(3), closing) : closing;
         var groups = new ArrayList<Period>();
         var periods = new ArrayList<>(forecast.periods()); periods.add(forecast.offHours());
+        if (openingCoverage) {
+            // One chronological timeline: noon can appear in two demand display groups.
+            var timeline = new TreeMap<LocalDateTime, DemandForecastService.Window>();
+            for (var period : periods) for (var w : period.windows())
+                timeline.merge(w.start(), w, (a,b) -> new DemandForecastService.Window(a.start(), a.end(),
+                        a.clockIns()+b.clockIns(), a.clockOuts()+b.clockOuts()));
+            // Split at exact manager-set opening/closing times as well as quarter-hours.
+            // This keeps a 9:10 opening from overlapping the existing 9:15 demand bucket.
+            var boundaries = new TreeSet<LocalDateTime>();
+            for (int minute=0; minute<=1440; minute+=15) boundaries.add(date.atStartOfDay().plusMinutes(minute));
+            boundaries.add(openingStart); boundaries.add(openingEnd); boundaries.add(closing);
+            var points = new ArrayList<>(boundaries);
+            var serviceWindows = new ArrayList<DemandForecastService.Window>();
+            for (int i=0; i<points.size()-1; i++) {
+                var from=points.get(i); var to=points.get(i+1);
+                var entry=timeline.floorEntry(from);
+                var w=entry==null?null:entry.getValue();
+                boolean demand=w!=null && from.isBefore(w.end());
+                serviceWindows.add(new DemandForecastService.Window(from,to,
+                        demand?w.clockIns():0,demand?w.clockOuts():0));
+            }
+            periods = new ArrayList<>(List.of(new DemandForecastService.Period("service", "Shuttle service", "",
+                    List.copyOf(serviceWindows), 0, 0)));
+        }
         for (var period : periods) {
             var rows = new ArrayList<Window>();
             for (var window : period.windows()) {
-                if (window.movements() == 0) continue;
+                boolean openingWindow = !window.start().isBefore(openingStart) && window.end().compareTo(openingEnd) <= 0;
+                if (window.movements() == 0 && !(openingCoverage && openingWindow)) continue;
+                if (openingCoverage && window.start().isBefore(openingStart)) continue;
+                if (openingCoverage && !openingWindow && window.start().isBefore(closing)) continue;
                 var eligible = stats.stream().filter(c -> covers(work.getOrDefault(c.driverId(), List.of()), window.start(), window.end()))
                         .filter(c -> withinSessionLimit(history.getOrDefault(c.driverId(), List.of()), window.end(), now)).toList();
                 String reason = "";

@@ -159,17 +159,17 @@ class DriverSuggestionIntegrationTests extends MySqlIntegrationTestSupport {
                 .isInstanceOf(AccessDeniedException.class);
     }
 
-    @Test void managerPageRendersSuggestionsWhileDriverViewsAndOtherOrganizationsCannotSeeThem() throws Exception {
+    @Test void managerDemandLinksToAssignmentsWithoutExposingDriverDetails() throws Exception {
         var f = fixture("view-suggestions"); var foreign = fixture("private-suggestions");
         foreign.alice().changeEmployeeId("PRIVATE-ID"); driverRepository.flush();
         upload(f, row("100", DAY, "08:00", "20:00"), row("200", DAY, "08:00", "20:00"), row("other", DAY, "09:00", "19:00"));
         var auth = authenticationFor(f.manager(), OrganizationRole.OWNER);
         mockMvc.perform(get("/transportation-demand").param("date", DAY.toString()).param("organizationId",foreign.org().getId().toString()).with(authentication(auth)))
-                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Suggested drivers")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Alice")))
+                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Driving assignments")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("/driving-schedule")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("PRIVATE-ID"))))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("PRIVATE UPLOADED NAME"))))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("/transportation-demand/wardrobe-hours")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("/driving-schedule")));
         mockMvc.perform(get("/drivers").with(authentication(auth))).andExpect(status().isOk())
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Edit employee ID")));
         var driverUser = createUser("suggestions-driver@example.com", true);
