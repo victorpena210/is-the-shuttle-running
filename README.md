@@ -87,8 +87,9 @@ only their own shifts at `/driver/driving-schedule`. The planner refreshes the n
 valid trial), and managers can use **Refresh assignments** immediately.
 It reads the Six Flags operating calendar before creating assignments. A park opening
 at 11 AM or noon starts wardrobe/opening service at 9 AM; a 5 PM opening starts it at
-3 PM and is labeled **Midday**, not Morning. Morning opening service lasts up to three hours. Afternoon opening service
-lasts until wardrobe closes. The default wardrobe closing time is 7 PM; saved daily
+3 PM and is labeled **Midday**. Morning opening service runs **9 AM–noon**; afternoon
+opening service runs **3–5 PM**. Saved opening-time overrides use a three-hour morning
+or two-hour afternoon run, ending earlier if wardrobe closes. The default wardrobe closing time is 7 PM; saved daily
 or seasonal rules apply, and managers can change a day's hours on the assignments page.
 Other park-opening times require an explicit wardrobe opening time.
 
@@ -106,8 +107,11 @@ even without employee demand or while regular pickups wait for wardrobe closing.
 The plan reserves 5:00–5:45 PM. **5:45 is an estimate, not a session cutoff**: drivers
 finish earlier when everyone is transported or continue until finished, using the
 existing driving-session controls. The existing four-hour session limit still applies.
-On late-opening days this interval is part of Midday opening coverage, with no
-overlapping assignment or unnecessary handoff when the current driver is eligible.
+On late-opening days the planner prefers one available driver for both the **3–5 PM**
+opening run and the **5–5:45 PM** scare-actor run, with another scheduled roster member
+at the counter throughout. Opening service does not resume from 5:45–7 PM. If nobody
+can cover the full run, the planner uses eligible drivers for feasible intervals and
+shows remaining gaps instead of assigning outside availability or leaving the counter uncovered.
 Driver availability and wardrobe counter coverage still apply; missing coverage is
 shown explicitly. `FRIGHT_FEST_TRANSPORT_START` and `FRIGHT_FEST_TRANSPORT_END` set
 the inclusive date range, which expires after November 1 and does not recur annually.
