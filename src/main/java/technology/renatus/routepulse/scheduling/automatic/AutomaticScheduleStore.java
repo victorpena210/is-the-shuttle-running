@@ -41,7 +41,8 @@ public class AutomaticScheduleStore {
             var saved=schedules.findByOrganizationIdAndDate(org,date).orElseGet(()->new AutomaticScheduleDay(org,date));
             var day=observed;
             var override=overrides.findLatest(org,date);
-            if(override.isPresent()) day=new ParkOperatingDay(date,override.get().getOverrideStatus(),null,null,false,"MANAGER_CONFIRMATION",null);
+            if(override.isPresent()) day=new ParkOperatingDay(date,override.get().getOverrideStatus(),
+                    observed.openingTime(),observed.closingTime(),observed.buyout(),"MANAGER_CONFIRMATION",null);
             var hours=WardrobeHoursService.withCalendarOpening(wardrobe.getSavedHours(org,date),day);
             String message;
             List<DriverSuggestionService.Window> windows=List.of();
