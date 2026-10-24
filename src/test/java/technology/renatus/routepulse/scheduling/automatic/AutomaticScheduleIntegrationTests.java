@@ -13,6 +13,7 @@ import technology.renatus.routepulse.auth.model.UserAccount;
 import technology.renatus.routepulse.calendar.domain.*;
 import technology.renatus.routepulse.calendar.repository.ParkOperatingDaySnapshotRepository;
 import technology.renatus.routepulse.calendar.service.ParkOperatingDayService;
+import technology.renatus.routepulse.calendar.service.ParkCalendarOverrideService;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driver.calendar.*;
 import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
@@ -36,6 +37,7 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
     @Autowired DemandForecastRepository demand;
     @Autowired ParkOperatingDaySnapshotRepository snapshots;
     @Autowired DriverScheduleIdentityService access;
+    @Autowired ParkCalendarOverrideService overrides;
     // Fixed, post-event dates keep ordinary scheduling checks independent of the day CI runs.
     private final LocalDate day=LocalDate.of(2026,11,2);
     private final Instant now=day.minusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
@@ -247,6 +249,21 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
             assertThat(s.getEnd()).isEqualTo(day.plusDays(1).atTime(1,0));assertThat(s.getDriverId()).isEqualTo(f.b().getId());});
         assertThat(slots).noneMatch(s->s.getEnd().isAfter(day.plusDays(1).atTime(1,0)));
         assertThat(demand.count()).isZero();assertThat(sessions.count()).isZero();
+    }
+    @Test void confirmingStaleOpenHoursRestoresCoverageOnlyForTheConfirmingOrganization() {
+        var f=fixture("stale-confirm");var other=fixture("stale-other");
+        var stale=new ParkOperatingDay(day,ParkOperatingStatus.UNKNOWN,LocalTime.of(11,0),LocalTime.of(23,0),false,"STALE_SNAPSHOT","PARK_HOURS_STALE");
+        store.refresh(f.org().getId(),List.of(stale),now);
+        assertThat(views(f).get(0).slots()).isEmpty();
+        assertThat(views(f).get(0).parkOpening()).isEqualTo(LocalTime.of(11,0));
+        overrides.confirmParkOpen(f.org().getId(),stale,f.manager().getEmail(),"Verified official calendar: 11 AM to 11 PM.");
+        store.refresh(f.org().getId(),List.of(stale),now);store.refresh(other.org().getId(),List.of(stale),now);
+        var confirmed=views(f).get(0);
+        assertThat(confirmed.status()).isEqualTo("OPEN");assertThat(confirmed.source()).isEqualTo("MANAGER_CONFIRMATION");
+        assertThat(confirmed.wardrobeOpening()).isEqualTo(LocalTime.of(9,0));
+        assertThat(confirmed.slots()).anySatisfy(s->{assertThat(s.getStart()).isEqualTo(day.atTime(19,0));
+            assertThat(s.getEnd()).isEqualTo(day.atTime(23,0));assertThat(s.getDriverId()).isNotNull();});
+        assertThat(views(other).get(0).slots()).isEmpty();assertThat(sessions.count()).isZero();
     }
     private record Fixture(Organization org,UserAccount manager,Driver a,Driver b,ScheduleImport source){}
 }
