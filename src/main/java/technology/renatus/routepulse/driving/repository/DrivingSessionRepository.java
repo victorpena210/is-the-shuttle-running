@@ -14,6 +14,21 @@ import technology.renatus.routepulse.driving.model.DrivingSession;
 public interface DrivingSessionRepository
         extends JpaRepository<DrivingSession, Long> {
 
+    Optional<DrivingSession> findByIdAndOrganization_Id(Long id, Long organizationId);
+
+    long countByOrganization_IdAndDurationReviewRequiredTrueAndTimeReviewedAtIsNull(Long organizationId);
+
+    List<DrivingSession> findTop50ByOrganization_IdAndDurationReviewRequiredTrueAndTimeReviewedAtIsNullOrderByStartedAtAsc(Long organizationId);
+
+    @Query("""
+            SELECT COUNT(s) FROM DrivingSession s WHERE s.organization.id = :organizationId
+              AND s.driver.id = :driverId AND s.id <> :sessionId
+              AND s.startedAt < :end AND (s.endedAt IS NULL OR s.endedAt > :start)
+            """)
+    long countOverlappingDriverSessions(@Param("organizationId") Long organizationId,
+            @Param("driverId") Long driverId, @Param("sessionId") Long sessionId,
+            @Param("start") Instant start, @Param("end") Instant end);
+
     long countByOrganization_IdAndEndReasonAndInactivityReviewedAtIsNull(Long organizationId,
             technology.renatus.routepulse.driving.domain.DrivingSessionEndReason endReason);
 

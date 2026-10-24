@@ -35,6 +35,7 @@
 <td th:text="${record.endedAt == null ? 'In progress' : #temporals.format(record.endedAt, 'MMM d, yyyy h:mm a')}"></td>
 <td th:text="${row.minutesInRange}"></td><td><span th:text="${record.status}"></span>
 <a th:if="${record.active}" th:href="@{/app/live-status#live-status}">Manage active run</a></td>
-<td><span th:text="${record.startMethod}"></span><span th:if="${record.endMethod != null}" th:text="| / ${record.endMethod}|"></span></td>
+<td><span th:text="${record.startMethod}"></span><span th:if="${record.endMethod != null}" th:text="| / ${record.endMethod}|"></span>
+<a th:href="@{/driving-records/sessions/{id}/review(id=${record.id})}">Review / correct times</a></td>
 </tr></tbody></table></div></section></th:block>
 </main><footer th:replace="~{fragments/footer :: footer('app')}"></footer></body></html>

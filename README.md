@@ -36,7 +36,7 @@ for how long.
 | --- | --- |
 | Riders | Public organization-specific pages showing running/not running and the active driver’s first name |
 | Drivers | Role-restricted portal, NFC/QR checkpoint actions, start/resume, waiting, break, and end controls |
-| Managers | Actual driving history, date/driver filters, driving-time totals, and active-run controls |
+| Managers | Actual driving history, date/driver filters, driving-time totals, audited time corrections, and four-hour session reviews |
 | Accounts | Organization-scoped access, invitations, email verification, password reset, and optional persistent sign-in |
 | Operations | Versioned MySQL migrations, health probes, optional Sentry reporting, and backup/restore tooling |
 
@@ -49,7 +49,15 @@ is optional. Temporary manager status overrides still expire at their chosen
 time.
 
 Managers land on driving history at `/app` (`/driving-records` is an alias).
-Live status and run corrections are at `/app/live-status`. Drivers use the
+Sessions reaching the limit create a persistent in-app alert on manager pages,
+refreshed every 30 seconds. `/driving-records/reviews` lists pending reviews across
+all dates. Managers can approve the recorded cutoff or correct the start/end
+with a reason, including verified driving beyond four hours. Every approval or
+correction retains the prior times, reviewer, timestamp, and note. Corrections
+update history and totals without reopening a closed session. Active forgotten
+sessions can also be closed with corrected times. Driver access, cross-organization
+changes, future end times, overlapping driver records, and stale edits are rejected.
+Live status is at `/app/live-status`. Drivers use the
 existing NFC/QR checkpoints to start, pause, resume, hand off, and end a run.
 The public rider page at `/ride/{slug}` shows whether the shuttle is running
 and the active driver’s first name.
