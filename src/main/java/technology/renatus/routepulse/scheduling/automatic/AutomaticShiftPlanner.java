@@ -3,6 +3,7 @@ package technology.renatus.routepulse.scheduling.automatic;
 import java.time.*;
 import java.util.*;
 import technology.renatus.routepulse.scheduling.demand.DriverSuggestionService;
+import technology.renatus.routepulse.scheduling.demand.ShuttleService;
 import technology.renatus.routepulse.scheduling.automatic.AutomaticScheduleDay.Slot;
 
 /** Deterministic chronological rotation; planned seconds are never recorded as actual driving. */
@@ -35,8 +36,26 @@ public final class AutomaticShiftPlanner {
                         .thenComparing(DriverSuggestionService.Candidate::lastDriven,Comparator.nullsFirst(Comparator.naturalOrder()))
                         .thenComparing(DriverSuggestionService.Candidate::name,String.CASE_INSENSITIVE_ORDER)
                         .thenComparing(DriverSuggestionService.Candidate::driverId)).orElse(null);
+                // An event label inside opening coverage is a change of work, not a required handoff.
+                // Continue with the same eligible driver, but never stretch a continuous run past four hours.
+                var prior=result.isEmpty()?null:result.get(result.size()-1);
+                if(prior!=null && prior.getDriverId()!=null && prior.getEnd().equals(start)
+                        && (window.service()==ShuttleService.SCARE_ACTORS || prior.isScareActorTransport())) {
+                    var continuing=window.candidates().stream().filter(c->c.driverId().equals(prior.getDriverId())).findFirst().orElse(null);
+                    var runStart=prior.getStart();
+                    for(int i=result.size()-2;i>=0;i--) {
+                        var earlier=result.get(i);
+                        if(!earlier.getEnd().equals(runStart)||!Objects.equals(earlier.getDriverId(),prior.getDriverId())) break;
+                        runStart=earlier.getStart();
+                    }
+                    var limit=runStart.plusHours(4);
+                    if(continuing!=null && start.isBefore(limit)) {
+                        chosen=continuing;
+                        if(end.isAfter(limit)) end=limit;
+                    }
+                }
                 result.add(new Slot(start,end,chosen==null?null:chosen.driverId(),chosen==null?null:chosen.name(),
-                        chosen==null?window.reason():"Automatically assigned"));
+                        chosen==null?window.reason():"Automatically assigned",window.service()));
                 if(chosen!=null) {
                     usedToday.add(chosen.driverId());
                     plannedSeconds.merge(chosen.driverId(),Duration.between(start,end).getSeconds(),Long::sum);

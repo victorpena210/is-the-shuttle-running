@@ -3,6 +3,8 @@ package technology.renatus.routepulse.scheduling.automatic;
 import java.time.*;
 import java.util.*;
 import technology.renatus.routepulse.scheduling.demand.DriverSuggestionService.*;
+import technology.renatus.routepulse.scheduling.demand.ShuttleService;
+import technology.renatus.routepulse.calendar.domain.*;
 import technology.renatus.routepulse.scheduling.automatic.AutomaticScheduleDay.Slot;
 
 public final class AutomaticShiftChecks {
@@ -42,6 +44,24 @@ public final class AutomaticShiftChecks {
         check(early.get(0).getStart().equals(DAY.atTime(10,8)),"never create a new assignment in the past");
         var heavy=new Candidate(1L,"Alex","100",7200,false,null);
         check(AutomaticShiftPlanner.plan(List.of(window(9,12,heavy,B)),List.of(),now,new HashMap<>()).get(0).getDriverId()==2,"actual driving matters");
+        var eventWindows=List.of(
+                new Window(DAY.atTime(15,0),DAY.atTime(17,0),List.of(A,B),"",ShuttleService.MIDDAY_OPENING),
+                new Window(DAY.atTime(17,0),DAY.atTime(17,45),List.of(A,B),"",ShuttleService.SCARE_ACTORS),
+                new Window(DAY.atTime(17,45),DAY.atTime(19,0),List.of(A,B),"",ShuttleService.MIDDAY_OPENING));
+        var event=AutomaticShiftPlanner.plan(eventWindows,List.of(),now,new HashMap<>());
+        check(event.size()==3&&event.stream().allMatch(s->s.getDriverId()==1),"event inside midday keeps eligible driver");
+        check(event.get(1).isScareActorTransport()&&event.get(0).getService()==ShuttleService.MIDDAY_OPENING,"service purpose retained");
+        check(event.equals(AutomaticShiftPlanner.plan(eventWindows,event,DAY.atTime(17,15),new HashMap<>())),"in-progress event remains stable");
+        var handoff=AutomaticShiftPlanner.plan(List.of(eventWindows.get(0),
+                new Window(DAY.atTime(17,0),DAY.atTime(17,45),List.of(B),"",ShuttleService.SCARE_ACTORS)),List.of(),now,new HashMap<>());
+        check(handoff.get(1).getDriverId()==2,"event handoff respects availability");
+        var policy=new FrightFestTransportPolicy("2026-10-24","2026-11-01");
+        for(var date:List.of(LocalDate.of(2026,10,24),DAY))
+            check(policy.required(new ParkOperatingDay(date,ParkOperatingStatus.OPEN,null,null,false,"LIVE_API",null)),"inclusive event dates");
+        for(var date:List.of(LocalDate.of(2026,10,23),DAY.plusDays(1),DAY.plusYears(1)))
+            check(!policy.required(new ParkOperatingDay(date,ParkOperatingStatus.OPEN,null,null,false,"LIVE_API",null)),"event expires and never recurs automatically");
+        for(var state:List.of(ParkOperatingStatus.CLOSED,ParkOperatingStatus.UNKNOWN))
+            check(!policy.required(new ParkOperatingDay(DAY,state,null,null,false,"LIVE_API",null)),"event requires confirmed open park");
     }
     private static void check(boolean condition,String message){if(!condition)throw new AssertionError(message);}
 }

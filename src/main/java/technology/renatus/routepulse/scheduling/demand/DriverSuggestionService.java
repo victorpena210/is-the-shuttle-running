@@ -41,17 +41,22 @@ public class DriverSuggestionService {
     }
 
     Suggestions page(Long org, DemandForecastService.Forecast forecast, Instant now) {
-        return calculate(org, forecast, now, wardrobe.getSavedHours(org, forecast.date()), false);
+        return calculate(org, forecast, now, wardrobe.getSavedHours(org, forecast.date()), false, false);
     }
 
     /** Shared availability/counter checks for saved, calendar-based assignments. */
     public Suggestions forAssignments(Long org, DemandForecastService.Forecast forecast, Instant now,
             WardrobeHoursService.Hours hours) {
-        return calculate(org, forecast, now, hours, true);
+        return forAssignments(org, forecast, now, hours, false);
+    }
+
+    public Suggestions forAssignments(Long org, DemandForecastService.Forecast forecast, Instant now,
+            WardrobeHoursService.Hours hours, boolean scareActors) {
+        return calculate(org, forecast, now, hours, true, scareActors);
     }
 
     private Suggestions calculate(Long org, DemandForecastService.Forecast forecast, Instant now,
-            WardrobeHoursService.Hours hours, boolean openingCoverage) {
+            WardrobeHoursService.Hours hours, boolean openingCoverage, boolean scareActors) {
         var date = forecast.date();
         // Historical previews use only history known before that day; future previews use today's history.
         var asOf = date.isBefore(now.atZone(zone).toLocalDate()) ? date.atStartOfDay(zone).toInstant() : now;
@@ -112,15 +117,17 @@ public class DriverSuggestionService {
             var rows = new ArrayList<Window>();
             for (var window : period.windows()) {
                 boolean openingWindow = !window.start().isBefore(openingStart) && window.end().compareTo(openingEnd) <= 0;
-                if (window.movements() == 0 && !(openingCoverage && openingWindow)) continue;
-                if (openingCoverage && window.start().isBefore(openingStart)) continue;
-                if (openingCoverage && !openingWindow && window.start().isBefore(closing)) continue;
+                boolean actorWindow = scareActors && !window.start().isBefore(date.atTime(17,0))
+                        && !window.end().isAfter(date.atTime(17,45));
+                if (window.movements() == 0 && !(openingCoverage && openingWindow) && !actorWindow) continue;
+                if (openingCoverage && window.start().isBefore(openingStart) && !actorWindow) continue;
+                if (openingCoverage && !openingWindow && window.start().isBefore(closing) && !actorWindow) continue;
                 var eligible = stats.stream().filter(c -> covers(work.getOrDefault(c.driverId(), List.of()), window.start(), window.end()))
                         .filter(c -> withinSessionLimit(history.getOrDefault(c.driverId(), List.of()), window.end(), now)).toList();
                 String reason = "";
-                if (window.start().isBefore(openingStart)) reason = "Before wardrobe opening";
-                else if (window.start().isBefore(closing)) {
-                    if (window.end().isAfter(openingEnd)) reason = "Later service waits until wardrobe closes";
+                if (window.start().isBefore(openingStart) && !actorWindow) reason = "Before wardrobe opening";
+                else if (!window.start().isBefore(openingStart) && window.start().isBefore(closing)) {
+                    if (window.end().isAfter(openingEnd) && !actorWindow) reason = "Later service waits until wardrobe closes";
                     else {
                         // Counter coverage is another distinct, active roster member, not another CSV row.
                         var counter = stats.stream().filter(c -> covers(work.getOrDefault(c.driverId(), List.of()), window.start(), window.end()))
@@ -131,7 +138,10 @@ public class DriverSuggestionService {
                 }
                 if (!reason.isEmpty()) eligible = List.of();
                 if (eligible.isEmpty() && reason.isEmpty()) reason = "No available driver covers this full window";
-                append(rows, new Window(window.start(), window.end(), eligible, reason));
+                var service = actorWindow ? ShuttleService.SCARE_ACTORS : openingWindow
+                        ? (opening.isBefore(LocalTime.NOON) ? ShuttleService.MORNING_OPENING : ShuttleService.MIDDAY_OPENING)
+                        : ShuttleService.EMPLOYEE_PICKUP;
+                append(rows, new Window(window.start(), window.end(), eligible, reason, service));
             }
             groups.add(new Period(period.key(), period.title(), List.copyOf(rows)));
         }
@@ -178,8 +188,9 @@ public class DriverSuggestionService {
         if (!rows.isEmpty()) {
             var prior = rows.get(rows.size() - 1);
             if (prior.end().equals(next.start()) && prior.candidates().equals(next.candidates()) && prior.reason().equals(next.reason())
+                    && prior.service() == next.service()
                     && Duration.between(prior.start(), next.end()).compareTo(DrivingSession.MAX_DURATION) <= 0) {
-                rows.set(rows.size() - 1, new Window(prior.start(), next.end(), prior.candidates(), prior.reason())); return;
+                rows.set(rows.size() - 1, new Window(prior.start(), next.end(), prior.candidates(), prior.reason(), prior.service())); return;
             }
         }
         rows.add(next);
@@ -194,7 +205,10 @@ public class DriverSuggestionService {
     public record Candidate(Long driverId, String name, String employeeId, long seconds, boolean droveToday, ZonedDateTime lastDriven) {
         public String drivingTime() { return DriverAnalyticsCalculator.duration(seconds); }
     }
-    public record Window(LocalDateTime start, LocalDateTime end, List<Candidate> candidates, String reason) {
+    public record Window(LocalDateTime start, LocalDateTime end, List<Candidate> candidates, String reason, ShuttleService service) {
+        public Window(LocalDateTime start, LocalDateTime end, List<Candidate> candidates, String reason) {
+            this(start, end, candidates, reason, ShuttleService.EMPLOYEE_PICKUP);
+        }
         public String timeLabel() { return start.format(TIME) + " – " + end.format(TIME)
                 + (end.toLocalDate().isAfter(start.toLocalDate()) ? " (next day)" : ""); }
         public Candidate recommended() { return candidates.isEmpty() ? null : candidates.get(0); }

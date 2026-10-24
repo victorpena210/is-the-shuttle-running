@@ -16,7 +16,7 @@
 <p th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></p>
 <p>Assignments refresh every five minutes for the next 28 days. Times are in <strong th:text="${operationsZone}"></strong>.</p>
 <p>Use the shuttle NFC/QR checkpoint when you actually start driving. A scheduled shift does not start the shuttle or add driving time to your record.</p>
-<p th:if="${managerView}">Opening service keeps another scheduled roster member at the wardrobe counter. Later pickups follow <a th:href="@{/transportation-demand}">uploaded employee demand</a> after wardrobe closes.
+<p th:if="${managerView}">Opening service and required scare-actor transport keep another scheduled roster member at the wardrobe counter while it is open. Later pickups follow <a th:href="@{/transportation-demand}">uploaded employee demand</a> after wardrobe closes.
 <a th:href="@{/drivers}">Check driver availability and UKG calendars</a>.</p>
 <form class="demand-date" th:action="@{${scheduleUrl}}" method="get">
 <div class="form-group"><label for="date">Week starting</label><input id="date" name="date" type="date" th:value="${from}" required></div>
@@ -39,7 +39,9 @@
 <div class="suggestion-window" th:each="slot : ${day.slots}">
 <strong class="suggestion-time"><span th:text="${#temporals.format(slot.start, 'h:mm a')}"></span>–<span th:text="${#temporals.format(slot.end, 'h:mm a')}"></span>
 <span th:if="${slot.end.toLocalDate().isAfter(slot.start.toLocalDate())}"> (next day)</span></strong>
-<div><p><strong th:text="${slot.driverId == null ? 'Needs coverage' : slot.driverName}"></strong>
+<div><p class="demand-note" th:text="${slot.serviceLabel}"></p>
+<p th:if="${slot.scareActorTransport}">Start scare-actor transport at 5 PM. Plan for 5:45 PM, but continue until everyone is transported. Finish sooner if the run is complete; 5:45 PM does not automatically end your driving session.</p>
+<p><strong th:text="${slot.driverId == null ? 'Needs coverage' : slot.driverName}"></strong>
 <span class="badge" th:if="${slot.driverId != null}">Assigned</span></p><p th:if="${slot.driverId == null}" th:text="${slot.reason}"></p></div></div>
 <th:block th:if="${managerView and !day.date.isBefore(today) and !day.date.isAfter(today.plusDays(27))}">
 <details><summary>Adjust wardrobe hours</summary><form class="demand-date" th:action="@{/driving-schedule/hours}" method="post">

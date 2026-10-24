@@ -31,18 +31,22 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
     @Autowired DrivingSessionRepository sessions;
     @Autowired WardrobeHoursService wardrobe;
     @Autowired DemandForecastRepository demand;
-    private final LocalDate day=LocalDate.now(ZoneOffset.UTC).plusDays(1);
-    private final Instant now=Instant.now();
+    // Fixed, post-event dates keep ordinary scheduling checks independent of the day CI runs.
+    private final LocalDate day=LocalDate.of(2026,11,2);
+    private final Instant now=day.minusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
     private ParkOperatingDay open(LocalDate date,int hour) {
         return new ParkOperatingDay(date,ParkOperatingStatus.OPEN,LocalTime.of(hour,0),LocalTime.of(23,0),false,"LIVE_API",null);
     }
     private Fixture fixture(String slug) {
+        return fixture(slug,day,now);
+    }
+    private Fixture fixture(String slug,LocalDate first,Instant refreshedAt) {
         var org=createOrganization(slug,slug);var manager=createUser(slug+"@example.com",true);
         membershipRepository.saveAndFlush(new OrganizationMembership(org,manager,OrganizationRole.OWNER));
         var a=driverRepository.saveAndFlush(new Driver(org,"100","Alex "+slug,true));
         var b=driverRepository.saveAndFlush(new Driver(org,"200","Blair "+slug,true));
-        var source=scheduleImportRepository.saveAndFlush(new ScheduleImport(org,manager,UUID.randomUUID().toString(),"sample.csv",4,day,day.plusDays(1),day+","+day.plusDays(1),now));
-        for(var date:List.of(day,day.plusDays(1))) for(var driver:List.of(a,b))
+        var source=scheduleImportRepository.saveAndFlush(new ScheduleImport(org,manager,UUID.randomUUID().toString(),"sample.csv",4,first,first.plusDays(1),first+","+first.plusDays(1),refreshedAt));
+        for(var date:List.of(first,first.plusDays(1))) for(var driver:List.of(a,b))
             work.saveAndFlush(new DriverScheduleWindow(driver,source,date.atTime(8,0),date.atTime(23,0)));
         return new Fixture(org,manager,a,b,source);
     }
@@ -57,7 +61,8 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         assertThat(result.get(0).slots()).singleElement().satisfies(s->{
             assertThat(s.getStart()).isEqualTo(day.atTime(9,0));assertThat(s.getEnd()).isEqualTo(day.atTime(12,0));});
         assertThat(result.get(1).slots()).singleElement().satisfies(s->{
-            assertThat(s.getStart()).isEqualTo(day.plusDays(1).atTime(15,0));assertThat(s.getEnd()).isEqualTo(day.plusDays(1).atTime(19,0));});
+            assertThat(s.getStart()).isEqualTo(day.plusDays(1).atTime(15,0));assertThat(s.getEnd()).isEqualTo(day.plusDays(1).atTime(19,0));
+            assertThat(s.getService()).isEqualTo(ShuttleService.MIDDAY_OPENING);});
         assertThat(result.get(0).slots().get(0).getDriverId()).isNotEqualTo(result.get(1).slots().get(0).getDriverId());
         var before=result.stream().map(AutomaticScheduleDay.View::slots).toList();
         store.refresh(f.org().getId(),days,now);entityManager.flush();entityManager.clear();
@@ -124,6 +129,65 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         mockMvc.perform(post("/driving-schedule/refresh").with(authentication(manager))).andExpect(status().isForbidden());
         mockMvc.perform(post("/driving-schedule/refresh").with(authentication(driver)).with(csrf())).andExpect(status().isForbidden());
         assertThat(sessions.count()).isZero();
+    }
+    @Test void lateFrightFestOpeningUsesMiddayAndOneDriverWithoutOverlappingTheActorRun() throws Exception {
+        var date=LocalDate.of(2026,10,31);var before=date.minusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        var f=fixture("fright-late",date,before);
+        store.refresh(f.org().getId(),List.of(open(date,17)),before);entityManager.flush();entityManager.clear();
+        var slots=store.manager(f.org().getId(),date,date,f.manager().getEmail()).get(0).slots();
+        assertThat(slots).hasSize(3);
+        assertThat(slots.get(0).getStart()).isEqualTo(date.atTime(15,0));
+        assertThat(slots.get(0).getEnd()).isEqualTo(date.atTime(17,0));
+        assertThat(slots.get(0).getService()).isEqualTo(ShuttleService.MIDDAY_OPENING);
+        assertThat(slots.get(1).isScareActorTransport()).isTrue();
+        assertThat(slots.get(1).getStart()).isEqualTo(date.atTime(17,0));
+        assertThat(slots.get(1).getEnd()).isEqualTo(date.atTime(17,45));
+        assertThat(slots.get(2).getStart()).isEqualTo(date.atTime(17,45));
+        assertThat(slots.get(2).getEnd()).isEqualTo(date.atTime(19,0));
+        assertThat(slots.get(2).getService()).isEqualTo(ShuttleService.MIDDAY_OPENING);
+        assertThat(slots).allSatisfy(s->assertThat(s.getDriverId()).isEqualTo(slots.get(0).getDriverId()));
+        store.refresh(f.org().getId(),List.of(open(date,17)),before);
+        assertThat(store.manager(f.org().getId(),date,date,f.manager().getEmail()).get(0).slots()).isEqualTo(slots);
+        mockMvc.perform(get("/driving-schedule").param("date",date.toString())
+                .with(authentication(authenticationFor(f.manager(),OrganizationRole.OWNER))))
+                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Midday")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("5:45 PM does not automatically end your driving session")));
+        assertThat(sessions.count()).isZero();
+    }
+    @Test void morningFrightFestOpeningRequiresActorTransportWithoutEmployeeDemandAndExpiresAfterNovemberFirst() {
+        var date=LocalDate.of(2026,11,1);var before=date.minusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        var f=fixture("fright-morning",date,before);
+        store.refresh(f.org().getId(),List.of(open(date,11),open(date.plusDays(1),11)),before);
+        var days=store.manager(f.org().getId(),date,date.plusDays(1),f.manager().getEmail());
+        assertThat(days.get(0).slots()).hasSize(2);
+        var actors=days.get(0).slots().get(1);
+        assertThat(actors.getService()).isEqualTo(ShuttleService.SCARE_ACTORS);
+        assertThat(actors.getStart()).isEqualTo(date.atTime(17,0));
+        assertThat(actors.getEnd()).isEqualTo(date.atTime(17,45));
+        assertThat(actors.getDriverId()).isEqualTo(f.b().getId());
+        assertThat(days.get(1).slots()).singleElement().satisfies(s->assertThat(s.isScareActorTransport()).isFalse());
+        for(var status:List.of(ParkOperatingStatus.CLOSED,ParkOperatingStatus.UNKNOWN)) {
+            store.refresh(f.org().getId(),List.of(new ParkOperatingDay(date,status,null,null,false,"LIVE_API",null)),before);
+            assertThat(store.manager(f.org().getId(),date,date,f.manager().getEmail()).get(0).slots()).isEmpty();
+        }
+        assertThat(sessions.count()).isZero();
+    }
+    @Test void requiredActorTransportStillReportsMissingCounterCoverageAndRespectsWorkEnd() {
+        var date=LocalDate.of(2026,10,31);var before=date.minusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        var f=fixture("fright-coverage",date,before);
+        work.deleteAll();work.flush();
+        work.saveAndFlush(new DriverScheduleWindow(f.a(),f.source(),date.atTime(8,0),date.atTime(17,30)));
+        work.saveAndFlush(new DriverScheduleWindow(f.b(),f.source(),date.atTime(8,0),date.atTime(23,0)));
+        store.refresh(f.org().getId(),List.of(open(date,11)),before);
+        var actors=store.manager(f.org().getId(),date,date,f.manager().getEmail()).get(0).slots().stream()
+                .filter(AutomaticScheduleDay.Slot::isScareActorTransport).toList();
+        assertThat(actors).hasSize(2);
+        assertThat(actors.get(0).getDriverId()).isNotNull();
+        assertThat(actors.get(0).getEnd()).isEqualTo(date.atTime(17,30));
+        assertThat(actors.get(1).getStart()).isEqualTo(date.atTime(17,30));
+        assertThat(actors.get(1).getEnd()).isEqualTo(date.atTime(17,45));
+        assertThat(actors.get(1).getDriverId()).isNull();
+        assertThat(actors.get(1).getReason()).contains("wardrobe counter");
     }
     private record Fixture(Organization org,UserAccount manager,Driver a,Driver b,ScheduleImport source){}
 }

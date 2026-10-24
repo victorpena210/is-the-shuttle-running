@@ -3,6 +3,7 @@ package technology.renatus.routepulse.scheduling.automatic;
 import jakarta.persistence.*;
 import java.time.*;
 import java.util.*;
+import technology.renatus.routepulse.scheduling.demand.ShuttleService;
 
 /** Planned work, separate from actual driving sessions and public status. */
 @Entity
@@ -47,22 +48,31 @@ public class AutomaticScheduleDay {
         @Column(name="driver_id") private Long driverId;
         @Column(name="driver_name",length=255) private String driverName;
         @Column(nullable=false,length=255) private String reason;
+        @Enumerated(EnumType.STRING) @Column(name="service_kind",length=32) private ShuttleService service;
         protected Slot() {}
         public Slot(LocalDateTime start,LocalDateTime end,Long driverId,String driverName,String reason) {
+            this(start,end,driverId,driverName,reason,ShuttleService.EMPLOYEE_PICKUP);
+        }
+        public Slot(LocalDateTime start,LocalDateTime end,Long driverId,String driverName,String reason,ShuttleService service) {
             if (!end.isAfter(start)) throw new IllegalArgumentException("A shift must end after it starts.");
             this.start=start; this.end=end; this.driverId=driverId; this.driverName=driverName; this.reason=reason;
+            this.service=service;
         }
         public LocalDateTime getStart() {return start;}
         public LocalDateTime getEnd() {return end;}
         public Long getDriverId() {return driverId;}
         public String getDriverName() {return driverName;}
         public String getReason() {return reason;}
+        public ShuttleService getService() {return service==null?ShuttleService.EMPLOYEE_PICKUP:service;}
+        public String getServiceLabel() {return getService().getLabel();}
+        public boolean isScareActorTransport() {return getService()==ShuttleService.SCARE_ACTORS;}
         public long seconds() {return Duration.between(start,end).getSeconds();}
         public boolean overlaps(LocalDateTime from,LocalDateTime to) {return start.isBefore(to)&&end.isAfter(from);}
         @Override public boolean equals(Object value) {
             return value instanceof Slot s && Objects.equals(start,s.start)&&Objects.equals(end,s.end)
-                    &&Objects.equals(driverId,s.driverId)&&Objects.equals(driverName,s.driverName)&&Objects.equals(reason,s.reason);
+                    &&Objects.equals(driverId,s.driverId)&&Objects.equals(driverName,s.driverName)&&Objects.equals(reason,s.reason)
+                    &&getService()==s.getService();
         }
-        @Override public int hashCode() {return Objects.hash(start,end,driverId,driverName,reason);}
+        @Override public int hashCode() {return Objects.hash(start,end,driverId,driverName,reason,getService());}
     }
 }

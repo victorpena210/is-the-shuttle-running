@@ -20,13 +20,15 @@ public class AutomaticScheduleStore {
     private final WardrobeHoursService wardrobe;
     private final ParkCalendarOverrideService overrides;
     private final DriverScheduleIdentityService access;
+    private final FrightFestTransportPolicy frightFest;
     private final ZoneId zone;
     public AutomaticScheduleStore(AutomaticScheduleRepository schedules,OrganizationRepository organizations,
             DemandForecastService forecasts,DriverSuggestionService suggestions,WardrobeHoursService wardrobe,
-            ParkCalendarOverrideService overrides,DriverScheduleIdentityService access,
+            ParkCalendarOverrideService overrides,DriverScheduleIdentityService access,FrightFestTransportPolicy frightFest,
             @Value("${app.operations-zone:America/Chicago}") String zone) {
         this.schedules=schedules; this.organizations=organizations; this.forecasts=forecasts;
         this.suggestions=suggestions; this.wardrobe=wardrobe; this.overrides=overrides; this.access=access; this.zone=ZoneId.of(zone);
+        this.frightFest=frightFest;
     }
     @Transactional
     public void refresh(Long org,List<ParkOperatingDay> calendar,Instant instant) {
@@ -49,10 +51,11 @@ public class AutomaticScheduleStore {
             else if(!hours.usesOpeningWindow()) message="Set wardrobe opening and closing times for this park opening before assigning shifts.";
             else {
                 var forecast=forecasts.page(org,date);
-                var available=suggestions.forAssignments(org,forecast,instant,hours);
+                var available=suggestions.forAssignments(org,forecast,instant,hours,frightFest.required(day));
                 windows=available.periods().stream().flatMap(p->p.windows().stream()).toList();
                 message=forecast.available()?"Opening coverage and employee pickup demand are assigned using available drivers.":
                         "Opening coverage is assigned. Upload employee demand to plan later pickups.";
+                if(frightFest.required(day)) message += " Required scare-actor transport starts at 5 PM; 5:45 PM is an estimate. Continue until finished, or end earlier when complete.";
             }
             var next=AutomaticShiftPlanner.plan(windows,saved.slots(),now,planned);
             saved.update(day.status().name(),day.verificationSource()==null?"NONE":day.verificationSource(),day.openingTime(),day.closingTime(),
