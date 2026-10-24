@@ -74,10 +74,10 @@ public class DriverCalendarStore {
     @Transactional
     public void disconnect(Authentication auth,Long id) {
         var driver=authorize(auth,id);Long org=driver.getOrganization().getId();lock(org);
-        connections.findByDriver_IdAndOrganizationId(driver.getId(),org).ifPresent(c -> {shifts.clear(c.getId());connections.delete(c);});
+        connections.findByDriver_IdAndOrganizationId(driver.getId(),org).ifPresent(c -> {shifts.deleteByConnection_Id(c.getId());connections.delete(c);});
     }
     private void replace(DriverCalendarConnection c,List<UkgCalendarParser.Shift> parsed) {
-        shifts.clear(c.getId());
+        shifts.deleteByConnection_Id(c.getId());
         var start=c.getCoverageFrom().atStartOfDay(zone).toInstant();var end=c.getCoverageUntil().atStartOfDay(zone).toInstant();
         shifts.saveAll(parsed.stream().filter(s -> s.start().isBefore(end)&&s.end().isAfter(start))
                 .map(s -> new DriverCalendarShift(c,s)).toList());

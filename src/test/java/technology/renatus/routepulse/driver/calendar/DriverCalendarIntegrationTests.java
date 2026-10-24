@@ -114,6 +114,7 @@ class DriverCalendarIntegrationTests extends MySqlIntegrationTestSupport {
         var f=fixture("calendar-job");store.connect(driver(f),null,LINK,List.of(),now.minusSeconds(1800));entityManager.flush();
         service.refreshDue();entityManager.flush();assertThat(shifts.count()).isOne();verify(client).fetch(LINK);
         store.disconnect(driver(f),null);entityManager.flush();
+        assertThat(connections.count()).isZero();assertThat(shifts.count()).isZero();
         Map<Long,List<DriverScheduleWindow>> work=new HashMap<>();work.put(f.alex().getId(),List.of(new DriverScheduleWindow(f.alex(),null,day.atTime(9,0),day.atTime(20,0))));
         availability.apply(f.org().getId(),day,now,work);assertThat(work.get(f.alex().getId())).hasSize(1);
     }
