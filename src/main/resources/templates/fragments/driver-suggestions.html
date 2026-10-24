@@ -21,7 +21,7 @@ Keep one other scheduled roster member at the counter. Later service starts afte
 <div class="form-group"><label for="wardrobeOpening">Opens</label><input id="wardrobeOpening" name="openingTime" type="time" required th:value="${#temporals.format(suggestions.openingStart, 'HH:mm')}"></div>
 <div class="form-group"><label for="wardrobeClosing">Closes</label><input id="wardrobeClosing" name="closingTime" type="time" required th:value="${#temporals.format(suggestions.closing, 'HH:mm')}"></div>
 <button type="submit" class="button button--secondary">Save hours</button></form>
-<p>For morning openings, opening service lasts up to three hours. For afternoon openings, it lasts until wardrobe closes. Midnight closing means the end of this date.</p></details>
+<p>For morning openings, opening service lasts up to three hours (normally 9 AM–noon). For afternoon openings, it lasts up to two hours (normally 3–5 PM). Both stop earlier if wardrobe closes. Midnight closing means the end of this date.</p></details>
 </div>
 <p th:if="${#lists.isEmpty(suggestions.roster)}" class="alert">Add active drivers on the <a th:href="@{/drivers}">Drivers page</a> to get suggestions.</p>
 <p th:if="${suggestions.noSchedules and !#lists.isEmpty(suggestions.roster)}" class="alert">No available driver work hours for this date. Check UKG connection status or employee IDs on the <a th:href="@{/drivers}">Drivers page</a>. For uploaded schedules, files uploaded before driver suggestions were added need to be uploaded again.</p>

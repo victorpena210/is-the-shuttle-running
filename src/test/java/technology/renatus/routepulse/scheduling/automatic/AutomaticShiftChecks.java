@@ -49,15 +49,23 @@ public final class AutomaticShiftChecks {
         check(AutomaticShiftPlanner.plan(List.of(window(9,12,heavy,B)),List.of(),now,new HashMap<>()).get(0).getDriverId()==2,"actual driving matters");
         var eventWindows=List.of(
                 new Window(DAY.atTime(15,0),DAY.atTime(17,0),List.of(A,B),"",ShuttleService.MIDDAY_OPENING),
-                new Window(DAY.atTime(17,0),DAY.atTime(17,45),List.of(A,B),"",ShuttleService.SCARE_ACTORS),
-                new Window(DAY.atTime(17,45),DAY.atTime(19,0),List.of(A,B),"",ShuttleService.MIDDAY_OPENING));
+                new Window(DAY.atTime(17,0),DAY.atTime(17,45),List.of(A,B),"",ShuttleService.SCARE_ACTORS));
         var event=AutomaticShiftPlanner.plan(eventWindows,List.of(),now,new HashMap<>());
-        check(event.size()==3&&event.stream().allMatch(s->s.getDriverId()==1),"event inside midday keeps eligible driver");
+        check(event.size()==2&&event.stream().allMatch(s->s.getDriverId()==1),"midday driver continues through scare actors");
         check(event.get(1).isScareActorTransport()&&event.get(0).getService()==ShuttleService.MIDDAY_OPENING,"service purpose retained");
         check(event.equals(AutomaticShiftPlanner.plan(eventWindows,event,DAY.atTime(17,15),new HashMap<>())),"in-progress event remains stable");
-        var handoff=AutomaticShiftPlanner.plan(List.of(eventWindows.get(0),
-                new Window(DAY.atTime(17,0),DAY.atTime(17,45),List.of(B),"",ShuttleService.SCARE_ACTORS)),List.of(),now,new HashMap<>());
-        check(handoff.get(1).getDriverId()==2,"event handoff respects availability");
+        var limitedOpening=List.of(eventWindows.get(0),
+                new Window(DAY.atTime(17,0),DAY.atTime(17,45),List.of(B),"",ShuttleService.SCARE_ACTORS));
+        var fullRun=AutomaticShiftPlanner.plan(limitedOpening,List.of(),now,new HashMap<>());
+        check(fullRun.stream().allMatch(s->s.getDriverId()==2),"choose the driver available for opening and scare actors");
+        var handoff=AutomaticShiftPlanner.plan(limitedOpening,List.of(event.get(0)),DAY.atTime(16,0),new HashMap<>());
+        check(handoff.get(0).getDriverId()==1&&handoff.get(1).getDriverId()==2,"a started run stays fixed if changed availability requires an event handoff");
+        var splitOpening=List.of(
+                new Window(DAY.atTime(15,0),DAY.atTime(16,0),List.of(A,B),"",ShuttleService.MIDDAY_OPENING),
+                new Window(DAY.atTime(16,0),DAY.atTime(17,0),List.of(A,B,new Candidate(3L,"Casey","300",0,false,null)),"",ShuttleService.MIDDAY_OPENING),
+                eventWindows.get(1));
+        check(AutomaticShiftPlanner.plan(splitOpening,List.of(),now,new HashMap<>()).stream().allMatch(s->s.getDriverId()==1),
+                "another staff arrival must not rotate the opening driver mid-run");
         var policy=new FrightFestTransportPolicy("2026-10-24","2026-11-01");
         for(var date:List.of(LocalDate.of(2026,10,24),DAY))
             check(policy.required(new ParkOperatingDay(date,ParkOperatingStatus.OPEN,null,null,false,"LIVE_API",null)),"inclusive event dates");

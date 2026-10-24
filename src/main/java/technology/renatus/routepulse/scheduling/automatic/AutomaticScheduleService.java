@@ -26,18 +26,23 @@ public class AutomaticScheduleService {
     }
     public LocalDate today(){return LocalDate.now(zone);}
     public String zoneName(){return zone.getId();}
+    /** The page, refresh job, and confirmation action must use the same freshness rule. */
+    public ParkOperatingDay operatingDay(LocalDate date){return operatingDay(date,Instant.now());}
+    private ParkOperatingDay operatingDay(LocalDate date,Instant now) {
+        var day=calendar.getOperatingDay(date);
+        if(day.isPersistedSnapshot() && snapshots.findByParkIdAndOperatingDate(parkId,day.date())
+                .filter(s->s.getFetchedAt().plus(Duration.ofHours(24)).isAfter(now)).isEmpty())
+            // Keep the last known hours visible for an explicit, audited confirmation.
+            // UNKNOWN still prevents automatic assignment until a manager verifies them.
+            return new ParkOperatingDay(day.date(),ParkOperatingStatus.UNKNOWN,day.openingTime(),day.closingTime(),
+                    day.buyout(),"STALE_SNAPSHOT","PARK_HOURS_STALE");
+        return day;
+    }
     public void refresh(Long org,String email){access.requireManager(org,email); refresh(org);}
     public void refresh(Long org) {
         Instant now=Instant.now(); var today=now.atZone(zone).toLocalDate();
         var days=new ArrayList<ParkOperatingDay>();
-        for(int offset=0;offset<28;offset++) {
-            var day=calendar.getOperatingDay(today.plusDays(offset));
-            // Old persisted hours are useful for display, but cannot authorize fresh assignments indefinitely.
-            if(day.isPersistedSnapshot() && snapshots.findByParkIdAndOperatingDate(parkId,day.date())
-                    .filter(s->s.getFetchedAt().plus(Duration.ofHours(24)).isAfter(now)).isEmpty())
-                day=new ParkOperatingDay(day.date(),ParkOperatingStatus.UNKNOWN,null,null,false,"STALE_SNAPSHOT","PARK_HOURS_STALE");
-            days.add(day);
-        }
+        for(int offset=0;offset<28;offset++) days.add(operatingDay(today.plusDays(offset),now));
         store.refresh(org,days,now);
     }
 }

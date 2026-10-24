@@ -25,7 +25,9 @@ public final class AutomaticShiftPlanner {
                         Duration.between(now,slot.getEnd()).getSeconds(),Long::sum);
             }
         }
-        for (var window:windows.stream().sorted(Comparator.comparing(DriverSuggestionService.Window::start)).toList()) {
+        var ordered=windows.stream().sorted(Comparator.comparing(DriverSuggestionService.Window::start)).toList();
+        for (int windowIndex=0;windowIndex<ordered.size();windowIndex++) {
+            var window=ordered.get(windowIndex);
             var start=window.start().isAfter(now)?window.start():now.withSecond(0).withNano(0).plusMinutes(1);
             // One shuttle: never overlap a frozen assignment, including another driver's run.
             for(var fixed:result) if(fixed.overlaps(start,window.end())&&!fixed.getStart().isAfter(now))
@@ -33,7 +35,9 @@ public final class AutomaticShiftPlanner {
             if(!window.end().isAfter(start)) continue;
             while(start.isBefore(window.end())) {
                 var end=start.plusHours(4).isBefore(window.end())?start.plusHours(4):window.end();
-                var chosen=window.candidates().stream().min(Comparator
+                // Prefer someone who can cover the complete opening run, including
+                // the adjacent scare-actor run, before balancing driving hours.
+                var chosen=openingCandidates(ordered,windowIndex).stream().min(Comparator
                         .comparing((DriverSuggestionService.Candidate c)->c.droveToday()||usedToday.contains(c.driverId()))
                         .thenComparingLong(c->c.seconds()+plannedSeconds.getOrDefault(c.driverId(),0L))
                         .thenComparing(DriverSuggestionService.Candidate::lastDriven,Comparator.nullsFirst(Comparator.naturalOrder()))
@@ -43,7 +47,8 @@ public final class AutomaticShiftPlanner {
                 // Continue with the same eligible driver, but never stretch a continuous run past four hours.
                 var prior=result.isEmpty()?null:result.get(result.size()-1);
                 if(prior!=null && prior.getDriverId()!=null && prior.getEnd().equals(start)
-                        && (window.service()==ShuttleService.SCARE_ACTORS || prior.isScareActorTransport())) {
+                        && (window.service()==ShuttleService.SCARE_ACTORS
+                            || (isOpening(window.service()) && window.service()==prior.getService()))) {
                     var continuing=window.candidates().stream().filter(c->c.driverId().equals(prior.getDriverId())).findFirst().orElse(null);
                     var runStart=prior.getStart();
                     for(int i=result.size()-2;i>=0;i--) {
@@ -67,5 +72,24 @@ public final class AutomaticShiftPlanner {
             }
         }
         return result.stream().sorted(Comparator.comparing(Slot::getStart)).toList();
+    }
+    private static boolean isOpening(ShuttleService service) {
+        return service==ShuttleService.MORNING_OPENING || service==ShuttleService.MIDDAY_OPENING;
+    }
+    private static List<DriverSuggestionService.Candidate> openingCandidates(
+            List<DriverSuggestionService.Window> windows,int index) {
+        var first=windows.get(index);
+        if(!isOpening(first.service())) return first.candidates();
+        var eligible=new ArrayList<>(first.candidates());
+        var end=first.end();
+        for(int i=index+1;i<windows.size();i++) {
+            var next=windows.get(i);
+            if(!next.start().equals(end) || !(next.service()==first.service()
+                    || (first.service()==ShuttleService.MIDDAY_OPENING && next.service()==ShuttleService.SCARE_ACTORS))) break;
+            eligible.removeIf(c->next.candidates().stream().noneMatch(other->other.driverId().equals(c.driverId())));
+            end=next.end();
+        }
+        // If nobody covers the entire run, retain feasible coverage and report gaps.
+        return eligible.isEmpty()?first.candidates():eligible;
     }
 }

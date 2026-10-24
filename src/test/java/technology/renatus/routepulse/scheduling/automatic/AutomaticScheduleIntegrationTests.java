@@ -13,6 +13,7 @@ import technology.renatus.routepulse.auth.model.UserAccount;
 import technology.renatus.routepulse.calendar.domain.*;
 import technology.renatus.routepulse.calendar.repository.ParkOperatingDaySnapshotRepository;
 import technology.renatus.routepulse.calendar.service.ParkOperatingDayService;
+import technology.renatus.routepulse.calendar.service.ParkCalendarOverrideService;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driver.calendar.*;
 import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
@@ -36,6 +37,7 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
     @Autowired DemandForecastRepository demand;
     @Autowired ParkOperatingDaySnapshotRepository snapshots;
     @Autowired DriverScheduleIdentityService access;
+    @Autowired ParkCalendarOverrideService overrides;
     // Fixed, post-event dates keep ordinary scheduling checks independent of the day CI runs.
     private final LocalDate day=LocalDate.of(2026,11,2);
     private final Instant now=day.minusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
@@ -68,7 +70,7 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
             assertThat(s.getStart()).isEqualTo(day.atTime(9,0));assertThat(s.getEnd()).isEqualTo(day.atTime(12,0));});
         assertThat(result.get(1).slots()).hasSize(2);
         assertThat(result.get(1).slots().get(0)).satisfies(s->{
-            assertThat(s.getStart()).isEqualTo(day.plusDays(1).atTime(15,0));assertThat(s.getEnd()).isEqualTo(day.plusDays(1).atTime(19,0));
+            assertThat(s.getStart()).isEqualTo(day.plusDays(1).atTime(15,0));assertThat(s.getEnd()).isEqualTo(day.plusDays(1).atTime(17,0));
             assertThat(s.getService()).isEqualTo(ShuttleService.MIDDAY_OPENING);});
         assertThat(result.get(0).slots().get(0).getDriverId()).isNotEqualTo(result.get(0).slots().get(1).getDriverId());
         var before=result.stream().map(AutomaticScheduleDay.View::slots).toList();
@@ -149,20 +151,18 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         var f=fixture("fright-late",date,before);
         store.refresh(f.org().getId(),List.of(open(date,17)),before);entityManager.flush();entityManager.clear();
         var slots=store.manager(f.org().getId(),date,date,f.manager().getEmail()).get(0).slots();
-        assertThat(slots).hasSize(4);
+        assertThat(slots).hasSize(3);
         assertThat(slots.get(0).getStart()).isEqualTo(date.atTime(15,0));
         assertThat(slots.get(0).getEnd()).isEqualTo(date.atTime(17,0));
         assertThat(slots.get(0).getService()).isEqualTo(ShuttleService.MIDDAY_OPENING);
         assertThat(slots.get(1).isScareActorTransport()).isTrue();
         assertThat(slots.get(1).getStart()).isEqualTo(date.atTime(17,0));
         assertThat(slots.get(1).getEnd()).isEqualTo(date.atTime(17,45));
-        assertThat(slots.get(2).getStart()).isEqualTo(date.atTime(17,45));
-        assertThat(slots.get(2).getEnd()).isEqualTo(date.atTime(19,0));
-        assertThat(slots.get(2).getService()).isEqualTo(ShuttleService.MIDDAY_OPENING);
-        assertThat(slots.subList(0,3)).allSatisfy(s->assertThat(s.getDriverId()).isEqualTo(slots.get(0).getDriverId()));
-        assertThat(slots.get(3).getStart()).isEqualTo(date.atTime(19,0));
-        assertThat(slots.get(3).getEnd()).isEqualTo(date.atTime(23,0));
-        assertThat(slots.get(3).getDriverId()).isNotEqualTo(slots.get(0).getDriverId());
+        assertThat(slots.subList(0,2)).allSatisfy(s->assertThat(s.getDriverId()).isEqualTo(slots.get(0).getDriverId()));
+        assertThat(slots).noneMatch(s->s.overlaps(date.atTime(17,45),date.atTime(19,0)));
+        assertThat(slots.get(2).getStart()).isEqualTo(date.atTime(19,0));
+        assertThat(slots.get(2).getEnd()).isEqualTo(date.atTime(23,0));
+        assertThat(slots.get(2).getDriverId()).isNotEqualTo(slots.get(0).getDriverId());
         store.refresh(f.org().getId(),List.of(open(date,17)),before);
         assertThat(store.manager(f.org().getId(),date,date,f.manager().getEmail()).get(0).slots()).isEqualTo(slots);
         mockMvc.perform(get("/driving-schedule").param("date",date.toString())
@@ -170,6 +170,46 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
                 .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Midday")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("5:45 PM does not automatically end your driving session")));
         assertThat(sessions.count()).isZero();
+    }
+    @Test void elevenAndNoonOpeningsUseNineToNoonAndRequireASeparateCounterWorker() {
+        var f=fixture("daytime-opening");
+        for(int parkHour:List.of(11,12)) {
+            store.refresh(f.org().getId(),List.of(open(day,parkHour)),now);
+            assertThat(views(f).get(0).slots()).filteredOn(s->s.getService()==ShuttleService.MORNING_OPENING)
+                    .singleElement().satisfies(s->{
+                        assertThat(s.getStart()).isEqualTo(day.atTime(9,0));
+                        assertThat(s.getEnd()).isEqualTo(day.atTime(12,0));
+                        assertThat(s.getDriverId()).isNotNull();
+                    });
+        }
+        f.b().setActive(false);driverRepository.flush();
+        store.refresh(f.org().getId(),List.of(open(day,12)),now);
+        assertThat(views(f).get(0).slots()).filteredOn(s->s.getService()==ShuttleService.MORNING_OPENING)
+                .singleElement().satisfies(s->{
+                    assertThat(s.getDriverId()).isNull();assertThat(s.getReason()).contains("wardrobe counter");
+                });
+    }
+    @Test void lateOpeningSelectsOneDriverThroughScareActorsWhenTheCounterChangesAtFive() {
+        var date=LocalDate.of(2026,10,30);var before=date.minusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        var f=fixture("friday-full-run",date,before);
+        var c=driverRepository.saveAndFlush(new Driver(f.org(),"300","Casey",true));
+        work.deleteAll();work.flush();
+        work.saveAndFlush(new DriverScheduleWindow(f.a(),f.source(),date.atTime(15,0),date.atTime(17,0)));
+        work.saveAndFlush(new DriverScheduleWindow(f.b(),f.source(),date.atTime(15,0),date.atTime(23,0)));
+        work.saveAndFlush(new DriverScheduleWindow(c,f.source(),date.atTime(17,0),date.atTime(23,0)));
+        store.refresh(f.org().getId(),List.of(open(date,17)),before);
+        var slots=store.manager(f.org().getId(),date,date,f.manager().getEmail()).get(0).slots();
+        assertThat(slots).hasSize(3);
+        assertThat(slots.subList(0,2)).allSatisfy(s->assertThat(s.getDriverId()).isEqualTo(f.b().getId()));
+        assertThat(slots.get(0).getStart()).isEqualTo(date.atTime(15,0));
+        assertThat(slots.get(1).getEnd()).isEqualTo(date.atTime(17,45));
+        assertThat(slots).noneMatch(s->s.overlaps(date.atTime(17,45),date.atTime(19,0)));
+        c.setActive(false);driverRepository.flush();
+        store.refresh(f.org().getId(),List.of(open(date,17)),before);
+        assertThat(store.manager(f.org().getId(),date,date,f.manager().getEmail()).get(0).slots())
+                .filteredOn(AutomaticScheduleDay.Slot::isScareActorTransport).singleElement().satisfies(s->{
+                    assertThat(s.getDriverId()).isNull();assertThat(s.getReason()).contains("wardrobe counter");
+                });
     }
     @Test void morningFrightFestOpeningRequiresActorTransportWithoutEmployeeDemandAndExpiresAfterNovemberFirst() {
         var date=LocalDate.of(2026,11,1);var before=date.minusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
@@ -247,6 +287,21 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
             assertThat(s.getEnd()).isEqualTo(day.plusDays(1).atTime(1,0));assertThat(s.getDriverId()).isEqualTo(f.b().getId());});
         assertThat(slots).noneMatch(s->s.getEnd().isAfter(day.plusDays(1).atTime(1,0)));
         assertThat(demand.count()).isZero();assertThat(sessions.count()).isZero();
+    }
+    @Test void confirmingStaleOpenHoursRestoresCoverageOnlyForTheConfirmingOrganization() {
+        var f=fixture("stale-confirm");var other=fixture("stale-other");
+        var stale=new ParkOperatingDay(day,ParkOperatingStatus.UNKNOWN,LocalTime.of(11,0),LocalTime.of(23,0),false,"STALE_SNAPSHOT","PARK_HOURS_STALE");
+        store.refresh(f.org().getId(),List.of(stale),now);
+        assertThat(views(f).get(0).slots()).isEmpty();
+        assertThat(views(f).get(0).parkOpening()).isEqualTo(LocalTime.of(11,0));
+        overrides.confirmParkOpen(f.org().getId(),stale,f.manager().getEmail(),"Verified official calendar: 11 AM to 11 PM.");
+        store.refresh(f.org().getId(),List.of(stale),now);store.refresh(other.org().getId(),List.of(stale),now);
+        var confirmed=views(f).get(0);
+        assertThat(confirmed.status()).isEqualTo("OPEN");assertThat(confirmed.source()).isEqualTo("MANAGER_CONFIRMATION");
+        assertThat(confirmed.wardrobeOpening()).isEqualTo(LocalTime.of(9,0));
+        assertThat(confirmed.slots()).anySatisfy(s->{assertThat(s.getStart()).isEqualTo(day.atTime(19,0));
+            assertThat(s.getEnd()).isEqualTo(day.atTime(23,0));assertThat(s.getDriverId()).isNotNull();});
+        assertThat(views(other).get(0).slots()).isEmpty();assertThat(sessions.count()).isZero();
     }
     private record Fixture(Organization org,UserAccount manager,Driver a,Driver b,ScheduleImport source){}
 }

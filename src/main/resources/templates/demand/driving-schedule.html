@@ -30,6 +30,7 @@
 <section class="driver-suggestions" th:each="day : ${days}">
 <h2 th:text="${#temporals.format(day.date, 'EEEE, MMMM d')}"></h2>
 <p><strong th:text="${day.status == 'OPEN' ? 'Park open' : (day.status == 'CLOSED' ? 'Park closed' : 'Park hours need verification')}"></strong>
+<span th:if="${day.status == 'UNKNOWN' and day.parkOpening != null}"> · Last known hours:</span>
 <span th:if="${day.parkOpening != null}" th:text="| · ${#temporals.format(day.parkOpening, 'h:mm a')}–${#temporals.format(day.parkClosing, 'h:mm a')}|"></span></p>
 <p th:if="${managerView}" th:text="${day.message}"></p>
 <p th:if="${managerView and day.wardrobeOpening != null}">Wardrobe:
@@ -50,8 +51,11 @@
 <div class="form-group"><label th:for="|opening-${day.date}|">Wardrobe opens</label><input th:id="|opening-${day.date}|" name="opening" type="time" th:value="${day.wardrobeOpening}" required></div>
 <div class="form-group"><label th:for="|closing-${day.date}|">Wardrobe closes</label><input th:id="|closing-${day.date}|" name="closing" type="time" th:value="${day.wardrobeClosing}" required></div>
 <button class="button button--secondary" type="submit">Save and update assignments</button></form>
-<p>Morning opening service lasts up to three hours. Afternoon opening service lasts until wardrobe closes. A daily setting overrides the park-based opening rule. Midnight closing means the end of this day.</p></details>
+<p>An 11 AM or noon park opening uses a 9 AM–noon shuttle run. A 5 PM park opening uses a 3–5 PM shuttle run. During Fright Fest, the same available driver continues with scare actors from 5 PM until finished (about 5:45 PM). Another scheduled roster member must cover the counter throughout. Regular opening service does not resume after the scare-actor run.</p>
+<p>A daily setting overrides the wardrobe opening time. Morning opening service lasts up to three hours; afternoon opening service lasts up to two hours. Both stop earlier if wardrobe closes. Midnight closing means the end of this day.</p></details>
 <details th:if="${day.status != 'OPEN'}"><summary>Confirm the park is open</summary>
+<p>Check the <a href="https://www.sixflags.com/fiestatexas/park-hours" target="_blank" rel="noopener noreferrer">official park calendar</a> before confirming.
+<span th:if="${day.parkOpening != null}">Confirm only if the last known opening and closing hours shown above are still correct. Include the verified hours in your reason.</span></p>
 <form th:action="@{/driving-schedule/confirm-open}" method="post"><input type="hidden" name="date" th:value="${day.date}">
 <div class="form-group"><label th:for="|reason-${day.date}|">Reason for correcting the calendar</label><input th:id="|reason-${day.date}|" name="reason" maxlength="500" required></div>
 <button class="button button--secondary" type="submit">Confirm open</button></form></details>

@@ -67,7 +67,7 @@ public class AutomaticScheduleController {
         var org=current.requireOrganizationId(auth);
         try {
             if(date.isBefore(schedules.today())||date.isAfter(schedules.today().plusDays(27))) throw new IllegalArgumentException("Choose a date in the next 28 days.");
-            overrides.confirmParkOpen(org,calendar.getOperatingDay(date),auth.getName(),reason);
+            overrides.confirmParkOpen(org,schedules.operatingDay(date),auth.getName(),reason);
             schedules.refresh(org,auth.getName());
             redirect.addFlashAttribute("successMessage","Park opening confirmed. Set wardrobe hours if they are not already saved.");
         } catch(IllegalArgumentException|IllegalStateException error){redirect.addFlashAttribute("errorMessage",error.getMessage());}
