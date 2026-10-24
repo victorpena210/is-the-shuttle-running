@@ -55,6 +55,11 @@ public class WardrobeHoursService {
                 organizationId, date, date), date, zone);
         return calendar == null ? hours : withCalendarOpening(hours, calendar.getOperatingDay(date));
     }
+    /** Advisory demand uses saved manager settings without fetching the retired park calendar. */
+    public Hours getSavedHours(Long organizationId, LocalDate date) {
+        return resolve(rules.findAllByOrganizationIdAndStartsOnLessThanEqualAndEndsOnGreaterThanEqualOrderByCreatedAtDescIdDesc(
+                organizationId, date, date), date, zone);
+    }
     /** Use verified park opening times; a day or weekday opening rule remains the manager's override. */
     public static Hours withCalendarOpening(Hours hours, technology.renatus.routepulse.calendar.domain.ParkOperatingDay day) {
         if ((hours.usesOpeningWindow() && (hours.dailyOverride() || hours.dayOfWeek() != null)) || day == null
@@ -115,7 +120,7 @@ public class WardrobeHoursService {
         var actor = users.findByEmailIgnoreCase(actorEmail).orElseThrow(() -> new IllegalStateException("Manager account was not found."));
         var member = memberships.findByOrganization_IdAndUser_Id(organizationId, actor.getId())
                 .orElseThrow(() -> new IllegalStateException("You do not belong to this organization."));
-        if (!Set.of(OrganizationRole.OWNER, OrganizationRole.ADMIN, OrganizationRole.DISPATCHER).contains(member.getRole()))
+        if (!actor.isEnabled() || !Set.of(OrganizationRole.OWNER, OrganizationRole.ADMIN, OrganizationRole.DISPATCHER).contains(member.getRole()))
             throw new IllegalStateException("Only managers can change wardrobe hours.");
         organizations.findByIdForUpdate(organizationId).orElseThrow(() -> new IllegalStateException("Organization was not found."));
         rules.save(new WardrobeHoursRule(organizationId, scope, name, from, to, openingTime, closingTime, dayOfWeek, actor.getId(), Instant.now()));

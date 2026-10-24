@@ -14,6 +14,11 @@ import technology.renatus.routepulse.driving.model.DrivingSession;
 public interface DrivingSessionRepository
         extends JpaRepository<DrivingSession, Long> {
 
+    interface LastDriven { Long getDriverId(); Instant getStartedAt(); }
+
+    @Query("select s.driver.id as driverId, max(s.startedAt) as startedAt from DrivingSession s where s.organization.id = :org and s.startedAt < :before group by s.driver.id")
+    List<LastDriven> lastDriven(@Param("org") Long org, @Param("before") Instant before);
+
     Optional<DrivingSession> findByIdAndOrganization_Id(Long id, Long organizationId);
 
     long countByOrganization_IdAndDurationReviewRequiredTrueAndTimeReviewedAtIsNull(Long organizationId);

@@ -36,24 +36,25 @@ For this early-stage development project, the cleanest option is to recreate onl
 RoutePulse development database and let Flyway build it again from the sanitized migrations.
 Do not drop a shared or production database.
 
-## Automatic schedule retention for forecasting
+## Schedule retention for transportation demand
 
-RoutePulse now treats uploaded employee schedules as temporary operational data.
-After an operating day is complete, the nightly retention job first creates an
-anonymous `historical_demand_snapshots` record plus 15-minute arrival/departure
-windows. Those records contain counts and demand timing only; they do not retain
-employee names, employee IDs, departments, jobs, or pickup locations.
+The current demand upload stores anonymous 15-minute clock-in/out counts in
+`transportation_demand_windows` for a rolling 12 months. It does not save ordinary
+employees' names, IDs, departments, jobs, or locations. Upload metadata is kept in
+`schedule_imports`.
 
-After the snapshot is safely persisted, every raw `uploaded_shifts` row for the
-completed date is permanently deleted, including superseded schedule-upload
-versions. Registered drivers, driver assignments, driving sessions, and schedule
-import audit metadata are stored separately and are not deleted by this job.
+For driver suggestions, only employee IDs that exactly match registered drivers
+are used to save work hours in `driver_schedule_windows`. These rows contain a
+driver reference, upload reference, work date, start, and end. Past source dates
+older than 31 days are removed by the nightly demand retention job; future work
+hours remain available. Changing a driver's employee ID clears their saved work
+hours and requires a new upload. Re-uploading replaces all driver hours and demand
+for the work dates present in the file, including overnight carryover.
 
-Anonymous demand snapshots are retained for a rolling 12 months by default so a
-future forecasting engine can learn weekday, seasonal, peak-window, arrival, and
-departure patterns without requiring long-term storage of ordinary employees'
-schedule identities. Configure the window with `FORECAST_HISTORY_MONTHS`.
-
+Legacy raw-upload, historical-snapshot, and driver-confirmed-availability tables
+may still contain data from earlier workflows. Their old cleanup and scheduling
+workflows are retired. The current upload neither reads nor writes those tables.
+Registered drivers and actual driving history remain separate records.
 
 ## Driver-confirmed schedule updates
 
