@@ -17,6 +17,8 @@ import technology.renatus.routepulse.driving.repository.DrivingSessionRepository
 import technology.renatus.routepulse.organization.domain.OrganizationRole;
 import technology.renatus.routepulse.organization.model.*;
 import technology.renatus.routepulse.scheduling.demand.*;
+import technology.renatus.routepulse.scheduling.model.ScheduleImport;
+import technology.renatus.routepulse.scheduling.planning.transportation.TransportationPeriodType;
 import technology.renatus.routepulse.support.MySqlIntegrationTestSupport;
 import technology.renatus.routepulse.wardrobe.*;
 
@@ -28,6 +30,7 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
     @Autowired DriverCalendarShiftRepository calendarShifts;
     @Autowired DrivingSessionRepository sessions;
     @Autowired WardrobeHoursService wardrobe;
+    @Autowired DemandForecastRepository demand;
     private final LocalDate day=LocalDate.now(ZoneOffset.UTC).plusDays(1);
     private final Instant now=Instant.now();
     private ParkOperatingDay open(LocalDate date,int hour) {
@@ -38,9 +41,10 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         membershipRepository.saveAndFlush(new OrganizationMembership(org,manager,OrganizationRole.OWNER));
         var a=driverRepository.saveAndFlush(new Driver(org,"100","Alex "+slug,true));
         var b=driverRepository.saveAndFlush(new Driver(org,"200","Blair "+slug,true));
+        var source=scheduleImportRepository.saveAndFlush(new ScheduleImport(org,manager,UUID.randomUUID().toString(),"sample.csv",4,day,day.plusDays(1),day+","+day.plusDays(1),now));
         for(var date:List.of(day,day.plusDays(1))) for(var driver:List.of(a,b))
-            work.saveAndFlush(new DriverScheduleWindow(driver,null,date.atTime(8,0),date.atTime(23,0)));
-        return new Fixture(org,manager,a,b);
+            work.saveAndFlush(new DriverScheduleWindow(driver,source,date.atTime(8,0),date.atTime(23,0)));
+        return new Fixture(org,manager,a,b,source);
     }
     private List<AutomaticScheduleDay.View> views(Fixture f) {return store.manager(f.org().getId(),day,day.plusDays(1),f.manager().getEmail());}
 
@@ -71,14 +75,29 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
     }
     @Test void ukgDaysOffAndStaleCalendarsOverrideUploadedAvailability() {
         var f=fixture("ukg");
-        connections.saveAndFlush(new DriverCalendarConnection(f.a(),"test-encrypted","a".repeat(64),now,ZoneOffset.UTC));
+        var fresh=connections.saveAndFlush(new DriverCalendarConnection(f.a(),"test-encrypted","a".repeat(64),now,ZoneOffset.UTC));
         store.refresh(f.org().getId(),List.of(open(day,11)),now);
         assertThat(views(f).get(0).slots()).allSatisfy(s->assertThat(s.getDriverId()).isNull());
-        connections.deleteAll();connections.flush();
+        calendarShifts.saveAndFlush(new DriverCalendarShift(fresh,new UkgCalendarParser.Shift(day.atTime(8,0).toInstant(ZoneOffset.UTC),day.atTime(23,0).toInstant(ZoneOffset.UTC))));
+        store.refresh(f.org().getId(),List.of(open(day,11)),now);
+        assertThat(views(f).get(0).slots()).isNotEmpty().allSatisfy(s->assertThat(s.getDriverId()).isNotNull());
+        calendarShifts.deleteAll();calendarShifts.flush();connections.deleteAll();connections.flush();
         var stale=connections.saveAndFlush(new DriverCalendarConnection(f.a(),"test-encrypted","b".repeat(64),now.minusSeconds(90000),ZoneOffset.UTC));
         calendarShifts.saveAndFlush(new DriverCalendarShift(stale,new UkgCalendarParser.Shift(day.atTime(8,0).toInstant(ZoneOffset.UTC),day.atTime(23,0).toInstant(ZoneOffset.UTC))));
         store.refresh(f.org().getId(),List.of(open(day,11)),now);
         assertThat(views(f).get(0).slots()).allSatisfy(s->assertThat(s.getDriverId()).isNull());
+    }
+    @Test void laterPickupsFollowDemandAfterCounterClosingAndRespectWorkEnd() {
+        var f=fixture("pickup-demand");
+        for(var time:List.of(LocalTime.of(14,0),LocalTime.of(19,15),LocalTime.of(23,45)))
+            demand.saveAndFlush(new DemandForecastWindow(f.org(),f.source(),day,day,
+                    time.getHour()<17?TransportationPeriodType.MIDDAY:TransportationPeriodType.EVENING,time,0,5));
+        store.refresh(f.org().getId(),List.of(open(day,11)),now);
+        var slots=views(f).get(0).slots();
+        assertThat(slots).noneMatch(s->s.getStart().equals(day.atTime(14,0)));
+        assertThat(slots).anySatisfy(s->{assertThat(s.getStart()).isEqualTo(day.atTime(19,15));assertThat(s.getDriverId()).isEqualTo(f.b().getId());});
+        assertThat(slots).anySatisfy(s->{assertThat(s.getStart()).isEqualTo(day.atTime(23,45));assertThat(s.getDriverId()).isNull();});
+        assertThat(sessions.count()).isZero();
     }
     @Test void exactWardrobeOverrideDoesNotProduceOverlaps() {
         var f=fixture("exact-hours");
@@ -106,5 +125,5 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         mockMvc.perform(post("/driving-schedule/refresh").with(authentication(driver)).with(csrf())).andExpect(status().isForbidden());
         assertThat(sessions.count()).isZero();
     }
-    private record Fixture(Organization org,UserAccount manager,Driver a,Driver b){}
+    private record Fixture(Organization org,UserAccount manager,Driver a,Driver b,ScheduleImport source){}
 }
