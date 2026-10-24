@@ -129,6 +129,13 @@ Refreshes replace future plans under the organization's database lock, preservin
 already-started and past assignment records. Saved plans are separate from actual
 driving sessions: they never start the shuttle, change public rider status, or add
 actual driving time. Drivers still start and end service at the NFC/QR checkpoint.
+The assignments page also shows **Recorded driving** for current and past dates,
+even when no schedule was saved. It reads actual session times, reflects manager
+corrections, and shows elapsed time for active runs. Overnight records are split at
+the operations timezone's midnight. The expected opening window stays visible
+alongside saved plans; missing logs do not imply that someone drove the whole window.
+Viewing this history never creates a retroactive assignment or another driving record.
+Managers see their organization's records; drivers see only their own.
 The rider page shows running/not running and the current driver's first name.
 `AUTOMATIC_SCHEDULE_ENABLED=false` disables the background planning job.
 
