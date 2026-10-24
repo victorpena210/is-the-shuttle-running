@@ -83,7 +83,8 @@ change live shuttle status or driving records.
 
 **Driving assignments:** managers review saved shifts at `/driving-schedule`; drivers see
 only their own shifts at `/driver/driving-schedule`. The planner refreshes the next
-28 days every five minutes, and managers can use **Refresh assignments** immediately.
+28 days every five minutes for organizations with application access (active or a
+valid trial), and managers can use **Refresh assignments** immediately.
 It reads the Six Flags operating calendar before creating assignments. A park opening
 at 11 AM or noon starts wardrobe/opening service at 9 AM; a 5 PM opening starts it at
 3 PM and is labeled **Midday**, not Morning. Morning opening service lasts up to three hours. Afternoon opening service
@@ -93,8 +94,9 @@ Other park-opening times require an explicit wardrobe opening time.
 
 Opening service needs two distinct scheduled, active roster members: one drives and
 one covers the wardrobe counter. Opening coverage can be assigned from personal UKG
-calendars before an employee-demand upload. Later pickups use uploaded demand after
-wardrobe closes. Every assigned interval must fit the driver's work hours, including
+calendars without an employee-demand upload. Later service is planned from wardrobe
+closing through verified park closing, including after midnight. Employee-demand
+uploads are optional and can add pickup windows outside that baseline. Every assigned interval must fit the driver's work hours, including
 split shifts. Connected UKG calendars take priority over uploads; empty or stale
 calendar availability cannot be replaced by old uploaded hours.
 

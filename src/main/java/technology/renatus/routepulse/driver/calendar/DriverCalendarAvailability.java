@@ -15,7 +15,11 @@ public class DriverCalendarAvailability {
             @Value("${app.operations-zone:America/Chicago}") String zone) {this.connections=connections;this.shifts=shifts;this.zone=ZoneId.of(zone);}
     /** Connected calendars replace CSV availability, including explicit days off. */
     public void apply(Long org,LocalDate date,Instant now,Map<Long,List<DriverScheduleWindow>> work) {
-        var rows=shifts.overlapping(org,date.atStartOfDay(zone).toInstant(),date.plusDays(1).atStartOfDay(zone).toInstant())
+        apply(org,date,date.plusDays(1).atStartOfDay(),now,work);
+    }
+    /** Include post-midnight starts when the park's operating day ends on the following date. */
+    public void apply(Long org,LocalDate date,LocalDateTime until,Instant now,Map<Long,List<DriverScheduleWindow>> work) {
+        var rows=shifts.overlapping(org,date.atStartOfDay(zone).toInstant(),until.atZone(zone).toInstant())
                 .stream().collect(Collectors.groupingBy(s -> s.getConnection().getId()));
         for(var c:connections.findAllByOrganizationId(org)) {
             if(date.isBefore(c.getCoverageFrom())) continue;

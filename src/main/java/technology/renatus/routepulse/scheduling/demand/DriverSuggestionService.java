@@ -12,6 +12,7 @@ import technology.renatus.routepulse.driver.repository.DriverRepository;
 import technology.renatus.routepulse.driving.model.DrivingSession;
 import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
 import technology.renatus.routepulse.wardrobe.WardrobeHoursService;
+import technology.renatus.routepulse.calendar.domain.ParkOperatingDay;
 
 /** Read-only recommendations. A suggestion never assigns a driver or changes a session. */
 @Service
@@ -41,7 +42,7 @@ public class DriverSuggestionService {
     }
 
     Suggestions page(Long org, DemandForecastService.Forecast forecast, Instant now) {
-        return calculate(org, forecast, now, wardrobe.getSavedHours(org, forecast.date()), false, false);
+        return calculate(org, forecast, now, wardrobe.getSavedHours(org, forecast.date()), false, false, null);
     }
 
     /** Shared availability/counter checks for saved, calendar-based assignments. */
@@ -52,21 +53,33 @@ public class DriverSuggestionService {
 
     public Suggestions forAssignments(Long org, DemandForecastService.Forecast forecast, Instant now,
             WardrobeHoursService.Hours hours, boolean scareActors) {
-        return calculate(org, forecast, now, hours, true, scareActors);
+        return forAssignments(org, forecast, now, hours, scareActors, null);
+    }
+
+    public Suggestions forAssignments(Long org, DemandForecastService.Forecast forecast, Instant now,
+            WardrobeHoursService.Hours hours, boolean scareActors, ParkOperatingDay park) {
+        LocalDateTime parkClosing = null;
+        if (park != null && park.openingTime() != null && park.closingTime() != null) {
+            parkClosing = forecast.date().atTime(park.closingTime());
+            if (!park.closingTime().isAfter(park.openingTime())) parkClosing = parkClosing.plusDays(1);
+        }
+        return calculate(org, forecast, now, hours, true, scareActors, parkClosing);
     }
 
     private Suggestions calculate(Long org, DemandForecastService.Forecast forecast, Instant now,
-            WardrobeHoursService.Hours hours, boolean openingCoverage, boolean scareActors) {
+            WardrobeHoursService.Hours hours, boolean openingCoverage, boolean scareActors, LocalDateTime parkClosing) {
         var date = forecast.date();
+        var horizon = date.plusDays(1).atStartOfDay();
+        if (parkClosing != null && parkClosing.isAfter(horizon)) horizon = parkClosing;
         // Historical previews use only history known before that day; future previews use today's history.
         var asOf = date.isBefore(now.atZone(zone).toLocalDate()) ? date.atStartOfDay(zone).toInstant() : now;
         var since = asOf.minus(Duration.ofDays(30));
         var roster = drivers.findAllByOrganization_IdAndActiveTrueOrderByNameAsc(org).stream()
                 .filter(d -> d.getUser() == null || d.getUser().isEnabled()).toList();
-        var work = schedules.overlapping(org, date.atStartOfDay(), date.plusDays(1).atStartOfDay()).stream()
+        var work = schedules.overlapping(org, date.atStartOfDay(), horizon).stream()
                 .filter(w -> roster.stream().anyMatch(d -> d.getId().equals(w.getDriver().getId())))
                 .collect(Collectors.groupingBy(w -> w.getDriver().getId()));
-        calendars.apply(org,date,now,work);
+        calendars.apply(org,date,horizon,now,work);
         work.keySet().removeIf(id -> roster.stream().noneMatch(d -> d.getId().equals(id)));
         var history = sessions.findOverlappingForServiceReview(org, since, asOf).stream()
                 .collect(Collectors.groupingBy(s -> s.getDriver().getId()));
@@ -98,8 +111,15 @@ public class DriverSuggestionService {
             // Split at exact manager-set opening/closing times as well as quarter-hours.
             // This keeps a 9:10 opening from overlapping the existing 9:15 demand bucket.
             var boundaries = new TreeSet<LocalDateTime>();
-            for (int minute=0; minute<=1440; minute+=15) boundaries.add(date.atStartOfDay().plusMinutes(minute));
+            for (var time=date.atStartOfDay(); !time.isAfter(horizon); time=time.plusMinutes(15)) boundaries.add(time);
+            boundaries.add(horizon);
             boundaries.add(openingStart); boundaries.add(openingEnd); boundaries.add(closing);
+            if (parkClosing != null) boundaries.add(parkClosing);
+            // Availability can begin/end between quarter-hours; don't discard usable minutes.
+            for (var shifts : work.values()) for (var shift : shifts) {
+                if (shift.getStartsAt().isAfter(date.atStartOfDay()) && shift.getStartsAt().isBefore(horizon)) boundaries.add(shift.getStartsAt());
+                if (shift.getEndsAt().isAfter(date.atStartOfDay()) && shift.getEndsAt().isBefore(horizon)) boundaries.add(shift.getEndsAt());
+            }
             var points = new ArrayList<>(boundaries);
             var serviceWindows = new ArrayList<DemandForecastService.Window>();
             for (int i=0; i<points.size()-1; i++) {
@@ -119,7 +139,8 @@ public class DriverSuggestionService {
                 boolean openingWindow = !window.start().isBefore(openingStart) && window.end().compareTo(openingEnd) <= 0;
                 boolean actorWindow = scareActors && !window.start().isBefore(date.atTime(17,0))
                         && !window.end().isAfter(date.atTime(17,45));
-                if (window.movements() == 0 && !(openingCoverage && openingWindow) && !actorWindow) continue;
+                boolean parkWindow = parkClosing != null && !window.start().isBefore(closing) && !window.end().isAfter(parkClosing);
+                if (window.movements() == 0 && !(openingCoverage && openingWindow) && !actorWindow && !parkWindow) continue;
                 if (openingCoverage && window.start().isBefore(openingStart) && !actorWindow) continue;
                 if (openingCoverage && !openingWindow && window.start().isBefore(closing) && !actorWindow) continue;
                 var eligible = stats.stream().filter(c -> covers(work.getOrDefault(c.driverId(), List.of()), window.start(), window.end()))

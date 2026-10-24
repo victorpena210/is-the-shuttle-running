@@ -51,10 +51,10 @@ public class AutomaticScheduleStore {
             else if(!hours.usesOpeningWindow()) message="Set wardrobe opening and closing times for this park opening before assigning shifts.";
             else {
                 var forecast=forecasts.page(org,date);
-                var available=suggestions.forAssignments(org,forecast,instant,hours,frightFest.required(day));
+                var available=suggestions.forAssignments(org,forecast,instant,hours,frightFest.required(day),day);
                 windows=available.periods().stream().flatMap(p->p.windows().stream()).toList();
-                message=forecast.available()?"Opening coverage and employee pickup demand are assigned using available drivers.":
-                        "Opening coverage is assigned. Upload employee demand to plan later pickups.";
+                message="Opening service and service from wardrobe closing through park closing use saved driver availability. Employee-demand uploads are optional.";
+                if(available.noSchedules()) message += " No driver availability is saved for this date.";
                 if(frightFest.required(day)) message += " Required scare-actor transport starts at 5 PM; 5:45 PM is an estimate. Continue until finished, or end earlier when complete.";
             }
             var next=AutomaticShiftPlanner.plan(windows,saved.slots(),now,planned);
