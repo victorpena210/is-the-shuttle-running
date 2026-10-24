@@ -44,7 +44,7 @@
 
     <div class="alert" th:if="${currentRiderStatus.activeSessionId != null}">
         <h3>Manage the active session</h3>
-        <p>Sessions stay active without repeat check-ins or location updates. A driver can pause or end service,
+        <p>Sessions automatically end after four hours, without needing the phone to stay open. A driver can pause or end service sooner,
             another driver can take over, or a manager can close the session using its actual end time.</p>
         <form th:action="@{/operations/close-session}" method="post" class="live-status-form">
             <input type="hidden" name="sessionId" th:value="${currentRiderStatus.activeSessionId}">

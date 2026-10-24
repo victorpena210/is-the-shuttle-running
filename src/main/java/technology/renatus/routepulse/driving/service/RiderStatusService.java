@@ -63,6 +63,7 @@ public class RiderStatusService {
         DrivingSession activeSession = drivingSessionRepository
                 .findFirstByOrganization_IdAndEndedAtIsNullOrderByStartedAtDesc(
                         organization.getId())
+                .filter(session -> !session.hasReachedDurationLimit(eventNow))
                 .orElse(null);
 
         OperationalStatusUpdate latestUpdate = operationalStatusService

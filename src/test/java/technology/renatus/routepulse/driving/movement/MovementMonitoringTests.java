@@ -152,7 +152,7 @@ class MovementMonitoringTests {
         assertTrue(f.riderAt(at(10800)).confirmationAvailable());
     }
     @Test void optionalControlsWorkWithoutLocationAndWaitingSurvivesSignalLoss() throws Exception {
-        var f=new Fixture();
+        var f=new Fixture(Instant.now().minusSeconds(60));
         f.monitor.respond(f.auth,10L,MovementMonitoringService.Response.WAITING);
         assertFalse(f.session.getMovement().enabled());
         assertEquals("WAITING",f.monitor.signalLost(f.auth,10L).state());
@@ -161,12 +161,13 @@ class MovementMonitoringTests {
         assertTrue(f.session.isActive());assertFalse(f.session.getMovement().waiting());
         assertEquals(RiderOperationalStatus.RUNNING,f.riderAt(Instant.now()).operationalStatus());
     }
-    @Test void enablingLocationWithoutPermissionDoesNotDowngradeService() throws Exception {
-        var f=new Fixture();f.monitor.enable(f.auth,10L);
+    @Test void enablingLocationDoesNotShortenOrExtendDurationLimit() throws Exception {
+        var f=new Fixture(Instant.now().minusSeconds(60));f.monitor.enable(f.auth,10L);
         assertEquals("LOCATION_UNAVAILABLE",f.monitor.status(f.auth,10L).state());
         assertEquals(RiderOperationalStatus.RUNNING,f.riderAt(Instant.now()).operationalStatus());
         f.monitor.signalLost(f.auth,10L);
-        assertEquals(RiderOperationalStatus.RUNNING,f.riderAt(Instant.now().plusSeconds(86400)).operationalStatus());
+        assertEquals(RiderOperationalStatus.RUNNING,f.riderAt(Instant.now()).operationalStatus());
+        assertEquals(RiderOperationalStatus.NOT_RUNNING,f.riderAt(f.session.getAutomaticEndAt()).operationalStatus());
     }
     @Test void scheduledTimeoutDoesNotAwardCompletionOrMakeupCredit() {
         var f=new Fixture();var a=DriverAssignment.automatic(LocalDate.of(2026,10,6),ShuttlePeriod.MORNING,f.driver);a.updateScheduledTimes(LocalTime.of(9,0),LocalTime.NOON);
@@ -177,13 +178,13 @@ class MovementMonitoringTests {
         assertEquals(AssignmentOutcome.PENDING,a.getAssignmentOutcome());assertTrue(s.isInactivityReviewNeeded());
     }
     @Test void driverWaitingBreakAndEndUseExistingSessionLifecycle() {
-        var f=new Fixture();f.monitor.enable(f.auth,10L);
+        var f=new Fixture(Instant.now().minusSeconds(60));f.monitor.enable(f.auth,10L);
         f.monitor.respond(f.auth,10L,MovementMonitoringService.Response.WAITING);
         assertTrue(f.session.isActive());assertTrue(f.session.getMovement().waiting());
         f.monitor.respond(f.auth,10L,MovementMonitoringService.Response.BREAK);
         assertFalse(f.session.isActive());assertEquals(DrivingSessionEndReason.PAUSE,f.session.getEndReason());assertEquals(f.user,f.session.getEndedBy());
         assertThrows(IllegalStateException.class,()->f.monitor.respond(f.auth,10L,MovementMonitoringService.Response.WAITING));
-        var endedFixture=new Fixture();endedFixture.monitor.respond(endedFixture.auth,10L,MovementMonitoringService.Response.END);
+        var endedFixture=new Fixture(Instant.now().minusSeconds(60));endedFixture.monitor.respond(endedFixture.auth,10L,MovementMonitoringService.Response.END);
         assertEquals(DrivingSessionEndReason.COMPLETED,endedFixture.session.getEndReason());
     }
     @Test void onlyActiveDriverInCurrentOrganizationCanPost() {
@@ -195,13 +196,13 @@ class MovementMonitoringTests {
         assertThrows(IllegalStateException.class,()->f.monitor.enable(f.auth,10L));
     }
     @Test void endedSessionRejectsLateGpsOrStaleHandoffPage() {
-        var f=new Fixture();f.session.end(Instant.now(),f.user,DrivingActionMethod.NFC,DrivingSessionEndReason.HANDOFF);
+        var f=new Fixture(Instant.now().minusSeconds(60));f.session.end(Instant.now(),f.user,DrivingActionMethod.NFC,DrivingSessionEndReason.HANDOFF);
         assertThrows(IllegalStateException.class,()->f.monitor.location(f.auth,10L,
                 new LocationSample(29.405,-98.5,8,0.0,Instant.now())));
         assertEquals("ENDED",f.monitor.status(f.auth,10L).state());
     }
     @Test void onlyManagersCanSaveRouteOrReviewOwnOrganizationSessions() {
-        var f=new Fixture();f.role=OrganizationRole.DRIVER;
+        var f=new Fixture(Instant.now().minusSeconds(60));f.role=OrganizationRole.DRIVER;
         assertThrows(AccessDeniedException.class,()->f.monitor.saveRoute(f.auth,ROUTE.normalized()));
         f.role=OrganizationRole.ADMIN;f.monitor.saveRoute(f.auth,ROUTE.normalized());assertEquals(ROUTE.normalized(),f.org.getMovementRoute());
         assertThrows(IllegalStateException.class,()->f.monitor.review(f.auth,99L,"Checked"));
@@ -296,9 +297,10 @@ class MovementMonitoringTests {
         Driver selectedDriver=driver;OrganizationRole role=OrganizationRole.DRIVER;long currentOrganizationId=1L;
         final Authentication auth=new UsernamePasswordAuthenticationToken("driver@example.com","password",List.of());
         DrivingSession session;final MovementMonitoringService monitor;
-        Fixture() {
+        Fixture() { this(START); }
+        Fixture(Instant startedAt) {
             id(org,1);id(user,2);id(driver,3);id(other,4);driver.linkUser(user);org.updateMovementRoute(ROUTE.normalized());
-            session=DrivingSession.startUnscheduled(org,driver,START,user,DrivingActionMethod.NFC);id(session,10);
+            session=DrivingSession.startUnscheduled(org,driver,startedAt,user,DrivingActionMethod.NFC);id(session,10);
             var access=new DriverPortalAccessService(null,null,null) {
                 @Override public Driver requireCurrentDriver(Authentication a) {
                     if (currentOrganizationId!=1L) throw new IllegalStateException("Organization access denied");return selectedDriver;

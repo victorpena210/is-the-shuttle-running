@@ -1,109 +1,16 @@
 package technology.renatus.routepulse.auth.controller;
 
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.validation.Valid;
-import java.time.Duration;
-import java.util.Objects;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import technology.renatus.routepulse.auth.dto.RegistrationForm;
-import technology.renatus.routepulse.auth.service.RegistrationService;
-import technology.renatus.routepulse.shared.security.PublicRequestThrottle;
+import org.springframework.web.bind.annotation.RequestMapping;
 
+/** Self-service organization registration has been permanently removed. */
 @Controller
 public class RegistrationController {
-
-    private final RegistrationService registrationService;
-    private final boolean registrationEnabled;
-    private final PublicRequestThrottle throttle;
-
-    public RegistrationController(
-            RegistrationService registrationService,
-            PublicRequestThrottle throttle,
-            @Value("${app.registration.enabled:true}")
-            boolean registrationEnabled) {
-
-        this.registrationService = registrationService;
-        this.registrationEnabled = registrationEnabled;
-        this.throttle = throttle;
-    }
-
-    @GetMapping("/register")
-    public String redirectLegacyRegistrationUrl() {
-        return "redirect:/organization/register";
-    }
-
-    @GetMapping("/organization/register")
-    public String showRegistrationPage(Model model) {
-
-        if (!registrationEnabled) {
-            return "redirect:/login?registrationClosed";
-        }
-
-        model.addAttribute(
-                "registrationForm",
-                new RegistrationForm()
-        );
-
-        return "auth/register";
-    }
-
-    @PostMapping({"/register", "/organization/register"})
-    public String registerOrganizationOwner(
-            @Valid
-            @ModelAttribute("registrationForm")
-            RegistrationForm registrationForm,
-            BindingResult bindingResult,
-            HttpServletRequest request) {
-
-        if (!registrationEnabled) {
-            return "redirect:/login?registrationClosed";
-        }
-
-        if (!throttle.tryAcquire(
-                "registration",
-                request.getRemoteAddr(),
-                5,
-                Duration.ofHours(1)
-        )) {
-            bindingResult.reject(
-                    "registration.rateLimited",
-                    "Too many registration attempts were received. Try again later."
-            );
-        }
-
-        if (!Objects.equals(
-                registrationForm.getPassword(),
-                registrationForm.getConfirmPassword()
-        )) {
-            bindingResult.rejectValue(
-                    "confirmPassword",
-                    "password.mismatch",
-                    "The passwords do not match."
-            );
-        }
-
-        if (bindingResult.hasErrors()) {
-            return "auth/register";
-        }
-
-        try {
-            registrationService.registerOrganizationOwner(
-                    registrationForm
-            );
-        } catch (IllegalArgumentException exception) {
-            bindingResult.reject(
-                    "registration.failed",
-                    exception.getMessage()
-            );
-            return "auth/register";
-        }
-
-        return "redirect:/login?registered";
+    @RequestMapping({"/register", "/organization/register"})
+    public ResponseEntity<Void> registrationRemoved() {
+        return ResponseEntity.status(HttpStatus.GONE).cacheControl(CacheControl.noStore()).build();
     }
 }

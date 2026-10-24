@@ -10,18 +10,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class AuthenticationController {
 
-    private final boolean registrationEnabled;
     private final int rememberMeDays;
 
     public AuthenticationController(
-            @Value(
-                    "${app.registration.enabled:true}"
-            )
-            boolean registrationEnabled,
             @Value("${app.security.remember-me.days:90}") int rememberMeDays) {
 
-        this.registrationEnabled =
-                registrationEnabled;
         this.rememberMeDays = rememberMeDays;
     }
 
@@ -38,10 +31,6 @@ public class AuthenticationController {
             return "redirect:/post-login";
         }
 
-        model.addAttribute(
-                "registrationEnabled",
-                registrationEnabled
-        );
         model.addAttribute("rememberMeDays", rememberMeDays);
 
         return "auth/login";

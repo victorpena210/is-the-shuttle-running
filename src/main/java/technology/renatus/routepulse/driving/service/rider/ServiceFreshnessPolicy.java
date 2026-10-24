@@ -7,6 +7,7 @@ import technology.renatus.routepulse.driving.model.DrivingSession;
 /**
  * Service follows the recorded session lifecycle. Confirmation age, scheduled
  * end times and optional phone location do not expire an active session.
+ * Every session has a four-hour maximum duration.
  * The existing API names are retained for the driver and rider status consumers.
  */
 @Component
@@ -17,6 +18,6 @@ public class ServiceFreshnessPolicy {
     }
 
     public boolean isFresh(DrivingSession session, Instant now) {
-        return session != null && session.isActive();
+        return session != null && session.isActive() && !session.hasReachedDurationLimit(now);
     }
 }

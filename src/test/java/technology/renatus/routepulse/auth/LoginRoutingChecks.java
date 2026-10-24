@@ -52,7 +52,7 @@ public final class LoginRoutingChecks {
             var cache = cache("GET", "/app", "date=2026-10-10", "");
             equal(cache.saved.getRedirectUrl(), run(new RoleAwareLoginSuccessHandler(cache), manager, ""), "manager saved date preserved");
         }
-        var controller = new AuthenticationController(true, 90);
+        var controller = new AuthenticationController(90);
         equal("redirect:/driver", controller.routeAfterLogin(driver), "driver home selected");
         equal("redirect:/app", controller.routeAfterLogin(authentication("ADMIN")), "manager home selected");
         verifyLoginPage(controller);

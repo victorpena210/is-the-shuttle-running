@@ -20,6 +20,12 @@ public interface DrivingSessionRepository
     @Query("SELECT DISTINCT s.organization.id FROM DrivingSession s WHERE s.endedAt IS NULL AND s.movement.startedAt IS NOT NULL")
     List<Long> findMonitoredOrganizationIds();
 
+    @Query("""
+            SELECT DISTINCT s.organization.id FROM DrivingSession s
+            WHERE s.endedAt IS NULL AND s.startedAt <= :startedBefore
+            """)
+    List<Long> findOverdueOrganizationIds(@Param("startedBefore") Instant startedBefore);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT s FROM DrivingSession s WHERE s.id = :id AND s.organization.id = :organizationId")
     Optional<DrivingSession> findForReview(@Param("id") Long id, @Param("organizationId") Long organizationId);
