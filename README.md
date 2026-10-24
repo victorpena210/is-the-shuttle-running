@@ -36,7 +36,7 @@ for how long.
 | --- | --- |
 | Riders | Public organization-specific pages showing running/not running and the active driver’s first name |
 | Drivers | Role-restricted portal, NFC/QR checkpoint actions, start/resume, waiting, break, end controls, and read-only transportation demand |
-| Managers | Driving history and totals, audited time corrections, four-hour session reviews, employee-schedule uploads, and driver suggestions based on availability and actual driving |
+| Managers | Driving history and totals, audited time corrections, four-hour session reviews, employee-schedule uploads, and automatic park-hours-based driving assignments |
 | Accounts | Organization-scoped access, invitations, email verification, password reset, and optional persistent sign-in |
 | Operations | Versioned MySQL migrations, health probes, optional Sentry reporting, and backup/restore tooling |
 
@@ -81,30 +81,50 @@ with past work dates kept for 31 days; other employees’ rows are not saved. Fi
 limited to 5 MB and 90 work dates per upload. Uploading or viewing demand does not
 change live shuttle status or driving records.
 
-**Suggested drivers:** the manager demand page recommends active roster members
-whose uploaded work hours cover each full demand window. Employee IDs match exactly;
-use **Edit employee ID** on `/drivers` to correct a match, then re-upload. Uploads
-from before this feature need to be re-uploaded. Replacement files remove omitted
-drivers from the included work dates and preserve all other dates.
+**Driving assignments:** managers review saved shifts at `/driving-schedule`; drivers see
+only their own shifts at `/driver/driving-schedule`. The planner refreshes the next
+28 days every five minutes, and managers can use **Refresh assignments** immediately.
+It reads the Six Flags operating calendar before creating assignments. A park opening
+at 11 AM or noon starts wardrobe/opening service at 9 AM; a 5 PM opening starts it at
+3 PM and is labeled **Midday**, not Morning. Morning opening service lasts up to three hours. Afternoon opening service
+lasts until wardrobe closes. The default wardrobe closing time is 7 PM; saved daily
+or seasonal rules apply, and managers can change a day's hours on the assignments page.
+Other park-opening times require an explicit wardrobe opening time.
 
-Recommendations prioritize drivers who have not driven on the selected day, then
-fewer actual driving seconds in the preceding 30 days, then longest since the last
-session. They use corrected session times, union overlapping records, and cap open
-sessions at four hours. Future previews use current history; past previews use
-history before that date. Suggestions are independent windows, not reservations or
-assignments. They never change actual sessions, live status, or the four-hour cutoff.
+Opening service needs two distinct scheduled, active roster members: one drives and
+one covers the wardrobe counter. Opening coverage can be assigned from personal UKG
+calendars before an employee-demand upload. Later pickups use uploaded demand after
+wardrobe closes. Every assigned interval must fit the driver's work hours, including
+split shifts. Connected UKG calendars take priority over uploads; empty or stale
+calendar availability cannot be replaced by old uploaded hours.
 
-Opening service requires another distinct scheduled, active driver-roster member
-at the wardrobe counter. Morning opening service lasts up to three hours; an
-opening at noon or later runs until wardrobe closes. Other service waits until
-closing. Saved wardrobe rules apply, with an afternoon-start roster supplying the
-opening time when no explicit opening is set. Managers can edit the selected day's
-opening and closing times directly on the demand page. The retired park-calendar
-integration is not called. Confirm other duties and breaks before choosing a driver.
+For the remainder of Fright Fest (October 24–November 1, 2026, inclusive), every
+confirmed park-open day also requires **scare-actor transport starting at 5 PM**,
+even without employee demand or while regular pickups wait for wardrobe closing.
+The plan reserves 5:00–5:45 PM. **5:45 is an estimate, not a session cutoff**: drivers
+finish earlier when everyone is transported or continue until finished, using the
+existing driving-session controls. The existing four-hour session limit still applies.
+On late-opening days this interval is part of Midday opening coverage, with no
+overlapping assignment or unnecessary handoff when the current driver is eligible.
+Driver availability and wardrobe counter coverage still apply; missing coverage is
+shown explicitly. `FRIGHT_FEST_TRANSPORT_START` and `FRIGHT_FEST_TRANSPORT_END` set
+the inclusive date range, which expires after November 1 and does not recur annually.
+The end date follows the [official Fiesta Texas events calendar](https://www.sixflags.com/fiestatexas/events).
 
-Suggestions and driving-history comparisons are manager-only; driver demand pages
-continue to show aggregate employee demand. Availability gaps, unmatched drivers,
-and ranked alternatives are visible to managers.
+The planner rotates drivers within a day and balances actual driving from the past
+30 days plus upcoming planned seconds across the horizon. Plans are generated in
+chronological order, independent of the week a manager views. Each block is at most
+four hours. Closed dates and unverified park hours receive no new assignments;
+coverage gaps are shown explicitly. Persisted park-hour snapshots older than 24 hours
+cannot authorize new assignments. Managers can confirm an opening with an audited
+reason and set wardrobe hours if the calendar is unavailable.
+
+Refreshes replace future plans under the organization's database lock, preserving
+already-started and past assignment records. Saved plans are separate from actual
+driving sessions: they never start the shuttle, change public rider status, or add
+actual driving time. Drivers still start and end service at the NFC/QR checkpoint.
+The rider page shows running/not running and the current driver's first name.
+`AUTOMATIC_SCHEDULE_ENABLED=false` disables the background planning job.
 
 **Personal UKG calendars:** managers use **Drivers → UKG calendar** for each driver;
 drivers use **My UKG calendar** to connect their own subscription. Cedar Fair UKG

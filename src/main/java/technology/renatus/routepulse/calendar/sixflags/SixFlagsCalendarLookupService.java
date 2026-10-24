@@ -21,6 +21,7 @@ final class SixFlagsCalendarLookupService {
     private final SixFlagsCalendarClient calendarClient;
     private final SixFlagsCalendarSnapshotStore snapshotStore;
     private final Map<YearMonth, CachedCalendar> calendarCache = new ConcurrentHashMap<>();
+    private final Map<YearMonth, FailedLookup> recentFailures = new ConcurrentHashMap<>();
 
     SixFlagsCalendarLookupService(
             SixFlagsCalendarClient calendarClient,
@@ -37,16 +38,23 @@ final class SixFlagsCalendarLookupService {
         if (isFresh(cached, now)) {
             return new CalendarLookup(cached.response(), "MEMORY_CACHE", null);
         }
+        var failure = recentFailures.get(month);
+        if (failure != null && failure.at().plus(Duration.ofMinutes(2)).isAfter(now)) {
+            if (isUsableStale(cached, now)) return new CalendarLookup(cached.response(), "MEMORY_CACHE_STALE", diagnosticCodeFor(failure.error()));
+            throw failure.error();
+        }
 
         try {
             SixFlagsCalendarResponse liveResponse =
                     calendarClient.getCalendarForMonth(requestedDate);
             if (liveResponse != null) {
                 calendarCache.put(month, new CachedCalendar(liveResponse, now));
+                recentFailures.remove(month);
                 snapshotStore.persistKnownOperatingDays(liveResponse);
                 return new CalendarLookup(liveResponse, "LIVE_API", null);
             }
         } catch (RestClientException exception) {
+            recentFailures.put(month, new FailedLookup(exception, now));
             String diagnosticCode = diagnosticCodeFor(exception);
             if (isUsableStale(cached, now)) {
                 LOGGER.warn(
@@ -91,6 +99,8 @@ final class SixFlagsCalendarLookupService {
             return fetchedAt.plus(maximumAge).isAfter(now);
         }
     }
+
+    private record FailedLookup(RestClientException error, Instant at) {}
 
     record CalendarLookup(
             SixFlagsCalendarResponse response,

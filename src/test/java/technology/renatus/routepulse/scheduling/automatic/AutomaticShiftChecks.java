@@ -1,0 +1,67 @@
+package technology.renatus.routepulse.scheduling.automatic;
+
+import java.time.*;
+import java.util.*;
+import technology.renatus.routepulse.scheduling.demand.DriverSuggestionService.*;
+import technology.renatus.routepulse.scheduling.demand.ShuttleService;
+import technology.renatus.routepulse.calendar.domain.*;
+import technology.renatus.routepulse.scheduling.automatic.AutomaticScheduleDay.Slot;
+
+public final class AutomaticShiftChecks {
+    private static final LocalDate DAY=LocalDate.of(2026,11,1);
+    private static final Candidate A=new Candidate(1L,"Alex","100",0,false,null);
+    private static final Candidate B=new Candidate(2L,"Blair","200",0,false,null);
+    private static Window window(int start,int end,Candidate...drivers) {
+        return new Window(DAY.atTime(start,0),DAY.atTime(end,0),List.of(drivers),drivers.length==0?"Another counter worker is needed":"");
+    }
+    public static void main(String[] args) {run();System.out.println("PASS: automatic rotation, coverage gaps, idempotency, started shifts, duration limits and overnight windows");}
+    public static void run() {
+        var now=DAY.minusDays(1).atStartOfDay();
+        var load=new HashMap<Long,Long>();
+        var windows=List.of(window(9,12,A,B),window(19,22,A,B));
+        var first=AutomaticShiftPlanner.plan(windows,List.of(),now,load);
+        check(first.size()==2&&first.get(0).getDriverId()==1&&first.get(1).getDriverId()==2,"rotate within a day");
+        var repeated=AutomaticShiftPlanner.plan(windows,first,now,new HashMap<>());
+        check(first.equals(repeated),"unchanged input yields unchanged assignments");
+        load=new HashMap<>();
+        var opening=AutomaticShiftPlanner.plan(List.of(window(9,12,A,B)),List.of(),now,load);
+        var tomorrow=new Window(DAY.plusDays(1).atTime(9,0),DAY.plusDays(1).atTime(12,0),List.of(A,B),"");
+        var next=AutomaticShiftPlanner.plan(List.of(tomorrow),List.of(),now,load);
+        check(opening.get(0).getDriverId()!=next.get(0).getDriverId(),"planned hours rotate subsequent days");
+        var current=AutomaticShiftPlanner.plan(windows,first,DAY.atTime(10,0),new HashMap<>());
+        check(current.get(0).equals(first.get(0))&&current.size()==2,"preserve started shift without overlap");
+        var closed=AutomaticShiftPlanner.plan(List.of(),first,DAY.atTime(10,0),new HashMap<>());
+        check(closed.size()==1&&closed.get(0).equals(first.get(0)),"closed or unknown withdraws future only");
+        var gaps=AutomaticShiftPlanner.plan(List.of(window(9,12)),List.of(),now,new HashMap<>());
+        check(gaps.size()==1&&gaps.get(0).getDriverId()==null,"no counter coverage yields unassigned gap");
+        var longRun=AutomaticShiftPlanner.plan(List.of(window(15,23,A,B)),List.of(),now,new HashMap<>());
+        check(longRun.size()==2&&longRun.stream().allMatch(s->s.seconds()<=14400),"four hour maximum");
+        check(!longRun.get(0).getDriverId().equals(longRun.get(1).getDriverId()),"rotate at long-run boundary");
+        var night=new Window(DAY.atTime(23,45),DAY.plusDays(1).atStartOfDay(),List.of(A),"");
+        var midnight=AutomaticShiftPlanner.plan(List.of(night),List.of(),now,new HashMap<>()).get(0);
+        check(midnight.getEnd().toLocalDate().equals(DAY.plusDays(1))&&midnight.seconds()==900,"midnight is next day");
+        var early=AutomaticShiftPlanner.plan(List.of(window(9,12,A,B)),List.of(),DAY.atTime(10,7,42),new HashMap<>());
+        check(early.get(0).getStart().equals(DAY.atTime(10,8)),"never create a new assignment in the past");
+        var heavy=new Candidate(1L,"Alex","100",7200,false,null);
+        check(AutomaticShiftPlanner.plan(List.of(window(9,12,heavy,B)),List.of(),now,new HashMap<>()).get(0).getDriverId()==2,"actual driving matters");
+        var eventWindows=List.of(
+                new Window(DAY.atTime(15,0),DAY.atTime(17,0),List.of(A,B),"",ShuttleService.MIDDAY_OPENING),
+                new Window(DAY.atTime(17,0),DAY.atTime(17,45),List.of(A,B),"",ShuttleService.SCARE_ACTORS),
+                new Window(DAY.atTime(17,45),DAY.atTime(19,0),List.of(A,B),"",ShuttleService.MIDDAY_OPENING));
+        var event=AutomaticShiftPlanner.plan(eventWindows,List.of(),now,new HashMap<>());
+        check(event.size()==3&&event.stream().allMatch(s->s.getDriverId()==1),"event inside midday keeps eligible driver");
+        check(event.get(1).isScareActorTransport()&&event.get(0).getService()==ShuttleService.MIDDAY_OPENING,"service purpose retained");
+        check(event.equals(AutomaticShiftPlanner.plan(eventWindows,event,DAY.atTime(17,15),new HashMap<>())),"in-progress event remains stable");
+        var handoff=AutomaticShiftPlanner.plan(List.of(eventWindows.get(0),
+                new Window(DAY.atTime(17,0),DAY.atTime(17,45),List.of(B),"",ShuttleService.SCARE_ACTORS)),List.of(),now,new HashMap<>());
+        check(handoff.get(1).getDriverId()==2,"event handoff respects availability");
+        var policy=new FrightFestTransportPolicy("2026-10-24","2026-11-01");
+        for(var date:List.of(LocalDate.of(2026,10,24),DAY))
+            check(policy.required(new ParkOperatingDay(date,ParkOperatingStatus.OPEN,null,null,false,"LIVE_API",null)),"inclusive event dates");
+        for(var date:List.of(LocalDate.of(2026,10,23),DAY.plusDays(1),DAY.plusYears(1)))
+            check(!policy.required(new ParkOperatingDay(date,ParkOperatingStatus.OPEN,null,null,false,"LIVE_API",null)),"event expires and never recurs automatically");
+        for(var state:List.of(ParkOperatingStatus.CLOSED,ParkOperatingStatus.UNKNOWN))
+            check(!policy.required(new ParkOperatingDay(DAY,state,null,null,false,"LIVE_API",null)),"event requires confirmed open park");
+    }
+    private static void check(boolean condition,String message){if(!condition)throw new AssertionError(message);}
+}

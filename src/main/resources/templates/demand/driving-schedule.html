@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Driving assignments | Is the Shuttle Running</title>
+<link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
+<link rel="stylesheet" th:href="@{/css/site.css}"><link rel="stylesheet" th:href="@{/css/pages/transportation-demand.css}">
+</head><body class="app-page">
+<th:block th:if="${managerView}" th:insert="~{fragments/navigation :: managerNav('driving-schedule')}"></th:block>
+<th:block th:unless="${managerView}" th:insert="~{fragments/navigation :: driverNav}"></th:block>
+<main id="main-content" class="app-main demand-page">
+<header class="page-header"><div><p class="eyebrow" th:text="${organizationName}"></p>
+<h1 th:text="${managerView ? 'Driving assignments' : 'My driving assignments'}"></h1>
+<p>Shifts based on park opening hours, scheduled driver availability, and driving history.</p></div>
+<form th:if="${managerView}" th:action="@{/driving-schedule/refresh}" method="post"><button class="button" type="submit">Refresh assignments</button></form></header>
+<p th:if="${successMessage}" class="alert alert--success" role="status" th:text="${successMessage}"></p>
+<p th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></p>
+<p>Assignments refresh every five minutes for the next 28 days. Times are in <strong th:text="${operationsZone}"></strong>.</p>
+<p>Use the shuttle NFC/QR checkpoint when you actually start driving. A scheduled shift does not start the shuttle or add driving time to your record.</p>
+<p th:if="${managerView}">Opening service and required scare-actor transport keep another scheduled roster member at the wardrobe counter while it is open. Later pickups follow <a th:href="@{/transportation-demand}">uploaded employee demand</a> after wardrobe closes.
+<a th:href="@{/drivers}">Check driver availability and UKG calendars</a>.</p>
+<form class="demand-date" th:action="@{${scheduleUrl}}" method="get">
+<div class="form-group"><label for="date">Week starting</label><input id="date" name="date" type="date" th:value="${from}" required></div>
+<button class="button button--secondary" type="submit">Show week</button>
+<a th:href="@{${scheduleUrl}(date=${from.minusDays(7)})}">Previous week</a>
+<a th:href="@{${scheduleUrl}(date=${today})}">Today</a>
+<a th:href="@{${scheduleUrl}(date=${from.plusDays(7)})}">Next week</a></form>
+<section class="demand-empty" th:if="${#lists.isEmpty(days)}"><h2>No saved assignments for this week</h2>
+<p>Automatic planning covers today through the next 27 days. New schedules appear after the next refresh.</p></section>
+<section class="driver-suggestions" th:each="day : ${days}">
+<h2 th:text="${#temporals.format(day.date, 'EEEE, MMMM d')}"></h2>
+<p><strong th:text="${day.status == 'OPEN' ? 'Park open' : (day.status == 'CLOSED' ? 'Park closed' : 'Park hours need verification')}"></strong>
+<span th:if="${day.parkOpening != null}" th:text="| · ${#temporals.format(day.parkOpening, 'h:mm a')}–${#temporals.format(day.parkClosing, 'h:mm a')}|"></span></p>
+<p th:if="${managerView}" th:text="${day.message}"></p>
+<p th:if="${managerView and day.wardrobeOpening != null}">Wardrobe:
+<strong th:text="|${#temporals.format(day.wardrobeOpening, 'h:mm a')}–${#temporals.format(day.wardrobeClosing, 'h:mm a')}|"></strong>.</p>
+<p class="demand-note">Updated <span th:text="${#temporals.format(day.refreshedAt, 'MMM d, h:mm a z')}"></span>
+<span th:if="${managerView}" th:text="| · Calendar: ${day.source}|"></span>.</p>
+<p th:if="${#lists.isEmpty(day.slots)}" th:text="${managerView ? 'No shifts assigned for this date.' : 'You have no assigned driving shifts for this date.'}"></p>
+<div class="suggestion-window" th:each="slot : ${day.slots}">
+<strong class="suggestion-time"><span th:text="${#temporals.format(slot.start, 'h:mm a')}"></span>–<span th:text="${#temporals.format(slot.end, 'h:mm a')}"></span>
+<span th:if="${slot.end.toLocalDate().isAfter(slot.start.toLocalDate())}"> (next day)</span></strong>
+<div><p class="demand-note" th:text="${slot.serviceLabel}"></p>
+<p th:if="${slot.scareActorTransport}">Start scare-actor transport at 5 PM. Plan for 5:45 PM, but continue until everyone is transported. Finish sooner if the run is complete; 5:45 PM does not automatically end your driving session.</p>
+<p><strong th:text="${slot.driverId == null ? 'Needs coverage' : slot.driverName}"></strong>
+<span class="badge" th:if="${slot.driverId != null}">Assigned</span></p><p th:if="${slot.driverId == null}" th:text="${slot.reason}"></p></div></div>
+<th:block th:if="${managerView and !day.date.isBefore(today) and !day.date.isAfter(today.plusDays(27))}">
+<details><summary>Adjust wardrobe hours</summary><form class="demand-date" th:action="@{/driving-schedule/hours}" method="post">
+<input type="hidden" name="date" th:value="${day.date}">
+<div class="form-group"><label th:for="|opening-${day.date}|">Wardrobe opens</label><input th:id="|opening-${day.date}|" name="opening" type="time" th:value="${day.wardrobeOpening}" required></div>
+<div class="form-group"><label th:for="|closing-${day.date}|">Wardrobe closes</label><input th:id="|closing-${day.date}|" name="closing" type="time" th:value="${day.wardrobeClosing}" required></div>
+<button class="button button--secondary" type="submit">Save and update assignments</button></form>
+<p>Morning opening service lasts up to three hours. Afternoon opening service lasts until wardrobe closes. A daily setting overrides the park-based opening rule. Midnight closing means the end of this day.</p></details>
+<details th:if="${day.status != 'OPEN'}"><summary>Confirm the park is open</summary>
+<form th:action="@{/driving-schedule/confirm-open}" method="post"><input type="hidden" name="date" th:value="${day.date}">
+<div class="form-group"><label th:for="|reason-${day.date}|">Reason for correcting the calendar</label><input th:id="|reason-${day.date}|" name="reason" maxlength="500" required></div>
+<button class="button button--secondary" type="submit">Confirm open</button></form></details>
+</th:block></section>
+</main><footer th:replace="~{fragments/footer :: footer('app')}"></footer></body></html>

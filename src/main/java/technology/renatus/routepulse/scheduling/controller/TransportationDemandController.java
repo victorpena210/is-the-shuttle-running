@@ -16,13 +16,10 @@ public class TransportationDemandController {
     private final CurrentOrganizationService current;
     private final DriverPortalAccessService drivers;
     private final DemandForecastService forecasts;
-    private final technology.renatus.routepulse.scheduling.demand.DriverSuggestionService suggestions;
-    private final technology.renatus.routepulse.driver.calendar.DriverCalendarAvailability calendars;
+    private final technology.renatus.routepulse.scheduling.demand.DriverScheduleIdentityService access;
     public TransportationDemandController(CurrentOrganizationService current, DriverPortalAccessService drivers, DemandForecastService forecasts,
-            technology.renatus.routepulse.scheduling.demand.DriverSuggestionService suggestions,
-            technology.renatus.routepulse.driver.calendar.DriverCalendarAvailability calendars) {
-        this.current = current; this.drivers = drivers; this.forecasts = forecasts; this.suggestions = suggestions;
-        this.calendars = calendars;
+            technology.renatus.routepulse.scheduling.demand.DriverScheduleIdentityService access) {
+        this.current = current; this.drivers = drivers; this.forecasts = forecasts; this.access = access;
     }
     @GetMapping("/transportation-demand")
     public String manager(Authentication auth, @RequestParam(required = false)
@@ -40,8 +37,7 @@ public class TransportationDemandController {
         model.addAttribute("organizationName", organization.getDisplayName());
         var forecast = forecasts.page(organization.getId(), date == null ? forecasts.today() : date);
         model.addAttribute("forecast", forecast);
-        if (manager) model.addAttribute("suggestions", suggestions.page(organization.getId(), forecast, email));
-        if (manager) model.addAttribute("calendarStates", calendars.states(organization.getId()));
+        if (manager) access.requireManager(organization.getId(), email);
         model.addAttribute("managerView", manager);
         model.addAttribute("demandUrl", manager ? "/transportation-demand" : "/driver/demand");
         model.addAttribute("operationsZone", forecasts.zoneName());
