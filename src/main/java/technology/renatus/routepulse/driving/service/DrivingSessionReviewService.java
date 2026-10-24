@@ -80,7 +80,7 @@ public class DrivingSessionReviewService {
         Instant now = Instant.now();
         Instant start, end;
         String note = form.note() == null ? "" : form.note().trim();
-        if (note.length() > 1000) throw new IllegalArgumentException("Keep the review note under 1,001 characters.");
+        if (note.length() > 1000) throw new IllegalArgumentException("Use a review note of no more than 1,000 characters.");
         if ("APPROVED".equals(form.action())) {
             if (!session.isDurationReviewNeeded() || session.isActive())
                 throw new IllegalStateException("This session does not need approval. You can still correct its times.");
