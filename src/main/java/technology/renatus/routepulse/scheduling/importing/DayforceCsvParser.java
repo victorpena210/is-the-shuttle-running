@@ -1,16 +1,13 @@
 package technology.renatus.routepulse.scheduling.importing;
 
-import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.time.*;
 import java.time.format.*;
 import java.util.*;
-import org.apache.commons.csv.*;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 import technology.renatus.routepulse.scheduling.domain.ShiftRecord;
 
-/** Reads both the short and full Dayforce headings, including report preambles. */
+/** Reads both the short and full Dayforce headings, from CSV or XLSX, including report preambles. */
 @Component
 public class DayforceCsvParser {
     private static final DateTimeFormatter DATE_TIME_FORMAT = new DateTimeFormatterBuilder()
@@ -18,15 +15,15 @@ public class DayforceCsvParser {
             .withResolverStyle(ResolverStyle.STRICT);
 
     public List<ShiftRecord> parse(MultipartFile file) {
-        if (file == null || file.isEmpty()) throw new IllegalStateException("Please select a Dayforce CSV file to upload.");
-        if (file.getSize() > 5 * 1024 * 1024) throw new IllegalStateException("Upload a CSV no larger than 5 MB.");
         var shifts = new LinkedHashMap<ShiftKey, ShiftRecord>();
-        Map<Field, Integer> columns = null;
-        try (Reader reader = new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8);
-                CSVParser parser = CSVFormat.DEFAULT.builder().setTrim(true).setIgnoreEmptyLines(true).get().parse(reader)) {
-            for (CSVRecord row : parser) {
+        boolean foundHeader = false;
+        for (var table : ScheduleTableReader.read(file)) {
+            Map<Field, Integer> columns = null;
+            for (var row : table) {
                 if (columns == null) {
-                    if (row.stream().anyMatch(value -> normalize(value).equals("employeeid"))) columns = readHeader(row);
+                    if (row.values().stream().anyMatch(value -> normalize(value).equals("employeeid"))) {
+                        columns = readHeader(row); foundHeader = true;
+                    }
                     continue;
                 }
                 String startText = value(row, columns, Field.START);
@@ -49,36 +46,34 @@ public class DayforceCsvParser {
                     shifts.putIfAbsent(new ShiftKey(id, start, end), new ShiftRecord(id, name, department,
                             job.isBlank() ? "Unknown" : job, start.toLocalDate(), start.toLocalTime(), end.toLocalTime(), pickup));
                 } catch (RuntimeException exception) {
-                    throw new IllegalStateException("Invalid data in Dayforce CSV record " + row.getRecordNumber()
+                    throw new IllegalStateException("Invalid data in schedule " + row.location()
                             + ": " + exception.getMessage(), exception);
                 }
             }
-        } catch (IOException | UncheckedIOException exception) {
-            throw new IllegalStateException("Could not read the file. Export the Dayforce schedule as a UTF-8 CSV and try again.", exception);
         }
-        if (columns == null) throw new IllegalStateException("The Dayforce schedule header could not be found. Upload the exported CSV.");
-        if (shifts.isEmpty()) throw new IllegalStateException("The uploaded CSV does not contain any scheduled shifts.");
+        if (!foundHeader) throw new IllegalStateException("The Dayforce schedule header could not be found. Upload a CSV or XLSX with the required columns.");
+        if (shifts.isEmpty()) throw new IllegalStateException("The uploaded schedule does not contain any scheduled shifts.");
         return List.copyOf(shifts.values());
     }
 
-    private Map<Field, Integer> readHeader(CSVRecord row) {
+    private Map<Field, Integer> readHeader(ScheduleTableReader.Row row) {
         var columns = new EnumMap<Field, Integer>(Field.class);
         for (int i = 0; i < row.size(); i++) {
             String heading = normalize(row.get(i));
             for (Field field : Field.values()) if (field.aliases.contains(heading)) {
-                if (columns.putIfAbsent(field, i) != null) throw new IllegalStateException("The CSV contains duplicate " + field.label + " columns.");
+                if (columns.putIfAbsent(field, i) != null) throw new IllegalStateException("The schedule contains duplicate " + field.label + " columns.");
             }
         }
         for (Field field : List.of(Field.ID, Field.NAME, Field.START, Field.END))
-            if (!columns.containsKey(field)) throw new IllegalStateException("The CSV is missing the " + field.label + " column.");
+            if (!columns.containsKey(field)) throw new IllegalStateException("The schedule is missing the " + field.label + " column.");
         return columns;
     }
     private static String normalize(String value) { return value.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", ""); }
-    private String value(CSVRecord row, Map<Field, Integer> columns, Field field) {
+    private String value(ScheduleTableReader.Row row, Map<Field, Integer> columns, Field field) {
         Integer index = columns.get(field);
         return index == null || index >= row.size() ? "" : row.get(index).strip();
     }
-    private String required(CSVRecord row, Map<Field, Integer> columns, Field field, int length) {
+    private String required(ScheduleTableReader.Row row, Map<Field, Integer> columns, Field field, int length) {
         String text = value(row, columns, field);
         if (text.isBlank()) throw new IllegalArgumentException(field.label + " is required.");
         return limited(text, length, field.label);

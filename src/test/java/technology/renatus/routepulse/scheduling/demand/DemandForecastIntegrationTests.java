@@ -151,6 +151,42 @@ class DemandForecastIntegrationTests extends MySqlIntegrationTestSupport {
         assertThat(forecasts.page(f.org().getId(), current).available()).isTrue();
     }
 
+    @Autowired DriverScheduleWindowRepository driverWindows;
+
+    @Test void xlsxUploadMatchesDriversReplacesCsvAndInvalidWorkbookPreservesBoth() throws Exception {
+        var f=fixture("excel-upload"); var auth=authenticationFor(f.manager(),OrganizationRole.OWNER);
+        var driver=driverRepository.saveAndFlush(new Driver(f.org(),"00100","Sample Driver",true));
+        forecasts.upload(f.org().getId(),f.manager().getEmail(),demandFile("original.csv",
+                "00100,Sample Driver,10/24/2026 9:00 AM,10/24/2026 5:00 PM,Park/Ops,Staff"));
+        try(var wb=new org.apache.poi.xssf.usermodel.XSSFWorkbook()) {
+            var sheet=wb.createSheet("Schedule"); var header=sheet.createRow(0);
+            String[] names={"Employee ID","Employee Name","Shift Start","Shift End"};
+            for(int i=0;i<names.length;i++)header.createCell(i).setCellValue(names[i]);
+            var row=sheet.createRow(1);row.createCell(0).setCellValue("00100");row.createCell(1).setCellValue("Sample Driver");
+            row.createCell(2).setCellValue(LocalDateTime.of(2026,10,24,23,7));
+            row.createCell(3).setCellValue(LocalDateTime.of(2026,10,25,0,15));
+            var bytes=new java.io.ByteArrayOutputStream();wb.write(bytes);
+            var file=new org.springframework.mock.web.MockMultipartFile("scheduleFile","weekly.xlsx","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",bytes.toByteArray());
+            mockMvc.perform(multipart("/transportation-demand/upload").file(file).with(authentication(auth)).with(csrf()))
+                    .andExpect(redirectedUrl("/transportation-demand?date=2026-10-24")).andExpect(flash().attributeExists("successMessage"));
+            entityManager.flush();entityManager.clear();
+            assertThat(forecasts.page(f.org().getId(),DAY).clockIns()).isOne();
+            assertThat(window(forecasts.page(f.org().getId(),DAY),"morning","09:00").clockIns()).isZero();
+            assertThat(forecasts.page(f.org().getId(),DAY.plusDays(1)).clockOuts()).isOne();
+            var saved=driverWindows.findAll();assertThat(saved).hasSize(1);
+            assertThat(saved.get(0).getStartsAt()).isEqualTo(DAY.atTime(23,7));
+            row.getCell(3).setCellValue("invalid");bytes.reset();wb.write(bytes);
+            var invalid=new org.springframework.mock.web.MockMultipartFile("scheduleFile","bad.xlsx","application/octet-stream",bytes.toByteArray());
+            mockMvc.perform(multipart("/upload").file(invalid).with(authentication(auth)).with(csrf()))
+                    .andExpect(flash().attributeExists("errorMessage"));
+            assertThat(driverWindows.findAll()).hasSize(1);
+            assertThat(driverWindows.findAll().get(0).getStartsAt()).isEqualTo(DAY.atTime(23,7));
+            assertThat(forecasts.page(f.org().getId(),DAY.plusDays(1)).clockOuts()).isOne();
+            assertThat(scheduleImportRepository.count()).isEqualTo(2);
+            mockMvc.perform(multipart("/upload").file(file).with(authentication(auth))).andExpect(status().isForbidden());
+        }
+    }
+
     private org.springframework.mock.web.MockMultipartFile demandFile(String filename, String... rows) {
         org.springframework.web.multipart.MultipartFile csv = csvFile(filename, rows);
         try {
