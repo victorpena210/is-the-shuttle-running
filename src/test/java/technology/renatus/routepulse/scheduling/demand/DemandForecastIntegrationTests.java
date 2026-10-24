@@ -33,7 +33,7 @@ class DemandForecastIntegrationTests extends MySqlIntegrationTestSupport {
 
     @Test void uploadShowsEveryQuarterHourBothDirectionsAndCorrectOvernightDatesWithoutAssignments() throws Exception {
         var f = fixture("counts"); var auth = authenticationFor(f.manager(), OrganizationRole.OWNER);
-        var file = csvFile("weekly.csv",
+        var file = demandFile("weekly.csv",
                 "100,PRIVATE EMPLOYEE,10/24/2026 9:07 AM,10/24/2026 1:07 PM,Park/Ops,Staff",
                 "100,PRIVATE EMPLOYEE,10/24/2026 9:07 AM,10/24/2026 1:07 PM,Park/Ops,Staff",
                 "200,PRIVATE EMPLOYEE,10/24/2026 9:14 AM,10/24/2026 9:16 AM,Park/Ops,Staff",
@@ -71,11 +71,11 @@ class DemandForecastIntegrationTests extends MySqlIntegrationTestSupport {
 
     @Test void repeatedPartialUploadsReplaceTheirWorkDatesAndOvernightCarryoverButKeepOtherDates() {
         var f = fixture("replace");
-        forecasts.upload(f.org().getId(), f.manager().getEmail(), csvFile("first.csv",
+        forecasts.upload(f.org().getId(), f.manager().getEmail(), demandFile("first.csv",
                 "100,One,10/24/2026 11:00 PM,10/25/2026 12:30 AM,Park/Ops,Staff",
                 "200,Two,10/25/2026 9:00 AM,10/25/2026 5:00 PM,Park/Ops,Staff"));
         assertThat(forecasts.page(f.org().getId(), DAY.plusDays(1)).clockOuts()).isEqualTo(2);
-        for (int i = 0; i < 2; i++) forecasts.upload(f.org().getId(), f.manager().getEmail(), csvFile("replace.csv",
+        for (int i = 0; i < 2; i++) forecasts.upload(f.org().getId(), f.manager().getEmail(), demandFile("replace.csv",
                 "100,One,10/24/2026 9:00 AM,10/24/2026 5:00 PM,Park/Ops,Staff"));
         entityManager.flush(); entityManager.clear();
         assertThat(forecasts.page(f.org().getId(), DAY).clockIns()).isOne();
@@ -87,9 +87,9 @@ class DemandForecastIntegrationTests extends MySqlIntegrationTestSupport {
 
     @Test void malformedReplacementLeavesExistingCountsAndImportHistoryUntouched() throws Exception {
         var f = fixture("invalid"); var auth = authenticationFor(f.manager(), OrganizationRole.OWNER);
-        forecasts.upload(f.org().getId(), f.manager().getEmail(), csvFile("valid.csv",
+        forecasts.upload(f.org().getId(), f.manager().getEmail(), demandFile("valid.csv",
                 "100,One,10/24/2026 9:00 AM,10/24/2026 5:00 PM,Park/Ops,Staff"));
-        mockMvc.perform(multipart("/upload").file(csvFile("bad.csv",
+        mockMvc.perform(multipart("/upload").file(demandFile("bad.csv",
                 "200,Two,10/24/2026 10:00 AM,10/24/2026 6:00 PM,Park/Ops,Staff",
                 "300,Three,10/24/2026 10:00 AM,,Park/Ops,Staff")).with(authentication(auth)).with(csrf()))
                 .andExpect(status().is3xxRedirection()).andExpect(flash().attributeExists("errorMessage"));
@@ -100,7 +100,7 @@ class DemandForecastIntegrationTests extends MySqlIntegrationTestSupport {
 
     @Test void managerAndDriverViewsAreOrganizationScopedAndDriversCannotUpload() throws Exception {
         var f = fixture("access"); var other = fixture("elsewhere");
-        forecasts.upload(other.org().getId(), other.manager().getEmail(), csvFile("PRIVATE-FOREIGN.csv",
+        forecasts.upload(other.org().getId(), other.manager().getEmail(), demandFile("PRIVATE-FOREIGN.csv",
                 "100,Foreign,10/24/2026 9:00 AM,10/24/2026 5:00 PM,Park/Ops,Staff"));
         var driverUser = createUser("demand-driver@example.com", true);
         membershipRepository.save(new OrganizationMembership(f.org(), driverUser, OrganizationRole.DRIVER));
@@ -112,12 +112,12 @@ class DemandForecastIntegrationTests extends MySqlIntegrationTestSupport {
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("PRIVATE-FOREIGN"))))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("name=\"scheduleFile\""))));
         for (String route : List.of("/upload", "/transportation-demand/upload")) {
-            mockMvc.perform(multipart(route).file(csvFile("test.csv", "100,A,10/24/2026 9:00 AM,10/24/2026 5:00 PM,Park/Ops,Staff"))
+            mockMvc.perform(multipart(route).file(demandFile("test.csv", "100,A,10/24/2026 9:00 AM,10/24/2026 5:00 PM,Park/Ops,Staff"))
                     .with(authentication(driverAuth)).with(csrf())).andExpect(status().isForbidden());
-            mockMvc.perform(multipart(route).file(csvFile("test.csv", "100,A,10/24/2026 9:00 AM,10/24/2026 5:00 PM,Park/Ops,Staff"))
+            mockMvc.perform(multipart(route).file(demandFile("test.csv", "100,A,10/24/2026 9:00 AM,10/24/2026 5:00 PM,Park/Ops,Staff"))
                     .with(authentication(authenticationFor(f.manager(), OrganizationRole.OWNER)))).andExpect(status().isForbidden());
         }
-        assertThatThrownBy(() -> forecasts.upload(f.org().getId(), driverUser.getEmail(), csvFile("test.csv")))
+        assertThatThrownBy(() -> forecasts.upload(f.org().getId(), driverUser.getEmail(), demandFile("test.csv")))
                 .isInstanceOf(AccessDeniedException.class);
         mockMvc.perform(get("/transportation-demand").with(authentication(driverAuth))).andExpect(status().isForbidden());
         mockMvc.perform(get("/transportation-demand")).andExpect(status().is3xxRedirection());
@@ -129,7 +129,7 @@ class DemandForecastIntegrationTests extends MySqlIntegrationTestSupport {
     @Test void establishedUploadUrlWorksAndAssignmentsRemainRetired() throws Exception {
         var f = fixture("bookmarks"); var auth = authenticationFor(f.manager(), OrganizationRole.OWNER);
         mockMvc.perform(get("/upload").with(authentication(auth))).andExpect(redirectedUrl("/transportation-demand#upload"));
-        mockMvc.perform(multipart("/upload").file(csvFile("legacy.csv", "100,A,10/24/2026 9:00 AM,10/24/2026 5:00 PM,Park/Ops,Staff"))
+        mockMvc.perform(multipart("/upload").file(demandFile("legacy.csv", "100,A,10/24/2026 9:00 AM,10/24/2026 5:00 PM,Park/Ops,Staff"))
                 .with(authentication(auth)).with(csrf())).andExpect(redirectedUrl("/transportation-demand?date=2026-10-24"));
         mockMvc.perform(post("/assignments/manual").with(authentication(auth)).with(csrf())).andExpect(status().isGone());
         assertThat(assignmentRepository.count()).isZero();
@@ -140,15 +140,22 @@ class DemandForecastIntegrationTests extends MySqlIntegrationTestSupport {
         LocalDate current = LocalDate.now(ZoneOffset.UTC);
         String currentDate = current.format(DateTimeFormatter.ofPattern("M/d/yyyy"));
         String old = current.minusMonths(13).format(DateTimeFormatter.ofPattern("M/d/yyyy"));
-        var oldImport = forecasts.upload(f.org().getId(), f.manager().getEmail(), csvFile("old.csv",
+        var oldImport = forecasts.upload(f.org().getId(), f.manager().getEmail(), demandFile("old.csv",
                 "100,A," + old + " 9:00 AM," + old + " 5:00 PM,Park/Ops,Staff"));
-        forecasts.upload(f.org().getId(), f.manager().getEmail(), csvFile("current.csv",
+        forecasts.upload(f.org().getId(), f.manager().getEmail(), demandFile("current.csv",
                 "100,A," + currentDate + " 9:00 AM," + currentDate + " 5:00 PM,Park/Ops,Staff"));
         uploadedShiftRepository.deleteShiftRowsBefore(current.plusDays(1));
         assertThat(forecasts.page(f.org().getId(), current).available()).isTrue();
         forecasts.purgeExpiredForecasts();
         assertThat(forecasts.page(f.org().getId(), oldImport.getFirstShiftDate()).available()).isFalse();
         assertThat(forecasts.page(f.org().getId(), current).available()).isTrue();
+    }
+
+    private org.springframework.mock.web.MockMultipartFile demandFile(String filename, String... rows) {
+        org.springframework.web.multipart.MultipartFile csv = csvFile(filename, rows);
+        try {
+            return new org.springframework.mock.web.MockMultipartFile("scheduleFile", filename, "text/csv", csv.getBytes());
+        } catch (java.io.IOException exception) { throw new java.io.UncheckedIOException(exception); }
     }
 
     private DemandForecastService.Window window(DemandForecastService.Forecast page, String period, String time) {
