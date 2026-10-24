@@ -99,7 +99,9 @@ public class DriverSuggestionService {
         var openingStart = date.atTime(opening);
         var closing = date.atTime(hours.closingTime());
         if (hours.closingTime().equals(LocalTime.MIDNIGHT)) closing = closing.plusDays(1);
-        var openingEnd = opening.isBefore(LocalTime.NOON) ? earlier(openingStart.plusHours(3), closing) : closing;
+        // Wardrobe stays open after the opening shuttle run. A 3 PM start ends
+        // regular opening service at 5 PM; scare actors have their own window.
+        var openingEnd = earlier(openingStart.plusHours(opening.isBefore(LocalTime.NOON) ? 3 : 2), closing);
         var groups = new ArrayList<Period>();
         var periods = new ArrayList<>(forecast.periods()); periods.add(forecast.offHours());
         if (openingCoverage) {
