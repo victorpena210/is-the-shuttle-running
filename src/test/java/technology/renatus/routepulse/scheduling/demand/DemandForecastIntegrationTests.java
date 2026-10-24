@@ -187,6 +187,46 @@ class DemandForecastIntegrationTests extends MySqlIntegrationTestSupport {
         }
     }
 
+    @Test void weeklyReportCalculatesDemandExcludingBreaksAndUpdatesOnlyNamedDriverDays() throws Exception {
+        var f=fixture("weekly-grid");var auth=authenticationFor(f.manager(),OrganizationRole.OWNER);
+        var a=driverRepository.saveAndFlush(new Driver(f.org(),"100","Sample, Alex",true));
+        var b=driverRepository.saveAndFlush(new Driver(f.org(),"200","Sample, Blair",true));
+        forecasts.upload(f.org().getId(),f.manager().getEmail(),demandFile("workforce.csv",
+                "100,Sample Alex,11/2/2026 9:00 AM,11/2/2026 5:00 PM,Park/Ops,Staff",
+                "200,Sample Blair,11/2/2026 9:00 AM,11/2/2026 5:00 PM,Park/Ops,Staff"));
+        var file=technology.renatus.routepulse.scheduling.importing.WeeklyScheduleFixture.file("Sample, Alex","9:00 AM - 12:00 PM","12:45 PM - 5:00 PM","");
+        mockMvc.perform(multipart("/upload").file(file).with(authentication(auth)).with(csrf()))
+                .andExpect(flash().attribute("successMessage",org.hamcrest.Matchers.containsString("weekly report")));
+        entityManager.flush();entityManager.clear();
+        assertThat(forecasts.page(f.org().getId(),LocalDate.of(2026,11,2)).clockIns()).isZero();
+        assertThat(forecasts.page(f.org().getId(),LocalDate.of(2026,11,2)).available()).isTrue();
+        assertThat(driverWindows.findAll()).hasSize(3);
+        var saturday=forecasts.page(f.org().getId(),LocalDate.of(2026,11,7));
+        assertThat(saturday.clockIns()).isOne();assertThat(saturday.clockOuts()).isOne();
+        assertThat(window(saturday,"morning","09:00").clockIns()).isOne();
+        assertThat(window(saturday,"midday","12:45").clockIns()).isZero();
+        assertThat(driverWindows.findAll().stream().filter(w->w.getDriver().getId().equals(a.getId())))
+                .extracting(DriverScheduleWindow::getStartsAt).containsExactlyInAnyOrder(LocalDateTime.of(2026,11,7,9,0),LocalDateTime.of(2026,11,7,12,45));
+        forecasts.upload(f.org().getId(),f.manager().getEmail(),technology.renatus.routepulse.scheduling.importing.WeeklyScheduleFixture.file("Sample, Alex","","",""));
+        entityManager.flush();
+        assertThat(driverWindows.findAll()).singleElement().extracting(w->w.getDriver().getId()).isEqualTo(b.getId());
+        assertThat(forecasts.page(f.org().getId(),LocalDate.of(2026,11,2)).clockIns()).isZero();
+        assertThat(forecasts.page(f.org().getId(),LocalDate.of(2026,11,2)).available()).isTrue();
+    }
+    @Test void weeklyNamesAreOrganizationScopedAndAmbiguousMatchesPreserveExistingData() throws Exception {
+        var f=fixture("weekly-names");var other=fixture("weekly-foreign");
+        driverRepository.saveAndFlush(new Driver(other.org(),"100","Sample, Alex",true));
+        var file=technology.renatus.routepulse.scheduling.importing.WeeklyScheduleFixture.file("Sample, Alex","9:00 AM - 5:00 PM","","");
+        forecasts.upload(f.org().getId(),f.manager().getEmail(),file);
+        assertThat(scheduleImportRepository.count()).isOne();assertThat(driverWindows.count()).isZero();
+        assertThat(forecasts.page(f.org().getId(),LocalDate.of(2026,11,7)).clockIns()).isOne();
+        driverRepository.saveAndFlush(new Driver(f.org(),"100","Sample, Alex",true));
+        driverRepository.saveAndFlush(new Driver(f.org(),"200","Sample, Alex",true));
+        assertThatThrownBy(()->forecasts.upload(f.org().getId(),f.manager().getEmail(),file)).hasMessageContaining("multiple registered drivers");
+        assertThat(driverWindows.count()).isZero();assertThat(scheduleImportRepository.count()).isOne();
+        assertThat(forecasts.page(f.org().getId(),LocalDate.of(2026,11,7)).clockIns()).isOne();
+    }
+
     private org.springframework.mock.web.MockMultipartFile demandFile(String filename, String... rows) {
         org.springframework.web.multipart.MultipartFile csv = csvFile(filename, rows);
         try {

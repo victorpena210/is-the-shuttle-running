@@ -97,6 +97,11 @@ public class ScheduleImport {
     )
     private Instant uploadedAt;
 
+    @jakarta.persistence.Transient
+    private boolean weeklyDriverReport;
+    public boolean isWeeklyDriverReport() { return weeklyDriverReport; }
+    public void markWeeklyDriverReport() { weeklyDriverReport = true; }
+
     protected ScheduleImport() {
     }
 

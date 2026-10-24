@@ -12,6 +12,9 @@ public interface DriverScheduleWindowRepository extends JpaRepository<DriverSche
     @Query("delete from DriverScheduleWindow w where w.organizationId = :org and w.sourceDate in :dates")
     void replaceDates(@Param("org") Long org, @Param("dates") Collection<LocalDate> dates);
     @Modifying(flushAutomatically = true)
+    @Query("delete from DriverScheduleWindow w where w.organizationId = :org and w.driver.id = :driver and w.sourceDate in :dates")
+    void replaceDriverDates(@Param("org") Long org, @Param("driver") Long driver, @Param("dates") Collection<LocalDate> dates);
+    @Modifying(flushAutomatically = true)
     @Query("delete from DriverScheduleWindow w where w.organizationId = :org and w.driver.id = :driver")
     void clearDriver(@Param("org") Long org, @Param("driver") Long driver);
     @Modifying(flushAutomatically = true)

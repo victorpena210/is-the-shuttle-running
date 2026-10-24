@@ -63,7 +63,9 @@ public class DemandForecastService {
                 () -> new AccessDeniedException("Organization access is required."));
         if (!actor.isEnabled() || !Set.of(OrganizationRole.OWNER, OrganizationRole.ADMIN, OrganizationRole.DISPATCHER)
                 .contains(membership.getRole())) throw new AccessDeniedException("Manager access is required to upload demand.");
-        var shifts = parser.parse(file);
+        var parsed = parser.parseSchedule(file);
+        if (parsed.weeklyDriverReport()) return uploadWeekly(organizationId, actor, file, parsed);
+        var shifts = parsed.shifts();
         var dates = shifts.stream().map(s -> s.getShiftDate()).distinct().sorted().toList();
         if (dates.size() > 90) throw new IllegalStateException("Upload no more than 90 work dates at a time.");
         var organization = organizations.findByIdForUpdate(organizationId).orElseThrow(
@@ -98,6 +100,57 @@ public class DemandForecastService {
         }).toList());
         return source;
     }
+
+    private ScheduleImport uploadWeekly(Long org, technology.renatus.routepulse.auth.model.UserAccount actor,
+            MultipartFile file, technology.renatus.routepulse.scheduling.importing.ParsedSchedule parsed) {
+        var organization = organizations.findByIdForUpdate(org).orElseThrow();
+        var roster = drivers.findAllByOrganization_IdOrderByNameAsc(org).stream()
+                .collect(Collectors.groupingBy(d -> normalizedName(d.getName())));
+        var matched = new HashMap<String, technology.renatus.routepulse.driver.model.Driver>();
+        for (var name : parsed.driverDates().keySet()) {
+            var candidates = roster.getOrDefault(normalizedName(name),List.of());
+            if (candidates.size() > 1) throw new IllegalStateException("A weekly report name matches multiple registered drivers. Use a schedule table with employee IDs to distinguish them.");
+            if (candidates.size() == 1) matched.put(name,candidates.get(0));
+        }
+        var dates = parsed.driverDates().values().stream().flatMap(Collection::stream).distinct().sorted().toList();
+        if (dates.size() > 90) throw new IllegalStateException("Upload no more than 90 work dates at a time.");
+        var source = new ScheduleImport(organization,actor,UUID.randomUUID().toString(),filename(file),parsed.shifts().size(),
+                dates.get(0),dates.get(dates.size()-1),dates.stream().map(LocalDate::toString).collect(Collectors.joining(",")),Instant.now());
+        source.markWeeklyDriverReport(); imports.save(source);
+        // Weekly reports include meal-break segments. Demand uses the first arrival and final departure per employee/day.
+        var visits = new LinkedHashMap<VisitKey, LocalDateTime[]>();
+        for (var shift : parsed.shifts()) {
+            var start = shift.getShiftDate().atTime(shift.getStartTime());
+            var end = shift.getShiftDate().atTime(shift.getEndTime());
+            if (!end.isAfter(start)) end = end.plusDays(1);
+            var key = new VisitKey(normalizedName(shift.getEmployeeName()),shift.getShiftDate());
+            var span = visits.get(key);
+            if (span == null) visits.put(key,new LocalDateTime[]{start,end});
+            else { if (start.isBefore(span[0])) span[0]=start; if (end.isAfter(span[1])) span[1]=end; }
+        }
+        var counts = new HashMap<Key, People>();
+        visits.forEach((key,span) -> {
+            add(counts,key.date(),span[0].toLocalDate(),span[0].toLocalTime(),true,key.name());
+            add(counts,key.date(),span[1].toLocalDate(),span[1].toLocalTime(),false,key.name());
+        });
+        // Keep explicitly reported days off distinguishable from missing schedule data.
+        for (var date : dates) if (counts.keySet().stream().noneMatch(k -> k.sourceDate().equals(date)))
+            counts.put(new Key(date,date,TransportationPeriodType.MORNING,floor(morningStart)),new People());
+        windows.replaceDates(org,dates);
+        windows.saveAll(counts.entrySet().stream().map(e -> new DemandForecastWindow(organization,source,e.getKey().sourceDate(),
+                e.getKey().eventDate(),e.getKey().period(),e.getKey().start(),e.getValue().ins.size(),e.getValue().outs.size())).toList());
+        parsed.driverDates().forEach((name, days) -> {
+            if (matched.containsKey(name)) driverWindows.replaceDriverDates(org,matched.get(name).getId(),days);
+        });
+        driverWindows.saveAll(parsed.shifts().stream().filter(s -> matched.containsKey(s.getEmployeeName())).map(s -> {
+            var start=s.getShiftDate().atTime(s.getStartTime()); var end=s.getShiftDate().atTime(s.getEndTime());
+            if (!end.isAfter(start)) end=end.plusDays(1);
+            return new DriverScheduleWindow(matched.get(s.getEmployeeName()),source,start,end);
+        }).toList());
+        return source;
+    }
+    private record VisitKey(String name, LocalDate date) { }
+    private String normalizedName(String name) { return name.strip().replaceAll("\\s+"," ").toLowerCase(Locale.ROOT); }
 
     private void add(Map<Key, People> counts, LocalDate sourceDate, LocalDate eventDate, LocalTime time,
             boolean arrival, String employeeId) {

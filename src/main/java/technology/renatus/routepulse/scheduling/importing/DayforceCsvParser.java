@@ -15,9 +15,19 @@ public class DayforceCsvParser {
             .withResolverStyle(ResolverStyle.STRICT);
 
     public List<ShiftRecord> parse(MultipartFile file) {
+        return parseSchedule(file).shifts();
+    }
+    public ParsedSchedule parseSchedule(MultipartFile file) {
+        var tables = ScheduleTableReader.read(file);
+        boolean weekly = tables.stream().flatMap(Collection::stream).anyMatch(WeeklyDriverScheduleParser::header);
+        if (weekly) {
+            if (tables.stream().flatMap(Collection::stream).anyMatch(r -> r.values().stream().anyMatch(v -> normalize(v).equals("employeeid"))))
+                throw new IllegalStateException("Upload weekly driver grids and employee demand tables separately.");
+            return WeeklyDriverScheduleParser.parse(tables);
+        }
         var shifts = new LinkedHashMap<ShiftKey, ShiftRecord>();
         boolean foundHeader = false;
-        for (var table : ScheduleTableReader.read(file)) {
+        for (var table : tables) {
             Map<Field, Integer> columns = null;
             for (var row : table) {
                 if (columns == null) {
@@ -53,7 +63,7 @@ public class DayforceCsvParser {
         }
         if (!foundHeader) throw new IllegalStateException("The Dayforce schedule header could not be found. Upload a CSV or XLSX with the required columns.");
         if (shifts.isEmpty()) throw new IllegalStateException("The uploaded schedule does not contain any scheduled shifts.");
-        return List.copyOf(shifts.values());
+        return new ParsedSchedule(List.copyOf(shifts.values()),Map.of());
     }
 
     private Map<Field, Integer> readHeader(ScheduleTableReader.Row row) {

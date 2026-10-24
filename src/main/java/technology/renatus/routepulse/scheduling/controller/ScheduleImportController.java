@@ -57,7 +57,9 @@ public class ScheduleImportController {
 
             redirectAttributes.addFlashAttribute(
                     "successMessage",
-                    scheduleImport.getRowCount()
+                    scheduleImport.isWeeklyDriverReport()
+                            ? scheduleImport.getRowCount() + " work segments imported from the weekly report. Transportation demand uses each employee’s first start and final end; breaks are preserved for matched drivers. Counts cover only employees in this report."
+                            : scheduleImport.getRowCount()
                             + " unique shifts processed. Transportation demand is ready in 15-minute intervals."
             );
 
