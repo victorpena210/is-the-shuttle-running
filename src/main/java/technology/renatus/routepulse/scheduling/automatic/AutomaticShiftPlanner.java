@@ -13,7 +13,10 @@ public final class AutomaticShiftPlanner {
             LocalDateTime now,Map<Long,Long> plannedSeconds) {
         var result=new ArrayList<Slot>();
         var usedToday=new HashSet<Long>();
-        for (var slot:saved) if (!slot.getStart().isAfter(now)) {
+        // An unfilled block has no driver to preserve. Newly synced availability must
+        // be able to fill its remaining time even when the nominal start has passed.
+        for (var slot:saved) if (!slot.getStart().isAfter(now)
+                && (slot.getDriverId()!=null || !slot.getEnd().isAfter(now))) {
             result.add(slot);
             if(slot.getDriverId()!=null) {
                 usedToday.add(slot.getDriverId());

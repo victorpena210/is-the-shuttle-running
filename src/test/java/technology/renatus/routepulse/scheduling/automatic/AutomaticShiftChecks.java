@@ -34,6 +34,9 @@ public final class AutomaticShiftChecks {
         check(closed.size()==1&&closed.get(0).equals(first.get(0)),"closed or unknown withdraws future only");
         var gaps=AutomaticShiftPlanner.plan(List.of(window(9,12)),List.of(),now,new HashMap<>());
         check(gaps.size()==1&&gaps.get(0).getDriverId()==null,"no counter coverage yields unassigned gap");
+        var filled=AutomaticShiftPlanner.plan(List.of(window(9,12,A,B)),gaps,DAY.atTime(10,7),new HashMap<>());
+        check(filled.size()==1&&filled.get(0).getDriverId()==1&&filled.get(0).getStart().equals(DAY.atTime(10,8)),
+                "new availability fills the remaining time in a previously unassigned block");
         var longRun=AutomaticShiftPlanner.plan(List.of(window(15,23,A,B)),List.of(),now,new HashMap<>());
         check(longRun.size()==2&&longRun.stream().allMatch(s->s.seconds()<=14400),"four hour maximum");
         check(!longRun.get(0).getDriverId().equals(longRun.get(1).getDriverId()),"rotate at long-run boundary");

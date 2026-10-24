@@ -16,7 +16,7 @@
 <p th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></p>
 <p>Assignments refresh every five minutes for the next 28 days. Times are in <strong th:text="${operationsZone}"></strong>.</p>
 <p>Use the shuttle NFC/QR checkpoint when you actually start driving. A scheduled shift does not start the shuttle or add driving time to your record.</p>
-<p th:if="${managerView}">Opening service and required scare-actor transport keep another scheduled roster member at the wardrobe counter while it is open. Later pickups follow <a th:href="@{/transportation-demand}">uploaded employee demand</a> after wardrobe closes.
+<p th:if="${managerView}">Saved driver availability and verified park hours are enough to create assignments. Opening service and required scare-actor transport keep another scheduled roster member at the wardrobe counter while it is open. Later service runs from wardrobe closing through park closing; <a th:href="@{/transportation-demand}">employee-demand uploads</a> can add pickup windows and are optional.
 <a th:href="@{/drivers}">Check driver availability and UKG calendars</a>.</p>
 <form class="demand-date" th:action="@{${scheduleUrl}}" method="get">
 <div class="form-group"><label for="date">Week starting</label><input id="date" name="date" type="date" th:value="${from}" required></div>
@@ -25,7 +25,8 @@
 <a th:href="@{${scheduleUrl}(date=${today})}">Today</a>
 <a th:href="@{${scheduleUrl}(date=${from.plusDays(7)})}">Next week</a></form>
 <section class="demand-empty" th:if="${#lists.isEmpty(days)}"><h2>No saved assignments for this week</h2>
-<p>Automatic planning covers today through the next 27 days. New schedules appear after the next refresh.</p></section>
+<p>Automatic planning covers today through the next 27 days. New schedules appear after the next refresh.</p>
+<p th:if="${managerView}">Use Refresh assignments above to generate them now from your saved driver schedules and park hours. An employee-demand upload is not required.</p></section>
 <section class="driver-suggestions" th:each="day : ${days}">
 <h2 th:text="${#temporals.format(day.date, 'EEEE, MMMM d')}"></h2>
 <p><strong th:text="${day.status == 'OPEN' ? 'Park open' : (day.status == 'CLOSED' ? 'Park closed' : 'Park hours need verification')}"></strong>

@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import technology.renatus.routepulse.organization.repository.OrganizationRepository;
-import technology.renatus.routepulse.organization.domain.OrganizationStatus;
+import java.time.Instant;
 
 @Component
 public class AutomaticScheduleJob {
@@ -19,7 +19,8 @@ public class AutomaticScheduleJob {
     @Scheduled(fixedDelay=300000,initialDelay=30000)
     public void refresh() {
         if(!enabled)return;
-        for(var org:organizations.findAll()) if(org.getStatus()==OrganizationStatus.ACTIVE) {
+        var now=Instant.now();
+        for(var org:organizations.findAll()) if(org.hasApplicationAccess(now)) {
             try {schedules.refresh(org.getId());}
             catch(RuntimeException error) {LoggerFactory.getLogger(getClass()).error("Automatic driving schedule refresh failed for organization {}",org.getId(),error);}
         }
