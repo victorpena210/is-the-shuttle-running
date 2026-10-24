@@ -12,9 +12,9 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class RetiredPlanningRoutes implements WebMvcConfigurer, HandlerInterceptor {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(this).addPathPatterns("/upload", "/assignments/**", "/park-calendar/**", "/wardrobe-hours/**",
+        registry.addInterceptor(this).addPathPatterns("/assignments/**", "/park-calendar/**", "/wardrobe-hours/**",
                 "/schedule-updates", "/schedule-updates/**", "/driver/availability", "/driver/availability/**",
-                "/driver/schedule", "/driver/demand", "/driver/analytics", "/drivers/lookup",
+                "/driver/schedule", "/driver/analytics", "/drivers/lookup",
                 "/app/attention", "/service-history", "/pilot-analytics", "/driving-records/*/outcome");
     }
     @Override

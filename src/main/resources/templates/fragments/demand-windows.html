@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<th:block th:fragment="windows(period)"><div class="demand-table table-shell" tabindex="0" role="region" th:attr="aria-label=${period.title + ' in 15-minute intervals'}">
+<table><caption class="sr-only" th:text="${period.title + ' · scheduled clock-ins and clock-outs'}"></caption>
+<thead><tr><th scope="col">Time</th><th scope="col">Clocking in</th><th scope="col">Clocking out</th></tr></thead>
+<tbody><tr th:each="window : ${period.windows}" th:classappend="${window.movements() > 0 ? 'has-demand' : 'no-demand'}">
+<th scope="row"><span th:text="${#temporals.format(window.start, 'h:mm a')}"></span>–<span th:text="${#temporals.format(window.end, 'h:mm a')}"></span>
+<small th:if="${window.endsNextDay()}"> next day</small></th><td th:text="${window.clockIns}"></td><td th:text="${window.clockOuts}"></td>
+</tr></tbody></table></div></th:block>
+
+</body></html>

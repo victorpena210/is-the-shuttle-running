@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Employee transportation demand | Is the Shuttle Running</title>
+<link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
+<link rel="stylesheet" th:href="@{/css/site.css}"><link rel="stylesheet" th:href="@{/css/pages/transportation-demand.css}"></head>
+<body class="app-page">
+<th:block th:if="${managerView}"><th:block th:replace="~{fragments/navigation :: managerNav('transportation-demand')}"></th:block></th:block>
+<th:block th:unless="${managerView}"><th:block th:replace="~{fragments/navigation :: driverNav}"></th:block></th:block>
+<main id="main-content" class="app-main demand-page"><header class="page-header"><div>
+<p class="eyebrow" th:text="${organizationName}"></p><h1>Employee transportation demand</h1>
+<p>See how many employees are scheduled to clock in and out every 15 minutes.</p></div>
+<a th:if="${managerView}" class="button" href="#upload">Upload schedule</a></header>
+<p th:if="${successMessage}" class="alert alert--success" role="status" th:text="${successMessage}"></p>
+<p th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></p>
+
+<section id="upload" class="demand-upload" th:if="${managerView}" aria-labelledby="upload-heading">
+<div><h2 id="upload-heading">Upload the employee schedule</h2><p>Use the exported Dayforce CSV, up to 5 MB. Uploading again replaces the counts for the work dates in that file.</p></div>
+<form th:action="@{/transportation-demand/upload}" method="post" enctype="multipart/form-data">
+<div class="form-group"><label for="scheduleFile">Dayforce schedule CSV</label>
+<input id="scheduleFile" type="file" name="scheduleFile" accept=".csv,text/csv" required></div>
+<button class="button" type="submit">Upload and calculate demand</button></form>
+<details><summary>File format</summary><p>Export as CSV from Dayforce. Report headings above the table are supported.</p>
+<p>Required columns: Employee ID, Employee Name (or Employee Full Name), Shift Start, and Shift End. The full “Scheduled Shift Start Date Time” and “Scheduled Shift End Date Time” headings also work.</p>
+<p>Dates should look like <strong>10/24/2026 9:00 AM</strong>. Unscheduled employees with both times blank are skipped. Identical shifts are counted once.</p></details></section>
+
+<form class="demand-date" th:action="@{${demandUrl}}" method="get">
+<div class="form-group"><label for="date">Demand date</label><input id="date" name="date" type="date" th:value="${forecast.date}" required></div>
+<button class="button button--secondary" type="submit">Show demand</button>
+<a th:href="@{${demandUrl}(date=${today})}">Today</a></form>
+<details th:unless="${#lists.isEmpty(forecast.dates)}" class="demand-dates"><summary>Dates with uploaded demand</summary>
+<div><a th:each="date : ${forecast.dates}" th:href="@{${demandUrl}(date=${date})}"
+th:text="${#temporals.format(date, 'MMM d, yyyy')}"></a></div></details>
+<h2 th:text="${#temporals.format(forecast.date, 'EEEE, MMMM d, yyyy')}"></h2>
+<p>Times shown in <strong th:text="${operationsZone}"></strong>. These counts come from scheduled shifts, not actual time-clock punches or confirmed shuttle riders.</p>
+
+<section th:unless="${forecast.available}" class="demand-empty"><h2>No uploaded demand for this date</h2>
+<p th:text="${managerView ? 'Upload a Dayforce CSV covering this date, or choose a date with uploaded demand.' : 'Your manager needs to upload the schedule for this date. You can also choose another available date.'}"></p>
+<p>No uploaded schedule does not mean zero demand.</p></section>
+
+<th:block th:if="${forecast.available}">
+<div class="demand-metrics"><div><strong th:text="${forecast.clockIns}"></strong><span>Scheduled clock-ins</span></div>
+<div><strong th:text="${forecast.clockOuts}"></strong><span>Scheduled clock-outs</span></div>
+<div th:if="${forecast.peak != null}"><strong th:text="${#temporals.format(forecast.peak.start, 'h:mm a')}"></strong>
+<span th:text="|Busiest 15 minutes · ${forecast.peak.movements()} movements|"></span></div></div>
+<p class="demand-source">Most recent contributing upload: <span th:text="${forecast.filename}"></span> ·
+<span th:text="${#temporals.format(forecast.uploadedAt, 'MMM d, yyyy h:mm a z')}"></span></p>
+
+<div class="demand-columns"><section class="demand-period" th:each="period : ${forecast.periods}"
+th:attr="aria-labelledby=${'heading-' + period.key}"><h2 th:id="${'heading-' + period.key}" th:text="${period.title}"></h2>
+<p th:text="${period.range}"></p><p class="demand-period-totals"><strong th:text="${period.clockIns}"></strong> clocking in ·
+<strong th:text="${period.clockOuts}"></strong> clocking out</p>
+<th:block th:replace="~{fragments/demand-windows :: windows(${period})}"></th:block></section></div>
+<details class="demand-off-hours"><summary th:text="|Off-hours · ${forecast.offHours.clockIns} clock-ins / ${forecast.offHours.clockOuts} clock-outs|"></summary>
+<p th:text="${forecast.offHours.range}"></p><th:block th:replace="~{fragments/demand-windows :: windows(${forecast.offHours})}"></th:block></details>
+<p class="demand-note">Each interval includes its start time and ends before the next interval. Noon clock-ins stay in Morning; noon clock-outs are in Midday. Overnight clock-outs appear on the date they happen. Both directions are shown in every period.</p>
+</th:block>
+</main><footer th:replace="~{fragments/footer :: footer('app')}"></footer>
+</body></html>

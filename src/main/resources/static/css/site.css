@@ -39,3 +39,5 @@
 
 [data-session-review-alert][hidden] { display: none; }
 [data-session-review-alert] { margin: 1rem; flex-wrap: wrap; align-items: center; }
+
+.app-nav--manager { flex-wrap: wrap; }

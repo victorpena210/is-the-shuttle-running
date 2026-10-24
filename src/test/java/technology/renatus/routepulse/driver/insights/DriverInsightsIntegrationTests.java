@@ -105,7 +105,7 @@ class DriverInsightsIntegrationTests extends MySqlIntegrationTestSupport {
         assertThat(demand.analysis().getEvening().getTotalCount()).isEqualTo(1);
         mockMvc.perform(get("/driver/demand").with(user(account.getEmail()).roles("DRIVER"))
                 .param("organizationId", elsewhere.getId().toString()).param("date", date.minusDays(1).toString()))
-                .andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/driver"));
+                .andExpect(status().isOk());
         assertThat(assignmentRepository.count()).isEqualTo(before);
     }
 }

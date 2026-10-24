@@ -21,6 +21,8 @@
                    th:attr="aria-current=${activePage == 'driving-records' ? 'page' : null}">Driving history</a>
                 <a class="app-nav__link" th:href="@{/driving-records/reviews}"
                    th:attr="aria-current=${activePage == 'session-reviews' ? 'page' : null}">Session reviews</a>
+                <a class="app-nav__link" th:href="@{/transportation-demand}"
+                   th:attr="aria-current=${activePage == 'transportation-demand' ? 'page' : null}">Transportation demand</a>
                 <a class="app-nav__link" th:href="@{/app/live-status}"
                    th:attr="aria-current=${activePage == 'live-status' ? 'page' : null}">Live shuttle status</a>
                 <a class="app-nav__link" th:href="@{/drivers}"
@@ -74,6 +76,7 @@
             <nav class="app-nav" aria-label="Driver navigation">
                 <a class="app-nav__link" th:href="@{/driver}">My driving</a>
                 <a class="app-nav__link" th:href="@{/driver#driving-history}">My records</a>
+                <a class="app-nav__link" th:href="@{/driver/demand}">Transportation demand</a>
                 <form class="app-nav__form" th:action="@{/logout}" method="post">
                     <button class="app-nav__button" type="submit">Sign out</button>
                 </form>

@@ -70,19 +70,24 @@ public class TransportationDemandBucketizer {
             LocalTime eventTime,
             boolean arrival,
             Buckets buckets) {
+        return buckets.forType(periodFor(eventTime, arrival));
+    }
+
+    /** Shared with the upload forecast so the established period boundaries stay consistent. */
+    public TransportationPeriodType periodFor(LocalTime eventTime, boolean arrival) {
         // Exactly operatingEnd remains normal operations; anything after it is off-hours.
         if (eventTime.isBefore(operatingStart) || eventTime.isAfter(operatingEnd)) {
-            return buckets.offHours;
+            return TransportationPeriodType.OFF_HOURS;
         }
 
         // Noon arrivals stay aligned with MorningDrivingPlanningService; noon departures are midday.
         if (eventTime.isBefore(middayStart) || (arrival && eventTime.equals(middayStart))) {
-            return buckets.morning;
+            return TransportationPeriodType.MORNING;
         }
         if (eventTime.isBefore(eveningStart)) {
-            return buckets.midday;
+            return TransportationPeriodType.MIDDAY;
         }
-        return buckets.evening;
+        return TransportationPeriodType.EVENING;
     }
 
     private LocalTime floorToWindow(LocalTime time) {

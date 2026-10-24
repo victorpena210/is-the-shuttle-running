@@ -7,23 +7,23 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import technology.renatus.routepulse.organization.service.CurrentOrganizationService;
-import technology.renatus.routepulse.scheduling.importing.CsvScheduleProvider;
+import technology.renatus.routepulse.scheduling.demand.DemandForecastService;
 import technology.renatus.routepulse.scheduling.model.ScheduleImport;
 
 @Controller
 public class ScheduleImportController {
 
-    private final CsvScheduleProvider csvScheduleProvider;
+    private final DemandForecastService forecasts;
     private final CurrentOrganizationService currentOrganizationService;
 
     public ScheduleImportController(
-            CsvScheduleProvider csvScheduleProvider,
+            DemandForecastService forecasts,
             CurrentOrganizationService currentOrganizationService) {
-        this.csvScheduleProvider = csvScheduleProvider;
+        this.forecasts = forecasts;
         this.currentOrganizationService = currentOrganizationService;
     }
 
-    @PostMapping("/upload")
+    @PostMapping({"/upload", "/transportation-demand/upload"})
     public String uploadSchedule(
             Authentication authentication,
 
@@ -41,8 +41,8 @@ public class ScheduleImportController {
         try {
 
             ScheduleImport scheduleImport =
-                    csvScheduleProvider
-                            .loadSchedule(
+                    forecasts
+                            .upload(
                                     organizationId,
                                     authentication.getName(),
                                     scheduleFile
@@ -58,13 +58,10 @@ public class ScheduleImportController {
             redirectAttributes.addFlashAttribute(
                     "successMessage",
                     scheduleImport.getRowCount()
-                            + " shifts were successfully uploaded. "
-                            + "Import "
-                            + scheduleImport.getShortVersionId()
-                            + "."
+                            + " unique shifts processed. Transportation demand is ready in 15-minute intervals."
             );
 
-        } catch (IllegalStateException exception) {
+        } catch (IllegalStateException | IllegalArgumentException exception) {
 
             redirectAttributes.addFlashAttribute(
                     "errorMessage",
@@ -72,6 +69,6 @@ public class ScheduleImportController {
             );
         }
 
-        return "redirect:/app#schedules";
+        return "redirect:/transportation-demand";
     }
 }

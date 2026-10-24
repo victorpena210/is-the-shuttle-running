@@ -65,12 +65,12 @@ class SimpleDrivingScreensTests {
         var mvc=MockMvcBuilders.standaloneSetup(controller).addInterceptors(new RetiredPlanningRoutes()).build();
         mvc.perform(get("/driver/availability")).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/driver"));
         mvc.perform(get("/service-history")).andExpect(status().is3xxRedirection()).andExpect(redirectedUrl("/driving-records"));
-        mvc.perform(post("/upload")).andExpect(status().isGone());
+        mvc.perform(post("/assignments/manual")).andExpect(status().isGone());
         assertThat(controller.calls).isZero();
     }
     @Controller static class DummyController {
         int calls;
-        @RequestMapping({"/driver/availability","/service-history","/upload"}) @ResponseBody
+        @RequestMapping({"/driver/availability","/service-history","/assignments/manual"}) @ResponseBody
         String mutate() { calls++; return "should not execute"; }
     }
     private Map<String,Object> model() {

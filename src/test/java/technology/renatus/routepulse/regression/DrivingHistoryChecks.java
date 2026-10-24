@@ -130,7 +130,7 @@ public final class DrivingHistoryChecks {
         };
         retirement.addInterceptors(registry);
         var interceptor = (MappedInterceptor) registry.registered().get(0);
-        for (String path : List.of("/upload", "/assignments/manual", "/assignments/confirm-schedule",
+        for (String path : List.of("/assignments/manual", "/assignments/confirm-schedule",
                 "/park-calendar/refresh", "/wardrobe-hours/day", "/schedule-updates",
                 "/driver/availability", "/driver/availability/confirm", "/driver/schedule",
                 "/driving-records/12/outcome")) {
@@ -141,7 +141,7 @@ public final class DrivingHistoryChecks {
             equal(false, retirement.preHandle(request, response(result), new Object()), "retired write stops before its handler");
             equal(410, result.get("status"), "retired write returns Gone");
         }
-        for (String path : List.of("/app", "/app/live-status", "/driving-records", "/driver/scan", "/driver/tap", "/drivers")) {
+        for (String path : List.of("/app", "/app/live-status", "/driving-records", "/driver/scan", "/driver/tap", "/drivers", "/upload", "/transportation-demand", "/driver/demand")) {
             var request = request("GET", path); ServletRequestPathUtils.parseAndCache(request);
             check(!interceptor.matches(request), "active route remains available: " + path);
         }

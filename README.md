@@ -35,8 +35,8 @@ for how long.
 | Area | Implemented behavior |
 | --- | --- |
 | Riders | Public organization-specific pages showing running/not running and the active driver’s first name |
-| Drivers | Role-restricted portal, NFC/QR checkpoint actions, start/resume, waiting, break, and end controls |
-| Managers | Actual driving history, date/driver filters, driving-time totals, audited time corrections, and four-hour session reviews |
+| Drivers | Role-restricted portal, NFC/QR checkpoint actions, start/resume, waiting, break, end controls, and read-only transportation demand |
+| Managers | Driving history and totals, audited time corrections, four-hour session reviews, and employee-schedule uploads for transportation demand |
 | Accounts | Organization-scoped access, invitations, email verification, password reset, and optional persistent sign-in |
 | Operations | Versioned MySQL migrations, health probes, optional Sentry reporting, and backup/restore tooling |
 
@@ -61,6 +61,24 @@ Live status is at `/app/live-status`. Drivers use the
 existing NFC/QR checkpoints to start, pause, resume, hand off, and end a run.
 The public rider page at `/ride/{slug}` shows whether the shuttle is running
 and the active driver’s first name.
+
+**Employee transportation demand:** managers upload a Dayforce CSV at
+`/transportation-demand`; drivers view the same organization’s aggregate counts at
+`/driver/demand`. Every 15-minute interval shows scheduled clock-ins and clock-outs,
+including quiet intervals, in Morning Arrivals (9 AM–noon), Midday Turnover
+(noon–5 PM), and Evening Pickups (5 PM–11:59 PM). Off-hours are collapsed below.
+The established noon rule is preserved: noon clock-ins belong to Morning and noon
+clock-outs to Midday. Overnight departures appear on their actual calendar date.
+These are schedule-based forecasts, not attendance or confirmed passenger counts.
+
+The importer accepts short or full Dayforce column headings in any order, report
+preambles, and quoted names. It skips employees without shifts, deduplicates exact
+shift rows, and validates the complete file before changing counts. Re-uploading
+replaces only the work dates present in that file, including their overnight
+departures. The forecast stores anonymous counts with upload provenance for a
+rolling 12 months; employee rows are not saved by this upload flow. File size is
+limited to 5 MB and 90 work dates per upload. Uploading or viewing demand does not
+change live shuttle status or driving records.
 
 ## Stack and code tour
 
