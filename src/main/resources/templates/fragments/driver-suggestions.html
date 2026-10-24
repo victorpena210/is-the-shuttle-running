@@ -2,6 +2,11 @@
 <section th:fragment="suggestions" id="driver-suggestions" class="driver-suggestions" aria-labelledby="suggestions-heading">
 <h2 id="suggestions-heading">Suggested drivers</h2>
 <p>Available drivers are ranked by who has not driven today, then fewer actual driving hours in the past 30 days, then longest since driving. Manager time corrections are included.</p>
+<p><a th:href="@{/drivers}">Connect each driver's UKG calendar</a> to refresh work availability automatically. Connected calendars take priority over uploaded driver work hours for upcoming dates.</p>
+<details th:if="${calendarStates != null and !#lists.isEmpty(calendarStates)}"><summary>UKG calendar connections</summary>
+<ul><li th:each="state : ${calendarStates}"><a th:href="@{/drivers/{id}/calendar(id=${state.driverId})}" th:text="${state.name}"></a> ·
+<span th:text="${state.stale ? 'Stale — excluded from upcoming suggestions' : (state.retrying ? 'Refresh pending' : 'Connected')}"></span> ·
+last synced <span th:text="${#temporals.format(state.lastSynced, 'MMM d, h:mm a')}"></span></li></ul></details>
 <p class="demand-note">History as of <span th:text="${#temporals.format(suggestions.asOf, 'MMM d, yyyy h:mm a z')}"></span>.
 Each window is a recommendation for you to review. It does not reserve a driver or start a session. Confirm other duties and breaks before choosing a driver.</p>
 <div class="suggestion-rules">
@@ -19,10 +24,10 @@ Keep one other scheduled roster member at the counter. Later service starts afte
 <p>For morning openings, opening service lasts up to three hours. For afternoon openings, it lasts until wardrobe closes. Midnight closing means the end of this date.</p></details>
 </div>
 <p th:if="${#lists.isEmpty(suggestions.roster)}" class="alert">Add active drivers on the <a th:href="@{/drivers}">Drivers page</a> to get suggestions.</p>
-<p th:if="${suggestions.noSchedules and !#lists.isEmpty(suggestions.roster)}" class="alert">No matching driver work hours for this date. Check employee IDs on the <a th:href="@{/drivers}">Drivers page</a> and upload the schedule again. Files uploaded before driver suggestions were added need to be uploaded again.</p>
+<p th:if="${suggestions.noSchedules and !#lists.isEmpty(suggestions.roster)}" class="alert">No available driver work hours for this date. Check UKG connection status or employee IDs on the <a th:href="@{/drivers}">Drivers page</a>. For uploaded schedules, files uploaded before driver suggestions were added need to be uploaded again.</p>
 <details th:unless="${#lists.isEmpty(suggestions.unmatched)}"><summary th:text="|${#lists.size(suggestions.unmatched)} active drivers without matching work hours|"></summary>
 <ul><li th:each="driver : ${suggestions.unmatched}" th:text="|${driver.name} · Employee ID ${driver.employeeId}|"></li></ul>
-<p>These drivers are not suggested. They may be off that day or their employee ID may not match the file. After registering a driver or correcting an ID, upload the schedule again.</p></details>
+<p>These drivers are not suggested. They may be off that day, their UKG calendar may need a refresh, or their employee ID may not match the file. After registering a driver or correcting an ID, upload the schedule again or connect their UKG calendar.</p></details>
 <div class="suggestion-period" th:each="period : ${suggestions.periods}">
 <h3 th:text="${period.title}"></h3>
 <p th:if="${#lists.isEmpty(period.windows)}" th:text="${forecast.available ? 'No scheduled demand in this period.' : 'Upload a schedule to see suggestions for this period.'}"></p>
@@ -37,7 +42,7 @@ Keep one other scheduled roster member at the counter. Later service starts afte
 <span th:text="${driver.drivingTime()}"></span><span th:if="${driver.droveToday}"> · Has driven today</span></li></ol></details>
 </th:block><p th:if="${window.recommended() == null}" class="suggestion-gap"><strong>Needs coverage</strong><br><span th:text="${window.reason}"></span></p></div>
 </div></div>
-<p class="demand-note">Only drivers whose uploaded work hours cover the full demand window are shown. Split shifts and overnight work are supported. Adjacent matching windows are grouped up to four hours; each group is reviewed independently. Actual driving sessions still stop automatically at four hours.</p>
+<p class="demand-note">Only drivers whose work hours cover the full demand window are shown. Split shifts and overnight work are supported. Adjacent matching windows are grouped up to four hours; each group is reviewed independently. Actual driving sessions still stop automatically at four hours.</p>
 <details th:unless="${#lists.isEmpty(suggestions.roster)}"><summary>Driving history used for these suggestions</summary>
 <div class="table-shell"><table><thead><tr><th scope="col">Driver</th><th scope="col">Past 30 days</th><th scope="col">Last started driving</th></tr></thead><tbody>
 <tr th:each="driver : ${suggestions.roster}"><th scope="row" th:text="${driver.name}"></th><td th:text="${driver.drivingTime()}"></td>

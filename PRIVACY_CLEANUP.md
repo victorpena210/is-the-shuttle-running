@@ -56,6 +56,21 @@ may still contain data from earlier workflows. Their old cleanup and scheduling
 workflows are retired. The current upload neither reads nor writes those tables.
 Registered drivers and actual driving history remain separate records.
 
+## Private UKG calendar subscriptions
+
+`driver_calendar_connections` stores each registered driver's encrypted subscription
+link and refresh status. `driver_calendar_shifts` stores only the current six-week
+snapshot of shift start/end times. Every successful refresh replaces that snapshot;
+disconnecting deletes both the connection and its shifts. Feed descriptions,
+calendar UIDs and raw responses are not stored. Plaintext subscription links are
+never returned in HTML or error messages and must never be committed to source.
+
+Managers can connect drivers in their organization; drivers can connect only their
+own linked profile. Stored account status and membership are rechecked for every
+connection action. Connection links are encrypted with authenticated encryption
+bound to both organization and driver. The stable application secret used for this
+must be backed up separately from the database.
+
 ## Driver-confirmed schedule updates
 
 Schedule screenshots are processed locally with Tesseract using temporary files;

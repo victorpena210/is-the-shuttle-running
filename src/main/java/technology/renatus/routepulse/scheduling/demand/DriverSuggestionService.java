@@ -22,14 +22,17 @@ public class DriverSuggestionService {
     private final DrivingSessionRepository sessions;
     private final WardrobeHoursService wardrobe;
     private final DriverScheduleIdentityService access;
+    private final technology.renatus.routepulse.driver.calendar.DriverCalendarAvailability calendars;
     private final ZoneId zone;
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("h:mm a", Locale.US);
 
     public DriverSuggestionService(DriverRepository drivers, DriverScheduleWindowRepository schedules,
             DrivingSessionRepository sessions, WardrobeHoursService wardrobe, DriverScheduleIdentityService access,
+            technology.renatus.routepulse.driver.calendar.DriverCalendarAvailability calendars,
             @Value("${app.operations-zone:America/Chicago}") String zone) {
         this.drivers = drivers; this.schedules = schedules; this.sessions = sessions;
         this.wardrobe = wardrobe; this.access = access; this.zone = ZoneId.of(zone);
+        this.calendars = calendars;
     }
 
     public Suggestions page(Long org, DemandForecastService.Forecast forecast, String email) {
@@ -47,6 +50,8 @@ public class DriverSuggestionService {
         var work = schedules.overlapping(org, date.atStartOfDay(), date.plusDays(1).atStartOfDay()).stream()
                 .filter(w -> roster.stream().anyMatch(d -> d.getId().equals(w.getDriver().getId())))
                 .collect(Collectors.groupingBy(w -> w.getDriver().getId()));
+        calendars.apply(org,date,now,work);
+        work.keySet().removeIf(id -> roster.stream().noneMatch(d -> d.getId().equals(id)));
         var history = sessions.findOverlappingForServiceReview(org, since, asOf).stream()
                 .collect(Collectors.groupingBy(s -> s.getDriver().getId()));
         var last = sessions.lastDriven(org, asOf).stream().collect(Collectors.toMap(
@@ -93,9 +98,9 @@ public class DriverSuggestionService {
             }
             groups.add(new Period(period.key(), period.title(), List.copyOf(rows)));
         }
-        var missing = stats.stream().filter(c -> !work.containsKey(c.driverId())).toList();
+        var missing = stats.stream().filter(c -> work.getOrDefault(c.driverId(),List.of()).isEmpty()).toList();
         return new Suggestions(List.copyOf(groups), stats, missing, asOf.atZone(zone),
-                openingStart, openingEnd, closing, hours.label(), work.isEmpty());
+                openingStart, openingEnd, closing, hours.label(), work.values().stream().allMatch(List::isEmpty));
     }
 
     private boolean withinSessionLimit(List<DrivingSession> history, LocalDateTime end, Instant now) {
