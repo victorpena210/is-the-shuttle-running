@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -15,6 +18,24 @@ import technology.renatus.routepulse.organization.model.OrganizationMembership;
 import technology.renatus.routepulse.support.MySqlIntegrationTestSupport;
 
 class RegistrationIntegrationTests extends MySqlIntegrationTestSupport {
+
+    @Test
+    void registrationPagesAndSubmissionsAreGoneWithoutCreatingAccounts() throws Exception {
+        long accountsBefore = userAccountRepository.count();
+        long organizationsBefore = organizationRepository.count();
+        for (String path : java.util.List.of("/register", "/organization/register")) {
+            mockMvc.perform(get(path)).andExpect(status().isGone());
+            mockMvc.perform(post(path).with(csrf())
+                    .param("organizationLegalName", "Removed LLC")
+                    .param("organizationDisplayName", "Removed")
+                    .param("firstName", "Test").param("lastName", "User")
+                    .param("email", "removed@example.com")
+                    .param("password", "a-strong-password").param("confirmPassword", "a-strong-password"))
+                    .andExpect(status().isGone());
+        }
+        assertEquals(accountsBefore, userAccountRepository.count());
+        assertEquals(organizationsBefore, organizationRepository.count());
+    }
 
     @Test
     void registrationCreatesAnOwnerAndEmailVerificationEnablesLogin() {

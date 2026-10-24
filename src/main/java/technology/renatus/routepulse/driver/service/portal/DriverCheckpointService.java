@@ -70,6 +70,7 @@ public class DriverCheckpointService {
 
         // An organization lock also protects days with no assignment rows.
         drivingSessionService.lockOrganization(organizationId);
+        drivingSessionService.endOverdueSessions(organizationId, eventNow);
         DrivingSession activeSession = drivingSessionService
                 .findActiveSessionForUpdate(organizationId);
 

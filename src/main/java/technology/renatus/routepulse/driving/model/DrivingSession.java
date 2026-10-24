@@ -26,6 +26,8 @@ import technology.renatus.routepulse.organization.model.Organization;
 @Table(name = "driving_sessions")
 public class DrivingSession {
 
+    public static final Duration MAX_DURATION = Duration.ofHours(4);
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -210,7 +212,16 @@ public class DrivingSession {
             );
         }
 
-        boolean automated = endMethod == DrivingActionMethod.AUTOMATIC && endReason == DrivingSessionEndReason.INACTIVITY_TIMEOUT;
+        // A late stop or handoff must not extend a run past the server cutoff,
+        // even if it arrives between background checks.
+        if (!endedAt.isBefore(getAutomaticEndAt())) {
+            endedAt = getAutomaticEndAt();
+            endMethod = DrivingActionMethod.AUTOMATIC;
+            endReason = DrivingSessionEndReason.DURATION_LIMIT;
+        }
+        boolean automated = endMethod == DrivingActionMethod.AUTOMATIC
+                && (endReason == DrivingSessionEndReason.INACTIVITY_TIMEOUT
+                    || endReason == DrivingSessionEndReason.DURATION_LIMIT);
         if (!automated) Objects.requireNonNull(endedBy, "The account ending the driving session is required.");
         this.endedAt = endedAt;
         this.endedBy = automated ? null : endedBy;
@@ -252,6 +263,14 @@ public class DrivingSession {
 
     public Instant getStartedAt() {
         return startedAt;
+    }
+
+    public Instant getAutomaticEndAt() {
+        return startedAt.plus(MAX_DURATION);
+    }
+
+    public boolean hasReachedDurationLimit(Instant now) {
+        return isActive() && !now.isBefore(getAutomaticEndAt());
     }
 
     public Instant getEndedAt() {

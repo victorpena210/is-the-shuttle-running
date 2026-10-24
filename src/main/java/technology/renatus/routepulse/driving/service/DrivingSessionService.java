@@ -162,6 +162,7 @@ public class DrivingSessionService {
         if (!driver.isActive()) {
             throw new IllegalStateException("The driver must be active before driving can be recorded.");
         }
+        endOverdueSessions(organization.getId(), startedAt);
         if (findActiveSessionForUpdate(organization.getId()) != null) {
             throw new IllegalStateException("Another driving session is already active. Tap again to refresh.");
         }
@@ -222,18 +223,13 @@ public class DrivingSessionService {
          * time, then open a second session with the same assignment (or no
          * assignment for an unscheduled drive). The planned driver is never rewritten.
          */
-        activeSession.end(
-                changedAt,
-                actor,
-                method,
-                DrivingSessionEndReason.HANDOFF
-        );
-
-        updateDerivedOutcome(assignment);
-        driverWorkloadService.recordSessionCompletion(
+        endSession(
+                assignment,
                 activeSession,
                 actor,
-                changedAt
+                changedAt,
+                method,
+                DrivingSessionEndReason.HANDOFF
         );
 
         DrivingSession replacement = assignment == null
@@ -336,8 +332,9 @@ public class DrivingSessionService {
                 endReason
         );
 
-        if (endReason == DrivingSessionEndReason.INACTIVITY_TIMEOUT) {
-            // A timeout is an estimate requiring review, never proof of completion or a missed duty.
+        if (session.getEndReason() == DrivingSessionEndReason.INACTIVITY_TIMEOUT
+                || session.getEndReason() == DrivingSessionEndReason.DURATION_LIMIT) {
+            // Automatic closure is not proof of completing a planned duty.
             if (assignment != null) assignment.updateDerivedOutcome(AssignmentOutcome.PENDING);
             return session;
         }
@@ -357,7 +354,23 @@ public class DrivingSessionService {
                 .findFirstByOrganization_IdAndEndedAtIsNullOrderByStartedAtDesc(
                         organizationId
                 )
+                .filter(session -> !session.hasReachedDurationLimit(Instant.now()))
                 .orElse(null);
+    }
+
+    /** Catch up after downtime as well as normal polling, one organization per transaction. */
+    @Transactional
+    public int endOverdueSessions(Long organizationId, Instant now) {
+        lockOrganization(organizationId);
+        int ended = 0;
+        for (DrivingSession session : drivingSessionRepository.findActiveForUpdateByOrganization(organizationId)) {
+            if (session.hasReachedDurationLimit(now)) {
+                endSession(session.getAssignment(), session, null, session.getAutomaticEndAt(),
+                        DrivingActionMethod.AUTOMATIC, DrivingSessionEndReason.DURATION_LIMIT);
+                ended++;
+            }
+        }
+        return ended;
     }
 
     @Transactional

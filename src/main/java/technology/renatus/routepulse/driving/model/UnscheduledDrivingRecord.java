@@ -18,6 +18,7 @@ public record UnscheduledDrivingRecord(Long id, String driverName,
                         : switch (session.getEndReason()) {
                             case INACTIVITY_TIMEOUT -> session.isInactivityReviewNeeded() ? "Inactivity timeout — needs review" : "Inactivity timeout — reviewed";
                             case PAUSE -> "Paused";
+                            case DURATION_LIMIT -> "Automatically ended after 4 hours";
                             case HANDOFF -> "Handed off";
                             case COMPLETED -> "Ended";
                         },

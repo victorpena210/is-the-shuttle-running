@@ -40,11 +40,13 @@ for how long.
 | Accounts | Organization-scoped access, invitations, email verification, password reset, and optional persistent sign-in |
 | Operations | Versioned MySQL migrations, health probes, optional Sentry reporting, and backup/restore tooling |
 
-**Current session behavior:** starting or resuming service keeps the session
-active until an explicit pause, end, handoff, or manager close. Missing phone
+**Current session behavior:** each driving session automatically ends after
+four hours, or earlier when paused, ended, handed off, or closed by a manager.
+The server checks every 30 seconds and records the end at the four-hour cutoff,
+including overdue sessions found after a restart. Missing phone
 location and inactivity do not automatically close sessions. Location sharing
 is optional. Temporary manager status overrides still expire at their chosen
-time. [Current status behavior](docs/MANUAL-SESSION-STATUS.md).
+time.
 
 Managers land on driving history at `/app` (`/driving-records` is an alias).
 Live status and run corrections are at `/app/live-status`. Drivers use the
@@ -97,10 +99,12 @@ export SPRING_PROFILES_ACTIVE=dev
 ./mvnw spring-boot:run
 ```
 
-Open <http://localhost:8080/register> to create a local organization owner.
-Development verification, invitation, and password-reset links appear in the
-application console instead of being emailed. Follow the verification link,
-then sign in at <http://localhost:8080/login> and create fictional driver records.
+Self-service organization registration is removed; `/register` and
+`/organization/register` return HTTP 410 for page requests and form submissions.
+Use an existing authorized account or an organization invitation to sign in at
+<http://localhost:8080/login>. The automated tests below create isolated local
+organizations and fictional users. Development invitation, verification, and
+password-reset links appear in the application console instead of being emailed.
 Never use real employee exports for a public demonstration.
 
 [.env.example](.env.example) documents configuration names and placeholders;
@@ -150,7 +154,6 @@ currently deployed service.
 | `MAIL_USERNAME` | Yes | SMTP username |
 | `MAIL_PASSWORD` | Yes | SMTP password |
 | `MAIL_FROM` | Yes | Verified sender address |
-| `APP_REGISTRATION_ENABLED` | No | Defaults to `false` in production |
 | `DEMO_REQUEST_RECIPIENT` | No | Business inbox receiving demo requests |
 | `SENTRY_DSN` | No | Enables error reporting; blank disables Sentry |
 | `SENTRY_ENVIRONMENT` | No | Defaults to `production` in the prod profile |

@@ -5,5 +5,6 @@ public enum DrivingSessionEndReason {
     PAUSE,
     COMPLETED,
     INACTIVITY_TIMEOUT,
+    DURATION_LIMIT,
     HANDOFF
 }
