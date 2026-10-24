@@ -1,6 +1,7 @@
 package technology.renatus.routepulse.auth.controller;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -26,7 +27,16 @@ public class AuthenticationController {
 
     @GetMapping("/login")
     public String showLoginPage(
+            Authentication authentication,
             Model model) {
+
+        // A bookmark or home-screen shortcut may still point at /login.
+        // Both session and remember-me authentication should resume the app.
+        if (authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken)) {
+            return "redirect:/post-login";
+        }
 
         model.addAttribute(
                 "registrationEnabled",

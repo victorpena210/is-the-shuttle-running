@@ -6,12 +6,15 @@ import java.util.concurrent.atomic.AtomicReference;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.RememberMeAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 import org.springframework.security.web.savedrequest.*;
 import org.thymeleaf.spring6.SpringTemplateEngine;
 import org.thymeleaf.templateresolver.FileTemplateResolver;
+import org.springframework.ui.ExtendedModelMap;
 import technology.renatus.routepulse.auth.controller.AuthenticationController;
 import technology.renatus.routepulse.shared.security.RoleAwareLoginSuccessHandler;
 import technology.renatus.routepulse.support.WebTemplateContext;
@@ -52,6 +55,7 @@ public final class LoginRoutingChecks {
         var controller = new AuthenticationController(true, 90);
         equal("redirect:/driver", controller.routeAfterLogin(driver), "driver home selected");
         equal("redirect:/app", controller.routeAfterLogin(authentication("ADMIN")), "manager home selected");
+        verifyLoginPage(controller);
         var resolver = new FileTemplateResolver();
         resolver.setPrefix("src/main/resources/templates/"); resolver.setSuffix(".html");
         resolver.setTemplateMode("HTML"); resolver.setCharacterEncoding("UTF-8"); resolver.setCacheable(false);
@@ -60,6 +64,28 @@ public final class LoginRoutingChecks {
         check(html.contains("href=\"/post-login\""), "error recovery uses the role router");
         check(!html.contains("href=\"/app\""), "error recovery does not repeat the manager-page failure");
         System.out.println("PASS: " + checks + " login-routing checks");
+    }
+
+    private static void verifyLoginPage(AuthenticationController controller) throws Exception {
+        var anonymous = new AnonymousAuthenticationToken("test-key", "anonymousUser",
+                List.of(new SimpleGrantedAuthority("ROLE_ANONYMOUS")));
+        for (Authentication signedOut : Arrays.asList(null, anonymous,
+                new UsernamePasswordAuthenticationToken("test@example.com", "unused"))) {
+            var model = new ExtendedModelMap();
+            equal("auth/login", controller.showLoginPage(signedOut, model), "signed-out visitor gets login form");
+            equal(90, model.get("rememberMeDays"), "sign-in duration remains visible");
+        }
+        for (String role : List.of("DRIVER", "OWNER", "ADMIN", "DISPATCHER")) {
+            var full = authentication(role);
+            var remembered = new RememberMeAuthenticationToken("test-key", "test@example.com",
+                    full.getAuthorities());
+            for (Authentication signedIn : List.of(full, remembered)) {
+                equal("redirect:/post-login", controller.showLoginPage(signedIn, new ExtendedModelMap()),
+                        "already signed-in " + role + " skips login form (" + signedIn.getClass().getSimpleName() + ")");
+                equal(role.equals("DRIVER") ? "redirect:/driver" : "redirect:/app",
+                        controller.routeAfterLogin(signedIn), "return to the correct home");
+            }
+        }
     }
 
     private static String run(SavedRequestAwareAuthenticationSuccessHandler handler, Authentication auth, String context) throws Exception {
