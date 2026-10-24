@@ -96,10 +96,10 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         var manager=authenticationFor(f.manager(),OrganizationRole.OWNER);var driver=authenticationFor(user,OrganizationRole.DRIVER);
         mockMvc.perform(get("/driving-schedule").param("date",day.toString()).param("organizationId",other.org().getId().toString()).with(authentication(manager)))
                 .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Alex visible")))
-                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("PRIVATE-ORG")))));
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("PRIVATE-ORG"))));
         mockMvc.perform(get("/driver/driving-schedule").param("date",day.toString()).param("driverId",f.b().getId().toString()).with(authentication(driver)))
                 .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Alex visible")))
-                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Blair visible")))));
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Blair visible"))));
         mockMvc.perform(get("/driving-schedule").with(authentication(driver))).andExpect(status().isForbidden());
         mockMvc.perform(get("/driving-schedule").with(authentication(authenticationFor(user,OrganizationRole.OWNER)))).andExpect(status().isForbidden());
         mockMvc.perform(post("/driving-schedule/refresh").with(authentication(manager))).andExpect(status().isForbidden());
