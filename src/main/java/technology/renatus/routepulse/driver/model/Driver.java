@@ -136,6 +136,8 @@ public class Driver {
         return employeeId;
     }
 
+    public void changeEmployeeId(String employeeId) { this.employeeId = employeeId; }
+
     public String getName() {
         return name;
     }

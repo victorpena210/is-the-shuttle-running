@@ -1,0 +1,46 @@
+<!DOCTYPE html><html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<section th:fragment="suggestions" id="driver-suggestions" class="driver-suggestions" aria-labelledby="suggestions-heading">
+<h2 id="suggestions-heading">Suggested drivers</h2>
+<p>Available drivers are ranked by who has not driven today, then fewer actual driving hours in the past 30 days, then longest since driving. Manager time corrections are included.</p>
+<p class="demand-note">History as of <span th:text="${#temporals.format(suggestions.asOf, 'MMM d, yyyy h:mm a z')}"></span>.
+Each window is a recommendation for you to review. It does not reserve a driver or start a session. Confirm other duties and breaks before choosing a driver.</p>
+<div class="suggestion-rules">
+<p><strong>Wardrobe coverage</strong> · Opening service:
+<span th:text="${#temporals.format(suggestions.openingStart, 'h:mm a')}"></span>–<span th:text="${#temporals.format(suggestions.openingEnd, 'h:mm a')}"></span>.
+Keep one other scheduled roster member at the counter. Later service starts after wardrobe closes at
+<strong th:text="${#temporals.format(suggestions.closing, 'h:mm a')}"></strong>.
+<span th:text="${suggestions.hoursLabel}"></span>.</p>
+<details th:unless="${forecast.date.isBefore(today)}"><summary>Adjust wardrobe hours for this date</summary>
+<form th:action="@{/transportation-demand/wardrobe-hours}" method="post" class="demand-date">
+<input type="hidden" name="date" th:value="${forecast.date}">
+<div class="form-group"><label for="wardrobeOpening">Opens</label><input id="wardrobeOpening" name="openingTime" type="time" required th:value="${#temporals.format(suggestions.openingStart, 'HH:mm')}"></div>
+<div class="form-group"><label for="wardrobeClosing">Closes</label><input id="wardrobeClosing" name="closingTime" type="time" required th:value="${#temporals.format(suggestions.closing, 'HH:mm')}"></div>
+<button type="submit" class="button button--secondary">Save hours</button></form>
+<p>For morning openings, opening service lasts up to three hours. For afternoon openings, it lasts until wardrobe closes. Midnight closing means the end of this date.</p></details>
+</div>
+<p th:if="${#lists.isEmpty(suggestions.roster)}" class="alert">Add active drivers on the <a th:href="@{/drivers}">Drivers page</a> to get suggestions.</p>
+<p th:if="${suggestions.noSchedules and !#lists.isEmpty(suggestions.roster)}" class="alert">No matching driver work hours for this date. Check employee IDs on the <a th:href="@{/drivers}">Drivers page</a> and upload the schedule again. Files uploaded before driver suggestions were added need to be uploaded again.</p>
+<details th:unless="${#lists.isEmpty(suggestions.unmatched)}"><summary th:text="|${#lists.size(suggestions.unmatched)} active drivers without matching work hours|"></summary>
+<ul><li th:each="driver : ${suggestions.unmatched}" th:text="|${driver.name} · Employee ID ${driver.employeeId}|"></li></ul>
+<p>These drivers are not suggested. They may be off that day or their employee ID may not match the file. After registering a driver or correcting an ID, upload the schedule again.</p></details>
+<div class="suggestion-period" th:each="period : ${suggestions.periods}">
+<h3 th:text="${period.title}"></h3>
+<p th:if="${#lists.isEmpty(period.windows)}" th:text="${forecast.available ? 'No scheduled demand in this period.' : 'Upload a schedule to see suggestions for this period.'}"></p>
+<div class="suggestion-window" th:each="window : ${period.windows}">
+<strong class="suggestion-time" th:text="${window.timeLabel()}"></strong>
+<div><th:block th:if="${window.recommended() != null}">
+<p><strong th:text="${window.recommended().name}"></strong> <span class="badge">Suggested</span><br>
+<span th:text="|${window.recommended().drivingTime()} driving in the past 30 days|"></span>
+<span th:if="${window.recommended().droveToday}"> · Has driven today</span></p>
+<details th:unless="${#lists.isEmpty(window.alternatives())}"><summary th:text="|${#lists.size(window.alternatives())} other available drivers|"></summary>
+<ol><li th:each="driver : ${window.alternatives()}"><strong th:text="${driver.name}"></strong> ·
+<span th:text="${driver.drivingTime()}"></span><span th:if="${driver.droveToday}"> · Has driven today</span></li></ol></details>
+</th:block><p th:if="${window.recommended() == null}" class="suggestion-gap"><strong>Needs coverage</strong><br><span th:text="${window.reason}"></span></p></div>
+</div></div>
+<p class="demand-note">Only drivers whose uploaded work hours cover the full demand window are shown. Split shifts and overnight work are supported. Adjacent matching windows are grouped up to four hours; each group is reviewed independently. Actual driving sessions still stop automatically at four hours.</p>
+<details th:unless="${#lists.isEmpty(suggestions.roster)}"><summary>Driving history used for these suggestions</summary>
+<div class="table-shell"><table><thead><tr><th scope="col">Driver</th><th scope="col">Past 30 days</th><th scope="col">Last started driving</th></tr></thead><tbody>
+<tr th:each="driver : ${suggestions.roster}"><th scope="row" th:text="${driver.name}"></th><td th:text="${driver.drivingTime()}"></td>
+<td th:text="${driver.lastDriven == null ? 'No recorded driving' : #temporals.format(driver.lastDriven, 'MMM d, yyyy h:mm a')}"></td></tr>
+</tbody></table></div></details>
+</section></body></html>

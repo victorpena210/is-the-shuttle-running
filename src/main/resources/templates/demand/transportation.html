@@ -10,12 +10,12 @@
 <main id="main-content" class="app-main demand-page"><header class="page-header"><div>
 <p class="eyebrow" th:text="${organizationName}"></p><h1>Employee transportation demand</h1>
 <p>See how many employees are scheduled to clock in and out every 15 minutes.</p></div>
-<a th:if="${managerView}" class="button" href="#upload">Upload schedule</a></header>
+<div th:if="${managerView}" class="button-row"><a class="button button--secondary" href="#driver-suggestions">Suggested drivers</a><a class="button" href="#upload">Upload schedule</a></div></header>
 <p th:if="${successMessage}" class="alert alert--success" role="status" th:text="${successMessage}"></p>
 <p th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></p>
 
 <section id="upload" class="demand-upload" th:if="${managerView}" aria-labelledby="upload-heading">
-<div><h2 id="upload-heading">Upload the employee schedule</h2><p>Use the exported Dayforce CSV, up to 5 MB. Uploading again replaces the counts for the work dates in that file.</p></div>
+<div><h2 id="upload-heading">Upload the employee schedule</h2><p>Use the exported Dayforce CSV, up to 5 MB. Uploading again replaces demand and driver work hours for the work dates in that file. Registered drivers are matched by employee ID.</p></div>
 <form th:action="@{/transportation-demand/upload}" method="post" enctype="multipart/form-data">
 <div class="form-group"><label for="scheduleFile">Dayforce schedule CSV</label>
 <input id="scheduleFile" type="file" name="scheduleFile" accept=".csv,text/csv" required></div>
@@ -55,5 +55,6 @@ th:attr="aria-labelledby=${'heading-' + period.key}"><h2 th:id="${'heading-' + p
 <p th:text="${forecast.offHours.range}"></p><th:block th:replace="~{fragments/demand-windows :: windows(${forecast.offHours})}"></th:block></details>
 <p class="demand-note">Each interval includes its start time and ends before the next interval. Noon clock-ins stay in Morning; noon clock-outs are in Midday. Overnight clock-outs appear on the date they happen. Both directions are shown in every period.</p>
 </th:block>
+<th:block th:if="${managerView}"><th:block th:replace="~{fragments/driver-suggestions :: suggestions}"></th:block></th:block>
 </main><footer th:replace="~{fragments/footer :: footer('app')}"></footer>
 </body></html>

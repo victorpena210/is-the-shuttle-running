@@ -32,10 +32,13 @@ public class DemandForecastService {
     private final ZoneId zone;
     private final LocalTime morningStart, middayStart, eveningStart, operatingEnd;
     private final int historyMonths;
+    private final DriverScheduleWindowRepository driverWindows;
+    private final technology.renatus.routepulse.driver.repository.DriverRepository drivers;
 
     public DemandForecastService(DemandForecastRepository windows, ScheduleImportRepository imports,
             DayforceCsvParser parser, OrganizationRepository organizations, OrganizationActorService actors,
-            OrganizationMembershipRepository memberships,
+            OrganizationMembershipRepository memberships, DriverScheduleWindowRepository driverWindows,
+            technology.renatus.routepulse.driver.repository.DriverRepository drivers,
             @Value("${app.operations-zone:America/Chicago}") String zone,
             @Value("${app.transportation-demand.operating-start:09:00}") String morning,
             @Value("${app.transportation-demand.midday-start:12:00}") String midday,
@@ -48,6 +51,7 @@ public class DemandForecastService {
         eveningStart = LocalTime.parse(evening); operatingEnd = LocalTime.parse(end);
         periods = new TransportationDemandBucketizer(morningStart, middayStart, eveningStart, operatingEnd, 15);
         this.historyMonths = Math.max(1, historyMonths);
+        this.driverWindows = driverWindows; this.drivers = drivers;
     }
     public LocalDate today() { return LocalDate.now(zone); }
     public String zoneName() { return zone.getId(); }
@@ -81,6 +85,16 @@ public class DemandForecastService {
             var key = entry.getKey(); var people = entry.getValue();
             return new DemandForecastWindow(organization, source, key.sourceDate(), key.eventDate(), key.period(),
                     key.start(), people.ins.size(), people.outs.size());
+        }).toList());
+        // Exact employee-ID matching only. Do not retain the rest of the workforce roster.
+        var roster = drivers.findAllByOrganization_IdOrderByNameAsc(organizationId).stream()
+                .collect(Collectors.toMap(d -> d.getEmployeeId(), d -> d));
+        driverWindows.replaceDates(organizationId, dates);
+        driverWindows.saveAll(shifts.stream().filter(s -> roster.containsKey(s.getEmployeeId())).map(s -> {
+            var start = s.getShiftDate().atTime(s.getStartTime());
+            var end = s.getShiftDate().atTime(s.getEndTime());
+            if (!end.isAfter(start)) end = end.plusDays(1);
+            return new DriverScheduleWindow(roster.get(s.getEmployeeId()), source, start, end);
         }).toList());
         return source;
     }
@@ -136,6 +150,7 @@ public class DemandForecastService {
     public void purgeExpiredForecasts() {
         // Preserve the prior work date's overnight contribution at the retention boundary.
         windows.purgeBefore(today().minusMonths(historyMonths).minusDays(1));
+        driverWindows.purgeBefore(today().minusDays(31));
     }
 
     private LocalTime floor(LocalTime time) { return time.withMinute(time.getMinute() / 15 * 15).withSecond(0).withNano(0); }

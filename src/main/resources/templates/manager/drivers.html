@@ -153,7 +153,7 @@
                             required>
 
                         <p class="help-text">
-                            Use a unique employee ID for this driver.
+                            Use the exact employee ID from the Dayforce schedule so the app can suggest this driver.
                         </p>
 
                     </div>
@@ -227,7 +227,7 @@
 
                     <p>
                         See account status, correct a pending invitation email,
-                        resend an invitation, and change assignment availability.
+                        resend an invitation, update employee IDs, and change driver availability.
                     </p>
 
                 </div>
@@ -322,6 +322,16 @@
                         <td>
 
                             <div class="button-row">
+
+                                <details>
+                                    <summary>Edit employee ID</summary>
+                                    <form th:action="@{/drivers/{id}/employee-id(id=${driver.id})}" method="post">
+                                        <label th:for="${'employee-id-' + driver.id}">Dayforce employee ID</label>
+                                        <input type="text" th:id="${'employee-id-' + driver.id}" name="employeeId" maxlength="50" th:value="${driver.employeeId}" required>
+                                        <p>After changing the ID, upload the schedule again to refresh this driver's availability.</p>
+                                        <button type="submit" class="button button--secondary button--small">Save employee ID</button>
+                                    </form>
+                                </details>
 
                                 <button
                                     th:if="${!driver.hasAccount()}"

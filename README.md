@@ -36,7 +36,7 @@ for how long.
 | --- | --- |
 | Riders | Public organization-specific pages showing running/not running and the active driver’s first name |
 | Drivers | Role-restricted portal, NFC/QR checkpoint actions, start/resume, waiting, break, end controls, and read-only transportation demand |
-| Managers | Driving history and totals, audited time corrections, four-hour session reviews, and employee-schedule uploads for transportation demand |
+| Managers | Driving history and totals, audited time corrections, four-hour session reviews, employee-schedule uploads, and driver suggestions based on availability and actual driving |
 | Accounts | Organization-scoped access, invitations, email verification, password reset, and optional persistent sign-in |
 | Operations | Versioned MySQL migrations, health probes, optional Sentry reporting, and backup/restore tooling |
 
@@ -76,9 +76,35 @@ preambles, and quoted names. It skips employees without shifts, deduplicates exa
 shift rows, and validates the complete file before changing counts. Re-uploading
 replaces only the work dates present in that file, including their overnight
 departures. The forecast stores anonymous counts with upload provenance for a
-rolling 12 months; employee rows are not saved by this upload flow. File size is
+rolling 12 months. Only registered drivers’ matched work hours are saved separately,
+with past work dates kept for 31 days; other employees’ rows are not saved. File size is
 limited to 5 MB and 90 work dates per upload. Uploading or viewing demand does not
 change live shuttle status or driving records.
+
+**Suggested drivers:** the manager demand page recommends active roster members
+whose uploaded work hours cover each full demand window. Employee IDs match exactly;
+use **Edit employee ID** on `/drivers` to correct a match, then re-upload. Uploads
+from before this feature need to be re-uploaded. Replacement files remove omitted
+drivers from the included work dates and preserve all other dates.
+
+Recommendations prioritize drivers who have not driven on the selected day, then
+fewer actual driving seconds in the preceding 30 days, then longest since the last
+session. They use corrected session times, union overlapping records, and cap open
+sessions at four hours. Future previews use current history; past previews use
+history before that date. Suggestions are independent windows, not reservations or
+assignments. They never change actual sessions, live status, or the four-hour cutoff.
+
+Opening service requires another distinct scheduled, active driver-roster member
+at the wardrobe counter. Morning opening service lasts up to three hours; an
+opening at noon or later runs until wardrobe closes. Other service waits until
+closing. Saved wardrobe rules apply, with an afternoon-start roster supplying the
+opening time when no explicit opening is set. Managers can edit the selected day's
+opening and closing times directly on the demand page. The retired park-calendar
+integration is not called. Confirm other duties and breaks before choosing a driver.
+
+Suggestions and driving-history comparisons are manager-only; driver demand pages
+continue to show aggregate employee demand. Availability gaps, unmatched drivers,
+and ranked alternatives are visible to managers.
 
 ## Stack and code tour
 
