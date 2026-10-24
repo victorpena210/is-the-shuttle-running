@@ -15,12 +15,12 @@
 <p th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></p>
 
 <section id="upload" class="demand-upload" th:if="${managerView}" aria-labelledby="upload-heading">
-<div><h2 id="upload-heading">Upload the employee schedule</h2><p>Use the exported Dayforce CSV or Excel (.xlsx), up to 5 MB. Uploading again replaces demand and driver work hours for the work dates in that file. Registered drivers are matched by employee ID.</p></div>
+<div><h2 id="upload-heading">Upload the employee schedule</h2><p>Upload a Dayforce schedule table or a UKG weekly report as CSV or Excel (.xlsx), up to 5 MB. Employee tables update demand and driver work hours by employee ID. Weekly reports update demand for the people and dates shown, and match driver availability by unique roster name. Upload a report covering everyone you want counted.</p></div>
 <form th:action="@{/transportation-demand/upload}" method="post" enctype="multipart/form-data">
-<div class="form-group"><label for="scheduleFile">Dayforce schedule (CSV or XLSX)</label>
+<div class="form-group"><label for="scheduleFile">Schedule file (CSV or XLSX)</label>
 <input id="scheduleFile" type="file" name="scheduleFile" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required></div>
 <button class="button" type="submit">Upload and calculate demand</button></form>
-<details><summary>File format</summary><p>Upload CSV or XLSX from Dayforce. Report headings above the table and multiple schedule worksheets are supported.</p>
+<details><summary>File format</summary><p>UKG “Employee Schedule - Weekly” grids are supported for transportation demand and driver availability. Keep the weekday/date headings and employee names. Blank names on continuation rows belong to the employee above. Demand uses each person’s first start and final end each day; meal-break segments remain gaps in driver availability. Uploading a smaller report replaces counts for its reported dates, so include everyone who should count.</p><p>Upload CSV or XLSX from Dayforce. Report headings above the table and multiple schedule worksheets are supported.</p>
 <p>Required columns: Employee ID, Employee Name (or Employee Full Name), Shift Start, and Shift End. The full “Scheduled Shift Start Date Time” and “Scheduled Shift End Date Time” headings also work.</p>
 <p>Excel date/time cells are supported. Text dates should look like <strong>10/24/2026 9:00 AM</strong>. Unscheduled employees with both times blank are skipped. Identical shifts are counted once across worksheets. Replace formulas with values before uploading.</p></details></section>
 

@@ -76,6 +76,8 @@ final class ScheduleTableReader {
                             if (!DateUtil.isValidExcelDate(serial) || serial < 1 || serial > 2958465)
                                 throw new IllegalStateException("Invalid date in " + location + ". Include both the date and time.");
                             values.add(DateUtil.getLocalDateTime(serial, workbook.isDate1904()).format(DATE_FORMAT));
+                        } else if (!header && cell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(cell)) {
+                            values.add(DateUtil.getLocalDateTime(cell.getNumericCellValue(),workbook.isDate1904()).toLocalDate().toString());
                         } else if (Objects.equals(idColumn, i) && cell.getCellType() == CellType.NUMERIC
                                 && "General".equals(cell.getCellStyle().getDataFormatString())) {
                             values.add(BigDecimal.valueOf(cell.getNumericCellValue()).stripTrailingZeros().toPlainString());
