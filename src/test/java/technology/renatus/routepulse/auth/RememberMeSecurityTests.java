@@ -16,6 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
@@ -111,6 +112,47 @@ class RememberMeSecurityTests {
     void persistenceRequiresOptInAndLoginDisplaysConfiguredDuration() throws Exception {
         assertThat(signIn(false).getResponse().getCookie(COOKIE)).isNull();
         mvc.perform(get("/login")).andExpect(model().attribute("rememberMeDays", 90));
+    }
+
+    @Test
+    void returningToLoginWithOnlyRememberedCookieResumesDriverHome() throws Exception {
+        Cookie remembered = signIn(true).getResponse().getCookie(COOKIE);
+        // Model opening an old /login bookmark after the HTTP session is gone.
+        mvc.perform(get("/login").secure(true).cookie(remembered))
+                .andExpect(redirectedUrl("/post-login"));
+        mvc.perform(get("/post-login").secure(true).cookie(remembered))
+                .andExpect(redirectedUrl("/driver"));
+    }
+
+    @Test
+    void returningToLoginWithActiveSessionSkipsTheForm() throws Exception {
+        MvcResult login = signIn(false);
+        mvc.perform(get("/login").secure(true)
+                        .session((MockHttpSession) login.getRequest().getSession(false)))
+                .andExpect(redirectedUrl("/post-login"));
+    }
+
+    @Test
+    void rememberedManagerReturnsToManagerHome() throws Exception {
+        users.updateUser(User.withUsername(EMAIL).password("{noop}test-password").roles("ADMIN").build());
+        Cookie remembered = signIn(true).getResponse().getCookie(COOKIE);
+        mvc.perform(get("/login").secure(true).cookie(remembered))
+                .andExpect(redirectedUrl("/post-login"));
+        mvc.perform(get("/post-login").secure(true).cookie(remembered))
+                .andExpect(redirectedUrl("/app"));
+    }
+
+    @Test
+    void invalidRememberedCookieStillDisplaysLoginForm() throws Exception {
+        mvc.perform(get("/login").secure(true).cookie(new Cookie(COOKIE, "invalid")))
+                .andExpect(status().isOk()).andExpect(view().name("auth/login"))
+                .andExpect(cookie().maxAge(COOKIE, 0));
+    }
+
+    @Test
+    void signedOutVisitorStillSeesLoginForm() throws Exception {
+        mvc.perform(get("/login").secure(true).queryParam("logout", ""))
+                .andExpect(status().isOk()).andExpect(view().name("auth/login"));
     }
 
     @Test
