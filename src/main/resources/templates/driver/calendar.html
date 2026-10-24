@@ -1,0 +1,40 @@
+<!DOCTYPE html><html lang="en" xmlns:th="http://www.thymeleaf.org"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UKG calendar | Is the Shuttle Running</title><link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
+<link rel="stylesheet" th:href="@{/css/site.css}"><link rel="stylesheet" th:href="@{/css/pages/calendar.css}"></head>
+<body class="app-page">
+<th:block th:if="${managerView}"><th:block th:replace="~{fragments/navigation :: managerNav('drivers')}"></th:block></th:block>
+<th:block th:unless="${managerView}"><th:block th:replace="~{fragments/navigation :: driverNav}"></th:block></th:block>
+<main id="main-content" class="app-main calendar-page">
+<header class="page-header"><div><p class="eyebrow" th:text="${organizationName}"></p><h1>Connect UKG calendar</h1>
+<p>Keep <strong th:text="${calendar.driverName}"></strong>’s work availability up to date for driver suggestions.</p></div>
+<a th:if="${managerView}" class="button button--secondary" th:href="@{/drivers}">All drivers</a></header>
+<p class="alert alert--success" role="status" th:if="${successMessage}" th:text="${successMessage}"></p>
+<p class="alert alert--error" role="alert" th:if="${errorMessage}" th:text="${errorMessage}"></p>
+<section class="calendar-panel" th:if="${calendar.connected}"><h2>Connection status</h2>
+<p><strong th:text="${calendar.stale ? 'Availability needs a refresh' : (calendar.error != null ? 'Refresh pending · using last successful sync' : 'Connected to UKG')}"></strong></p>
+<p>Last successful refresh: <span th:text="${#temporals.format(calendar.lastSynced, 'MMM d, yyyy h:mm a z')}"></span>.</p>
+<p th:if="${calendar.error != null}" th:text="${calendar.error}"></p>
+<p th:if="${calendar.stale}">This calendar has not refreshed in 24 hours. This driver will not be suggested for upcoming windows until the calendar refreshes.</p>
+<p>Checks run about every 15 minutes. UKG supplies the next six weeks. Times are shown in <strong th:text="${calendar.zone}"></strong>.</p>
+<div class="button-row"><form th:action="@{${calendarUrl + '/refresh'}}" method="post"><button class="button" type="submit">Refresh now</button></form>
+<form th:action="@{${calendarUrl + '/disconnect'}}" method="post"><button class="button button--secondary" type="submit">Disconnect calendar</button></form></div>
+<p class="help-text">Disconnecting removes the saved calendar link and its work hours. Uploaded CSV work hours will be used again.</p></section>
+<section class="calendar-panel"><h2 th:text="${calendar.connected ? 'Replace subscription link' : 'Add this driver’s subscription link'}"></h2>
+<p>In UKG, open <strong>Edit Profile → Sync My Schedule</strong>. Select <strong>Shifts</strong> only, save, then choose <strong>Subscribe → Other (Copy URL)</strong>.</p>
+<p>Use the link belonging to <strong th:text="${calendar.driverName}"></strong>. Each driver needs their own link.</p>
+<form th:action="@{${calendarUrl}}" method="post" autocomplete="off">
+<div class="form-group"><label for="subscriptionUrl">Private UKG subscription URL</label>
+<input id="subscriptionUrl" name="subscriptionUrl" type="password" autocomplete="new-password" spellcheck="false" maxlength="700" required aria-describedby="calendar-link-help">
+<p id="calendar-link-help" class="help-text">Paste the complete webcal:// or https:// link from cedarfair.prd.mykronos.com. Your UKG password is not needed. The saved link is encrypted and never displayed.</p></div>
+<button class="button" type="submit" th:text="${calendar.connected ? 'Replace link and sync' : 'Connect and sync'}"></button></form></section>
+<section class="calendar-panel"><h2>How availability is used</h2>
+<p>For upcoming dates, this calendar takes priority over this driver’s uploaded CSV work hours. A day without a shift means unavailable. Suggestions combine these work hours with actual driving history and wardrobe coverage rules.</p>
+<p>The employee schedule upload still supplies transportation demand. Connecting a calendar does not start a driving session or assign a shift.</p>
+<a th:if="${managerView}" th:href="@{/transportation-demand#driver-suggestions}">View driver suggestions</a></section>
+<section class="calendar-panel" th:if="${calendar.connected}"><h2 th:text="|${#lists.size(calendar.shifts)} upcoming work shifts|"></h2>
+<p th:if="${#lists.isEmpty(calendar.shifts)}">UKG currently lists no upcoming shifts for this connection.</p>
+<div class="table-shell" th:unless="${#lists.isEmpty(calendar.shifts)}"><table><thead><tr><th scope="col">Starts</th><th scope="col">Ends</th></tr></thead><tbody>
+<tr th:each="shift : ${calendar.shifts}"><td th:text="${#temporals.format(shift.start, 'EEE, MMM d · h:mm a')}"></td>
+<td th:text="${#temporals.format(shift.end, 'EEE, MMM d · h:mm a')}"></td></tr></tbody></table></div></section>
+</main><footer th:replace="~{fragments/footer :: footer('app')}"></footer></body></html>

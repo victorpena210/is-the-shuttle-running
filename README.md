@@ -106,6 +106,30 @@ Suggestions and driving-history comparisons are manager-only; driver demand page
 continue to show aggregate employee demand. Availability gaps, unmatched drivers,
 and ranked alternatives are visible to managers.
 
+**Personal UKG calendars:** managers use **Drivers → UKG calendar** for each driver;
+drivers use **My UKG calendar** to connect their own subscription. Cedar Fair UKG
+links using `webcal://` or `https://` are read over HTTPS. Select Shifts only in
+UKG's Sync My Schedule subscription. Each driver needs their own link. Refreshes
+run about every 15 minutes, and a Refresh now button is available. The page shows
+imported work hours, last refresh, and errors; it never displays the saved link.
+
+For dates from the last successful sync onward, connected calendars take priority
+over CSV availability. Empty days mean unavailable; dates beyond the six-week
+subscription range are unknown. Failed refreshes keep the previous snapshot, but
+availability is excluded after 24 hours without a successful sync. Disconnecting
+removes the link and calendar snapshot and restores CSV availability. Calendar
+sync changes neither workforce demand counts nor actual driving sessions.
+
+Links are AES-256-GCM encrypted with a purpose-specific key derived from
+`app.calendar.encryption-key`, falling back to the existing stable remember-me
+secret. Set a dedicated stable key with `APP_CALENDAR_ENCRYPTION_KEY` if desired.
+Changing the encryption secret requires reconnecting calendars. Local development
+with a random remember-me key cannot retain usable connections across restarts.
+HTTP destinations are restricted to the Cedar Fair UKG calendar endpoint, redirects
+are disabled, and response size and read/connect times are bounded. Only shift
+start/end times are retained; feed descriptions, names and UIDs are not stored.
+
+
 ## Stack and code tour
 
 - Java 17, Spring Boot 4.1.0, Spring MVC, Spring Security, and Thymeleaf.
