@@ -15,14 +15,14 @@
 <p th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></p>
 
 <section id="upload" class="demand-upload" th:if="${managerView}" aria-labelledby="upload-heading">
-<div><h2 id="upload-heading">Upload the employee schedule</h2><p>Use the exported Dayforce CSV, up to 5 MB. Uploading again replaces demand and driver work hours for the work dates in that file. Registered drivers are matched by employee ID.</p></div>
+<div><h2 id="upload-heading">Upload the employee schedule</h2><p>Use the exported Dayforce CSV or Excel (.xlsx), up to 5 MB. Uploading again replaces demand and driver work hours for the work dates in that file. Registered drivers are matched by employee ID.</p></div>
 <form th:action="@{/transportation-demand/upload}" method="post" enctype="multipart/form-data">
-<div class="form-group"><label for="scheduleFile">Dayforce schedule CSV</label>
-<input id="scheduleFile" type="file" name="scheduleFile" accept=".csv,text/csv" required></div>
+<div class="form-group"><label for="scheduleFile">Dayforce schedule (CSV or XLSX)</label>
+<input id="scheduleFile" type="file" name="scheduleFile" accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required></div>
 <button class="button" type="submit">Upload and calculate demand</button></form>
-<details><summary>File format</summary><p>Export as CSV from Dayforce. Report headings above the table are supported.</p>
+<details><summary>File format</summary><p>Upload CSV or XLSX from Dayforce. Report headings above the table and multiple schedule worksheets are supported.</p>
 <p>Required columns: Employee ID, Employee Name (or Employee Full Name), Shift Start, and Shift End. The full “Scheduled Shift Start Date Time” and “Scheduled Shift End Date Time” headings also work.</p>
-<p>Dates should look like <strong>10/24/2026 9:00 AM</strong>. Unscheduled employees with both times blank are skipped. Identical shifts are counted once.</p></details></section>
+<p>Excel date/time cells are supported. Text dates should look like <strong>10/24/2026 9:00 AM</strong>. Unscheduled employees with both times blank are skipped. Identical shifts are counted once across worksheets. Replace formulas with values before uploading.</p></details></section>
 
 <form class="demand-date" th:action="@{${demandUrl}}" method="get">
 <div class="form-group"><label for="date">Demand date</label><input id="date" name="date" type="date" th:value="${forecast.date}" required></div>
@@ -35,7 +35,7 @@ th:text="${#temporals.format(date, 'MMM d, yyyy')}"></a></div></details>
 <p>Times shown in <strong th:text="${operationsZone}"></strong>. These counts come from scheduled shifts, not actual time-clock punches or confirmed shuttle riders.</p>
 
 <section th:unless="${forecast.available}" class="demand-empty"><h2>No uploaded demand for this date</h2>
-<p th:text="${managerView ? 'Upload a Dayforce CSV covering this date, or choose a date with uploaded demand.' : 'Your manager needs to upload the schedule for this date. You can also choose another available date.'}"></p>
+<p th:text="${managerView ? 'Upload a Dayforce CSV or XLSX covering this date, or choose a date with uploaded demand.' : 'Your manager needs to upload the schedule for this date. You can also choose another available date.'}"></p>
 <p>No uploaded schedule does not mean zero demand.</p></section>
 
 <th:block th:if="${forecast.available}">

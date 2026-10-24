@@ -62,7 +62,7 @@ existing NFC/QR checkpoints to start, pause, resume, hand off, and end a run.
 The public rider page at `/ride/{slug}` shows whether the shuttle is running
 and the active driver’s first name.
 
-**Employee transportation demand:** managers upload a Dayforce CSV at
+**Employee transportation demand:** managers upload a Dayforce CSV or Excel (.xlsx) file at
 `/transportation-demand`; drivers view the same organization’s aggregate counts at
 `/driver/demand`. Every 15-minute interval shows scheduled clock-ins and clock-outs,
 including quiet intervals, in Morning Arrivals (9 AM–noon), Midday Turnover
@@ -114,10 +114,10 @@ run about every 15 minutes, and a Refresh now button is available. The page show
 imported work hours, last refresh, and errors; it never displays the saved link.
 
 For dates from the last successful sync onward, connected calendars take priority
-over CSV availability. Empty days mean unavailable; dates beyond the six-week
+over uploaded schedule availability. Empty days mean unavailable; dates beyond the six-week
 subscription range are unknown. Failed refreshes keep the previous snapshot, but
 availability is excluded after 24 hours without a successful sync. Disconnecting
-removes the link and calendar snapshot and restores CSV availability. Calendar
+removes the link and calendar snapshot and restores uploaded schedule availability. Calendar
 sync changes neither workforce demand counts nor actual driving sessions.
 
 Links are AES-256-GCM encrypted with a purpose-specific key derived from
@@ -270,3 +270,5 @@ Additional references: [NFC setup](docs/NFC-SETUP.md),
 [wardrobe hours](docs/wardrobe-opening-hours.md), and
 [rebrand history](docs/REBRAND.md). Dated update notes describe earlier changes;
 the current code and the session behavior above take precedence.
+
+Excel schedule uploads use the same columns and validation as CSV. Native Excel date/time cells (1900 or 1904 dates), text dates, leading-zero employee ID formats, report preambles, and multiple schedule worksheets are supported. Duplicate shifts across worksheets count once. Use values rather than formulas. Upload limits: 5 MB compressed, 20 MB expanded for XLSX, 50,000 rows, 128 columns, and 90 work dates. Invalid uploads preserve the existing forecast and driver hours.

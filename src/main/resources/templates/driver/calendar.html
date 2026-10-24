@@ -19,7 +19,7 @@
 <p>Checks run about every 15 minutes. UKG supplies the next six weeks. Times are shown in <strong th:text="${calendar.zone}"></strong>.</p>
 <div class="button-row"><form th:action="@{${calendarUrl + '/refresh'}}" method="post"><button class="button" type="submit">Refresh now</button></form>
 <form th:action="@{${calendarUrl + '/disconnect'}}" method="post"><button class="button button--secondary" type="submit">Disconnect calendar</button></form></div>
-<p class="help-text">Disconnecting removes the saved calendar link and its work hours. Uploaded CSV work hours will be used again.</p></section>
+<p class="help-text">Disconnecting removes the saved calendar link and its work hours. Uploaded schedule work hours will be used again.</p></section>
 <section class="calendar-panel"><h2 th:text="${calendar.connected ? 'Replace subscription link' : 'Add this driver’s subscription link'}"></h2>
 <p>In UKG, open <strong>Edit Profile → Sync My Schedule</strong>. Select <strong>Shifts</strong> only, save, then choose <strong>Subscribe → Other (Copy URL)</strong>.</p>
 <p>Use the link belonging to <strong th:text="${calendar.driverName}"></strong>. Each driver needs their own link.</p>
@@ -29,7 +29,7 @@
 <p id="calendar-link-help" class="help-text">Paste the complete webcal:// or https:// link from cedarfair.prd.mykronos.com. Your UKG password is not needed. The saved link is encrypted and never displayed.</p></div>
 <button class="button" type="submit" th:text="${calendar.connected ? 'Replace link and sync' : 'Connect and sync'}"></button></form></section>
 <section class="calendar-panel"><h2>How availability is used</h2>
-<p>For upcoming dates, this calendar takes priority over this driver’s uploaded CSV work hours. A day without a shift means unavailable. Suggestions combine these work hours with actual driving history and wardrobe coverage rules.</p>
+<p>For upcoming dates, this calendar takes priority over this driver’s uploaded schedule work hours. A day without a shift means unavailable. Suggestions combine these work hours with actual driving history and wardrobe coverage rules.</p>
 <p>The employee schedule upload still supplies transportation demand. Connecting a calendar does not start a driving session or assign a shift.</p>
 <a th:if="${managerView}" th:href="@{/transportation-demand#driver-suggestions}">View driver suggestions</a></section>
 <section class="calendar-panel" th:if="${calendar.connected}"><h2 th:text="|${#lists.size(calendar.shifts)} upcoming work shifts|"></h2>
