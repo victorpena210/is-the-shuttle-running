@@ -39,7 +39,29 @@ public class AutomaticScheduleDay {
                 refreshedAt.atZone(zone),message,slots.stream().filter(s -> driver==null || driver.equals(s.driverId)).toList());
     }
     public record View(LocalDate date,String status,String source,LocalTime parkOpening,LocalTime parkClosing,
-            LocalTime wardrobeOpening,LocalTime wardrobeClosing,ZonedDateTime refreshedAt,String message,List<Slot> slots) {}
+            LocalTime wardrobeOpening,LocalTime wardrobeClosing,ZonedDateTime refreshedAt,String message,List<Slot> slots,
+            List<AutomaticScheduleHistory.RecordedRun> recordedRuns,boolean savedPlan) {
+        public View(LocalDate date,String status,String source,LocalTime parkOpening,LocalTime parkClosing,
+                LocalTime wardrobeOpening,LocalTime wardrobeClosing,ZonedDateTime refreshedAt,String message,List<Slot> slots) {
+            this(date,status,source,parkOpening,parkClosing,wardrobeOpening,wardrobeClosing,refreshedAt,message,slots,List.of(),true);
+        }
+        public View withHistory(List<AutomaticScheduleHistory.RecordedRun> runs) {
+            return new View(date,status,source,parkOpening,parkClosing,wardrobeOpening,wardrobeClosing,
+                    refreshedAt,message,slots,List.copyOf(runs),savedPlan);
+        }
+        public LocalDateTime openingStart() {
+            return "OPEN".equals(status) && wardrobeOpening!=null ? date.atTime(wardrobeOpening) : null;
+        }
+        public LocalDateTime openingEnd() {
+            if(openingStart()==null || wardrobeClosing==null) return null;
+            var end=openingStart().plusHours(wardrobeOpening.isBefore(LocalTime.NOON)?3:2);
+            var closing=wardrobeClosing.equals(LocalTime.MIDNIGHT)?date.plusDays(1).atStartOfDay():date.atTime(wardrobeClosing);
+            return end.isBefore(closing)?end:closing;
+        }
+        public boolean openingPlanMissing() {
+            return openingEnd()!=null && slots.stream().noneMatch(s->s.overlaps(openingStart(),openingEnd()));
+        }
+    }
 
     @Embeddable
     public static class Slot {
