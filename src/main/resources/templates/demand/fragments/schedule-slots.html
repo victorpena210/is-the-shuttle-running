@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<table class="schedule-table schedule-assignment-table" th:fragment="slots(slots, past)" th:if="${!#lists.isEmpty(slots)}">
+    <caption class="sr-only" th:text="${past ? 'Earlier planned driving' : 'Current and upcoming planned driving'}"></caption>
+    <thead><tr><th scope="col">Time</th><th scope="col">Driver</th><th scope="col">Service</th></tr></thead>
+    <tbody><tr th:each="slot : ${slots}" th:classappend="${slot.driverId == null and !past ? 'schedule-row--gap' : ''}">
+        <th scope="row" class="schedule-time"><span th:text="${#temporals.format(slot.start, 'h:mm a')}"></span>–<span th:text="${#temporals.format(slot.end, 'h:mm a')}"></span>
+            <small th:if="${slot.end.toLocalDate().isAfter(slot.start.toLocalDate())}">Ends next day</small>
+        </th>
+        <td class="schedule-driver">
+            <strong th:if="${slot.driverId != null}" th:text="${slot.driverName}"></strong>
+            <span class="schedule-pill" th:if="${slot.driverId == null}" th:classappend="${!past ? 'schedule-pill--gap' : ''}" th:text="${past ? 'Unassigned' : 'Needs coverage'}"></span>
+            <small th:if="${slot.driverId == null}" th:text="${slot.reason}"></small>
+        </td>
+        <td class="schedule-service"><span th:text="${slot.scareActorTransport ? 'Scare-actor transport' : slot.serviceLabel}"></span>
+            <small th:if="${slot.scareActorTransport}">5:45 PM is an estimate. Finish sooner if complete; continue until everyone is transported.</small>
+        </td>
+    </tr></tbody>
+</table>
+</body></html>
