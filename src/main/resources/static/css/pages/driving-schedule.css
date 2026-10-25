@@ -40,6 +40,10 @@
 .schedule-section-heading { display: flex; flex-wrap: wrap; gap: .4rem 1rem; align-items: baseline; justify-content: space-between; margin-bottom: .55rem; }
 .schedule-section-heading h2 { margin: 0; font-size: .97rem; line-height: 1.35; letter-spacing: -.01em; }
 .schedule-section-heading .schedule-muted { font-size: .76rem; }
+.schedule-roster { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: .65rem; list-style: none; padding: 0; margin: 0; }
+.schedule-roster li { display: flex; flex-direction: column; gap: .25rem; padding: .75rem .85rem; background: #f5f7f3; border-radius: 6px; font-size: .85rem; }
+.schedule-roster li > span { font-variant-numeric: tabular-nums; }
+.schedule-roster small { color: #59675f; font-size: .75rem; }
 .schedule-table { width: 100%; border-collapse: collapse; font-size: .86rem; table-layout: fixed; }
 .schedule-table th, .schedule-table td { padding: .75rem .65rem; text-align: left; vertical-align: top; border-bottom: 1px solid #e6eae4; overflow-wrap: anywhere; }
 .schedule-table thead th { background: #f5f7f3; font-size: .68rem; text-transform: uppercase; letter-spacing: .06em; color: #59675f; padding-block: .5rem; font-weight: 700; }

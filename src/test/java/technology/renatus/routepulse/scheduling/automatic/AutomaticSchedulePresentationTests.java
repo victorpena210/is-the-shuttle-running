@@ -54,7 +54,7 @@ class AutomaticSchedulePresentationTests {
                 .doesNotContain("Upcoming assignments","/driving-records/sessions/","/driving-schedule/hours","Refresh assignments");
         assertThat(openDates(html)).containsExactly(history.date().toString());
         String empty=render(false,List.of(),today,"empty");
-        assertThat(empty).contains("No saved assignments or recorded driving for this week");
+        assertThat(empty).contains("No saved schedules or recorded driving for this week");
         assertThat(AutomaticScheduleHistory.formatDuration(45)).isEqualTo("45 min");
         assertThat(AutomaticScheduleHistory.formatDuration(120)).isEqualTo("2 hr");
     }
@@ -65,6 +65,23 @@ class AutomaticSchedulePresentationTests {
                 new Slot(today.atTime(19,0),today.atTime(21,0),1L,"Sample Driver","Assigned"),
                 new Slot(today.atTime(21,0),today.atTime(23,0),null,null,"No available driver covers this full window")))
                 .withHistory(List.of(record(9,36,10,42,66),record(17,3,18,52,109)));
+    }
+    @Test void workSchedulesAppearBeforeAssignmentsWithSplitShiftsAndOvernightLabels() throws Exception {
+        var shifts=List.of(new DailyStaffScheduleService.WorkShift(1L,"Alex <script>",today.atTime(9,0),today.atTime(13,0)),
+                new DailyStaffScheduleService.WorkShift(1L,"Alex <script>",today.atTime(15,0),today.atTime(19,0)),
+                new DailyStaffScheduleService.WorkShift(2L,"Overnight Driver",today.minusDays(1).atTime(22,0),today.atTime(6,0)),
+                new DailyStaffScheduleService.WorkShift(3L,"Late Driver",today.atTime(19,0),today.plusDays(1).atTime(1,0)));
+        var view=sampleDay().withWorkShifts(shifts);
+        String manager=render(true,List.of(view),today,"roster");
+        assertThat(manager).contains("Who’s working","Saved work hours","Alex &lt;script&gt;","Started previous day","Ends next day",
+                "datetime=\"2026-10-24T13:00\"","datetime=\"2026-10-24T15:00\"")
+                .doesNotContain("Alex <script>");
+        assertThat(manager.indexOf("Who’s working")).isLessThan(manager.indexOf("Upcoming assignments"));
+        assertThat(view.withHistory(List.of()).workShifts()).isEqualTo(shifts);
+        assertThat(render(false,List.of(view.withWorkShifts(List.of(shifts.get(0)))),today,"personal-work"))
+                .contains("My work schedule").doesNotContain("Who’s working","Overnight Driver","Late Driver");
+        assertThat(render(true,List.of(sampleDay()),today,"no-work"))
+                .contains("No saved work hours for this day.").doesNotContain("Everyone is off");
     }
     private RecordedRun record(int sh,int sm,int eh,int em,long minutes) {
         return new RecordedRun(1L,1L,"Sample Driver",today.atTime(sh,sm).atZone(zone),today.atTime(eh,em).atZone(zone),minutes,false,false,"Recorded");

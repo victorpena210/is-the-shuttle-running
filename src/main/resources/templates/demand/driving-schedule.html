@@ -47,7 +47,7 @@
         </details>
     </div>
     <section class="demand-empty" th:if="${#lists.isEmpty(days)}">
-        <h2>No saved assignments or recorded driving for this week</h2>
+        <h2>No saved schedules or recorded driving for this week</h2>
         <p>Automatic planning covers today through the next 27 days. New schedules appear after the next refresh.</p>
         <p th:if="${managerView}">Use Refresh assignments to generate them from saved driver schedules and park hours.</p>
     </section>
@@ -77,6 +77,18 @@
                 </span>
             </summary>
             <div class="schedule-day-content">
+                <section class="schedule-section schedule-staff" th:attr="aria-labelledby=|staff-${day.date}|">
+                    <div class="schedule-section-heading"><h2 th:id="|staff-${day.date}|" th:text="${managerView ? 'Who’s working' : 'My work schedule'}"></h2><span class="schedule-muted">Saved work hours</span></div>
+                    <p class="schedule-empty" th:if="${#lists.isEmpty(day.workShifts)}">No saved work hours for this day.</p>
+                    <ul class="schedule-roster" th:unless="${#lists.isEmpty(day.workShifts)}">
+                        <li th:each="shift : ${day.workShifts}">
+                            <strong th:text="${shift.name}"></strong>
+                            <span><time th:datetime="${shift.start}" th:text="${#temporals.format(shift.start, 'h:mm a')}"></time>–<time th:datetime="${shift.end}" th:text="${#temporals.format(shift.end, 'h:mm a')}"></time></span>
+                            <small th:if="${shift.start.toLocalDate().isBefore(day.date)}">Started previous day</small>
+                            <small th:if="${shift.end.toLocalDate().isAfter(day.date)}">Ends next day</small>
+                        </li>
+                    </ul>
+                </section>
                 <p class="schedule-opening" th:if="${managerView and day.openingEnd() != null}">
                     <span>Opening shuttle: <strong th:text="|${#temporals.format(day.openingStart(), 'h:mm a')}–${#temporals.format(day.openingEnd(), 'h:mm a')}|"></strong></span>
                     <span class="schedule-muted">Separate counter coverage required</span>

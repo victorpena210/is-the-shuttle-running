@@ -54,9 +54,10 @@ class ManagerLiveStatusTests {
             String managerHtml = engine.process("manager/dashboard", WebTemplateContext.create(managerModel));
             String passengerHtml = engine.process("public/rider-status", WebTemplateContext.create(passengerModel));
             assertThat(card(managerHtml)).isEqualTo(card(passengerHtml).replace("<h1 ", "<h2 ").replace("</h1>", "</h2>"));
-            assertThat(managerHtml).contains("What passengers see", "data-live-rider-card", "data-refresh-url=\"/app/live-status\"",
-                    "/js/pages/live-status.js", "/ride/test-shuttle", "/operations/status")
-                    .doesNotContain("data-dashboard-section", "data-plan-container", "Private", "Alex <script>");
+            assertThat(managerHtml).contains("data-live-rider-card", "data-refresh-url=\"/app/live-status\"",
+                    "/js/pages/live-status.js", "/operations/status", "<details class=\"live-status-controls\">", "<summary>Manage service</summary>")
+                    .doesNotContain("data-dashboard-section", "data-plan-container", "Private", "Alex <script>",
+                            "What passengers see", "Passenger view", "Open rider page", "View driving history", "Refreshes every 20 seconds.");
             assertThat(card(managerHtml)).contains(status.running() ? "The shuttle is running." : "The shuttle is not running.");
             if (name == null) assertThat(card(managerHtml)).doesNotContain("Driver:");
             else assertThat(card(managerHtml)).contains("Driver: Alex &lt;script&gt;");

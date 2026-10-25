@@ -59,7 +59,8 @@ sessions can also be closed with corrected times. Driver access, cross-organizat
 changes, future end times, overlapping driver records, and stale edits are rejected.
 Live status is at `/app/live-status`. Managers see the same status card and
 public driver name as passengers, refreshed every 20 seconds without replacing
-in-progress manager form entries. Drivers use the
+in-progress manager form entries. Service controls are collapsed under **Manage service**.
+Drivers use the
 existing NFC/QR checkpoints to start, pause, resume, hand off, and end a run.
 The public rider page at `/ride/{slug}` shows whether the shuttle is running
 and the active driver’s first name.
@@ -88,6 +89,10 @@ only their own shifts at `/driver/driving-schedule`, linked from **My assignment
 and the **View my driving assignments** button on driver home. The planner refreshes the next
 28 days every five minutes for organizations with application access (active or a
 valid trial), and managers can use **Refresh assignments** immediately.
+Each day also shows saved work hours for the active team under **Who’s working**,
+including staff with no driving assignment. Drivers see only their own work hours.
+UKG calendars take priority over uploaded hours; split shifts and overnight dates
+remain visible. Missing hours are shown as unavailable schedule information, not a day off.
 It reads the Six Flags operating calendar before creating assignments. A park opening
 at 11 AM or noon starts wardrobe/opening service at 9 AM; a 5 PM opening starts it at
 3 PM and is labeled **Midday**. Morning opening service runs **9 AM–noon**; afternoon

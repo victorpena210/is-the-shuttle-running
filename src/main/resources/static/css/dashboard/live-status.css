@@ -1,17 +1,5 @@
 .live-status-panel {
     margin: 1.5rem 0;
-    padding: 1.25rem;
-    border: 1px solid var(--slate-200);
-    border-radius: var(--radius-lg);
-    background: var(--white);
-    box-shadow: var(--shadow-sm);
-}
-
-.live-status-panel .section-heading {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 1rem;
 }
 
 .live-status-current {
@@ -51,7 +39,6 @@
 }
 
 @media (max-width: 700px) {
-    .live-status-panel .section-heading,
     .live-status-current {
         display: grid;
         grid-template-columns: 1fr;
@@ -63,3 +50,7 @@
 [data-live-rider-preview] { margin: 1.5rem 0 2rem; }
 [data-live-rider-card] { max-width: 42rem; margin: 0 auto; }
 [data-live-rider-refresh-note] { text-align: center; margin-top: 0.75rem; }
+[data-live-rider-refresh-note][hidden] { display: none; }
+.live-status-controls { max-width: 42rem; margin: 0 auto; }
+.live-status-controls > summary { color: var(--slate-500); padding: .5rem 0; }
+.live-status-controls-content { margin-top: .5rem; padding: 1.25rem; border: 1px solid var(--slate-200); border-radius: var(--radius-lg); background: var(--white); }

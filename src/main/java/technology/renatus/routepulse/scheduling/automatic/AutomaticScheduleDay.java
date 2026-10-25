@@ -40,14 +40,23 @@ public class AutomaticScheduleDay {
     }
     public record View(LocalDate date,String status,String source,LocalTime parkOpening,LocalTime parkClosing,
             LocalTime wardrobeOpening,LocalTime wardrobeClosing,ZonedDateTime refreshedAt,String message,List<Slot> slots,
-            List<AutomaticScheduleHistory.RecordedRun> recordedRuns,boolean savedPlan) {
+            List<AutomaticScheduleHistory.RecordedRun> recordedRuns,boolean savedPlan,List<DailyStaffScheduleService.WorkShift> workShifts) {
+        public View(LocalDate date,String status,String source,LocalTime parkOpening,LocalTime parkClosing,
+                LocalTime wardrobeOpening,LocalTime wardrobeClosing,ZonedDateTime refreshedAt,String message,List<Slot> slots,
+                List<AutomaticScheduleHistory.RecordedRun> recordedRuns,boolean savedPlan) {
+            this(date,status,source,parkOpening,parkClosing,wardrobeOpening,wardrobeClosing,refreshedAt,message,slots,recordedRuns,savedPlan,List.of());
+        }
         public View(LocalDate date,String status,String source,LocalTime parkOpening,LocalTime parkClosing,
                 LocalTime wardrobeOpening,LocalTime wardrobeClosing,ZonedDateTime refreshedAt,String message,List<Slot> slots) {
             this(date,status,source,parkOpening,parkClosing,wardrobeOpening,wardrobeClosing,refreshedAt,message,slots,List.of(),true);
         }
         public View withHistory(List<AutomaticScheduleHistory.RecordedRun> runs) {
             return new View(date,status,source,parkOpening,parkClosing,wardrobeOpening,wardrobeClosing,
-                    refreshedAt,message,slots,List.copyOf(runs),savedPlan);
+                    refreshedAt,message,slots,List.copyOf(runs),savedPlan,workShifts);
+        }
+        public View withWorkShifts(List<DailyStaffScheduleService.WorkShift> shifts) {
+            return new View(date,status,source,parkOpening,parkClosing,wardrobeOpening,wardrobeClosing,
+                    refreshedAt,message,slots,recordedRuns,savedPlan,List.copyOf(shifts));
         }
         public LocalDateTime openingStart() {
             return "OPEN".equals(status) && wardrobeOpening!=null ? date.atTime(wardrobeOpening) : null;
