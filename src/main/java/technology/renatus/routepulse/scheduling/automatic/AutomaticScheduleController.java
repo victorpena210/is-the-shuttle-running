@@ -40,6 +40,7 @@ public class AutomaticScheduleController {
     private String page(Model model,LocalDate from,boolean manager,String name) {
         model.addAttribute("managerView",manager);model.addAttribute("organizationName",name);model.addAttribute("from",from);
         model.addAttribute("today",schedules.today());model.addAttribute("operationsZone",schedules.zoneName());
+        model.addAttribute("now",LocalDateTime.now(ZoneId.of(schedules.zoneName())));
         model.addAttribute("scheduleUrl",manager?"/driving-schedule":"/driver/driving-schedule");
         return "demand/driving-schedule";
     }

@@ -61,6 +61,29 @@ public class AutomaticScheduleDay {
         public boolean openingPlanMissing() {
             return openingEnd()!=null && slots.stream().noneMatch(s->s.overlaps(openingStart(),openingEnd()));
         }
+        /** An interval ending now belongs to earlier plans, not upcoming work. */
+        public List<Slot> upcomingSlots(LocalDateTime now) {
+            return slots.stream().filter(s->s.getEnd().isAfter(now)).toList();
+        }
+        public List<Slot> earlierSlots(LocalDateTime now) {
+            return slots.stream().filter(s->!s.getEnd().isAfter(now)).toList();
+        }
+        public long coverageGaps(LocalDateTime now) {
+            return upcomingSlots(now).stream().filter(s->s.getDriverId()==null).count();
+        }
+        public String recordedDuration() {
+            return AutomaticScheduleHistory.formatDuration(recordedRuns.stream().mapToLong(AutomaticScheduleHistory.RecordedRun::minutes).sum());
+        }
+        public String calendarLabel() {
+            return switch(source==null?"":source) {
+                case "MANAGER_CONFIRMATION" -> "Hours confirmed by a manager";
+                case "LIVE_API", "MEMORY_CACHE" -> "Hours from the Six Flags calendar";
+                case "PERSISTED_SNAPSHOT" -> "Previously saved park hours";
+                case "STALE_SNAPSHOT", "MEMORY_CACHE_STALE" -> "Saved park hours need verification";
+                case "DRIVING_HISTORY" -> "Recorded driving history";
+                default -> "Park calendar information";
+            };
+        }
     }
 
     @Embeddable

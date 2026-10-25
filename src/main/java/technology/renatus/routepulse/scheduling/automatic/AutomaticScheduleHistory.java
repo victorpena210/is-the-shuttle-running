@@ -28,6 +28,13 @@ public final class AutomaticScheduleHistory {
     }
     private static Instant earlier(Instant first,Instant second) {return first.isBefore(second)?first:second;}
 
+    public static String formatDuration(long minutes) {
+        long hours=minutes/60, remainder=minutes%60;
+        return hours==0?minutes+" min":hours+" hr"+(remainder==0?"":" "+remainder+" min");
+    }
+
     public record RecordedRun(Long sessionId,Long driverId,String driverName,ZonedDateTime start,ZonedDateTime end,
-            long minutes,boolean inProgress,boolean continuedFromPreviousDay,String state) {}
+            long minutes,boolean inProgress,boolean continuedFromPreviousDay,String state) {
+        public String durationLabel() {return formatDuration(minutes);}
+    }
 }
