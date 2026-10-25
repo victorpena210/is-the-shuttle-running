@@ -11,7 +11,7 @@
 <body class="app-page">
 <th:block th:if="${managerView}" th:insert="~{fragments/navigation :: managerNav('driving-schedule')}"></th:block>
 <th:block th:unless="${managerView}" th:insert="~{fragments/navigation :: driverNav}"></th:block>
-<main id="main-content" class="app-main demand-page schedule-page">
+<main id="main-content" class="app-main demand-page schedule-page" th:with="visibleDays=${days.?[status != 'CLOSED']}">
     <header class="page-header schedule-header">
         <div><p class="eyebrow" th:text="${organizationName}"></p>
             <h1 th:text="${managerView ? 'Driving assignments' : 'My driving assignments'}"></h1>
@@ -41,18 +41,24 @@
                 <p>Assignments use park hours, saved driver availability, and driving history for the next 28 days.</p>
                 <p>Tap the shuttle NFC/QR checkpoint when you start or stop driving. A scheduled shift does not start the shuttle or add driving time.</p>
                 <p>Recorded driving shows actual logged times, including dates with no saved schedule, and reflects manager corrections.</p>
-                <p th:if="${managerView}">Opening service and scare-actor transport require another scheduled roster member at the wardrobe counter. Later service runs from wardrobe closing through park closing. <a th:href="@{/transportation-demand}">Employee-demand uploads</a> can add pickup windows and are optional.</p>
+                <p th:if="${managerView}">Opening service requires another scheduled roster member at the wardrobe counter. For scare-actor transport, a sole available driver may temporarily close wardrobe and reopen on return. Later service runs from wardrobe closing through park closing. <a th:href="@{/transportation-demand}">Employee-demand uploads</a> can add pickup windows and are optional.</p>
                 <a th:if="${managerView}" th:href="@{/drivers}">Driver availability and UKG calendars</a>
             </div>
         </details>
     </div>
-    <section class="demand-empty" th:if="${#lists.isEmpty(days)}">
-        <h2>No saved schedules or recorded driving for this week</h2>
-        <p>Automatic planning covers today through the next 27 days. New schedules appear after the next refresh.</p>
-        <p th:if="${managerView}">Use Refresh assignments to generate them from saved driver schedules and park hours.</p>
+    <section class="demand-empty" th:if="${#lists.isEmpty(visibleDays)}">
+        <th:block th:unless="${#lists.isEmpty(days)}">
+            <h2>No open park days to show this week</h2>
+            <p>Choose another week to view driving assignments.</p>
+        </th:block>
+        <th:block th:if="${#lists.isEmpty(days)}">
+            <h2>No saved schedules or recorded driving for this week</h2>
+            <p>Automatic planning covers today through the next 27 days. New schedules appear after the next refresh.</p>
+            <p th:if="${managerView}">Use Refresh assignments to generate them from saved driver schedules and park hours.</p>
+        </th:block>
     </section>
     <div class="schedule-days">
-        <details class="schedule-day" th:each="day, dayIndex : ${days}" th:attr="data-date=${day.date}"
+        <details class="schedule-day" th:each="day, dayIndex : ${visibleDays}" th:attr="data-date=${day.date}"
                  th:classappend="${day.date.equals(today) ? 'schedule-day--today' : ''}"
                  th:open="${day.date.equals(today) or (dayIndex.first and (today.isBefore(from) or today.isAfter(from.plusDays(6))))}"
                  th:with="upcoming=${day.upcomingSlots(now)},earlier=${day.earlierSlots(now)},gaps=${day.coverageGaps(now)}">
@@ -62,7 +68,6 @@
                     <span class="schedule-day-hours">
                         <span th:if="${day.status == 'OPEN' and day.parkOpening != null and day.parkClosing != null}">Park <strong th:text="|${#temporals.format(day.parkOpening, 'h:mm a')}–${#temporals.format(day.parkClosing, 'h:mm a')}|"></strong></span>
                         <span th:if="${day.status == 'OPEN' and (day.parkOpening == null or day.parkClosing == null)}">Park open · Hours unavailable</span>
-                        <span th:if="${day.status == 'CLOSED'}">Park closed</span>
                         <span th:if="${day.status == 'HISTORY'}">No saved schedule</span>
                         <span class="schedule-verification" th:if="${day.status == 'UNKNOWN'}">Park hours need verification</span>
                         <span th:if="${managerView and day.wardrobeOpening != null and day.wardrobeClosing != null}">Wardrobe <strong th:text="|${#temporals.format(day.wardrobeOpening, 'h:mm a')}–${#temporals.format(day.wardrobeClosing, 'h:mm a')}|"></strong></span>
@@ -98,7 +103,7 @@
                 </p>
                 <section class="schedule-section" th:if="${!day.date.isBefore(today)}" th:attr="aria-labelledby=|upcoming-${day.date}|">
                     <div class="schedule-section-heading"><h2 th:id="|upcoming-${day.date}|">Upcoming assignments</h2><span class="schedule-muted" th:if="${day.date.equals(today)}">Current and upcoming shifts</span></div>
-                    <p class="schedule-empty" th:if="${#lists.isEmpty(upcoming)}" th:text="${day.status == 'CLOSED' ? 'Park closed — no shifts scheduled.' : 'No upcoming assignments.'}"></p>
+                    <p class="schedule-empty" th:if="${#lists.isEmpty(upcoming)}">No upcoming assignments.</p>
                     <th:block th:replace="~{demand/fragments/schedule-slots :: slots(${upcoming}, false)}"></th:block>
                 </section>
                 <section class="schedule-section recorded-driving" th:if="${!day.date.isAfter(today)}" th:attr="aria-labelledby=|recorded-${day.date}|">
@@ -140,7 +145,7 @@
                                     <div class="form-group"><label th:for="|closing-${day.date}|">Wardrobe closes</label><input th:id="|closing-${day.date}|" name="closing" type="time" th:value="${day.wardrobeClosing}" required></div>
                                     <button class="button button--secondary" type="submit">Save and update assignments</button>
                                 </form>
-                                <p>An 11 AM or noon park opening uses a 9 AM–noon shuttle run. A 5 PM park opening uses a 3–5 PM shuttle run. During Fright Fest, the same available driver continues with scare actors from 5 PM until finished (about 5:45 PM). Another scheduled roster member must cover the counter throughout. Regular opening service does not resume after the scare-actor run.</p>
+                                <p>An 11 AM or noon park opening uses a 9 AM–noon shuttle run. A 5 PM park opening uses a 3–5 PM shuttle run. During Fright Fest, the same available driver continues with scare actors from 5 PM until finished (about 5:45 PM). Opening service requires another counter worker; a sole available driver may temporarily close wardrobe for the scare-actor run and reopen on return. Regular opening service does not resume after the scare-actor run.</p>
                                 <p>A daily setting overrides the wardrobe opening time. Morning opening service lasts up to three hours; afternoon opening service lasts up to two hours. Both stop earlier if wardrobe closes. Midnight closing means the end of this day.</p>
                             </details>
                             <details class="schedule-setting" th:if="${day.status != 'OPEN'}"><summary>Confirm the park is open</summary>
