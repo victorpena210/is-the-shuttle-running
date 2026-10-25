@@ -51,12 +51,7 @@
     <span th:text="${organizationName}">Your organization</span>
 </header>
 <main class="rider-status-shell rider-status-shell--simple">
-    <section class="rider-status-card" aria-live="polite"
-             th:classappend="${running ? 'rider-status-card--running' : 'rider-status-card--stopped'}">
-        <div class="rider-status-indicator" aria-hidden="true"></div>
-        <h1 th:text="${running ? 'The shuttle is running.' : 'The shuttle is not running.'}">The shuttle is not running.</h1>
-        <p class="rider-status-driver" th:if="${driverName != null}" th:text="|Driver: ${driverName}|">Driver: Driver name</p>
-    </section>
+    <section th:replace="~{fragments/rider-status-card :: statusCard(${running}, ${driverName}, 1)}"></section>
 </main>
 </body>
 </html>

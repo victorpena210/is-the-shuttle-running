@@ -57,7 +57,9 @@ correction retains the prior times, reviewer, timestamp, and note. Corrections
 update history and totals without reopening a closed session. Active forgotten
 sessions can also be closed with corrected times. Driver access, cross-organization
 changes, future end times, overlapping driver records, and stale edits are rejected.
-Live status is at `/app/live-status`. Drivers use the
+Live status is at `/app/live-status`. Managers see the same status card and
+public driver name as passengers, refreshed every 20 seconds without replacing
+in-progress manager form entries. Drivers use the
 existing NFC/QR checkpoints to start, pause, resume, hand off, and end a run.
 The public rider page at `/ride/{slug}` shows whether the shuttle is running
 and the active driver’s first name.
