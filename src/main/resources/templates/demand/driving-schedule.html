@@ -117,6 +117,7 @@
                 <details class="schedule-details"><summary>Details<span th:if="${managerView}"> &amp; settings</span></summary>
                     <div class="schedule-details-content">
                         <p th:if="${managerView and day.openingPlanMissing()}">No opening assignment was saved. Recorded driving shows the time actually logged.</p>
+                        <p th:if="${!#lists.isEmpty(day.slots.?[scareActorTransport])}">5:45 PM does not automatically end your driving session. Tap the shuttle NFC/QR checkpoint when the scare-actor run is finished.</p>
                         <p th:if="${managerView and day.message != null}" th:text="${day.message}"></p>
                         <p class="schedule-muted" th:if="${day.savedPlan}">Updated <span th:text="${#temporals.format(day.refreshedAt, 'MMM d, h:mm a z')}"></span><span th:if="${managerView}" th:text="| · ${day.calendarLabel()}|"></span>.</p>
                         <th:block th:if="${managerView and !day.date.isBefore(today) and !day.date.isAfter(today.plusDays(27))}">
