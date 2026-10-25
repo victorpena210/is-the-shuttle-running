@@ -38,7 +38,7 @@
         <p class="schedule-muted">Times in <span th:text="${operationsZone}"></span> · Assignments refresh every 5 minutes</p>
         <details class="schedule-help"><summary>How assignments work</summary>
             <div class="schedule-help-content">
-                <p>Assignments use park hours, saved driver availability, and driving history for the next 28 days.</p>
+                <p>Assignments use park hours and saved driver availability for the next 28 days. Each day is planned together, balancing driving time from the past 30 days plus upcoming assigned time. Longer assignments count more; equal totals favor whoever drove less recently.</p>
                 <p>Tap the shuttle NFC/QR checkpoint when you start or stop driving. A scheduled shift does not start the shuttle or add driving time.</p>
                 <p>Recorded driving shows actual logged times, including dates with no saved schedule, and reflects manager corrections.</p>
                 <p th:if="${managerView}">Opening service requires another scheduled roster member at the wardrobe counter. For scare-actor transport, a sole available driver may temporarily close wardrobe and reopen on return. Evening service runs through park closing or the day's later scheduled work finish. Each driver stays within their saved work hours. <a th:href="@{/transportation-demand}">Employee-demand uploads</a> can add pickup windows and are optional.</p>

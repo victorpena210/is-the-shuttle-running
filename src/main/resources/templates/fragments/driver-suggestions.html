@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
 <section th:fragment="suggestions" id="driver-suggestions" class="driver-suggestions" aria-labelledby="suggestions-heading">
 <h2 id="suggestions-heading">Suggested drivers</h2>
-<p>Available drivers are ranked by who has not driven today, then fewer actual driving hours in the past 30 days, then longest since driving. Manager time corrections are included.</p>
+<p>Available drivers are ranked by fewer actual driving hours in the past 30 days, then longest since driving. Manager time corrections are included. Automatic assignments also balance the full day’s coverage and upcoming assigned time.</p>
 <p><a th:href="@{/drivers}">Connect each driver's UKG calendar</a> to refresh work availability automatically. Connected calendars take priority over uploaded driver work hours for upcoming dates.</p>
 <details th:if="${calendarStates != null and !#lists.isEmpty(calendarStates)}"><summary>UKG calendar connections</summary>
 <ul><li th:each="state : ${calendarStates}"><a th:href="@{/drivers/{id}/calendar(id=${state.driverId})}" th:text="${state.name}"></a> ·

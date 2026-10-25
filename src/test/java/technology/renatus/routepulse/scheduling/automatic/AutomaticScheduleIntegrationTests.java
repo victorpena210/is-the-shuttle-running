@@ -80,6 +80,28 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         assertThat(views(f).stream().map(AutomaticScheduleDay.View::slots).toList()).isEqualTo(before);
         assertThat(sessions.count()).isZero();assertThat(assignmentRepository.count()).isZero();
     }
+    @Test void wholeDayBalancesSoleActorDriverAndKeepsHistoricalWorkloadAfterRefresh() {
+        var date=LocalDate.of(2026,10,31);var before=date.minusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        var f=fixture("whole-day",date,before);
+        work.deleteAll();work.flush();
+        work.saveAndFlush(new DriverScheduleWindow(f.a(),f.source(),date.atTime(9,0),date.atTime(19,0)));
+        work.saveAndFlush(new DriverScheduleWindow(f.b(),f.source(),date.atTime(9,0),date.atTime(15,0)));
+        var park=open(date,11);
+        store.refresh(f.org().getId(),List.of(park),before);entityManager.flush();entityManager.clear();
+        var first=plans.findByOrganizationIdAndDate(f.org().getId(),date).orElseThrow().slots();
+        assertThat(first).extracting(AutomaticScheduleDay.Slot::getDriverId).containsExactly(f.b().getId(),f.a().getId(),null);
+        assertThat(first.get(1).getReason()).contains("Temporarily close wardrobe");
+        store.refresh(f.org().getId(),List.of(park),before);entityManager.flush();entityManager.clear();
+        assertThat(plans.findByOrganizationIdAndDate(f.org().getId(),date).orElseThrow().slots()).isEqualTo(first);
+        assertThat(sessions.count()).isZero();
+        var history=DrivingSession.startUnscheduled(f.org(),f.b(),before.minus(Duration.ofDays(1)),f.manager(),DrivingActionMethod.MANAGER);
+        history.end(before.minus(Duration.ofDays(1)).plusSeconds(4*3600),f.manager(),DrivingActionMethod.MANAGER);
+        sessions.saveAndFlush(history);
+        store.refresh(f.org().getId(),List.of(park),before);entityManager.flush();entityManager.clear();
+        assertThat(plans.findByOrganizationIdAndDate(f.org().getId(),date).orElseThrow().slots())
+                .extracting(AutomaticScheduleDay.Slot::getDriverId).containsExactly(f.a().getId(),f.a().getId(),null);
+        assertThat(sessions.count()).isEqualTo(1);assertThat(assignmentRepository.count()).isZero();
+    }
     @Test void refreshRestoresTheSeparateEveningAssignmentWhileTheMorningRunIsActive() {
         var date=LocalDate.of(2026,10,25);var before=date.atTime(8,0).toInstant(ZoneOffset.UTC);
         var f=fixture("separate-evening",date,before);
@@ -322,7 +344,10 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         assertThat(actors.getService()).isEqualTo(ShuttleService.SCARE_ACTORS);
         assertThat(actors.getStart()).isEqualTo(date.atTime(17,0));
         assertThat(actors.getEnd()).isEqualTo(date.atTime(17,45));
-        assertThat(actors.getDriverId()).isEqualTo(f.b().getId());
+        // 3h morning + 45m actors versus 4h evening balances the whole day.
+        assertThat(days.get(0).slots()).extracting(AutomaticScheduleDay.Slot::getDriverId)
+                .containsExactly(f.a().getId(),f.a().getId(),f.b().getId());
+        assertThat(actors.getDriverId()).isEqualTo(f.a().getId());
         assertThat(actors.getReason()).isEqualTo("Automatically assigned");
         assertThat(days.get(1).slots()).hasSize(2).allSatisfy(s->assertThat(s.isScareActorTransport()).isFalse());
         for(var status:List.of(ParkOperatingStatus.CLOSED,ParkOperatingStatus.UNKNOWN)) {

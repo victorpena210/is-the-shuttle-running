@@ -203,13 +203,13 @@ class DriverSuggestionIntegrationTests extends MySqlIntegrationTestSupport {
         assertThat(DriverSuggestionService.seconds(List.of(a,duplicate,active,approved), from,NOW)).isEqualTo(10*3600);
     }
 
-    @Test void sameDayDrivingRotatesBehindAvailableDriversWhoHaveNotDrivenYet() {
+    @Test void drivingMinutesOutrankWhetherSomeoneHasDrivenToday() {
         var f = fixture("today-rotation");
         LocalDate today = NOW.atZone(ZoneOffset.UTC).toLocalDate();
         upload(f, row("100", today, "08:00", "20:00"), row("200", today, "08:00", "20:00"), row("other", today, "09:00", "19:00"));
         drove(f, f.alice(), NOW.minusSeconds(3600), 10); drove(f, f.bob(), NOW.minus(Duration.ofDays(1)), 120);
         var result = suggestions.page(f.org().getId(), forecasts.page(f.org().getId(), today), NOW);
-        assertThat(result.periods().get(0).windows().get(0).recommended().name()).isEqualTo("Bob");
+        assertThat(result.periods().get(0).windows().get(0).recommended().name()).isEqualTo("Alice");
     }
 
     @Test void currentDriverCannotCoverTheCounterOrBeSuggestedPastTheFourHourCutoff() {
