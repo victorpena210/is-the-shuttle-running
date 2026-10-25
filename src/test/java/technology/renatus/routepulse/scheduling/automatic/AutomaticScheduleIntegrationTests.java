@@ -138,7 +138,9 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
                 .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Alex visible")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("PRIVATE-ORG"))));
         mockMvc.perform(get("/driver/driving-schedule").param("date",day.toString()).param("driverId",f.b().getId().toString()).with(authentication(driver)))
-                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Alex visible")))
+                .andExpect(status().isOk()).andExpect(model().attribute("driverPage","assignments"))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("/driver/rankings")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Alex visible")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Blair visible"))));
         mockMvc.perform(get("/driving-schedule").with(authentication(driver))).andExpect(status().isForbidden());
         mockMvc.perform(get("/driving-schedule").with(authentication(authenticationFor(user,OrganizationRole.OWNER)))).andExpect(status().isForbidden());
