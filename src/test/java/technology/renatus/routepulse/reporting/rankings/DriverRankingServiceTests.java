@@ -28,11 +28,12 @@ class DriverRankingServiceTests {
     @Test void ranksWholeMinutesWithSharedRanksAndZeroDriversWithoutCountingBreakGaps() {
         var alex=driver(1,"Alex",true);var blair=driver(2,"Blair",true);var casey=driver(3,"Casey",true);var zero=driver(4,"No minutes",true);
         when(drivers.findAllByOrganization_IdAndActiveTrueOrderByNameAsc(1L)).thenReturn(List.of(alex,blair,casey,zero));
-        when(sessions.findOverlappingForServiceReview(eq(1L),any(),any())).thenReturn(List.of(
+        var recorded=List.of(
                 run(alex,"2026-10-24T14:00:00Z","2026-10-24T14:30:00Z"),
                 run(alex,"2026-10-24T15:00:00Z","2026-10-24T15:45:30Z"),
                 run(blair,"2026-10-24T14:00:00Z","2026-10-24T15:15:45Z"),
-                run(casey,"2026-10-24T14:00:00Z","2026-10-24T14:30:00Z")));
+                run(casey,"2026-10-24T14:00:00Z","2026-10-24T14:30:00Z"));
+        when(sessions.findOverlappingForServiceReview(eq(1L),any(),any())).thenReturn(recorded);
         var report=service.build(1L,DriverRankingService.Period.WEEK,now);
         assertThat(report.rows()).extracting(DriverRankingService.Row::name).containsExactly("Alex","Blair","Casey","No minutes");
         assertThat(report.rows()).extracting(DriverRankingService.Row::rank).containsExactly(1,1,3,0);
@@ -69,8 +70,8 @@ class DriverRankingServiceTests {
         var former=driver(1,"Former driver",false);var active=driver(2,"Active driver",true);
         when(drivers.findAllByOrganization_IdAndActiveTrueOrderByNameAsc(1L)).thenReturn(List.of(active));
         when(sessions.firstRecordedStart(1L)).thenReturn(Optional.of(Instant.parse("2024-09-01T04:00:00Z")));
-        when(sessions.findOverlappingForServiceReview(eq(1L),any(),any())).thenReturn(List.of(
-                run(former,"2024-09-01T04:00:00Z","2024-09-01T05:00:00Z")));
+        var historical=run(former,"2024-09-01T04:00:00Z","2024-09-01T05:00:00Z");
+        when(sessions.findOverlappingForServiceReview(eq(1L),any(),any())).thenReturn(List.of(historical));
         var report=service.build(1L,DriverRankingService.Period.ALL,now);
         assertThat(report.from()).isEqualTo(LocalDate.of(2024,8,31));
         assertThat(report.rows().get(0).active()).isFalse();assertThat(report.rows().get(0).rank()).isEqualTo(1);
