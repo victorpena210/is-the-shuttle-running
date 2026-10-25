@@ -152,6 +152,17 @@ Managers see their organization's records; drivers see only their own.
 The rider page shows running/not running and the current driver's first name.
 `AUTOMATIC_SCHEDULE_ENABLED=false` disables the background planning job.
 
+**Covered for others:** new driving starts, resumes, and handoffs save a copy of the
+automatic assignments visible at that moment. The rankings page automatically reports
+completed minutes that overlap another driver's assignment, plus the number of service
+periods helped cover. Pauses count only actual recorded time; a service type on a date
+counts once per driver after a minute of coverage. Missing plans, a driver's own assignments,
+and unassigned gaps do not create coverage. Runs awaiting duration/inactivity review are
+included after review; manager time corrections recalculate totals against the original plan.
+Old sessions without a saved start-time plan are not backfilled. This is reporting only: no
+coverage points, workload events, priority boosts, or deductions enter future assignments.
+Existing balancing based on actual driving time is unchanged.
+
 **Personal UKG calendars:** managers use **Drivers → UKG calendar** for each driver;
 drivers use **My UKG calendar** to connect their own subscription. Cedar Fair UKG
 links using `webcal://` or `https://` are read over HTTPS. Select Shifts only in

@@ -179,7 +179,7 @@ public final class ReliabilityChecks {
         f.active = DrivingSession.startUnscheduled(f.org,f.driver,Instant.now().minusSeconds(3600),f.user,DrivingActionMethod.MANAGER); id(f.active,10L);
         var users = proxy(UserAccountRepository.class,(m,a)->Optional.of(f.user));
         var memberships = proxy(OrganizationMembershipRepository.class,(m,a)-> ((Long)a[0])==1L ? Optional.of(new OrganizationMembership(f.org,f.user,f.role)) : Optional.empty());
-        var sessions = new DrivingSessionService(null,f.sessions(),null,f.organizations()) {
+        var sessions = new DrivingSessionService(null,f.sessions(),null,f.organizations(),null) {
             @Override public DrivingSession endSession(DriverAssignment a,DrivingSession s,UserAccount user,Instant at,DrivingActionMethod method) { s.end(at,user,method); return s; }
         };
         var service = new ServiceConfirmationService(users,memberships,f.organizations(),sessions);

@@ -13,7 +13,7 @@
 <main id="main-content" class="app-main rankings-page">
     <header class="page-header">
         <div><p class="eyebrow" th:text="${organizationName}"></p><h1>Driver rankings</h1>
-            <p>See who has logged the most driving time on your team.</p></div>
+            <p>See your team's driving time and who has covered for others.</p></div>
         <a class="button button--secondary" th:href="@{${managerView ? '/driving-schedule' : '/driver/driving-schedule'}}" th:text="${managerView ? 'Driving assignments' : 'My assignments'}"></a>
     </header>
     <nav class="rankings-periods" aria-label="Ranking period">
@@ -26,7 +26,7 @@
     </div>
     <div class="rankings-totals">
         <div><span>Team driving time</span><strong th:text="${report.durationLabel()}"></strong></div>
-        <div><span>Recorded segments</span><strong th:text="${report.segments}"></strong></div>
+        <div><span>Covered for others</span><strong th:text="${report.coverageDurationLabel()}"></strong></div>
         <div><span>Drivers listed</span><strong th:text="${#lists.size(report.rows)}"></strong></div>
     </div>
     <section class="rankings-board" aria-labelledby="rankings-heading">
@@ -48,9 +48,29 @@
             </tr></tbody>
         </table>
     </section>
+    <section class="rankings-board rankings-coverage" aria-labelledby="coverage-heading">
+        <div class="rankings-heading"><h2 id="coverage-heading">Covered for others</h2><span>Automatically tracked</span></div>
+        <p class="rankings-explanation">Time you drove during someone else's assigned service. Partial coverage counts. These totals are for recognition and do not add points or penalties to future assignments.</p>
+        <p class="rankings-empty" th:if="${report.coverageMinutes == 0}">No completed coverage has been recorded for this period yet.</p>
+        <table th:unless="${#lists.isEmpty(report.coverageRows)}" class="rankings-table">
+            <caption class="sr-only">Drivers ranked by time covering for others</caption>
+            <thead><tr><th scope="col">Rank</th><th scope="col">Driver</th><th scope="col">Coverage time</th><th scope="col">Shifts helped cover</th></tr></thead>
+            <tbody><tr th:each="row : ${report.coverageRows}" th:classappend="${row.driverId == currentDriverId ? 'rankings-self' : ''}">
+                <td class="rankings-position"><span th:classappend="${row.rank == 1 ? 'rankings-first' : ''}" th:text="${row.rank == 0 ? '—' : row.rank}"></span></td>
+                <th scope="row" class="rankings-name"><span th:text="${row.name}"></span>
+                    <span class="rankings-you" th:if="${row.driverId == currentDriverId}">You</span>
+                    <small th:if="${!row.active}">Inactive driver</small>
+                </th>
+                <td class="rankings-duration" th:text="${row.durationLabel()}"></td>
+                <td class="rankings-segments"><span th:text="${row.shifts}"></span><span class="rankings-mobile-label"> shifts helped cover</span></td>
+            </tr></tbody>
+        </table>
+    </section>
     <details class="rankings-notes"><summary>How rankings are calculated</summary>
         <p>Ranked by whole recorded minutes. Equal totals share a rank; drivers with no whole minutes are unranked. Each start/resume creates a segment, so segment count does not determine rank.</p>
         <p>Breaks and scheduled assignments do not add time. Active sessions include elapsed time up to the four-hour limit; manager time corrections are reflected here. This week starts Monday. All dates use <span th:text="${report.updatedAt.zone.id}"></span>.</p>
+        <p>Coverage is tracked when you start or resume driving. When the run ends, only the time overlapping another driver's assignment counts. Your own assignments and unassigned gaps do not count as covering for others. Each service type on a date counts as one shift helped cover after at least one minute, even if you pause and resume.</p>
+        <p>Coverage requires an assignment saved when the run began; older runs without that information still count toward total driving time. Runs awaiting a time review count toward coverage after review, and corrections update coverage totals. Coverage time is already included in driving time. It creates no scheduling bonus or deduction; normal actual-hours balancing is unchanged.</p>
         <p>These team totals are available to signed-in drivers and managers in your organization.</p>
     </details>
 </main>

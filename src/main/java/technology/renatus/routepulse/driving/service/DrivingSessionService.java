@@ -17,6 +17,7 @@ import technology.renatus.routepulse.driving.model.DrivingSession;
 import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
 import technology.renatus.routepulse.organization.model.Organization;
 import technology.renatus.routepulse.organization.repository.OrganizationRepository;
+import technology.renatus.routepulse.scheduling.automatic.DrivingCoverageCapture;
 
 @Service
 public class DrivingSessionService {
@@ -25,17 +26,20 @@ public class DrivingSessionService {
     private final DriverAssignmentRepository assignmentRepository;
     private final DrivingSessionRepository drivingSessionRepository;
     private final DriverWorkloadService driverWorkloadService;
+    private final DrivingCoverageCapture coverage;
 
     public DrivingSessionService(
             DriverAssignmentRepository assignmentRepository,
             DrivingSessionRepository drivingSessionRepository,
             DriverWorkloadService driverWorkloadService,
-            OrganizationRepository organizationRepository) {
+            OrganizationRepository organizationRepository,
+            DrivingCoverageCapture coverage) {
 
         this.organizationRepository = organizationRepository;
         this.assignmentRepository = assignmentRepository;
         this.drivingSessionRepository = drivingSessionRepository;
         this.driverWorkloadService = driverWorkloadService;
+        this.coverage = coverage;
     }
 
     @Transactional
@@ -140,6 +144,7 @@ public class DrivingSessionService {
                 method
         );
 
+        coverage.capture(session);
         drivingSessionRepository.save(session);
         assignment.registerDrivingSession(session);
         assignment.markDrivingInProgress();
@@ -166,8 +171,9 @@ public class DrivingSessionService {
         if (findActiveSessionForUpdate(organization.getId()) != null) {
             throw new IllegalStateException("Another driving session is already active. Tap again to refresh.");
         }
-        return drivingSessionRepository.save(
-                DrivingSession.startUnscheduled(organization, driver, startedAt, actor, method));
+        var session = DrivingSession.startUnscheduled(organization, driver, startedAt, actor, method);
+        coverage.capture(session);
+        return drivingSessionRepository.save(session);
     }
 
     @Transactional
@@ -242,6 +248,7 @@ public class DrivingSessionService {
                 method
         );
 
+        coverage.capture(replacement);
         drivingSessionRepository.save(replacement);
         if (assignment != null) {
             assignment.registerDrivingSession(replacement);
