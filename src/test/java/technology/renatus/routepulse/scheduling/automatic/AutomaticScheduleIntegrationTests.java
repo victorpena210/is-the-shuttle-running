@@ -16,6 +16,8 @@ import technology.renatus.routepulse.calendar.service.ParkOperatingDayService;
 import technology.renatus.routepulse.calendar.service.ParkCalendarOverrideService;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.driver.calendar.*;
+import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
+import technology.renatus.routepulse.driving.model.DrivingSession;
 import technology.renatus.routepulse.driving.repository.DrivingSessionRepository;
 import technology.renatus.routepulse.organization.domain.OrganizationRole;
 import technology.renatus.routepulse.organization.domain.OrganizationStatus;
@@ -77,6 +79,38 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         store.refresh(f.org().getId(),days,now);entityManager.flush();entityManager.clear();
         assertThat(views(f).stream().map(AutomaticScheduleDay.View::slots).toList()).isEqualTo(before);
         assertThat(sessions.count()).isZero();assertThat(assignmentRepository.count()).isZero();
+    }
+    @Test void refreshRestoresTheSeparateEveningAssignmentWhileTheMorningRunIsActive() {
+        var date=LocalDate.of(2026,10,25);var before=date.atTime(8,0).toInstant(ZoneOffset.UTC);
+        var f=fixture("separate-evening",date,before);
+        work.deleteAll();work.flush();
+        work.saveAndFlush(new DriverScheduleWindow(f.a(),f.source(),date.atTime(9,0),date.atTime(23,0)));
+        work.saveAndFlush(new DriverScheduleWindow(f.b(),f.source(),date.atTime(9,0),date.atTime(19,0)));
+        var park=new ParkOperatingDay(date,ParkOperatingStatus.OPEN,LocalTime.NOON,LocalTime.of(22,0),false,"LIVE_API",null);
+        store.refresh(f.org().getId(),List.of(park),before);
+        var initial=plans.findByOrganizationIdAndDate(f.org().getId(),date).orElseThrow().slots();
+        assertThat(initial).filteredOn(s->s.getStart().equals(date.atTime(19,0))).singleElement()
+                .satisfies(s->assertThat(s.getDriverId()).isEqualTo(f.a().getId()));
+        var run=sessions.saveAndFlush(DrivingSession.startUnscheduled(f.org(),f.a(),
+                date.atTime(10,24).toInstant(ZoneOffset.UTC),f.manager(),DrivingActionMethod.MANAGER));
+        // Reproduce the saved coverage gap left by the old all-day cutoff check.
+        var saved=plans.findByOrganizationIdAndDate(f.org().getId(),date).orElseThrow();
+        saved.update("OPEN","LIVE_API",LocalTime.NOON,LocalTime.of(22,0),LocalTime.of(9,0),LocalTime.of(19,0),
+                before,"Saved plan",initial.stream().map(s->s.getStart().equals(date.atTime(19,0))
+                        ?new AutomaticScheduleDay.Slot(s.getStart(),s.getEnd(),null,null,"No available driver covers this full window",s.getService()):s).toList());
+        plans.flush();
+        for(var time:List.of(LocalTime.of(11,42),LocalTime.of(11,47))) {
+            store.refresh(f.org().getId(),List.of(park),date.atTime(time).toInstant(ZoneOffset.UTC));
+            var refreshed=plans.findByOrganizationIdAndDate(f.org().getId(),date).orElseThrow().slots();
+            assertThat(refreshed).filteredOn(s->s.getStart().equals(date.atTime(19,0))).singleElement().satisfies(s->{
+                assertThat(s.getEnd()).isEqualTo(date.atTime(22,0));assertThat(s.getDriverId()).isEqualTo(f.a().getId());
+            });
+            assertThat(refreshed).filteredOn(AutomaticScheduleDay.Slot::isScareActorTransport).singleElement()
+                    .satisfies(s->assertThat(s.getDriverId()).isEqualTo(f.b().getId()));
+        }
+        assertThat(run.isActive()).isTrue();assertThat(run.getEndedAt()).isNull();
+        assertThat(run.getAutomaticEndAt()).isEqualTo(date.atTime(14,24).toInstant(ZoneOffset.UTC));
+        assertThat(sessions.count()).isEqualTo(1);assertThat(assignmentRepository.count()).isZero();
     }
     @Test void closedUnknownAndMissingCounterDoNotCreateAssignments() {
         var f=fixture("unavailable");f.b().setActive(false);driverRepository.flush();
