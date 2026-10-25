@@ -82,7 +82,8 @@ limited to 5 MB and 90 work dates per upload. Uploading or viewing demand does n
 change live shuttle status or driving records.
 
 **Driving assignments:** managers review saved shifts at `/driving-schedule`; drivers see
-only their own shifts at `/driver/driving-schedule`. The planner refreshes the next
+only their own shifts at `/driver/driving-schedule`, linked from **My assignments**
+and the **View my driving assignments** button on driver home. The planner refreshes the next
 28 days every five minutes for organizations with application access (active or a
 valid trial), and managers can use **Refresh assignments** immediately.
 It reads the Six Flags operating calendar before creating assignments. A park opening
@@ -134,6 +135,18 @@ even when no schedule was saved. It reads actual session times, reflects manager
 corrections, and shows elapsed time for active runs. Overnight records are split at
 the operations timezone's midnight. The expected opening window stays visible
 alongside saved plans; missing logs do not imply that someone drove the whole window.
+
+**Driver rankings:** signed-in drivers use `/driver/rankings`; managers use
+`/driving-rankings`. Both show the same organization's driver names, recorded driving
+minutes, and segment counts for **This week** (Monday onward), **This month**, or
+**All time**. Whole-minute totals determine rank; ties share a rank, and drivers with
+no whole recorded minutes remain listed without a rank. Segment counts do not determine
+rank. Breaks and planned assignments add no time. Active runs count elapsed time up to
+the four-hour limit; reviewed closed runs retain the manager-corrected duration.
+Local date boundaries handle overnight runs and daylight saving. Active roster members
+with zero time are included, as are inactive drivers with recorded time in the selected
+period. Drivers can see team totals without access to other drivers' session details,
+employee IDs, or account information. Rankings are not exposed on the public rider page.
 Viewing this history never creates a retroactive assignment or another driving record.
 Managers see their organization's records; drivers see only their own.
 The rider page shows running/not running and the current driver's first name.
