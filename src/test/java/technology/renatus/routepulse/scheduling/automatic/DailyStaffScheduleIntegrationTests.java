@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.time.*;
 import java.util.*;
 import org.junit.jupiter.api.Test;
+import org.hamcrest.Matchers;
 import org.springframework.beans.factory.annotation.Autowired;
 import technology.renatus.routepulse.driver.calendar.*;
 import technology.renatus.routepulse.driver.model.Driver;
@@ -47,20 +48,20 @@ class DailyStaffScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         assertThat(view.workShifts().get(1).end()).isEqualTo(day.atTime(18,0));
         mockMvc.perform(get("/driving-schedule").param("date",day.toString())
                 .with(authentication(authenticationFor(manager,OrganizationRole.OWNER))))
-                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Who’s working")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Blair Counter")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Alex UKG")))
-                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("PRIVATE-STAFF"))))
-                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("INACTIVE-STAFF"))));
+                .andExpect(status().isOk()).andExpect(content().string(Matchers.containsString("Who’s working")))
+                .andExpect(content().string(Matchers.containsString("Blair Counter")))
+                .andExpect(content().string(Matchers.containsString("Alex UKG")))
+                .andExpect(content().string(Matchers.not(Matchers.containsString("PRIVATE-STAFF"))))
+                .andExpect(content().string(Matchers.not(Matchers.containsString("INACTIVE-STAFF"))));
         var user=createUser("roster-driver@example.com",true);
         membershipRepository.saveAndFlush(new OrganizationMembership(org,user,OrganizationRole.DRIVER));
         var linked=driverRepository.findById(alex.getId()).orElseThrow();linked.linkUser(user);driverRepository.flush();
         mockMvc.perform(get("/driver/driving-schedule").param("date",day.toString()).param("driverId",blair.getId().toString())
                 .with(authentication(authenticationFor(user,OrganizationRole.DRIVER))))
-                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("My work schedule")))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("Alex UKG")))
-                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Blair Counter"))))
-                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("PRIVATE-STAFF"))));
+                .andExpect(status().isOk()).andExpect(content().string(Matchers.containsString("My work schedule")))
+                .andExpect(content().string(Matchers.containsString("Alex UKG")))
+                .andExpect(content().string(Matchers.not(Matchers.containsString("Blair Counter"))))
+                .andExpect(content().string(Matchers.not(Matchers.containsString("PRIVATE-STAFF"))));
         assertThat(plans.count()).isZero();assertThat(assignmentRepository.count()).isZero();
     }
 
