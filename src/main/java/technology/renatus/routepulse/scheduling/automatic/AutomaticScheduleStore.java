@@ -60,7 +60,7 @@ public class AutomaticScheduleStore {
                 var forecast=forecasts.page(org,date);
                 var available=suggestions.forAssignments(org,forecast,instant,hours,frightFest.required(day),day);
                 windows=available.periods().stream().flatMap(p->p.windows().stream()).toList();
-                message="Opening service and service from wardrobe closing through park closing use saved driver availability. Employee-demand uploads are optional.";
+                message="Opening service and service from wardrobe closing through park closing or the day's later scheduled work finish use saved driver availability. Employee-demand uploads are optional.";
                 if(available.noSchedules()) message += " No driver availability is saved for this date.";
                 if(frightFest.required(day)) message += " Required scare-actor transport starts at 5 PM; 5:45 PM is an estimate. Continue until finished, or end earlier when complete.";
             }
