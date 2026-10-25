@@ -28,7 +28,7 @@
     text-align: center;
 }
 
-.rider-status-card h1 {
+.rider-status-card .rider-status-headline {
     max-width: 12ch;
     margin: 0 auto;
     color: var(--white);

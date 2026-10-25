@@ -37,9 +37,9 @@
 .rider-location h2 { font-size: 1.1rem; margin-bottom: .5rem; }
 .rider-location > p:last-child { color: #becab4; font-size: .75rem; }
 .rider-status-card { background: #202c23; border-color: #45533d; border-radius: 16px; padding-top: 2.5rem; padding-bottom: 2.5rem; }
-.rider-status-card--running h1 { color: #c8f36b; }
-.rider-status-card--paused h1, .rider-status-card--delayed h1, .rider-status-card--ending h1 { color: #ffd580; }
-.rider-status-card h1 { font-size: clamp(2.2rem, 7vw, 3.6rem); max-width: 16ch; }
+.rider-status-card--running .rider-status-headline { color: #c8f36b; }
+.rider-status-card--paused .rider-status-headline, .rider-status-card--delayed .rider-status-headline, .rider-status-card--ending .rider-status-headline { color: #ffd580; }
+.rider-status-card .rider-status-headline { font-size: clamp(2.2rem, 7vw, 3.6rem); max-width: 16ch; }
 .rider-status-card--running .rider-status-indicator { background: #c8f36b; box-shadow: 0 0 0 .4rem #c8f36b22; }
 .rider-status-card--running .rider-status-indicator::before, .rider-status-card--running .rider-status-indicator::after { border-color: #c8f36b77; }
 .rider-status-footnote { text-align: center; color: #b9c6b2; max-width: 540px; margin: 1.5rem auto 0; font-size: .72rem; line-height: 1.8; }

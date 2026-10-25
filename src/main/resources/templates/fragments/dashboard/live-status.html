@@ -2,19 +2,28 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <body>
 <section th:fragment="liveStatus" id="live-status" class="live-status-panel"
-         data-dashboard-section="live-status" aria-labelledby="live-status-heading">
+         aria-labelledby="live-status-heading">
     <div class="section-heading">
         <div>
-            <p class="eyebrow">Rider communication</p>
-            <h2 id="live-status-heading">Live shuttle status</h2>
-            <p>Override the automatic rider status when an operational issue is not caused by the driver.</p>
+            <p class="eyebrow">Passenger view</p>
+            <h2 id="live-status-heading">What passengers see</h2>
+            <p>The same live status and driver name shown on the passenger page.</p>
         </div>
         <a class="button button--secondary"
            th:href="@{/ride/{slug}(slug=${organizationSlug})}"
            target="_blank" rel="noopener">Open rider page</a>
     </div>
 
-    <p><a class="button button--secondary" th:href="@{/operations/movement}">Optional location &amp; historical reviews</a></p>
+    <div data-live-rider-preview th:data-refresh-url="@{/app/live-status}">
+        <div data-live-rider-card>
+            <section th:replace="~{fragments/rider-status-card :: statusCard(${currentRiderStatus.running()}, ${currentRiderStatus.driverName}, 2)}"></section>
+        </div>
+        <p class="muted" data-live-rider-refresh-note role="status">Refreshes every 20 seconds.</p>
+        <noscript><p>Reload this page to see the latest shuttle status.</p></noscript>
+    </div>
+
+    <h3>Manage rider status</h3>
+    <p>Override the automatic rider status when an operational issue is not caused by the driver.</p>
 
     <div class="live-status-current">
         <div>
@@ -34,11 +43,6 @@
                 Update expires <strong th:text="${timestampDisplay.format(operationalStatusUpdate.expiresAt, 'MMM d, h:mm a z')}"></strong>.
                 When a temporary override expires, rider status returns to the recorded session state.
             </p>
-        </div>
-        <div>
-            <span class="live-status-current__label">Riders currently see</span>
-            <strong th:text="${currentRiderStatus.running() ? 'The shuttle is running.' : 'The shuttle is not running.'}">The shuttle is running.</strong>
-            <p th:if="${currentRiderStatus.driverName != null}" th:text="|Driver: ${currentRiderStatus.driverName}|"></p>
         </div>
     </div>
 
@@ -115,6 +119,7 @@
         <button class="button button--secondary" type="submit">Return to automatic</button>
     </form>
 
+    <p><a class="button button--secondary" th:href="@{/operations/movement}">Optional location &amp; historical reviews</a></p>
 </section>
 </body>
 </html>

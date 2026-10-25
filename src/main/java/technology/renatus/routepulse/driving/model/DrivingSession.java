@@ -86,6 +86,23 @@ public class DrivingSession {
     @Column(name = "time_review_revision", nullable = false)
     private long timeReviewRevision;
 
+    @Column(name = "coverage_plan_captured", nullable = false, updatable = false)
+    private boolean coveragePlanCaptured;
+
+    @jakarta.persistence.ElementCollection
+    @jakarta.persistence.CollectionTable(name = "driving_coverage_windows", joinColumns = @JoinColumn(name = "session_id"))
+    @jakarta.persistence.OrderColumn(name = "window_order")
+    private java.util.List<DrivingCoverageWindow> coveragePlan = new java.util.ArrayList<>();
+
+    /** Capture once, including an empty plan. Later refreshes and time reviews cannot rewrite it. */
+    public void captureCoveragePlan(java.util.List<DrivingCoverageWindow> windows) {
+        if (coveragePlanCaptured) throw new IllegalStateException("The original coverage plan has already been saved.");
+        coveragePlan.addAll(java.util.List.copyOf(windows));
+        coveragePlanCaptured = true;
+    }
+    public boolean isCoveragePlanCaptured() { return coveragePlanCaptured; }
+    public java.util.List<DrivingCoverageWindow> getCoveragePlan() { return java.util.List.copyOf(coveragePlan); }
+
     public boolean isDurationReviewNeeded() { return durationReviewRequired && timeReviewedAt == null; }
     public Instant getTimeReviewedAt() { return timeReviewedAt; }
     public long getTimeReviewRevision() { return timeReviewRevision; }

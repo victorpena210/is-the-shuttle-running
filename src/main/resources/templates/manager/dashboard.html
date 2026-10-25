@@ -8,9 +8,11 @@
 <th:block th:replace="~{fragments/navigation :: managerNav('live-status')}"></th:block>
 <main id="main-content" class="app-main">
 <header class="page-header"><div><p class="eyebrow" th:text="${organizationName}"></p>
-<h1>Live shuttle status</h1><p>See who is driving now and close an active run when needed.</p></div>
+<h1>Live shuttle status</h1><p>See the current passenger view and manage shuttle service.</p></div>
 <a class="button" th:href="@{/driving-records}">View driving history</a></header>
 <div th:if="${successMessage}" class="alert alert--success" role="status" th:text="${successMessage}"></div>
 <div th:if="${errorMessage}" class="alert alert--error" role="alert" th:text="${errorMessage}"></div>
 <th:block th:replace="~{fragments/dashboard/live-status :: liveStatus}"></th:block>
-</main><footer th:replace="~{fragments/footer :: footer('app')}"></footer></body></html>
+</main><footer th:replace="~{fragments/footer :: footer('app')}"></footer>
+<script th:src="@{/js/pages/live-status.js}" defer></script>
+</body></html>

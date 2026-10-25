@@ -173,7 +173,7 @@ class MovementMonitoringTests {
         var f=new Fixture();var a=DriverAssignment.automatic(LocalDate.of(2026,10,6),ShuttlePeriod.MORNING,f.driver);a.updateScheduledTimes(LocalTime.of(9,0),LocalTime.NOON);
         var s=DrivingSession.start(a,f.driver,START,f.user,DrivingActionMethod.NFC);a.registerDrivingSession(s);a.markDrivingInProgress();
         // The real service would dereference the absent workload service if it incorrectly awarded credit.
-        var service=new DrivingSessionService(null,null,null,null);
+        var service=new DrivingSessionService(null,null,null,null,null);
         service.endSession(a,s,null,at(1200),DrivingActionMethod.AUTOMATIC,DrivingSessionEndReason.INACTIVITY_TIMEOUT);
         assertEquals(AssignmentOutcome.PENDING,a.getAssignmentOutcome());assertTrue(s.isInactivityReviewNeeded());
     }
@@ -309,7 +309,7 @@ class MovementMonitoringTests {
             };
             var current=new CurrentOrganizationService(null,null) {@Override public Organization requireOrganization(Authentication a) {return org;}};
             var memberships=proxy(OrganizationMembershipRepository.class,(m,a)->Optional.of(new OrganizationMembership(org,user,role)));
-            var sessions=new DrivingSessionService(null,repository(),null,organizations()) {
+            var sessions=new DrivingSessionService(null,repository(),null,organizations(),null) {
                 @Override public DrivingSession endSession(DriverAssignment a,DrivingSession s,UserAccount u,Instant t,DrivingActionMethod method,DrivingSessionEndReason reason) {
                     s.end(t,u,method,reason);return s;
                 }

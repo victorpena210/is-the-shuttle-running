@@ -12,6 +12,8 @@
 .rankings-totals span { display: block; font-size: .78rem; color: #59675f; margin-bottom: .4rem; }
 .rankings-totals strong { font-size: clamp(1.1rem,2.5vw,1.65rem); font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
 .rankings-board { border: 1px solid #d5ded5; border-radius: 12px; overflow: clip; background: #fff; }
+.rankings-coverage { margin-top: 1.25rem; }
+.rankings-explanation { margin: 0; padding: 0 1.1rem .9rem; color: #59675f; font-size: .85rem; line-height: 1.5; max-width: 85ch; }
 .rankings-heading { display: flex; flex-wrap: wrap; gap: .3rem 1rem; justify-content: space-between; align-items: baseline; padding: 1rem 1.1rem; }
 .rankings-heading h2 { font-size: 1rem; margin: 0; }
 .rankings-heading > span { color: #59675f; font-size: .78rem; }
