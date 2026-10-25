@@ -88,6 +88,21 @@ class AutomaticShiftPlannerTests {
         assertThat(result.get(2).getReason()).isEqualTo(windows.get(2).reason());
     }
 
+    @Test void keepActorTransportTogetherWhenOneDriverCanFinishTheWholeRun() {
+        var a=driver(1,0,false);var b=driver(2,0,false);
+        var windows=List.of(window(9,180,ShuttleService.MORNING_OPENING,a,b),
+                window(17,30,ShuttleService.SCARE_ACTORS,a,b),
+                new Window(DAY.atTime(17,30),DAY.atTime(17,45),List.of(b),"Temporary closure",ShuttleService.SCARE_ACTORS),
+                window(19,240,b));
+        var result=AutomaticShiftPlanner.plan(windows,List.of(),BEFORE,new HashMap<>());
+        assertThat(result).extracting(Slot::getDriverId).containsExactly(1L,2L,2L,2L);
+        // Already-started work remains fixed, even if newly changed availability requires a handoff.
+        var started=new Slot(DAY.atTime(17,0),DAY.atTime(17,30),1L,a.name(),"Saved",ShuttleService.SCARE_ACTORS);
+        var changed=AutomaticShiftPlanner.plan(windows,List.of(started),DAY.atTime(17,10),new HashMap<>());
+        assertThat(changed.get(0)).isEqualTo(started);
+        assertThat(changed.get(1).getDriverId()).isEqualTo(2L);
+    }
+
     @Test void dailyWorkloadMatchesExhaustiveReferenceAcrossVariedAvailabilityAndDurations() {
         var random=new Random(4242);
         for(int example=0;example<100;example++) {

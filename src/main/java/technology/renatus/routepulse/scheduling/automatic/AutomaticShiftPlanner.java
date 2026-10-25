@@ -47,7 +47,7 @@ public final class AutomaticShiftPlanner {
             this.windows=windows;this.fixed=fixed;this.now=now;this.loads=loads;
             this.best=List.copyOf(fixed);
             this.candidates=new ArrayList<>();
-            for(int i=0;i<windows.size();i++) candidates.add(openingCandidates(windows,i));
+            for(int i=0;i<windows.size();i++) candidates.add(runCandidates(windows,i));
         }
         private void visit(int index,LocalDateTime cursor,ArrayList<Slot> result,long score) {
             if(++visited>MAX_SEARCH_NODES || score>bestScore) return;
@@ -108,10 +108,10 @@ public final class AutomaticShiftPlanner {
     private static boolean isOpening(ShuttleService service) {
         return service==ShuttleService.MORNING_OPENING || service==ShuttleService.MIDDAY_OPENING;
     }
-    private static List<Candidate> openingCandidates(
+    private static List<Candidate> runCandidates(
             List<Window> windows,int index) {
         var first=windows.get(index);
-        if(!isOpening(first.service())) return first.candidates();
+        if(!isOpening(first.service()) && first.service()!=ShuttleService.SCARE_ACTORS) return first.candidates();
         var eligible=new ArrayList<>(first.candidates());
         var end=first.end();
         for(int i=index+1;i<windows.size();i++) {

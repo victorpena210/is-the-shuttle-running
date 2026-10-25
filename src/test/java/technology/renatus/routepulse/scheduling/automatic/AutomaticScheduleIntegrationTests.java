@@ -344,7 +344,10 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         assertThat(actors.getService()).isEqualTo(ShuttleService.SCARE_ACTORS);
         assertThat(actors.getStart()).isEqualTo(date.atTime(17,0));
         assertThat(actors.getEnd()).isEqualTo(date.atTime(17,45));
-        assertThat(actors.getDriverId()).isEqualTo(f.b().getId());
+        // 3h morning + 45m actors versus 4h evening balances the whole day.
+        assertThat(days.get(0).slots()).extracting(AutomaticScheduleDay.Slot::getDriverId)
+                .containsExactly(f.a().getId(),f.a().getId(),f.b().getId());
+        assertThat(actors.getDriverId()).isEqualTo(f.a().getId());
         assertThat(actors.getReason()).isEqualTo("Automatically assigned");
         assertThat(days.get(1).slots()).hasSize(2).allSatisfy(s->assertThat(s.isScareActorTransport()).isFalse());
         for(var status:List.of(ParkOperatingStatus.CLOSED,ParkOperatingStatus.UNKNOWN)) {
