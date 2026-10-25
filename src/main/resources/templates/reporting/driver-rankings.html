@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Driver rankings | Is the Shuttle Running</title>
+    <link rel="icon" th:href="@{/images/shuttle-mark.svg}" type="image/svg+xml">
+    <link rel="stylesheet" th:href="@{/css/site.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/driver-rankings.css}">
+</head>
+<body class="app-page">
+<th:block th:if="${managerView}" th:insert="~{fragments/navigation :: managerNav('driving-rankings')}"></th:block>
+<th:block th:unless="${managerView}" th:insert="~{fragments/navigation :: driverNav}"></th:block>
+<main id="main-content" class="app-main rankings-page">
+    <header class="page-header">
+        <div><p class="eyebrow" th:text="${organizationName}"></p><h1>Driver rankings</h1>
+            <p>See who has logged the most driving time on your team.</p></div>
+        <a class="button button--secondary" th:href="@{${managerView ? '/driving-schedule' : '/driver/driving-schedule'}}" th:text="${managerView ? 'Driving assignments' : 'My assignments'}"></a>
+    </header>
+    <nav class="rankings-periods" aria-label="Ranking period">
+        <a th:each="period : ${periods}" th:href="@{${rankingsUrl}(period=${period.key})}"
+           th:attr="aria-current=${period == report.period ? 'page' : null}" th:text="${period.label}"></a>
+    </nav>
+    <div class="rankings-range">
+        <p><strong th:text="${report.period.label}"></strong> · <span th:text="${#temporals.format(report.from, 'MMM d, yyyy')}"></span>–<span th:text="${#temporals.format(report.through, 'MMM d, yyyy')}"></span></p>
+        <p>Updated <span th:text="${#temporals.format(report.updatedAt, 'h:mm a z')}"></span></p>
+    </div>
+    <div class="rankings-totals">
+        <div><span>Team driving time</span><strong th:text="${report.durationLabel()}"></strong></div>
+        <div><span>Recorded segments</span><strong th:text="${report.segments}"></strong></div>
+        <div><span>Drivers listed</span><strong th:text="${#lists.size(report.rows)}"></strong></div>
+    </div>
+    <section class="rankings-board" aria-labelledby="rankings-heading">
+        <div class="rankings-heading"><h2 id="rankings-heading">Most driving time</h2><span>Actual recorded minutes</span></div>
+        <p class="rankings-empty" th:if="${#lists.isEmpty(report.rows)}">No drivers or driving records are available yet.</p>
+        <p class="rankings-empty" th:if="${!#lists.isEmpty(report.rows) and report.segments == 0}">No driving has been recorded in this period. Drivers will be ranked once they log driving time.</p>
+        <table th:unless="${#lists.isEmpty(report.rows)}" class="rankings-table">
+            <caption class="sr-only">Drivers ranked by recorded driving minutes</caption>
+            <thead><tr><th scope="col">Rank</th><th scope="col">Driver</th><th scope="col">Driving time</th><th scope="col">Segments</th></tr></thead>
+            <tbody><tr th:each="row : ${report.rows}" th:classappend="${row.driverId == currentDriverId ? 'rankings-self' : ''}">
+                <td class="rankings-position"><span th:classappend="${row.rank == 1 ? 'rankings-first' : ''}" th:text="${row.rank == 0 ? '—' : row.rank}"></span></td>
+                <th scope="row" class="rankings-name"><span th:text="${row.name}"></span>
+                    <span class="rankings-you" th:if="${row.driverId == currentDriverId}">You</span>
+                    <small th:if="${!row.active}">Inactive driver</small>
+                    <small class="rankings-active" th:if="${row.drivingNow}">Driving now · elapsed time included</small>
+                </th>
+                <td class="rankings-duration" th:text="${row.durationLabel()}"></td>
+                <td class="rankings-segments"><span th:text="${row.segments}"></span><span class="rankings-mobile-label"> segments</span></td>
+            </tr></tbody>
+        </table>
+    </section>
+    <details class="rankings-notes"><summary>How rankings are calculated</summary>
+        <p>Ranked by whole recorded minutes. Equal totals share a rank; drivers with no whole minutes are unranked. Each start/resume creates a segment, so segment count does not determine rank.</p>
+        <p>Breaks and scheduled assignments do not add time. Active sessions include elapsed time up to the four-hour limit; manager time corrections are reflected here. This week starts Monday. All dates use <span th:text="${report.updatedAt.zone.id}"></span>.</p>
+        <p>These team totals are available to signed-in drivers and managers in your organization.</p>
+    </details>
+</main>
+<footer th:replace="~{fragments/footer :: footer('app')}"></footer>
+</body></html>
