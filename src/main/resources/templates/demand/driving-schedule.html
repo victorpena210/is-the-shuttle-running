@@ -41,7 +41,7 @@
                 <p>Assignments use park hours, saved driver availability, and driving history for the next 28 days.</p>
                 <p>Tap the shuttle NFC/QR checkpoint when you start or stop driving. A scheduled shift does not start the shuttle or add driving time.</p>
                 <p>Recorded driving shows actual logged times, including dates with no saved schedule, and reflects manager corrections.</p>
-                <p th:if="${managerView}">Opening service requires another scheduled roster member at the wardrobe counter. For scare-actor transport, a sole available driver may temporarily close wardrobe and reopen on return. Later service runs from wardrobe closing through park closing. <a th:href="@{/transportation-demand}">Employee-demand uploads</a> can add pickup windows and are optional.</p>
+                <p th:if="${managerView}">Opening service requires another scheduled roster member at the wardrobe counter. For scare-actor transport, a sole available driver may temporarily close wardrobe and reopen on return. Evening service runs through park closing or the day's later scheduled work finish. Each driver stays within their saved work hours. <a th:href="@{/transportation-demand}">Employee-demand uploads</a> can add pickup windows and are optional.</p>
                 <a th:if="${managerView}" th:href="@{/drivers}">Driver availability and UKG calendars</a>
             </div>
         </details>

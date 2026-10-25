@@ -76,11 +76,18 @@ public class DriverSuggestionService {
         var since = asOf.minus(Duration.ofDays(30));
         var roster = drivers.findAllByOrganization_IdAndActiveTrueOrderByNameAsc(org).stream()
                 .filter(d -> d.getUser() == null || d.getUser().isEnabled()).toList();
-        var work = schedules.overlapping(org, date.atStartOfDay(), horizon).stream()
-                .filter(w -> roster.stream().anyMatch(d -> d.getId().equals(w.getDriver().getId())))
-                .collect(Collectors.groupingBy(w -> w.getDriver().getId()));
-        calendars.apply(org,date,horizon,now,work);
-        work.keySet().removeIf(id -> roster.stream().noneMatch(d -> d.getId().equals(id)));
+        var rosterIds = roster.stream().map(d -> d.getId()).collect(Collectors.toSet());
+        var initialWork = workAvailability(org, date, horizon, now, rosterIds);
+        // Closing staff can finish after the public park hours. Use this service
+        // date's shifts, so a new shift tomorrow cannot extend today's service.
+        var eveningEnd = parkClosing == null ? null : initialWork.values().stream().flatMap(List::stream)
+                .filter(w -> w.getStartsAt().toLocalDate().equals(date)).map(DriverScheduleWindow::getEndsAt)
+                .max(Comparator.naturalOrder()).filter(end -> end.isAfter(parkClosing)).orElse(parkClosing);
+        var originalHorizon = horizon;
+        if (eveningEnd != null && eveningEnd.isAfter(horizon)) horizon = eveningEnd;
+        // A later overnight finish can bring another driver's after-midnight
+        // start into range; include that availability without extending again.
+        var work = horizon.equals(originalHorizon) ? initialWork : workAvailability(org, date, horizon, now, rosterIds);
         var history = sessions.findOverlappingForServiceReview(org, since, asOf).stream()
                 .collect(Collectors.groupingBy(s -> s.getDriver().getId()));
         var last = sessions.lastDriven(org, asOf).stream().collect(Collectors.toMap(
@@ -117,6 +124,7 @@ public class DriverSuggestionService {
             boundaries.add(horizon);
             boundaries.add(openingStart); boundaries.add(openingEnd); boundaries.add(closing);
             if (parkClosing != null) boundaries.add(parkClosing);
+            if (eveningEnd != null) boundaries.add(eveningEnd);
             // Availability can begin/end between quarter-hours; don't discard usable minutes.
             for (var shifts : work.values()) for (var shift : shifts) {
                 if (shift.getStartsAt().isAfter(date.atStartOfDay()) && shift.getStartsAt().isBefore(horizon)) boundaries.add(shift.getStartsAt());
@@ -142,8 +150,8 @@ public class DriverSuggestionService {
                 boolean openingWindow = !window.start().isBefore(openingStart) && window.end().compareTo(openingEnd) <= 0;
                 boolean actorWindow = scareActors && !window.start().isBefore(date.atTime(17,0))
                         && !window.end().isAfter(date.atTime(17,45));
-                boolean parkWindow = parkClosing != null && !window.start().isBefore(closing) && !window.end().isAfter(parkClosing);
-                if (window.movements() == 0 && !(openingCoverage && openingWindow) && !actorWindow && !parkWindow) continue;
+                boolean eveningWindow = eveningEnd != null && !window.start().isBefore(closing) && !window.end().isAfter(eveningEnd);
+                if (window.movements() == 0 && !(openingCoverage && openingWindow) && !actorWindow && !eveningWindow) continue;
                 if (openingCoverage && window.start().isBefore(openingStart) && !actorWindow) continue;
                 if (openingCoverage && !openingWindow && window.start().isBefore(closing) && !actorWindow) continue;
                 // A gap in service starts a separate run. The current run's timer
@@ -184,6 +192,16 @@ public class DriverSuggestionService {
         var missing = stats.stream().filter(c -> work.getOrDefault(c.driverId(),List.of()).isEmpty()).toList();
         return new Suggestions(List.copyOf(groups), stats, missing, asOf.atZone(zone),
                 openingStart, openingEnd, closing, hours.label(), work.values().stream().allMatch(List::isEmpty));
+    }
+
+    private Map<Long, List<DriverScheduleWindow>> workAvailability(Long org, LocalDate date, LocalDateTime until,
+            Instant now, Set<Long> rosterIds) {
+        var work = schedules.overlapping(org, date.atStartOfDay(), until).stream()
+                .filter(w -> rosterIds.contains(w.getDriver().getId()))
+                .collect(Collectors.groupingBy(w -> w.getDriver().getId()));
+        calendars.apply(org, date, until, now, work);
+        work.keySet().removeIf(id -> !rosterIds.contains(id));
+        return work;
     }
 
     private boolean withinSessionLimit(List<DrivingSession> history, LocalDateTime serviceStart, LocalDateTime end, Instant now) {

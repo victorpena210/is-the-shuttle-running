@@ -103,7 +103,7 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
             store.refresh(f.org().getId(),List.of(park),date.atTime(time).toInstant(ZoneOffset.UTC));
             var refreshed=plans.findByOrganizationIdAndDate(f.org().getId(),date).orElseThrow().slots();
             assertThat(refreshed).filteredOn(s->s.getStart().equals(date.atTime(19,0))).singleElement().satisfies(s->{
-                assertThat(s.getEnd()).isEqualTo(date.atTime(22,0));assertThat(s.getDriverId()).isEqualTo(f.a().getId());
+                assertThat(s.getEnd()).isEqualTo(date.atTime(23,0));assertThat(s.getDriverId()).isEqualTo(f.a().getId());
             });
             assertThat(refreshed).filteredOn(AutomaticScheduleDay.Slot::isScareActorTransport).singleElement()
                     .satisfies(s->assertThat(s.getDriverId()).isEqualTo(f.b().getId()));
@@ -111,6 +111,70 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         assertThat(run.isActive()).isTrue();assertThat(run.getEndedAt()).isNull();
         assertThat(run.getAutomaticEndAt()).isEqualTo(date.atTime(14,24).toInstant(ZoneOffset.UTC));
         assertThat(sessions.count()).isEqualTo(1);assertThat(assignmentRepository.count()).isZero();
+    }
+    @Test void eveningAssignmentRunsUntilElevenWhenClosingStaffWorkPastTenOClockParkClose() {
+        var date=LocalDate.of(2026,10,29);var before=date.minusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        var f=fixture("later-work-finish",date,before);
+        work.deleteAll();work.flush();
+        for(var driver:List.of(f.a(),f.b()))
+            work.saveAndFlush(new DriverScheduleWindow(driver,f.source(),date.atTime(15,0),date.atTime(23,0)));
+        var park=new ParkOperatingDay(date,ParkOperatingStatus.OPEN,LocalTime.of(17,0),LocalTime.of(22,0),false,"LIVE_API",null);
+        for(int refresh=0;refresh<2;refresh++) {
+            store.refresh(f.org().getId(),List.of(park),before.plusSeconds(refresh*300));
+            var view=store.manager(f.org().getId(),date,date,f.manager().getEmail()).get(0);
+            assertThat(view.parkClosing()).isEqualTo(LocalTime.of(22,0));
+            assertThat(view.slots()).hasSize(3);
+            assertThat(view.slots().subList(0,2)).allSatisfy(s->assertThat(s.getDriverId()).isEqualTo(f.a().getId()));
+            assertThat(view.slots().get(2)).satisfies(s->{
+                assertThat(s.getStart()).isEqualTo(date.atTime(19,0));assertThat(s.getEnd()).isEqualTo(date.atTime(23,0));
+                assertThat(s.getDriverId()).isEqualTo(f.b().getId());assertThat(s.getService()).isEqualTo(ShuttleService.EMPLOYEE_PICKUP);
+            });
+        }
+        assertThat(sessions.count()).isZero();assertThat(assignmentRepository.count()).isZero();
+    }
+    @Test void laterCalendarWorkFinishIncludesOvernightReliefWithoutExtendingIntoItsNextDayShift() {
+        var f=fixture("later-overnight");var finish=day.plusDays(1).atTime(0,40);
+        for(var driver:List.of(f.a(),f.b())) {
+            var connection=connections.saveAndFlush(new DriverCalendarConnection(driver,"test-encrypted",driver==f.a()?"e".repeat(64):"f".repeat(64),now,ZoneOffset.UTC));
+            calendarShifts.saveAndFlush(new DriverCalendarShift(connection,new UkgCalendarParser.Shift(
+                    day.atTime(9,0).toInstant(ZoneOffset.UTC),finish.toInstant(ZoneOffset.UTC))));
+        }
+        var relief=driverRepository.saveAndFlush(new Driver(f.org(),"300","Overnight Relief",true));
+        var connection=connections.saveAndFlush(new DriverCalendarConnection(relief,"test-encrypted","g".repeat(64),now,ZoneOffset.UTC));
+        calendarShifts.saveAndFlush(new DriverCalendarShift(connection,new UkgCalendarParser.Shift(
+                day.plusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC),day.plusDays(1).atTime(3,0).toInstant(ZoneOffset.UTC))));
+        store.refresh(f.org().getId(),List.of(open(day,11)),now);
+        var view=views(f).get(0);
+        assertThat(view.parkClosing()).isEqualTo(LocalTime.of(23,0));
+        assertThat(view.slots()).allSatisfy(s->{assertThat(s.getDriverId()).isNotNull();assertThat(s.getEnd()).isBeforeOrEqualTo(finish);});
+        assertThat(view.slots()).anySatisfy(s->{
+            assertThat(s.getStart()).isEqualTo(day.plusDays(1).atStartOfDay());assertThat(s.getEnd()).isEqualTo(finish);
+            assertThat(s.getDriverId()).isEqualTo(relief.getId());
+        });
+        assertThat(demand.count()).isZero();assertThat(sessions.count()).isZero();
+    }
+    @Test void shorterCalendarHoursLeaveCoverageUntilParkCloseAndOverrideLongerUploads() {
+        var f=fixture("shorter-closing");fixture("other-closing-org");
+        var inactive=driverRepository.saveAndFlush(new Driver(f.org(),"300","Inactive Late Worker",false));
+        work.saveAndFlush(new DriverScheduleWindow(inactive,f.source(),day.atTime(9,0),day.plusDays(1).atTime(2,0)));
+        for(var driver:List.of(f.a(),f.b())) {
+            var connection=connections.saveAndFlush(new DriverCalendarConnection(driver,"test-encrypted",driver==f.a()?"e".repeat(64):"f".repeat(64),now,ZoneOffset.UTC));
+            calendarShifts.saveAndFlush(new DriverCalendarShift(connection,new UkgCalendarParser.Shift(
+                    day.atTime(9,0).toInstant(ZoneOffset.UTC),day.atTime(21,30).toInstant(ZoneOffset.UTC))));
+        }
+        var park=new ParkOperatingDay(day,ParkOperatingStatus.OPEN,LocalTime.of(11,0),LocalTime.of(22,0),false,"LIVE_API",null);
+        store.refresh(f.org().getId(),List.of(park),now);
+        var slots=views(f).get(0).slots();
+        assertThat(slots).anySatisfy(s->{
+            assertThat(s.getStart()).isEqualTo(day.atTime(19,0));assertThat(s.getEnd()).isEqualTo(day.atTime(21,30));
+            assertThat(s.getDriverId()).isEqualTo(f.b().getId());
+        });
+        assertThat(slots).anySatisfy(s->{
+            assertThat(s.getStart()).isEqualTo(day.atTime(21,30));assertThat(s.getEnd()).isEqualTo(day.atTime(22,0));
+            assertThat(s.getDriverId()).isNull();
+        });
+        assertThat(slots).noneMatch(s->s.getEnd().isAfter(day.atTime(22,0)));
+        assertThat(sessions.count()).isZero();
     }
     @Test void closedUnknownAndMissingCounterDoNotCreateAssignments() {
         var f=fixture("unavailable");f.b().setActive(false);driverRepository.flush();
