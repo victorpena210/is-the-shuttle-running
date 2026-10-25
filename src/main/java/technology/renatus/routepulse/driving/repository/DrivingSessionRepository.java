@@ -21,6 +21,9 @@ public interface DrivingSessionRepository
 
     Optional<DrivingSession> findByIdAndOrganization_Id(Long id, Long organizationId);
 
+    @Query("SELECT MIN(s.startedAt) FROM DrivingSession s WHERE s.organization.id = :organizationId")
+    Optional<Instant> firstRecordedStart(@Param("organizationId") Long organizationId);
+
     long countByOrganization_IdAndDurationReviewRequiredTrueAndTimeReviewedAtIsNull(Long organizationId);
 
     List<DrivingSession> findTop50ByOrganization_IdAndDurationReviewRequiredTrueAndTimeReviewedAtIsNullOrderByStartedAtAsc(Long organizationId);
