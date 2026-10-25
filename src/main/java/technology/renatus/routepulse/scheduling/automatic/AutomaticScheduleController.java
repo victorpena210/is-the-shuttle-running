@@ -38,6 +38,7 @@ public class AutomaticScheduleController {
         return page(model,from,false,driver.getOrganization().getDisplayName());
     }
     private String page(Model model,LocalDate from,boolean manager,String name) {
+        model.addAttribute("driverPage","assignments");
         model.addAttribute("managerView",manager);model.addAttribute("organizationName",name);model.addAttribute("from",from);
         model.addAttribute("today",schedules.today());model.addAttribute("operationsZone",schedules.zoneName());
         model.addAttribute("now",LocalDateTime.now(ZoneId.of(schedules.zoneName())));
