@@ -137,6 +137,7 @@ public class DriverSuggestionService {
         }
         for (var period : periods) {
             var rows = new ArrayList<Window>();
+            LocalDateTime serviceStart = null, previousServiceEnd = null;
             for (var window : period.windows()) {
                 boolean openingWindow = !window.start().isBefore(openingStart) && window.end().compareTo(openingEnd) <= 0;
                 boolean actorWindow = scareActors && !window.start().isBefore(date.atTime(17,0))
@@ -145,8 +146,13 @@ public class DriverSuggestionService {
                 if (window.movements() == 0 && !(openingCoverage && openingWindow) && !actorWindow && !parkWindow) continue;
                 if (openingCoverage && window.start().isBefore(openingStart) && !actorWindow) continue;
                 if (openingCoverage && !openingWindow && window.start().isBefore(closing) && !actorWindow) continue;
+                // A gap in service starts a separate run. The current run's timer
+                // must not remove availability for a later morning/evening shift.
+                if (previousServiceEnd == null || !window.start().equals(previousServiceEnd)) serviceStart = window.start();
+                var currentServiceStart = serviceStart;
+                previousServiceEnd = window.end();
                 var eligible = stats.stream().filter(c -> covers(work.getOrDefault(c.driverId(), List.of()), window.start(), window.end()))
-                        .filter(c -> withinSessionLimit(history.getOrDefault(c.driverId(), List.of()), window.end(), now)).toList();
+                        .filter(c -> withinSessionLimit(history.getOrDefault(c.driverId(), List.of()), currentServiceStart, window.end(), now)).toList();
                 String reason = "";
                 if (window.start().isBefore(openingStart) && !actorWindow) reason = "Before wardrobe opening";
                 else if (!window.start().isBefore(openingStart) && window.start().isBefore(closing)) {
@@ -173,10 +179,10 @@ public class DriverSuggestionService {
                 openingStart, openingEnd, closing, hours.label(), work.values().stream().allMatch(List::isEmpty));
     }
 
-    private boolean withinSessionLimit(List<DrivingSession> history, LocalDateTime end, Instant now) {
+    private boolean withinSessionLimit(List<DrivingSession> history, LocalDateTime serviceStart, LocalDateTime end, Instant now) {
         return history.stream().filter(s -> s.isActive() && !s.hasReachedDurationLimit(now))
-                .noneMatch(s -> end.atZone(zone).toInstant().isAfter(s.getAutomaticEndAt())
-                        && end.toLocalDate().equals(now.atZone(zone).toLocalDate()));
+                .noneMatch(s -> serviceStart.atZone(zone).toInstant().isBefore(s.getAutomaticEndAt())
+                        && end.atZone(zone).toInstant().isAfter(s.getAutomaticEndAt()));
     }
     private boolean currentlyDriving(List<DrivingSession> history, LocalDateTime start, LocalDateTime end, Instant now) {
         return history.stream().anyMatch(s -> s.isActive() && !s.hasReachedDurationLimit(now)

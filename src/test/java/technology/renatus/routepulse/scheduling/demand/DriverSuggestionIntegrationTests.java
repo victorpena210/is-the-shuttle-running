@@ -223,6 +223,28 @@ class DriverSuggestionIntegrationTests extends MySqlIntegrationTestSupport {
         assertThat(morning.get(0).candidates()).extracting(DriverSuggestionService.Candidate::name).containsExactly("Alice");
         assertThat(morning.get(1).start().toLocalTime()).isEqualTo(LocalTime.of(9,15));
         assertThat(morning.get(1).candidates()).extracting(DriverSuggestionService.Candidate::name).containsExactly("Bob");
+        // The same cutoff applies to continuing morning service, not the separate evening run.
+        assertThat(result.periods().stream().flatMap(p->p.windows().stream())
+                .filter(w->w.start().equals(today.atTime(19,0))).findFirst().orElseThrow().candidates())
+                .extracting(DriverSuggestionService.Candidate::name).containsExactlyInAnyOrder("Alice","Bob");
+    }
+
+    @Test void continuingServiceStillHonorsTheCurrentRunCutoffAcrossMidnight() {
+        var f=fixture("overnight-active-cutoff");var today=NOW.atZone(ZoneOffset.UTC).toLocalDate();
+        upload(f,row("100",today,"19:00","03:00"),row("200",today,"19:00","03:00"));
+        var run=DrivingSession.startUnscheduled(f.org(),f.alice(),today.atTime(21,15).toInstant(ZoneOffset.UTC),f.manager(),DrivingActionMethod.MANAGER);
+        sessions.saveAndFlush(run);
+        var park=new technology.renatus.routepulse.calendar.domain.ParkOperatingDay(today,
+                technology.renatus.routepulse.calendar.domain.ParkOperatingStatus.OPEN,
+                LocalTime.of(17,0),LocalTime.of(2,0),false,"LIVE_API",null);
+        var result=suggestions.forAssignments(f.org().getId(),forecasts.page(f.org().getId(),today),
+                today.atTime(23,7).toInstant(ZoneOffset.UTC),wardrobe.getSavedHours(f.org().getId(),today),false,park);
+        var cutoff=today.plusDays(1).atTime(1,15);
+        assertThat(result.periods().stream().flatMap(p->p.windows().stream()).filter(w->w.end().equals(cutoff)).findFirst().orElseThrow().candidates())
+                .extracting(DriverSuggestionService.Candidate::name).contains("Alice");
+        assertThat(result.periods().stream().flatMap(p->p.windows().stream()).filter(w->w.start().equals(cutoff)).findFirst().orElseThrow().candidates())
+                .extracting(DriverSuggestionService.Candidate::name).containsExactly("Bob");
+        assertThat(run.isActive()).isTrue();assertThat(run.getEndedAt()).isNull();
     }
 
     @Test void retentionRemovesOldDriverHoursAndKeepsFutureSchedulesAndAnonymousCounts() {
