@@ -249,8 +249,7 @@ public class DriverSuggestionService {
         }
         rows.add(next);
     }
-    static final Comparator<Candidate> ORDER = Comparator.comparing(Candidate::droveToday)
-            .thenComparingLong(Candidate::seconds).thenComparing(Candidate::lastDriven, Comparator.nullsFirst(Comparator.naturalOrder()))
+    static final Comparator<Candidate> ORDER = Comparator.comparingLong(Candidate::seconds).thenComparing(Candidate::lastDriven, Comparator.nullsFirst(Comparator.naturalOrder()))
             .thenComparing(Candidate::name, String.CASE_INSENSITIVE_ORDER).thenComparing(Candidate::driverId);
     private static Instant earlier(Instant a, Instant b) { return a.isBefore(b) ? a : b; }
     private static Instant later(Instant a, Instant b) { return a.isAfter(b) ? a : b; }

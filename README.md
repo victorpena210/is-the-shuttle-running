@@ -125,9 +125,14 @@ shown explicitly. `FRIGHT_FEST_TRANSPORT_START` and `FRIGHT_FEST_TRANSPORT_END` 
 the inclusive date range, which expires after November 1 and does not recur annually.
 The end date follows the [official Fiesta Texas events calendar](https://www.sixflags.com/fiestatexas/events).
 
-The planner rotates drivers within a day and balances actual driving from the past
-30 days plus upcoming planned seconds across the horizon. Plans are generated in
-chronological order, independent of the week a manager views. Each block is at most
+The planner compares complete daily plans, balancing actual driving from the past
+30 days plus upcoming planned seconds across the horizon. It minimizes the sum of
+squared driver workloads, so later sole-driver duties and unequal assignment lengths
+influence earlier choices. Driving today does not override a lower workload. Equal
+workloads use longest since actual driving, then name and ID for deterministic ties.
+The daily search retains the best complete feasible plan found within 50,000 search
+nodes; ordinary days are exhaustively compared. Days are generated in chronological
+order, independent of the week a manager views. Each block is at most
 four hours. Closed dates and unverified park hours receive no new assignments;
 coverage gaps are shown explicitly. Persisted park-hour snapshots older than 24 hours
 cannot authorize new assignments. Managers can confirm an opening with an audited
