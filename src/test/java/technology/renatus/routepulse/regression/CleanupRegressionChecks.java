@@ -255,7 +255,7 @@ public final class CleanupRegressionChecks {
 
     public static void renderDashboardStates() throws Exception {
         String html = render(engine(), "manager/dashboard", managerModel());
-        check(html.contains("Live shuttle status") && html.contains("View driving history"), "live operations render");
+        check(html.contains("Live shuttle status") && html.contains("Manage service"), "live operations render");
         check(!html.contains("scheduleFile") && !html.contains("/park-calendar/confirm-open"), "planning removed");
     }
 

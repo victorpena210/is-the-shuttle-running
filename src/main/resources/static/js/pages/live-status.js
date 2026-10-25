@@ -19,10 +19,11 @@
             if (!updated) throw new Error('Missing status card');
             // Refresh only the preview so manager notes and session-close forms stay intact.
             card.replaceChildren(updated);
-            note.textContent = 'Updated ' + new Date().toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })
-                + ' · Refreshes every 20 seconds.';
+            note.textContent = '';
+            note.hidden = true;
         } catch (_) {
             note.textContent = 'Status may be out of date. Unable to refresh; retrying automatically.';
+            note.hidden = false;
         } finally {
             loading = false;
         }

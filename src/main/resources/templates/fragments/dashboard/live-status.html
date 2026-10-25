@@ -1,30 +1,18 @@
 <!DOCTYPE html>
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <body>
-<section th:fragment="liveStatus" id="live-status" class="live-status-panel"
-         aria-labelledby="live-status-heading">
-    <div class="section-heading">
-        <div>
-            <p class="eyebrow">Passenger view</p>
-            <h2 id="live-status-heading">What passengers see</h2>
-            <p>The same live status and driver name shown on the passenger page.</p>
-        </div>
-        <a class="button button--secondary"
-           th:href="@{/ride/{slug}(slug=${organizationSlug})}"
-           target="_blank" rel="noopener">Open rider page</a>
-    </div>
-
+<section th:fragment="liveStatus" id="live-status" class="live-status-panel" aria-label="Current shuttle status">
     <div data-live-rider-preview th:data-refresh-url="@{/app/live-status}">
         <div data-live-rider-card>
             <section th:replace="~{fragments/rider-status-card :: statusCard(${currentRiderStatus.running()}, ${currentRiderStatus.driverName}, 2)}"></section>
         </div>
-        <p class="muted" data-live-rider-refresh-note role="status">Refreshes every 20 seconds.</p>
+        <p class="muted" data-live-rider-refresh-note role="status" hidden></p>
         <noscript><p>Reload this page to see the latest shuttle status.</p></noscript>
     </div>
 
-    <h3>Manage rider status</h3>
-    <p>Override the automatic rider status when an operational issue is not caused by the driver.</p>
-
+    <details class="live-status-controls">
+    <summary>Manage service</summary>
+    <div class="live-status-controls-content">
     <div class="live-status-current">
         <div>
             <span class="live-status-current__label">Manager setting</span>
@@ -120,6 +108,8 @@
     </form>
 
     <p><a class="button button--secondary" th:href="@{/operations/movement}">Optional location &amp; historical reviews</a></p>
+    </div>
+    </details>
 </section>
 </body>
 </html>

@@ -23,16 +23,18 @@ public class AutomaticScheduleStore {
     private final DriverScheduleIdentityService access;
     private final FrightFestTransportPolicy frightFest;
     private final DrivingSessionRepository sessions;
+    private final DailyStaffScheduleService staff;
     private final ZoneId zone;
     public AutomaticScheduleStore(AutomaticScheduleRepository schedules,OrganizationRepository organizations,
             DemandForecastService forecasts,DriverSuggestionService suggestions,WardrobeHoursService wardrobe,
             ParkCalendarOverrideService overrides,DriverScheduleIdentityService access,FrightFestTransportPolicy frightFest,
-            DrivingSessionRepository sessions,
+            DrivingSessionRepository sessions,DailyStaffScheduleService staff,
             @Value("${app.operations-zone:America/Chicago}") String zone) {
         this.schedules=schedules; this.organizations=organizations; this.forecasts=forecasts;
         this.suggestions=suggestions; this.wardrobe=wardrobe; this.overrides=overrides; this.access=access; this.zone=ZoneId.of(zone);
         this.frightFest=frightFest;
         this.sessions=sessions;
+        this.staff=staff;
     }
     @Transactional
     public void refresh(Long org,List<ParkOperatingDay> calendar,Instant instant) {
@@ -93,6 +95,13 @@ public class AutomaticScheduleStore {
                     now.atZone(zone),"No schedule was saved for this date. Recorded driving shows the runs that were logged.",
                     List.of(),List.of(),false);
             saved.put(date,view.withHistory(AutomaticScheduleHistory.forDay(history,date,zone,now)));
+        }
+        for(var entry:staff.byDay(org,from,to,driver,now).entrySet()) {
+            var view=saved.get(entry.getKey());
+            if(view==null && !entry.getValue().isEmpty())
+                view=new AutomaticScheduleDay.View(entry.getKey(),"HISTORY","NONE",null,null,null,null,
+                        now.atZone(zone),"No driving schedule was saved for this date.",List.of(),List.of(),false);
+            if(view!=null) saved.put(entry.getKey(),view.withWorkShifts(entry.getValue()));
         }
         return List.copyOf(saved.values());
     }

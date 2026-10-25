@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const code = fs.readFileSync('src/main/resources/static/js/pages/live-status.js', 'utf8');
 
 test('live status refreshes only the card, reports failures, and recovers without clearing forms', async () => {
-    const note = { textContent: 'Refreshes every 20 seconds.' };
+    const note = { textContent: '', hidden: true };
     const card = { current: 'stopped', replaceChildren(updated) { this.current = updated; } };
     const preview = {
         dataset: { refreshUrl: '/app/live-status' },
@@ -32,17 +32,18 @@ test('live status refreshes only the card, reports failures, and recovers withou
     });
     await refresh();
     assert.equal(card.current, 'running: Alex');
-    assert.match(note.textContent, /Updated/);
+    assert.equal(note.textContent, ''); assert.equal(note.hidden, true);
     fail = true; await refresh();
     assert.equal(card.current, 'running: Alex');
     assert.match(note.textContent, /out of date/);
+    assert.equal(note.hidden, false);
     fail = false; redirected = true; updated = 'login'; await refresh();
     assert.equal(card.current, 'running: Alex');
     redirected = false; updated = null; await refresh();
     assert.equal(card.current, 'running: Alex');
     updated = 'stopped'; await refresh();
     assert.equal(card.current, 'stopped');
-    assert.match(note.textContent, /Updated/);
+    assert.equal(note.textContent, ''); assert.equal(note.hidden, true);
     document.hidden = true;
     const before = calls; await refresh(); assert.equal(calls, before);
     document.hidden = false; updated = 'running: Blair'; onVisible();
