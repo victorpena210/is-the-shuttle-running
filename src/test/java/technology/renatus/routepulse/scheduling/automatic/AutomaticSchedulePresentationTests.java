@@ -59,6 +59,18 @@ class AutomaticSchedulePresentationTests {
         assertThat(AutomaticScheduleHistory.formatDuration(120)).isEqualTo("2 hr");
     }
 
+    @Test void managersAndDriversSeeTemporaryWardrobeClosureInstructionsOnlyForTheAssignedException() throws Exception {
+        var date=today.plusDays(1);
+        var instruction="Temporarily close wardrobe for scare-actor transport; reopen when you return.";
+        var solo=day(date,List.of(new Slot(date.atTime(17,0),date.atTime(17,45),1L,"Solo Driver",instruction,ShuttleService.SCARE_ACTORS)));
+        for(boolean manager:List.of(true,false)) {
+            assertThat(render(manager,List.of(solo),date,"solo-actors-"+manager))
+                    .contains("Solo Driver",instruction).doesNotContain("Needs coverage");
+            var staffed=day(date,List.of(new Slot(date.atTime(17,0),date.atTime(17,45),1L,"Solo Driver","Automatically assigned",ShuttleService.SCARE_ACTORS)));
+            assertThat(render(manager,List.of(staffed),date,"staffed-actors-"+manager)).doesNotContain(instruction,"Automatically assigned");
+        }
+    }
+
     private View sampleDay() {
         return day(today,List.of(
                 new Slot(today.atTime(9,0),today.atTime(12,0),1L,"Sample Driver","Assigned",ShuttleService.MORNING_OPENING),

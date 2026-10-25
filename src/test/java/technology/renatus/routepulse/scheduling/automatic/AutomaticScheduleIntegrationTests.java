@@ -244,7 +244,8 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         store.refresh(f.org().getId(),List.of(open(date,17)),before);
         assertThat(store.manager(f.org().getId(),date,date,f.manager().getEmail()).get(0).slots())
                 .filteredOn(AutomaticScheduleDay.Slot::isScareActorTransport).singleElement().satisfies(s->{
-                    assertThat(s.getDriverId()).isNull();assertThat(s.getReason()).contains("wardrobe counter");
+                    assertThat(s.getDriverId()).isEqualTo(f.b().getId());
+                    assertThat(s.getReason()).contains("Temporarily close wardrobe","reopen when you return");
                 });
     }
     @Test void morningFrightFestOpeningRequiresActorTransportWithoutEmployeeDemandAndExpiresAfterNovemberFirst() {
@@ -258,6 +259,7 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         assertThat(actors.getStart()).isEqualTo(date.atTime(17,0));
         assertThat(actors.getEnd()).isEqualTo(date.atTime(17,45));
         assertThat(actors.getDriverId()).isEqualTo(f.b().getId());
+        assertThat(actors.getReason()).isEqualTo("Automatically assigned");
         assertThat(days.get(1).slots()).hasSize(2).allSatisfy(s->assertThat(s.isScareActorTransport()).isFalse());
         for(var status:List.of(ParkOperatingStatus.CLOSED,ParkOperatingStatus.UNKNOWN)) {
             store.refresh(f.org().getId(),List.of(new ParkOperatingDay(date,status,null,null,false,"LIVE_API",null)),before);
@@ -265,7 +267,7 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         }
         assertThat(sessions.count()).isZero();
     }
-    @Test void requiredActorTransportStillReportsMissingCounterCoverageAndRespectsWorkEnd() {
+    @Test void actorDriverContinuesWithTemporaryClosureWhenTheCounterWorkerLeaves() {
         var date=LocalDate.of(2026,10,31);var before=date.minusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
         var f=fixture("fright-coverage",date,before);
         work.deleteAll();work.flush();
@@ -275,12 +277,74 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         var actors=store.manager(f.org().getId(),date,date,f.manager().getEmail()).get(0).slots().stream()
                 .filter(AutomaticScheduleDay.Slot::isScareActorTransport).toList();
         assertThat(actors).hasSize(2);
-        assertThat(actors.get(0).getDriverId()).isNotNull();
+        assertThat(actors.get(0).getDriverId()).isEqualTo(f.b().getId());
+        assertThat(actors.get(0).getReason()).isEqualTo("Automatically assigned");
         assertThat(actors.get(0).getEnd()).isEqualTo(date.atTime(17,30));
         assertThat(actors.get(1).getStart()).isEqualTo(date.atTime(17,30));
         assertThat(actors.get(1).getEnd()).isEqualTo(date.atTime(17,45));
+        assertThat(actors.get(1).getDriverId()).isEqualTo(f.b().getId());
+        assertThat(actors.get(1).getReason()).contains("Temporarily close wardrobe","reopen when you return");
+    }
+    @Test void saturdaySoloActorDriverReturnsToWardrobeAndIsNotAssignedPastWorkEnd() {
+        var date=LocalDate.of(2026,10,31);var before=date.minusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
+        var f=fixture("solo-saturday",date,before);
+        work.deleteAll();work.flush();
+        work.saveAndFlush(new DriverScheduleWindow(f.a(),f.source(),date.atTime(9,0),date.atTime(19,0)));
+        work.saveAndFlush(new DriverScheduleWindow(f.b(),f.source(),date.atTime(9,0),date.atTime(15,0)));
+        for(int refresh=0;refresh<2;refresh++) {
+            store.refresh(f.org().getId(),List.of(open(date,11)),before.plusSeconds(refresh*300));
+            entityManager.flush();entityManager.clear();
+            var view=store.manager(f.org().getId(),date,date,f.manager().getEmail()).get(0);
+            assertThat(view.slots()).hasSize(3);
+            assertThat(view.slots()).filteredOn(AutomaticScheduleDay.Slot::isScareActorTransport).singleElement().satisfies(s->{
+                assertThat(s.getStart()).isEqualTo(date.atTime(17,0));assertThat(s.getEnd()).isEqualTo(date.atTime(17,45));
+                assertThat(s.getDriverId()).isEqualTo(f.a().getId());
+                assertThat(s.getReason()).contains("Temporarily close wardrobe","reopen when you return");
+            });
+            assertThat(view.slots()).filteredOn(s->s.getService()==ShuttleService.MORNING_OPENING).singleElement()
+                    .satisfies(s->assertThat(s.getDriverId()).isNotNull());
+            assertThat(view.slots()).filteredOn(s->s.getStart().equals(date.atTime(19,0))).singleElement()
+                    .satisfies(s->assertThat(s.getDriverId()).isNull());
+            assertThat(view.slots()).noneMatch(s->s.overlaps(date.atTime(17,45),date.atTime(19,0)));
+            assertThat(view.wardrobeClosing()).isEqualTo(LocalTime.of(19,0));
+        }
+        // A solo worker still stays at the counter during ordinary opening service.
+        var counter=driverRepository.findById(f.b().getId()).orElseThrow();counter.setActive(false);driverRepository.flush();
+        store.refresh(f.org().getId(),List.of(open(date,11)),before.plusSeconds(600));
+        var solo=store.manager(f.org().getId(),date,date,f.manager().getEmail()).get(0).slots();
+        assertThat(solo).filteredOn(s->s.getService()==ShuttleService.MORNING_OPENING).singleElement()
+                .satisfies(s->{assertThat(s.getDriverId()).isNull();assertThat(s.getReason()).contains("wardrobe counter");});
+        assertThat(solo).filteredOn(AutomaticScheduleDay.Slot::isScareActorTransport).singleElement()
+                .satisfies(s->assertThat(s.getDriverId()).isEqualTo(f.a().getId()));
+        assertThat(sessions.count()).isZero();assertThat(assignmentRepository.count()).isZero();
+    }
+    @Test void soloActorExceptionStillRespectsWorkEndAndActiveRunLimit() {
+        var date=LocalDate.of(2026,10,31);var before=date.atTime(8,0).toInstant(ZoneOffset.UTC);
+        var f=fixture("solo-limits",date,before);f.b().setActive(false);driverRepository.flush();
+        work.deleteAll();work.flush();
+        var shift=work.saveAndFlush(new DriverScheduleWindow(f.a(),f.source(),date.atTime(9,0),date.atTime(17,30)));
+        store.refresh(f.org().getId(),List.of(open(date,11)),before);
+        assertActorCutoff(f,date);
+        work.delete(shift);work.flush();
+        work.saveAndFlush(new DriverScheduleWindow(f.a(),f.source(),date.atTime(9,0),date.atTime(19,0)));
+        var run=sessions.saveAndFlush(DrivingSession.startUnscheduled(f.org(),f.a(),date.atTime(13,30).toInstant(ZoneOffset.UTC),
+                f.manager(),DrivingActionMethod.MANAGER));
+        store.refresh(f.org().getId(),List.of(open(date,11)),date.atTime(16,30).toInstant(ZoneOffset.UTC));
+        assertActorCutoff(f,date);
+        assertThat(run.isActive()).isTrue();assertThat(run.getEndedAt()).isNull();
+        assertThat(run.getAutomaticEndAt()).isEqualTo(date.atTime(17,30).toInstant(ZoneOffset.UTC));
+    }
+    private void assertActorCutoff(Fixture f,LocalDate date) {
+        var actors=store.manager(f.org().getId(),date,date,f.manager().getEmail()).get(0).slots().stream()
+                .filter(AutomaticScheduleDay.Slot::isScareActorTransport).toList();
+        assertThat(actors).hasSize(2);
+        assertThat(actors.get(0).getDriverId()).isEqualTo(f.a().getId());
+        assertThat(actors.get(0).getStart()).isEqualTo(date.atTime(17,0));
+        assertThat(actors.get(0).getEnd()).isEqualTo(date.atTime(17,30));
         assertThat(actors.get(1).getDriverId()).isNull();
-        assertThat(actors.get(1).getReason()).contains("wardrobe counter");
+        assertThat(actors.get(1).getStart()).isEqualTo(date.atTime(17,30));
+        assertThat(actors.get(1).getEnd()).isEqualTo(date.atTime(17,45));
+        assertThat(actors.get(1).getReason()).contains("No available driver");
     }
     @Test void backgroundJobPlansFromTwoUkgCalendarsWithoutAnyUploadForActiveAndValidTrialOrganizations() {
         var instant=Instant.now();var tomorrow=instant.atZone(ZoneOffset.UTC).toLocalDate().plusDays(1);

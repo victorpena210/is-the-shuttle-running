@@ -154,6 +154,7 @@ public class DriverSuggestionService {
                 var eligible = stats.stream().filter(c -> covers(work.getOrDefault(c.driverId(), List.of()), window.start(), window.end()))
                         .filter(c -> withinSessionLimit(history.getOrDefault(c.driverId(), List.of()), currentServiceStart, window.end(), now)).toList();
                 String reason = "";
+                boolean temporaryWardrobeClosure = false;
                 if (window.start().isBefore(openingStart) && !actorWindow) reason = "Before wardrobe opening";
                 else if (!window.start().isBefore(openingStart) && window.start().isBefore(closing)) {
                     if (window.end().isAfter(openingEnd) && !actorWindow) reason = "Later service waits until wardrobe closes";
@@ -161,12 +162,18 @@ public class DriverSuggestionService {
                         // Counter coverage is another distinct, active roster member, not another CSV row.
                         var counter = stats.stream().filter(c -> covers(work.getOrDefault(c.driverId(), List.of()), window.start(), window.end()))
                                 .filter(c -> !currentlyDriving(history.getOrDefault(c.driverId(), List.of()), window.start(), window.end(), now)).toList();
-                        eligible = eligible.stream().filter(c -> counter.stream().anyMatch(other -> !other.driverId().equals(c.driverId()))).toList();
-                        if (eligible.isEmpty()) reason = "Another scheduled roster member is needed at the wardrobe counter";
+                        var withCounter = eligible.stream().filter(c -> counter.stream().anyMatch(other -> !other.driverId().equals(c.driverId()))).toList();
+                        // The sole available driver may close wardrobe for required
+                        // scare-actor transport, then return to the counter.
+                        temporaryWardrobeClosure = actorWindow && eligible.size() == 1 && withCounter.isEmpty();
+                        if (!temporaryWardrobeClosure) eligible = withCounter;
+                        if (eligible.isEmpty()) reason = actorWindow ? "No available driver covers this full window"
+                                : "Another scheduled roster member is needed at the wardrobe counter";
                     }
                 }
                 if (!reason.isEmpty()) eligible = List.of();
                 if (eligible.isEmpty() && reason.isEmpty()) reason = "No available driver covers this full window";
+                if (temporaryWardrobeClosure) reason = "Temporarily close wardrobe for scare-actor transport; reopen when you return.";
                 var service = actorWindow ? ShuttleService.SCARE_ACTORS : openingWindow
                         ? (opening.isBefore(LocalTime.NOON) ? ShuttleService.MORNING_OPENING : ShuttleService.MIDDAY_OPENING)
                         : ShuttleService.EMPLOYEE_PICKUP;
