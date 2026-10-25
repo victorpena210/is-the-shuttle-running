@@ -17,6 +17,12 @@ public class UkgCalendarClient {
         } catch (Exception exception) { throw new IllegalArgumentException("Paste the complete UKG subscription link from Cedar Fair's Sync My Schedule screen."); }
     }
     public List<UkgCalendarParser.Shift> fetch(String link) {
+        return UkgCalendarParser.parse(fetchBytes(link));
+    }
+    public List<UkgCalendarParser.DetailedShift> fetchDetails(String link) {
+        return UkgCalendarParser.parseDetails(fetchBytes(link));
+    }
+    private byte[] fetchBytes(String link) {
         String normalized = normalize(link); HttpURLConnection connection = null;
         try {
             // The destination and path are fixed; user-entered hosts, ports and redirects are never followed.
@@ -27,7 +33,7 @@ public class UkgCalendarClient {
             if (status != 200) throw new IllegalStateException("UKG could not refresh this subscription. Check that the link is still active or reconnect it.");
             byte[] bytes;
             try (var stream = connection.getInputStream()) { bytes = stream.readNBytes(1_048_577); }
-            return UkgCalendarParser.parse(bytes);
+            return bytes;
         } catch (IllegalArgumentException | IllegalStateException exception) { throw exception;
         } catch (Exception exception) {
             // Do not retain the exception cause: HTTP errors can contain the private subscription token.

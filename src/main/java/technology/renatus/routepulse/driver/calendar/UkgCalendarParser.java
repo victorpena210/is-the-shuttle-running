@@ -10,8 +10,12 @@ import java.util.*;
 public final class UkgCalendarParser {
     private UkgCalendarParser() { }
     public record Shift(Instant start, Instant end) { }
+    public record DetailedShift(Instant start, Instant end, String location) { }
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("uuuuMMdd'T'HHmmss").withResolverStyle(ResolverStyle.STRICT);
     public static List<Shift> parse(byte[] bytes) {
+        return parseDetails(bytes).stream().map(s -> new Shift(s.start(), s.end())).distinct().toList();
+    }
+    public static List<DetailedShift> parseDetails(byte[] bytes) {
         if (bytes.length > 1_048_576) throw invalid();
         String text = new String(bytes, StandardCharsets.UTF_8).replace("\ufeff", "").replace("\r\n", "\n");
         if (text.indexOf('\ufffd') >= 0 || !text.strip().startsWith("BEGIN:VCALENDAR") || !text.strip().endsWith("END:VCALENDAR")) throw invalid();
@@ -50,7 +54,7 @@ public final class UkgCalendarParser {
             }
         }
         if (!stack.isEmpty() || event != null) throw invalid();
-        var result=new LinkedHashSet<Shift>();
+        var result=new LinkedHashSet<DetailedShift>();
         for(var entry:latest.values()) {
             if("CANCELLED".equalsIgnoreCase(value(entry,"STATUS")))continue;
             if(entry.keySet().stream().anyMatch(Set.of("RRULE","RDATE","EXDATE","RECURRENCE-ID")::contains))
@@ -59,9 +63,25 @@ public final class UkgCalendarParser {
                 throw new IllegalArgumentException("In UKG, select Shifts only and turn off Absences and Schedule tags, then copy a new subscription link.");
             Instant start=time(entry.get("DTSTART")),end=time(entry.get("DTEND"));
             if(!end.isAfter(start)||Duration.between(start,end).compareTo(Duration.ofHours(24))>0)throw invalid();
-            result.add(new Shift(start,end));
+            result.add(new DetailedShift(start,end,location(entry)));
         }
-        return result.stream().sorted(Comparator.comparing(Shift::start)).toList();
+        return result.stream().sorted(Comparator.comparing(DetailedShift::start)).toList();
+    }
+    private static String location(Map<String,Property> event) {
+        String explicit = text(value(event, "LOCATION"));
+        if (!explicit.isBlank()) return explicit;
+        // UKG shift details begin with an organizational path and finish with the job.
+        // Never retain the description's links, HTML or other free-form personal details.
+        String firstLine = value(event, "DESCRIPTION").split("\\\\[nN]", 2)[0].strip();
+        if (!firstLine.startsWith("SF/")) return "";
+        String[] path = firstLine.split("/");
+        return path.length >= 4 ? text(path[path.length - 2]) : "";
+    }
+    private static String text(String input) {
+        String clean = input.replace("\\n", " ").replace("\\N", " ").replace("\\,", ",")
+                .replace("\\;", ";").replace("\\\\", "\\").replaceAll("<[^>]*>", "")
+                .replaceAll("[\\p{Cntrl}]", " ").strip();
+        return clean.substring(0, Math.min(200, clean.length()));
     }
     private static int sequence(Map<String,Property> event) {
         try {int value=event.containsKey("SEQUENCE")?Integer.parseInt(value(event,"SEQUENCE")):0;if(value<0)throw invalid();return value;}
