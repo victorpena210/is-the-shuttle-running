@@ -24,7 +24,7 @@ class DailyStaffScheduleServiceTests {
         var unlisted=driver(org,4L,"Unlisted");
         when(drivers.findAllByOrganization_IdAndActiveTrueOrderByNameAsc(1L)).thenReturn(List.of(alex,blair,disabled));
         var day=LocalDate.of(2026,10,25);var now=Instant.parse("2026-10-25T15:00:00Z");
-        when(schedules.overlapping(1L,day.atStartOfDay(),day.plusDays(2).atStartOfDay())).thenReturn(List.of(
+        var windows=List.of(
                 new DriverScheduleWindow(alex,null,day.atTime(9,0),day.atTime(12,0)),
                 new DriverScheduleWindow(alex,null,day.atTime(10,0),day.atTime(13,0)),
                 new DriverScheduleWindow(alex,null,day.atTime(13,0),day.atTime(14,0)),
@@ -32,7 +32,8 @@ class DailyStaffScheduleServiceTests {
                 new DriverScheduleWindow(blair,null,day.atTime(22,0),day.plusDays(1).atTime(2,0)),
                 new DriverScheduleWindow(disabled,null,day.atTime(9,0),day.atTime(19,0)),
                 new DriverScheduleWindow(unlisted,null,day.atTime(9,0),day.atTime(19,0)),
-                new DriverScheduleWindow(alex,null,day.minusDays(1).atTime(22,0),day.atStartOfDay())));
+                new DriverScheduleWindow(alex,null,day.minusDays(1).atTime(22,0),day.atStartOfDay()));
+        when(schedules.overlapping(1L,day.atStartOfDay(),day.plusDays(2).atStartOfDay())).thenReturn(windows);
         var result=service.byDay(1L,day,day.plusDays(1),null,now);
         assertThat(result.get(day)).extracting(DailyStaffScheduleService.WorkShift::name).containsExactly("Alex","Alex","Blair");
         assertThat(result.get(day).get(0).start()).isEqualTo(day.atTime(9,0));
