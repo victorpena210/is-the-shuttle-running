@@ -63,7 +63,7 @@ public final class AutomaticShiftPlanner {
                     }
                 }
                 result.add(new Slot(start,end,chosen==null?null:chosen.driverId(),chosen==null?null:chosen.name(),
-                        chosen==null?window.reason():"Automatically assigned",window.service()));
+                        chosen==null || !window.reason().isBlank()?window.reason():"Automatically assigned",window.service()));
                 if(chosen!=null) {
                     usedToday.add(chosen.driverId());
                     plannedSeconds.merge(chosen.driverId(),Duration.between(start,end).getSeconds(),Long::sum);

@@ -10,7 +10,7 @@
         <td class="schedule-driver">
             <strong th:if="${slot.driverId != null}" th:text="${slot.driverName}"></strong>
             <span class="schedule-pill" th:if="${slot.driverId == null}" th:classappend="${!past ? 'schedule-pill--gap' : ''}" th:text="${past ? 'Unassigned' : 'Needs coverage'}"></span>
-            <small th:if="${slot.driverId == null}" th:text="${slot.reason}"></small>
+            <small th:if="${slot.driverId == null or (slot.scareActorTransport and slot.reason != 'Automatically assigned')}" th:text="${slot.reason}"></small>
         </td>
         <td class="schedule-service"><span th:text="${slot.scareActorTransport ? 'Scare-actor transport' : slot.serviceLabel}"></span>
             <small th:if="${slot.scareActorTransport}">5:45 PM is an estimate. Finish sooner if complete; continue until everyone is transported.</small>
