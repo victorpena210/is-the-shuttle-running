@@ -25,6 +25,15 @@ public interface DrivingSessionRepository
     List<DrivingSession> findForRankings(@Param("organizationId") Long organizationId,
             @Param("start") Instant start,@Param("end") Instant end);
 
+    @Query("""
+            SELECT DISTINCT s FROM DrivingSession s JOIN FETCH s.driver LEFT JOIN FETCH s.coveragePlan
+            WHERE s.organization.id = :organizationId AND s.driver.id = :driverId
+              AND s.startedAt < :end AND (s.endedAt IS NULL OR s.endedAt > :start)
+            ORDER BY s.startedAt
+            """)
+    List<DrivingSession> findForCoverageDetails(@Param("organizationId") Long organizationId,
+            @Param("driverId") Long driverId,@Param("start") Instant start,@Param("end") Instant end);
+
     interface LastDriven { Long getDriverId(); Instant getStartedAt(); }
 
     @Query("select s.driver.id as driverId, max(s.startedAt) as startedAt from DrivingSession s where s.organization.id = :org and s.startedAt < :before group by s.driver.id")

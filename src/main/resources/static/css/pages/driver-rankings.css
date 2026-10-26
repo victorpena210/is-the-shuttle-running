@@ -39,7 +39,41 @@
 .rankings-notes p { margin-bottom: .6rem; }
 .rankings-notes summary { cursor: pointer; padding-block: .4rem; font-weight: 650; }
 .rankings-page .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.coverage-detail-link { display: block; margin-top: .4rem; font-size: .78rem; font-weight: 500; color: #345c20; text-underline-offset: .2em; }
+.coverage-summary { margin-top: 1.3rem; font-size: 1rem; }
+.coverage-summary strong { font-size: 1.7rem; letter-spacing: -.03em; }
+.coverage-intro { color: #59675f; max-width: 80ch; margin-bottom: 1.3rem; }
+.coverage-window { margin-bottom: 1rem; }
+.coverage-window-body { padding: 0 1.1rem 1.1rem; }
+.coverage-who { margin-top: 0; }
+.coverage-badge { display: inline-block; background: #edf5e4; color: #345c20; border-radius: 5px; padding: .2rem .5rem; font-size: .75rem; }
+.coverage-facts { display: grid; grid-template-columns: minmax(0,2fr) minmax(0,1fr); gap: 1rem; padding: .9rem; background: #f4f7ef; border-radius: 7px; }
+.coverage-facts dt { color: #59675f; font-size: .77rem; margin-bottom: .3rem; }
+.coverage-facts dd { margin: 0; font-size: .9rem; font-weight: 600; }
+.coverage-contributions { list-style: none; padding: 0; margin: .9rem 0 0; }
+.coverage-contributions li { border-top: 1px solid #e5eae1; padding-block: 1rem .2rem; margin-top: .8rem; }
+.coverage-contributions p { font-size: .85rem; margin: .45rem 0; }
+.coverage-contributions a, .coverage-review a { color: #345c20; font-size: .8rem; text-underline-offset: .2em; }
+.coverage-contribution-heading { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; }
+.coverage-review-link { display: inline-block; margin-left: 1rem; }
+.coverage-message { padding: 1rem; border-radius: 7px; background: #edf5e4; }
+.coverage-warning { color: #715014; background: #fff3d6; }
+.coverage-reviews { margin-top: 2rem; scroll-margin-top: 1rem; }
+.coverage-reviews > h2 { font-size: 1.2rem; }
+.coverage-reviews > p { font-size: .85rem; color: #59675f; max-width: 90ch; }
+.coverage-review { margin: .7rem 0; scroll-margin-top: 1rem; }
+.coverage-review summary { padding: 1rem; font-size: .9rem; cursor: pointer; }
+.coverage-review:target { outline: 2px solid #75a13f; outline-offset: 2px; }
+.coverage-review form { margin: 1rem 0; }
+.coverage-review label { display: block; margin-bottom: .4rem; font-weight: 600; }
+.coverage-review textarea { display: block; width: 100%; box-sizing: border-box; margin-bottom: .6rem; border: 1px solid #a8b5a4; border-radius: 5px; padding: .6rem; font: inherit; }
+.coverage-audit { font-size: .82rem; padding-left: 1.2rem; }
+.coverage-audit li { margin-top: 1rem; }
+.coverage-audit p { white-space: pre-wrap; overflow-wrap: anywhere; margin-top: .3rem; }
+.coverage-page a:focus-visible, .coverage-page summary:focus-visible, .coverage-detail-link:focus-visible { outline: 3px solid #56802f; outline-offset: 4px; }
 @media(max-width:650px) {
+    .coverage-facts { grid-template-columns: 1fr; }
+    .coverage-review-link { display: block; margin: .5rem 0 0; }
     .rankings-page .page-header { align-items: flex-start; }
     .rankings-totals { grid-template-columns: 1fr 1fr; gap: .6rem; }
     .rankings-totals > div:first-child { grid-column: 1 / -1; }

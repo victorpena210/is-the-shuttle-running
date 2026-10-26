@@ -175,6 +175,21 @@ Old sessions without a saved start-time plan are not backfilled. This is reporti
 coverage points, workload events, priority boosts, or deductions enter future assignments.
 Existing balancing based on actual driving time is unchanged.
 
+**Coverage details:** **View coverage details** preserves the selected week, month,
+or all-time period. Managers can inspect every driver in their organization at
+`/driving-rankings/coverage/{driverId}`; drivers inspect only their own coverage at
+`/driver/rankings/coverage`. Each saved assigned window shows the service date/type,
+originally scheduled driver and hours, full/partial coverage, and the exact recorded
+sessions and credited overlaps in the operations timezone. The details and rankings
+share the same calculation, including unioning overlaps and rounding the total to
+whole minutes. Drivers receive no other drivers' session details or manager notes.
+Managers can open the existing audited time-correction page, flag a coverage mismatch
+with a reason, and resolve it with a note. Review history is append-only and rejects
+stale edits. Flags do not change credited time, rewrite saved plans, or affect future
+assignments. Reviews remain available across periods even if a correction removes
+the original coverage. Scheduled names are resolved from the current organization
+roster, with a fallback when the former driver's name is unavailable.
+
 **Personal UKG calendars:** managers use **Drivers → UKG calendar** for each driver;
 drivers use **My UKG calendar** to connect their own subscription. Cedar Fair UKG
 links using `webcal://` or `https://` are read over HTTPS. Select Shifts only in

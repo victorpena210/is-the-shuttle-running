@@ -28,11 +28,7 @@ public class DriverRankingService {
     }
     Report build(Long organizationId,Period period,Instant now) {
         LocalDate today=now.atZone(zone).toLocalDate();
-        LocalDate from=switch(period) {
-            case WEEK -> today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-            case MONTH -> today.withDayOfMonth(1);
-            case ALL -> sessions.firstRecordedStart(organizationId).map(t->t.atZone(zone).toLocalDate()).filter(d->!d.isAfter(today)).orElse(today);
-        };
+        LocalDate from=periodStart(organizationId,period,now);
         Instant start=from.atStartOfDay(zone).toInstant();
         Map<Long,Total> totals=new HashMap<>();
         drivers.findAllByOrganization_IdAndActiveTrueOrderByNameAsc(organizationId)
@@ -73,13 +69,21 @@ public class DriverRankingService {
                 rows.stream().mapToLong(Row::minutes).sum(),rows.stream().mapToLong(Row::segments).sum(),
                 List.copyOf(coverageRows),coverageRows.stream().mapToLong(CoverageRow::minutes).sum());
     }
+    LocalDate periodStart(Long organizationId,Period period,Instant now) {
+        LocalDate today=now.atZone(zone).toLocalDate();
+        return switch(period) {
+            case WEEK -> today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+            case MONTH -> today.withDayOfMonth(1);
+            case ALL -> sessions.firstRecordedStart(organizationId).map(t->t.atZone(zone).toLocalDate()).filter(d->!d.isAfter(today)).orElse(today);
+        };
+    }
     static long secondsWithin(DrivingSession session,Instant start,Instant now) {
         Instant clippedStart=session.getStartedAt().isAfter(start)?session.getStartedAt():start;
         Instant end=session.isActive()?session.getAutomaticEndAt():session.getEndedAt();
         if(end.isAfter(now)) end=now;
         return Math.max(0,Duration.between(clippedStart,end).getSeconds());
     }
-    private static String duration(long minutes) {
+    static String duration(long minutes) {
         return minutes<60?minutes+" min":minutes/60+" hr"+(minutes%60==0?"":" "+minutes%60+" min");
     }
     private static final class Total {
