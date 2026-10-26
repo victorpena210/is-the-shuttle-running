@@ -30,7 +30,7 @@
         <span th:text="${report.shifts}"></span> shifts helped cover
     </div>
     <p class="coverage-intro">Only completed driving that overlaps someone else's saved assignment counts. The assignment below is the plan saved when each driving session began.</p>
-    <p class="rankings-empty rankings-board" th:if="${#lists.isEmpty(report.windows)}">No completed coverage is recorded for this driver in this period. Active runs, runs awaiting time review, and older runs without a saved assignment do not count yet.</p>
+    <p class="rankings-empty rankings-board" th:if="${#lists.isEmpty(report.windows)}">No completed coverage is recorded for this driver in this period. Active runs and runs awaiting time review count after completion and review. Older runs without a saved assignment cannot be credited as coverage.</p>
     <section class="coverage-window rankings-board" th:each="window, row : ${report.windows}"
              th:attr="aria-labelledby=${'window-' + row.index}">
         <div class="rankings-heading">
@@ -63,7 +63,7 @@
     <section id="coverage-reviews" class="coverage-reviews" th:if="${managerView and !#lists.isEmpty(report.reviews)}">
         <h2>Manager coverage reviews</h2>
         <p>Flag a possible mismatch with a reason, then resolve it after checking. Flags keep credited time unchanged. Correct recorded times through the driving session link above. Review notes remain available here across all periods, including after a time correction removes coverage.</p>
-        <details class="coverage-review rankings-board" th:each="review : ${report.reviews}" th:id="${'review-' + review.sessionId}">
+        <details class="coverage-review rankings-board" th:each="review : ${report.reviews}" th:id="${'review-' + review.sessionId}" th:attr="open=${review.flagged ? 'open' : null}">
             <summary>Session <span th:text="${#temporals.format(review.startedAt,'MMM d, yyyy h:mm a z')}"></span> ·
                 <strong th:text="${review.flagged ? 'Flagged for review' : (review.revision > 0 ? 'Review resolved' : 'Review coverage')}"></strong></summary>
             <div class="coverage-window-body">
