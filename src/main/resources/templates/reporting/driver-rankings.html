@@ -53,7 +53,7 @@
         <p class="rankings-explanation">Time you drove during someone else's assigned service. Partial coverage counts. These totals are for recognition and do not add points or penalties to future assignments.</p>
         <p class="rankings-empty" th:if="${report.coverageMinutes == 0}">No completed coverage has been recorded for this period yet.</p>
         <table th:unless="${#lists.isEmpty(report.coverageRows)}" class="rankings-table">
-            <caption class="sr-only">Drivers ranked by time covering for others</caption>
+            <caption class="sr-only">Drivers ranked by time covering for others. Managers can review every driver's coverage; drivers can review their own.</caption>
             <thead><tr><th scope="col">Rank</th><th scope="col">Driver</th><th scope="col">Coverage time</th><th scope="col">Shifts helped cover</th></tr></thead>
             <tbody><tr th:each="row : ${report.coverageRows}" th:classappend="${row.driverId == currentDriverId ? 'rankings-self' : ''}">
                 <td class="rankings-position"><span th:classappend="${row.rank == 1 ? 'rankings-first' : ''}" th:text="${row.rank == 0 ? '—' : row.rank}"></span></td>
@@ -61,7 +61,11 @@
                     <span class="rankings-you" th:if="${row.driverId == currentDriverId}">You</span>
                     <small th:if="${!row.active}">Inactive driver</small>
                 </th>
-                <td class="rankings-duration" th:text="${row.durationLabel()}"></td>
+                <td class="rankings-duration"><span th:text="${row.durationLabel()}"></span>
+                    <a class="coverage-detail-link" th:if="${managerView or row.driverId == currentDriverId}"
+                       th:href="@{${managerView ? '/driving-rankings/coverage/' + row.driverId : '/driver/rankings/coverage'}(period=${report.period.key})}"
+                       th:attr="aria-label=${'View coverage details for ' + row.name}">View coverage details</a>
+                </td>
                 <td class="rankings-segments"><span th:text="${row.shifts}"></span><span class="rankings-mobile-label"> shifts helped cover</span></td>
             </tr></tbody>
         </table>
