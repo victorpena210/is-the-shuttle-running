@@ -29,7 +29,7 @@
     <div class="coverage-summary"><strong th:text="${report.durationLabel()}"></strong> credited ·
         <span th:text="${report.shifts}"></span> shifts helped cover
     </div>
-    <p class="coverage-intro">Only completed driving that overlaps someone else's saved assignment counts. The assignment below is the plan saved when each driving session began.</p>
+    <p class="coverage-intro">Only completed driving that overlaps someone else's saved assignment counts. The saved plan includes any verified assignment corrections. Driving your own assignment counts toward total driving time, not coverage for someone else.</p>
     <p class="rankings-empty rankings-board" th:if="${#lists.isEmpty(report.windows)}">No completed coverage is recorded for this driver in this period. Active runs and runs awaiting time review count after completion and review. Older runs without a saved assignment cannot be credited as coverage.</p>
     <section class="coverage-window rankings-board" th:each="window, row : ${report.windows}"
              th:attr="aria-labelledby=${'window-' + row.index}">

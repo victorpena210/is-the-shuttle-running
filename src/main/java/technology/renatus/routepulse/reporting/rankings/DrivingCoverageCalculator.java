@@ -17,7 +17,7 @@ final class DrivingCoverageCalculator {
             if(session.isActive() || !session.isCoveragePlanCaptured()
                     || session.isDurationReviewNeeded() || session.isInactivityReviewNeeded()) continue;
             for(var window:session.getCoveragePlan()) {
-                if(session.getDriver().getId().equals(window.getScheduledDriverId())) continue;
+                if(session.getDriver().getId().equals(window.getEffectiveScheduledDriverId())) continue;
                 var start=later(from,later(session.getStartedAt(),window.getStart()));
                 var end=earlier(until,earlier(session.getEndedAt(),window.getEnd()));
                 if(end.isAfter(start)) matches.add(new Match(session,window,new Span(start,end)));
