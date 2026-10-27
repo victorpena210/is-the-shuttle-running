@@ -47,7 +47,7 @@ public class CoverageDetailService {
         matches.stream().sorted(Comparator.comparing((DrivingCoverageCalculator.Match m)->m.window().getStart()).reversed()
                 .thenComparing(m->m.span().start())).forEach(m->{
             var w=m.window();
-            groups.computeIfAbsent(new Window(w.getServiceDate(),w.getServiceKey(),w.getScheduledDriverId(),
+            groups.computeIfAbsent(new Window(w.getServiceDate(),w.getServiceKey(),w.getEffectiveScheduledDriverId(),
                     w.getStart(),w.getEnd()),k->new ArrayList<>()).add(m);
         });
         var windows=new ArrayList<WindowRow>();

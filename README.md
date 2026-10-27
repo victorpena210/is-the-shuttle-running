@@ -170,7 +170,9 @@ completed minutes that overlap another driver's assignment, plus the number of s
 periods helped cover. Pauses count only actual recorded time; a service type on a date
 counts once per driver after a minute of coverage. Missing plans, a driver's own assignments,
 and unassigned gaps do not create coverage. Runs awaiting duration/inactivity review are
-included after review; manager time corrections recalculate totals against the original plan.
+included after review; manager time corrections recalculate totals against the saved plan.
+Verified assignment corrections override the credited assignment while retaining the original
+captured driver and correction reason for audit. They do not change recorded driving time.
 Old sessions without a saved start-time plan are not backfilled. This is reporting only: no
 coverage points, workload events, priority boosts, or deductions enter future assignments.
 Existing balancing based on actual driving time is unchanged.
