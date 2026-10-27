@@ -26,7 +26,8 @@ class CoverageAssignmentCorrectionIntegrationTests extends MySqlIntegrationTestS
     private static final Instant NOW=Instant.parse("2026-10-27T14:00:00Z");
 
     @Test void ownScareActorAssignmentLosesFalseCreditButKeepsDrivingTimeAndOriginalSnapshot() {
-        var f=fixture("sfft");
+        // The page adds a sentence-ending period; it may not be part of the saved name.
+        var f=fixture("sfft","Irons, Jody L");
         var run=drove(f,f.victor(),START,END,window(f.jody(),DATE,"SCARE_ACTORS",WINDOW_START));
         assertThat(rankings.build(f.org().getId(),DriverRankingService.Period.MONTH,NOW).coverageMinutes()).isEqualTo(34);
         assertThat(details.build(f.org().getId(),f.victor().getId(),DriverRankingService.Period.ALL,true,NOW).windows()).hasSize(1);
@@ -100,9 +101,12 @@ class CoverageAssignmentCorrectionIntegrationTests extends MySqlIntegrationTestS
         entityManager.clear();
     }
     private Fixture fixture(String slug) {
+        return fixture(slug,"Irons, Jody L.");
+    }
+    private Fixture fixture(String slug,String jodyName) {
         var org=createOrganization(slug,slug);var owner=createUser(slug+"@example.com",true);
         var victor=driverRepository.saveAndFlush(new Driver(org,"victor","Pena, Victor J",true));
-        var jody=driverRepository.saveAndFlush(new Driver(org,"jody","Irons, Jody L.",true));
+        var jody=driverRepository.saveAndFlush(new Driver(org,"jody",jodyName,true));
         return new Fixture(org,owner,victor,jody);
     }
     private DrivingCoverageWindow window(Driver assigned,LocalDate date,String service,Instant start) {
