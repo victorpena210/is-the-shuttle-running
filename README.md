@@ -302,6 +302,32 @@ currently deployed service.
 
 ## Production configuration
 
+### Driving assignment emails
+
+Under **Drivers → Driving reminder email**, save a separate notification address for each
+driver who should receive reminders. Blank disables reminders; login and invitation emails
+are unchanged. No existing drivers are opted in by the migration.
+
+In production, the app checks every minute and sends five minutes before the driver's
+scheduled **work clock-in**, with all of that day's saved driving assignments. It uses the
+operations timezone (America/Chicago by default), the same UKG-over-upload precedence as
+the assignments page, and the existing `MAIL_*` sender. Closed/unverified park days, plans
+older than ten minutes, inactive/disabled drivers, missing work hours, and days with no
+driving assignment during that work shift do not send. Split work shifts can each receive
+one reminder; overlapping/adjacent work-hour rows are merged by the staff schedule service.
+If the scheduler briefly runs late, it may send during the remaining five-minute window;
+it never sends a missed reminder at or after clock-in. Inbox arrival depends on SMTP delivery.
+
+V51 stores a unique organization/driver/work-start delivery claim before SMTP submission.
+Replicas share the organization's planning lock, so routine polling and restarts do not
+replay a claimed reminder. Known connection/authentication failures retry at most three
+times, at least a minute apart and only before clock-in. An ambiguous timeout, process crash
+during submission, or failure to record successful submission is left `UNCERTAIN` or
+`SENDING` for investigation rather than risking duplicate mail. `SENT` means SMTP accepted
+the message, not that the recipient read it. Review `driving_shift_email_reminders` and
+the delivery-ID-only application log entries when investigating missed email.
+Disable all reminders with `DRIVING_REMINDERS_ENABLED=false`.
+
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `SPRING_PROFILES_ACTIVE=prod` | Yes | Enables production settings and SMTP delivery |
@@ -316,6 +342,7 @@ currently deployed service.
 | `MAIL_USERNAME` | Yes | SMTP username |
 | `MAIL_PASSWORD` | Yes | SMTP password |
 | `MAIL_FROM` | Yes | Verified sender address |
+| `DRIVING_REMINDERS_ENABLED` | No | Enables configured driver reminders in production; defaults to `true` |
 | `DEMO_REQUEST_RECIPIENT` | No | Business inbox receiving demo requests |
 | `SENTRY_DSN` | No | Enables error reporting; blank disables Sentry |
 | `SENTRY_ENVIRONMENT` | No | Defaults to `production` in the prod profile |

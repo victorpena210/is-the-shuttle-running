@@ -69,6 +69,12 @@ public class Driver {
     )
     private String email;
 
+    @Column(name = "driving_reminder_email", length = 254)
+    private String drivingReminderEmail;
+
+    public String getDrivingReminderEmail() { return drivingReminderEmail; }
+    public void changeDrivingReminderEmail(String email) { this.drivingReminderEmail = email; }
+
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(
             name = "user_id",

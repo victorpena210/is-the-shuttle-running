@@ -39,7 +39,8 @@ public final class RoleAwareLoginSuccessHandler extends SavedRequestAwareAuthent
         try {
             String path = URI.create(saved.getRedirectUrl()).normalize().getRawPath();
             String portal = contextPath + "/driver";
-            return portal.equals(path) || (path != null && path.startsWith(portal + "/"));
+            return (contextPath + "/my-driving-assignments").equals(path)
+                    || portal.equals(path) || (path != null && path.startsWith(portal + "/"));
         } catch (IllegalArgumentException exception) {
             return false;
         }
