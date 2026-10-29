@@ -286,11 +286,12 @@
 
                         </td>
 
-                        <td
-                            th:text="${driver.email != null ? driver.email : '—'}">
-
-                            driver@example.com
-
+                        <td>
+                            <span th:text="${driver.email != null ? driver.email : '—'}">driver@example.com</span>
+                            <p class="help-text" th:if="${driver.drivingReminderEmail != null}">
+                                Driving reminders:<br>
+                                <span th:text="${driver.drivingReminderEmail}"></span>
+                            </p>
                         </td>
 
                         <td>
@@ -334,18 +335,10 @@
                                     </form>
                                 </details>
 
-                                <details>
-                                    <summary>Driving reminder email</summary>
-                                    <form th:action="@{/drivers/{id}/driving-reminder-email(id=${driver.id})}" method="post">
-                                        <label th:for="${'driving-reminder-email-' + driver.id}">Driving reminder email</label>
-                                        <input type="email" th:id="${'driving-reminder-email-' + driver.id}" name="email" maxlength="254"
-                                               th:value="${driver.drivingReminderEmail}" autocomplete="off">
-                                        <p>Receive the day's driving assignments five minutes before your scheduled clock-in.
-                                            No email is sent on days without a driving assignment. All times use the operations timezone.</p>
-                                        <p>This address does not change your sign-in email. Clear it to turn reminders off.</p>
-                                        <button type="submit" class="button button--secondary button--small">Save reminder email</button>
-                                    </form>
-                                </details>
+                                <button class="button button--secondary button--small" type="button" aria-haspopup="dialog"
+                                        th:attr="data-email-dialog-open=${'driving-reminder-dialog-' + driver.id}">
+                                    Driving reminder email
+                                </button>
 
                                 <button
                                     th:if="${!driver.hasAccount()}"
@@ -420,6 +413,31 @@
 
             <th:block
                 th:each="driver : ${drivers}">
+
+                <dialog class="driver-email-dialog" th:id="${'driving-reminder-dialog-' + driver.id}"
+                        th:attr="aria-labelledby=${'driving-reminder-heading-' + driver.id}">
+                    <form class="driver-email-dialog__form" th:action="@{/drivers/{id}/driving-reminder-email(id=${driver.id})}" method="post">
+                        <div class="driver-email-dialog__header">
+                            <div>
+                                <h3 th:id="${'driving-reminder-heading-' + driver.id}">Driving reminder email</h3>
+                                <p th:text="${driver.name}">Driver</p>
+                            </div>
+                            <button type="button" class="driver-email-dialog__close" data-email-dialog-close aria-label="Close reminder editor">×</button>
+                        </div>
+                        <div class="form-group">
+                            <label th:for="${'driving-reminder-email-' + driver.id}">Driving reminder email</label>
+                            <input type="email" th:id="${'driving-reminder-email-' + driver.id}" name="email" maxlength="254"
+                                   th:value="${driver.drivingReminderEmail}" autocomplete="off">
+                            <p class="help-text">Receive the day's driving assignments five minutes before your scheduled clock-in.
+                                No email is sent on days without a driving assignment. All times use the operations timezone.</p>
+                            <p class="help-text">This address does not change your sign-in email. Clear it to turn reminders off.</p>
+                        </div>
+                        <div class="driver-email-dialog__actions">
+                            <button type="button" class="button button--secondary" data-email-dialog-close>Cancel</button>
+                            <button type="submit" class="button">Save reminder email</button>
+                        </div>
+                    </form>
+                </dialog>
 
                 <dialog
                     th:if="${!driver.hasAccount()}"
