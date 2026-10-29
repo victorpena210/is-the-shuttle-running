@@ -124,7 +124,8 @@ public class SecurityConfig {
                                  * managers to /app.
                                  */
                                 .requestMatchers(
-                                        "/post-login"
+                                        "/post-login",
+                                        "/my-driving-assignments"
                                 )
                                 .authenticated()
 

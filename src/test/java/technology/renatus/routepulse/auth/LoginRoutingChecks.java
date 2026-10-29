@@ -36,7 +36,7 @@ public final class LoginRoutingChecks {
             equal("/post-login", run(new RoleAwareLoginSuccessHandler(cache), driver, ""), "driver leaves manager URL " + path);
             equal(null, cache.saved, "discard inaccessible saved request");
         }
-        for (String path : List.of("/driver", "/driver/schedule", "/driver/demand", "/driver/analytics", "/driver/tap", "/driver/scan")) {
+        for (String path : List.of("/driver", "/driver/schedule", "/driver/demand", "/driver/analytics", "/driver/tap", "/driver/scan", "/my-driving-assignments")) {
             var cache = cache("GET", path, "code=tag-code&from=2026-10-10", "");
             String expected = cache.saved.getRedirectUrl();
             equal(expected, run(new RoleAwareLoginSuccessHandler(cache), driver, ""), "keep driver deep link and query " + path);

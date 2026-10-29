@@ -334,6 +334,19 @@
                                     </form>
                                 </details>
 
+                                <details>
+                                    <summary>Driving reminder email</summary>
+                                    <form th:action="@{/drivers/{id}/driving-reminder-email(id=${driver.id})}" method="post">
+                                        <label th:for="${'driving-reminder-email-' + driver.id}">Driving reminder email</label>
+                                        <input type="email" th:id="${'driving-reminder-email-' + driver.id}" name="email" maxlength="254"
+                                               th:value="${driver.drivingReminderEmail}" autocomplete="off">
+                                        <p>Receive the day's driving assignments five minutes before your scheduled clock-in.
+                                            No email is sent on days without a driving assignment. All times use the operations timezone.</p>
+                                        <p>This address does not change your sign-in email. Clear it to turn reminders off.</p>
+                                        <button type="submit" class="button button--secondary button--small">Save reminder email</button>
+                                    </form>
+                                </details>
+
                                 <button
                                     th:if="${!driver.hasAccount()}"
                                     class="button button--secondary button--small"
