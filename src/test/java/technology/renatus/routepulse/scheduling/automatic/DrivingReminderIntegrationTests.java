@@ -8,7 +8,6 @@ import java.time.*;
 import java.util.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.AccessDeniedException;
 import technology.renatus.routepulse.driver.calendar.*;
 import technology.renatus.routepulse.driver.model.Driver;
 import technology.renatus.routepulse.organization.domain.OrganizationRole;
@@ -114,7 +113,7 @@ class DrivingReminderIntegrationTests extends MySqlIntegrationTestSupport {
         assertThatThrownBy(() -> settings.update(f.org.getId(), other.driver.getId(), "new@example.com", f.manager))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> settings.update(other.org.getId(), other.driver.getId(), "new@example.com", f.manager))
-                .isInstanceOf(AccessDeniedException.class);
+                .isInstanceOf(IllegalStateException.class).hasMessageContaining("does not belong to this organization");
         var driverUser = createUser("driver-reminder@example.com", true);
         membershipRepository.saveAndFlush(new OrganizationMembership(f.org, driverUser, OrganizationRole.DRIVER));
         mockMvc.perform(post("/drivers/{id}/driving-reminder-email", f.driver.getId()).param("email", "new@example.com")
