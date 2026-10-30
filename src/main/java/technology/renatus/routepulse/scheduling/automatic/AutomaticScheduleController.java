@@ -21,14 +21,16 @@ public class AutomaticScheduleController {
     private final WardrobeHoursService wardrobe;
     private final ParkOperatingDayService calendar;
     private final ParkCalendarOverrideService overrides;
+    private final technology.renatus.routepulse.pickup.PickupAlerts pickups;
     public AutomaticScheduleController(AutomaticScheduleService schedules,AutomaticScheduleStore store,CurrentOrganizationService current,
-            DriverPortalAccessService drivers,WardrobeHoursService wardrobe,ParkOperatingDayService calendar,ParkCalendarOverrideService overrides) {
-        this.schedules=schedules;this.store=store;this.current=current;this.drivers=drivers;this.wardrobe=wardrobe;this.calendar=calendar;this.overrides=overrides;
+            DriverPortalAccessService drivers,WardrobeHoursService wardrobe,ParkOperatingDayService calendar,ParkCalendarOverrideService overrides, technology.renatus.routepulse.pickup.PickupAlerts pickups) {
+        this.schedules=schedules;this.store=store;this.current=current;this.drivers=drivers;this.wardrobe=wardrobe;this.calendar=calendar;this.overrides=overrides;this.pickups=pickups;
     }
     @GetMapping("/driving-schedule")
     public String manager(Authentication auth,@RequestParam(required=false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate date,Model model) {
         var org=current.requireOrganization(auth); var from=date==null?schedules.today():date;
         model.addAttribute("days",store.manager(org.getId(),from,from.plusDays(6),auth.getName()));
+        addPickups(model,org.getId(),from);
         return page(model,from,true,org.getDisplayName());
     }
     @GetMapping("/driver/driving-schedule")
@@ -36,7 +38,17 @@ public class AutomaticScheduleController {
         var driver=drivers.requireCurrentDriver(auth); drivers.requireActiveDriver(driver); var from=date==null?schedules.today():date;
         model.addAttribute("days",store.driver(driver.getOrganization().getId(),driver.getId(),from,from.plusDays(6)));
         model.addAttribute("currentDriverId",driver.getId());
+        addPickups(model,driver.getOrganization().getId(),from);
         return page(model,from,false,driver.getOrganization().getDisplayName());
+    }
+    private void addPickups(Model model,Long org,LocalDate from) {
+        var alerts=pickups.forDates(org,from.minusDays(1),from.plusDays(7),Instant.now());
+        var bySlot=new java.util.HashMap<AutomaticScheduleDay.Slot,java.util.List<technology.renatus.routepulse.pickup.PickupAlerts.Alert>>();
+        for(var alert:alerts) for(var slot:alert.related()) bySlot.computeIfAbsent(slot,key->new java.util.ArrayList<>()).add(alert);
+        var uncovered=new java.util.HashMap<LocalDate,java.util.List<technology.renatus.routepulse.pickup.PickupAlerts.Alert>>();
+        for(var alert:alerts) if(alert.pending() && alert.needsCoverage())
+            uncovered.computeIfAbsent(alert.row().clockOut().toLocalDate(),key->new java.util.ArrayList<>()).add(alert);
+        model.addAttribute("pickupsBySlot",bySlot);model.addAttribute("uncoveredPickups",uncovered);
     }
     private String page(Model model,LocalDate from,boolean manager,String name) {
         model.addAttribute("driverPage","assignments");

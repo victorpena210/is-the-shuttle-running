@@ -18,11 +18,13 @@ import technology.renatus.routepulse.driving.domain.DrivingActionMethod;
 public class DriverPortalController {
 
     private final DriverPortalService driverPortalService;
+    private final technology.renatus.routepulse.pickup.PickupAlerts pickups;
 
     public DriverPortalController(
-            DriverPortalService driverPortalService) {
+            DriverPortalService driverPortalService, technology.renatus.routepulse.pickup.PickupAlerts pickups) {
 
         this.driverPortalService = driverPortalService;
+        this.pickups = pickups;
     }
 
     @GetMapping("/driver")
@@ -34,6 +36,7 @@ public class DriverPortalController {
                 .requireCurrentDriver(authentication);
 
         model.addAttribute("driver", driver);
+        model.addAttribute("pickupAlerts", pickups.forDriver(driver.getOrganization().getId(),driver.getId(),java.time.Instant.now()));
         var active = driverPortalService.getActiveConfirmation(authentication);
         if (active != null) {
             model.addAttribute("activeSessionId", active.sessionId());

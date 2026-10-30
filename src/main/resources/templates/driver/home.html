@@ -17,6 +17,8 @@
 
     <link rel="stylesheet" th:href="@{/css/site.css}">
     <link rel="stylesheet" th:href="@{/css/pages/driver-home.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/pickup-assistance.css}">
+    <script defer th:src="@{/js/pages/pickup-alerts.js}"></script>
 </head>
 
 <body class="app-page">
@@ -104,6 +106,7 @@
         <p>Tap the shuttle’s NFC tag or scan its QR code and confirm Start driving.
             On a break? Tap or scan again when you resume. Break time is excluded from driving time.</p>
     </section>
+    <section th:replace="~{pickup/upcoming :: upcoming}"></section>
     <section id="driving-history" aria-labelledby="history-heading">
         <div class="section-heading"><div><h2 id="history-heading">My recent driving records</h2>
         <p>Your latest 20 driving segments. Times are shown in your organization’s timezone.</p></div></div>

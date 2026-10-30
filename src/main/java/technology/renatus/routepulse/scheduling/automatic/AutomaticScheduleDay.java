@@ -34,7 +34,7 @@ public class AutomaticScheduleDay {
         if (!slots.equals(next)) { slots.clear(); slots.addAll(next); }
     }
     List<Slot> slots() { return List.copyOf(slots); }
-    View view(ZoneId zone,Long driver) {
+    public View view(ZoneId zone,Long driver) {
         return new View(date,status,source,parkOpening,parkClosing,wardrobeOpening,wardrobeClosing,
                 refreshedAt.atZone(zone),message,slots.stream().filter(s -> driver==null || driver.equals(s.driverId)).toList());
     }

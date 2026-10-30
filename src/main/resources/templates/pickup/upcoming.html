@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<section id="upcoming-pickups" class="driver-focus" th:fragment="upcoming" data-pickup-poll="/driver/pickup-assistance/upcoming" aria-labelledby="upcoming-pickups-heading">
+    <h2 id="upcoming-pickups-heading">Upcoming pickups</h2>
+    <p class="pickup-note">During or within 15 minutes of your driving assignments · Scheduled clock-outs, not confirmed requests. Check details while parked.</p>
+    <p th:if="${pickupAlerts == null or #lists.isEmpty(pickupAlerts)}">No upcoming pickup assistance near your driving assignments.</p>
+    <th:block th:replace="~{pickup/cards :: cards(${pickupAlerts}, 'home', ${null})}"></th:block>
+    <a th:href="@{/driver/pickup-assistance}">View the full pickup list</a>
+    <p class="pickup-note" data-pickup-connection role="status"></p>
+</section>
+</body></html>

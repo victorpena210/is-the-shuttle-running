@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org"><body>
+<div class="pickup-alert-list" th:fragment="cards(alerts, returnTo, slot)">
+    <article class="pickup-alert-card" th:each="alert : ${alerts}" th:classappend="${alert.due ? 'pickup-alert-card--due' : ''}">
+        <p class="pickup-alert-due" th:if="${alert.due}" role="status" th:text="${alert.row.past ? 'Scheduled time passed · pickup unconfirmed' : 'Pickup coming up'}"></p>
+        <h3><span th:text="${alert.row.name}"></span> · Scheduled off <time th:datetime="${alert.row.clockOut}" th:text="${#temporals.format(alert.row.clockOut, 'MMM d, h:mm a')}"></time></h3>
+        <p th:text="${alert.row.location}"></p>
+        <p class="pickup-alert-coverage" th:classappend="${alert.needsCoverage() ? 'pickup-warning' : ''}" th:text="${alert.coverageLabel()}"></p>
+        <p class="pickup-note" th:if="${slot != null and alert.nearSlot(slot)}">Near your driving time</p>
+        <p class="pickup-note" th:if="${alert.needsCoverage()}">Arrange coverage with your supervisor. Your driving assignment has not been extended.</p>
+        <p class="pickup-warning" th:if="${alert.row.stale}">Schedule may be out of date; confirm with the rider.</p>
+        <p class="pickup-note" th:unless="${alert.pending()}" th:text="${alert.status.label}"></p>
+        <form class="pickup-alert-actions" th:action="@{${managerView == true ? '/pickup-assistance/outcome' : '/driver/pickup-assistance/outcome'}}" method="post">
+            <input type="hidden" name="riderId" th:value="${alert.row.riderId}">
+            <input type="hidden" name="clockOut" th:value="${alert.row.clockOut.toInstant()}">
+            <input type="hidden" name="returnTo" th:value="${returnTo}">
+            <input type="hidden" name="date" th:value="${from != null ? from : alert.row.clockOut.toLocalDate()}">
+            <button th:if="${alert.pending()}" class="button button--secondary" name="outcome" value="PICKED_UP" type="submit" th:attr="aria-label=|Mark ${alert.row.name} picked up|">Picked up</button>
+            <button th:if="${alert.pending()}" class="button button--secondary" name="outcome" value="NOT_NEEDED" type="submit" th:attr="aria-label=|No pickup needed for ${alert.row.name}|">No pickup needed</button>
+            <button th:unless="${alert.pending()}" class="button button--secondary" name="outcome" value="PENDING" type="submit">Undo</button>
+        </form>
+    </article>
+</div>
+</body></html>

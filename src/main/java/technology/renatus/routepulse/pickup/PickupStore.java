@@ -55,7 +55,7 @@ public class PickupStore {
     private static void addRow(List<Row> rows,PickupShift shift,Instant end,LocalDate day,ZoneId zone,Instant now) {
         if(!end.atZone(zone).toLocalDate().equals(day)) return;
         var rider=shift.getRider();String location=rider.getLocationOverride().isBlank()?shift.getLocation():rider.getLocationOverride();
-        rows.add(new Row(rider.getName(),end.atZone(zone),location.isBlank()?"Location not provided — confirm with rider":location,
+        rows.add(new Row(rider.getId(),rider.getName(),end.atZone(zone),location.isBlank()?"Location not provided — confirm with rider":location,
                 !rider.getLocationOverride().isBlank(),rider.getLastSyncedAt().atZone(zone),rider.stale(now),end.isBefore(now)));
     }
     @Transactional
@@ -105,7 +105,7 @@ public class PickupStore {
         return text;
     }
     public record Snapshot(Long id,Long org,long revision,String encryptedLink) { }
-    public record Row(String name,ZonedDateTime clockOut,String location,boolean locationOverride,ZonedDateTime lastSynced,boolean stale,boolean past) { }
+    public record Row(Long riderId,String name,ZonedDateTime clockOut,String location,boolean locationOverride,ZonedDateTime lastSynced,boolean stale,boolean past) { }
     public record Person(Long id,String name,String location,boolean active,ZonedDateTime lastSynced,boolean stale) { }
     public record Page(String organizationName,boolean manager,LocalDate date,LocalDate today,String zone,List<Row> rows,List<Person> roster,long warnings) { }
 }

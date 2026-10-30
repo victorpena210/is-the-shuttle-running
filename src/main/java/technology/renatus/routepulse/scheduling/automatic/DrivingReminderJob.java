@@ -52,7 +52,7 @@ public class DrivingReminderJob {
         }
     }
 
-    static boolean definitelyNotSent(Throwable error) {
+    public static boolean definitelyNotSent(Throwable error) {
         for (int depth = 0; error != null && depth < 20; depth++, error = error.getCause()) {
             if (error instanceof MailAuthenticationException || error instanceof ConnectException
                     || error instanceof UnknownHostException

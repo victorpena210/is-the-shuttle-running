@@ -47,11 +47,12 @@ class PickupTests {
         var engine=new SpringTemplateEngine();engine.setTemplateResolver(resolver);
         var date=LocalDate.of(2026,10,31);var time=date.atTime(16,15).atZone(zone);
         for(boolean manager:List.of(false,true)) for(boolean empty:List.of(false,true)) {
-            var row=new PickupStore.Row("Alex <script>alert(1)</script>",time,"West hall",false,time,false,false);
+            var row=new PickupStore.Row(1L,"Alex <script>alert(1)</script>",time,"West hall",false,time,false,false);
             var person=new PickupStore.Person(1L,"Alex","",true,time,false);
             var page=new PickupStore.Page("Test park",manager,date,date,zone.getId(),empty?List.of():List.of(row),manager?List.of(person):List.of(),0);
             var model=new HashMap<String,Object>();model.put("page",page);model.put("managerView",manager);model.put("organizationName","Test park");
             model.put("pageUrl",manager?"/pickup-assistance":"/driver/pickup-assistance");model.put("driverPage","pickup-assistance");
+            model.put("pickupAlerts",empty?List.of():List.of(PickupAlerts.route(row,List.of(),null,Set.of(),PickupOutcome.Status.PENDING,zone,time.minusMinutes(15).toInstant())));
             String html=engine.process("pickup/index",WebTemplateContext.create(model));
             assertThat(html).contains("Pickup assistance","Clock-out date","Check driver coverage").doesNotContain("<script>alert(1)</script>");
             if(manager)assertThat(html).contains("First name","Add rider","Pause rider");else assertThat(html).doesNotContain("name=\"subscriptionUrl\"","Add rider","Pause rider");

@@ -125,7 +125,8 @@ public class SecurityConfig {
                                  */
                                 .requestMatchers(
                                         "/post-login",
-                                        "/my-driving-assignments"
+                                        "/my-driving-assignments",
+                                        "/my-pickup-assistance"
                                 )
                                 .authenticated()
 
