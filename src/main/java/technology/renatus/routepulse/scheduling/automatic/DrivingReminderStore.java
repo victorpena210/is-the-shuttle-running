@@ -16,12 +16,14 @@ public class DrivingReminderStore {
     private final AutomaticScheduleRepository schedules;
     private final DrivingReminderRepository deliveries;
     private final ZoneId zone;
+    private final technology.renatus.routepulse.pickup.PickupAlerts pickups;
 
     public DrivingReminderStore(OrganizationRepository organizations, DriverRepository drivers,
             DailyStaffScheduleService staff, AutomaticScheduleRepository schedules, DrivingReminderRepository deliveries,
-            @Value("${app.operations-zone:America/Chicago}") String zone) {
+            @Value("${app.operations-zone:America/Chicago}") String zone, technology.renatus.routepulse.pickup.PickupAlerts pickups) {
         this.organizations = organizations; this.drivers = drivers; this.staff = staff;
         this.schedules = schedules; this.deliveries = deliveries; this.zone = ZoneId.of(zone);
+        this.pickups = pickups;
     }
 
     /** Same organization lock as the planner serializes replicas and captures a coherent current plan.
@@ -54,7 +56,9 @@ public class DrivingReminderStore {
                 return Optional.of(new DrivingReminder(delivery.getId(), driver.getDrivingReminderEmail(), driver.getName(),
                         organization.getDisplayName(), shift.start(), shift.end(), zone,
                         own.stream().map(s -> new DrivingReminder.Assignment(s.getStart(), s.getEnd(),
-                                s.getServiceLabel(), s.isScareActorTransport())).toList()));
+                                s.getServiceLabel(), s.isScareActorTransport())).toList(),
+                        pickups.forDates(org,plan.date(),own.get(own.size()-1).getEnd().plusMinutes(15).toLocalDate(),now).stream()
+                                .filter(a->a.pending() && a.relatedTo(driver.getId())).toList()));
             }
         }
         return Optional.empty();

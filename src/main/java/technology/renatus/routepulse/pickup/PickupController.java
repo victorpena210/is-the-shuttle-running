@@ -13,8 +13,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 public class PickupController {
-    private final PickupStore store;private final PickupCalendarService calendars;
-    public PickupController(PickupStore store,PickupCalendarService calendars){this.store=store;this.calendars=calendars;}
+    private final PickupStore store;private final PickupCalendarService calendars;private final PickupAlerts alerts;
+    public PickupController(PickupStore store,PickupCalendarService calendars,PickupAlerts alerts){this.store=store;this.calendars=calendars;this.alerts=alerts;}
     @GetMapping({"/pickup-assistance","/driver/pickup-assistance"})
     public String page(Authentication auth,@RequestParam(required=false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate date,
             Model model,HttpServletResponse response) {
@@ -23,6 +23,7 @@ public class PickupController {
         response.setHeader("Cache-Control","no-store");response.setHeader("Referrer-Policy","no-referrer");
         model.addAttribute("page",page);model.addAttribute("organizationName",page.organizationName());model.addAttribute("managerView",page.manager());
         model.addAttribute("driverPage","pickup-assistance");model.addAttribute("pageUrl",page.manager()?"/pickup-assistance":"/driver/pickup-assistance");
+        model.addAttribute("pickupAlerts",alerts.forPage(auth,page.date()));
         return "pickup/index";
     }
     @PostMapping("/pickup-assistance/save")

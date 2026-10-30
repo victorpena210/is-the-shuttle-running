@@ -6,12 +6,17 @@ import java.util.*;
 
 /** Immutable email snapshot; only this driver's saved assignments are included. */
 public record DrivingReminder(Long deliveryId, String recipient, String driverName, String organizationName,
-        LocalDateTime workStart, LocalDateTime workEnd, ZoneId zone, List<Assignment> assignments) {
+        LocalDateTime workStart, LocalDateTime workEnd, ZoneId zone, List<Assignment> assignments,
+        List<technology.renatus.routepulse.pickup.PickupAlerts.Alert> pickups) {
     private static final DateTimeFormatter DATE = DateTimeFormatter.ofPattern("EEEE, MMMM d, uuuu", Locale.US);
     private static final DateTimeFormatter TIME = DateTimeFormatter.ofPattern("h:mm a", Locale.US);
     public record Assignment(LocalDateTime start, LocalDateTime end, String label, boolean estimatedEnd) { }
 
-    public DrivingReminder { assignments = List.copyOf(assignments); }
+    public DrivingReminder { assignments = List.copyOf(assignments); pickups=List.copyOf(pickups); }
+    public DrivingReminder(Long deliveryId,String recipient,String driverName,String organizationName,
+            LocalDateTime workStart,LocalDateTime workEnd,ZoneId zone,List<Assignment> assignments) {
+        this(deliveryId,recipient,driverName,organizationName,workStart,workEnd,zone,assignments,List.of());
+    }
 
     static boolean isDue(LocalDateTime clockIn, ZoneId zone, Instant now) {
         var start = clockIn.atZone(zone).toInstant();
@@ -31,6 +36,11 @@ public record DrivingReminder(Long deliveryId, String recipient, String driverNa
                     .append(range(assignment.start(), assignment.end()));
             if (assignment.estimatedEnd()) body.append(" (estimated end; continue until transport is finished)");
             body.append("\n");
+        }
+        if(!pickups.isEmpty()) {
+            body.append("\nUpcoming pickup assistance\n");
+            for(var pickup:pickups) body.append(technology.renatus.routepulse.pickup.PickupReminder.summary(pickup)).append("\n\n");
+            body.append("These are scheduled clock-outs, not confirmed pickup requests. Check the latest coverage before driving.\n");
         }
         return body.append("\nAssignments can change. View your latest schedule:\n")
                 .append(baseUrl.replaceAll("/+$", "")).append("/my-driving-assignments?date=")

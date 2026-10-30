@@ -43,11 +43,17 @@ public class DrivingReminderEmailSender {
         return resend;
     }
     public void send(DrivingReminder reminder) {
+        send(reminder.recipient(), reminder.subject(), reminder.body(baseUrl));
+    }
+    public void send(technology.renatus.routepulse.pickup.PickupReminder reminder) {
+        send(reminder.recipient(), reminder.subject(), reminder.body(baseUrl));
+    }
+    private void send(String recipient, String subject, String body) {
         var message = new SimpleMailMessage();
         message.setFrom(from);
-        message.setTo(reminder.recipient());
-        message.setSubject(reminder.subject());
-        message.setText(reminder.body(baseUrl));
+        message.setTo(recipient);
+        message.setSubject(subject);
+        message.setText(body);
         mail.send(message);
     }
 }

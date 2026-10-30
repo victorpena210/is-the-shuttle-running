@@ -32,7 +32,7 @@ class AutomaticScheduleControllerTests {
         when(schedules.operatingDay(date)).thenReturn(stale);
         return MockMvcBuilders.standaloneSetup(new AutomaticScheduleController(schedules,
                 mock(AutomaticScheduleStore.class),current,mock(DriverPortalAccessService.class),
-                mock(WardrobeHoursService.class),mock(ParkOperatingDayService.class),overrides)).build();
+                mock(WardrobeHoursService.class),mock(ParkOperatingDayService.class),overrides,mock(technology.renatus.routepulse.pickup.PickupAlerts.class))).build();
     }
     @Test void confirmedHoursRedirectWithTheIsoDateExpectedByTheAssignmentsPage() throws Exception {
         mvc().perform(post("/driving-schedule/confirm-open").principal(auth).locale(Locale.US)

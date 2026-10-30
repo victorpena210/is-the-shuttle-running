@@ -7,6 +7,7 @@
     <link rel="stylesheet" th:href="@{/css/site.css}">
     <link rel="stylesheet" th:href="@{/css/pages/transportation-demand.css}">
     <link rel="stylesheet" th:href="@{/css/pages/driving-schedule.css}">
+    <link rel="stylesheet" th:href="@{/css/pages/pickup-assistance.css}">
 </head>
 <body class="app-page">
 <th:block th:if="${managerView}" th:insert="~{fragments/navigation :: managerNav('driving-schedule')}"></th:block>
@@ -105,6 +106,11 @@
                     <div class="schedule-section-heading"><h2 th:id="|upcoming-${day.date}|">Upcoming assignments</h2><span class="schedule-muted" th:if="${day.date.equals(today)}">Current and upcoming shifts</span></div>
                     <p class="schedule-empty" th:if="${#lists.isEmpty(upcoming)}">No upcoming assignments.</p>
                     <th:block th:replace="~{demand/fragments/schedule-slots :: slots(${upcoming}, false)}"></th:block>
+                </section>
+                <section class="schedule-section" th:if="${uncoveredPickups != null and uncoveredPickups.containsKey(day.date)}">
+                    <h2>Pickup assistance needs coverage</h2>
+                    <p class="pickup-note">These clock-outs fall outside assigned driving coverage. Arrange coverage before treating them as assigned pickups.</p>
+                    <th:block th:replace="~{pickup/cards :: cards(${uncoveredPickups.get(day.date)}, 'schedule', ${null})}"></th:block>
                 </section>
                 <section class="schedule-section recorded-driving" th:if="${!day.date.isAfter(today)}" th:attr="aria-labelledby=|recorded-${day.date}|">
                     <div class="schedule-section-heading"><h2 th:id="|recorded-${day.date}|" th:text="${managerView ? 'Recorded driving' : 'My recorded driving'}"></h2><span class="schedule-muted" th:if="${!#lists.isEmpty(day.recordedRuns)}" th:text="|${day.recordedDuration()} logged|"></span></div>
