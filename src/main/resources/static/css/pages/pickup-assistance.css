@@ -6,9 +6,6 @@
 .pickup-alert-card p{margin:.4rem 0}
 .pickup-alert-card--due{border:2px solid #94671b;background:#fffaf0}
 .pickup-alert-due{font-weight:700;color:#714b10}
-.pickup-alert-coverage{font-weight:650}
-.pickup-alert-actions{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.75rem}
-.pickup-alert-actions .button{font-size:.875rem;padding:.5rem .75rem;min-height:44px;white-space:normal}
 .assignment-pickups{margin-top:1rem;min-width:0}
 .assignment-pickups>h3{font-size:.95rem;margin:0}
 .schedule-service .pickup-alert-card{white-space:normal}

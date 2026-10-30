@@ -17,9 +17,9 @@ class PickupAlertTests {
     }
     private PickupStore.Row row(LocalDateTime time) { return new PickupStore.Row(5L,"Alex",time.atZone(zone),"Main gate",false,time.atZone(zone),false,false); }
     private PickupAlerts.Alert route(LocalDateTime time,List<AutomaticScheduleDay.Slot> slots) {
-        return PickupAlerts.route(row(time),slots,null,Set.of(1L,2L),PickupOutcome.Status.PENDING,zone,time.atZone(zone).toInstant().minusSeconds(900));
+        return PickupAlerts.route(row(time),slots,null,Set.of(1L,2L),zone,time.atZone(zone).toInstant().minusSeconds(900));
     }
-    @Test void handoffHasOneOwnerAndNearbyDriverSeesHeadsUp() {
+    @Test void handoffHasOneEmailRecipientAndNearbyDriverSeesHeadsUp() {
         var first=slot(19,21,1L);var next=slot(21,23,2L);
         var alert=route(day.atTime(21,0),List.of(first,next));
         assertThat(alert.driverId()).isEqualTo(2L);assertThat(alert.reminderDriverId()).isEqualTo(2L);
@@ -29,15 +29,15 @@ class PickupAlertTests {
     @Test void nearbyTimesNeverExtendAssignmentAndFifteenMinutesIsInclusive() {
         var slot=slot(19,21,1L);
         for(var time:List.of(day.atTime(18,45),day.atTime(21,0),day.atTime(21,15))) {
-            var alert=route(time,List.of(slot));assertThat(alert.needsCoverage()).isTrue();
+            var alert=route(time,List.of(slot));assertThat(alert.driverId()).isNull();
             assertThat(alert.reminderDriverId()).isEqualTo(1L);
-            assertThat(PickupReminder.summary(alert)).contains("Needs coverage","has not been extended");
+            assertThat(PickupReminder.summary(alert)).contains("Scheduled off","Main gate").doesNotContain("Needs coverage","arrange coverage");
         }
         assertThat(route(day.atTime(18,44,59),List.of(slot)).related()).isEmpty();
         assertThat(route(day.atTime(21,15,1),List.of(slot)).reminderDriverId()).isNull();
         assertThat(route(day.atTime(20,0),List.of(slot)).driverId()).isEqualTo(1L);
     }
-    @Test void activeSubstituteOwnsOnlyTheCurrentCoveredWindow() {
+    @Test void activeSubstituteReceivesAlertsOnlyForTheCurrentCoveredWindow() {
         var first=slot(19,21,1L);var next=slot(21,23,1L);var time=day.atTime(20,15).atZone(zone).toInstant();
         var active=mock(DrivingSession.class);var substitute=mock(Driver.class);
         when(active.isActive()).thenReturn(true);when(active.getStartedAt()).thenReturn(time.minusSeconds(3600));
@@ -45,34 +45,37 @@ class PickupAlertTests {
         when(substitute.getId()).thenReturn(2L);when(substitute.getName()).thenReturn("Covering driver");
         when(active.getCoveragePlan()).thenReturn(List.of(new DrivingCoverageWindow(day,"EMPLOYEE_PICKUP",1L,
                 first.getStart().atZone(zone).toInstant(),first.getEnd().atZone(zone).toInstant())));
-        var alert=PickupAlerts.route(row(day.atTime(20,15)),List.of(first,next),active,Set.of(1L,2L),PickupOutcome.Status.PENDING,zone,time.minusSeconds(900));
-        assertThat(alert.driverId()).isEqualTo(2L);assertThat(alert.coverageLabel()).contains("Covering driver");
-        var handoff=PickupAlerts.route(row(day.atTime(21,0)),List.of(first,next),active,Set.of(1L,2L),PickupOutcome.Status.PENDING,zone,day.atTime(20,45).atZone(zone).toInstant());
+        var alert=PickupAlerts.route(row(day.atTime(20,15)),List.of(first,next),active,Set.of(1L,2L),zone,time.minusSeconds(900));
+        assertThat(alert.driverId()).isEqualTo(2L);assertThat(alert.driverName()).contains("Covering driver");
+        var handoff=PickupAlerts.route(row(day.atTime(21,0)),List.of(first,next),active,Set.of(1L,2L),zone,day.atTime(20,45).atZone(zone).toInstant());
         assertThat(handoff.driverId()).isEqualTo(1L);
         when(active.getAutomaticEndAt()).thenReturn(time);
-        assertThat(PickupAlerts.route(row(day.atTime(20,15)),List.of(first),active,Set.of(1L,2L),PickupOutcome.Status.PENDING,zone,time.minusSeconds(900)).driverId()).isEqualTo(1L);
+        assertThat(PickupAlerts.route(row(day.atTime(20,15)),List.of(first),active,Set.of(1L,2L),zone,time.minusSeconds(900)).driverId()).isEqualTo(1L);
     }
-    @Test void unassignedAndInactiveDriversRemainCoverageGaps() {
+    @Test void unassignedAndInactiveDriversDoNotReceiveAlerts() {
         var missing=slot(19,21,null);
-        assertThat(route(day.atTime(20,0),List.of(missing)).needsCoverage()).isTrue();
+        assertThat(route(day.atTime(20,0),List.of(missing)).driverId()).isNull();
         assertThat(route(day.atTime(20,0),List.of(missing)).reminderDriverId()).isNull();
-        var disabled=PickupAlerts.route(row(day.atTime(20,0)),List.of(slot(19,21,1L)),null,Set.of(),PickupOutcome.Status.PENDING,zone,Instant.now());
-        assertThat(disabled.needsCoverage()).isTrue();
+        var disabled=PickupAlerts.route(row(day.atTime(20,0)),List.of(slot(19,21,1L)),null,Set.of(),zone,Instant.now());
+        assertThat(disabled.driverId()).isNull();
     }
-    @Test void overnightAndDaylightSavingTimesUseInstantsAndResolvedPickupsDoNotAlert() {
+    @Test void overnightAndDaylightSavingAlertsExpireWithoutAnAcknowledgment() {
         for(var date:List.of(day,LocalDate.of(2026,11,1))) {
             var slot=new AutomaticScheduleDay.Slot(date.atTime(23,0),date.plusDays(1).atTime(1,0),1L,"Driver","Assigned");
             var row=row(date.plusDays(1).atTime(0,5));var due=row.clockOut().toInstant().minusSeconds(900);
-            assertThat(PickupAlerts.route(row,List.of(slot),null,Set.of(1L),PickupOutcome.Status.PENDING,zone,due).driverId()).isEqualTo(1L);
-            assertThat(PickupAlerts.route(row,List.of(slot),null,Set.of(1L),PickupOutcome.Status.PENDING,zone,due.minusSeconds(1)).due()).isFalse();
-            assertThat(PickupAlerts.route(row,List.of(slot),null,Set.of(1L),PickupOutcome.Status.PICKED_UP,zone,due).due()).isFalse();
-            assertThat(PickupAlerts.route(row,List.of(slot),null,Set.of(1L),PickupOutcome.Status.NOT_NEEDED,zone,due).due()).isFalse();
+            assertThat(PickupAlerts.route(row,List.of(slot),null,Set.of(1L),zone,due).driverId()).isEqualTo(1L);
+            assertThat(PickupAlerts.route(row,List.of(slot),null,Set.of(1L),zone,due.minusSeconds(1)).due()).isFalse();
+            assertThat(PickupAlerts.route(row,List.of(slot),null,Set.of(1L),zone,row.clockOut().toInstant().plusSeconds(1800)).due()).isFalse();
+            assertThat(PickupAlerts.route(row,List.of(slot),null,Set.of(1L),zone,row.clockOut().toInstant().plusSeconds(1799)).due()).isTrue();
         }
     }
     @Test void emailsIncludePickupDetailsAndUncertainSubmissionsNeverReplay() {
         var alert=route(day.atTime(20,0),List.of(slot(19,21,1L)));
         var reminder=new DrivingReminder(1L,"driver@example.com","Driver","Test",day.atTime(19,0),day.atTime(23,0),zone,List.of(),List.of(alert));
-        assertThat(reminder.body("https://example.com")).contains("Upcoming pickup assistance","Alex","Main gate","Scheduled off","not confirmed pickup requests");
+        assertThat(reminder.body("https://example.com")).contains("Upcoming pickup assistance","Alex","Main gate","Scheduled off","Pickup assistance is optional","No response or pickup confirmation is required");
+        var headsUp=new PickupReminder(1L,1L,"driver@example.com","Driver",alert).body("https://example.com/");
+        assertThat(headsUp).contains("Alex","Main gate","help if you are available","No response or pickup confirmation is required","https://example.com/my-pickup-assistance?date=")
+                .doesNotContain("Picked up","No pickup needed","arrange coverage","Pickup driver:");
         var delivery=new PickupReminderDelivery(1L,5L,alert.row().clockOut().toInstant(),1L);var now=Instant.now();
         assertThat(delivery.canAttempt(now)).isTrue();delivery.claim(now);assertThat(delivery.canAttempt(now)).isFalse();
         delivery.failed(true);assertThat(delivery.canAttempt(now.plusSeconds(59))).isFalse();assertThat(delivery.canAttempt(now.plusSeconds(60))).isTrue();

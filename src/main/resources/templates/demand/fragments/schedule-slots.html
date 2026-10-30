@@ -16,8 +16,8 @@
         <td class="schedule-service"><span th:text="${slot.scareActorTransport ? 'Scare-actor transport' : slot.serviceLabel}"></span>
             <small th:if="${slot.scareActorTransport}">5:45 PM is an estimate. Finish sooner if complete; continue until everyone is transported.</small>
             <div th:if="${pickupsBySlot != null and pickupsBySlot.containsKey(slot)}" class="assignment-pickups">
-                <h3>Upcoming pickups</h3>
-                <th:block th:replace="~{pickup/cards :: cards(${pickupsBySlot.get(slot)}, 'schedule', ${slot})}"></th:block>
+                <h3>Pickup assistance alerts</h3>
+                <th:block th:replace="~{pickup/cards :: cards(${pickupsBySlot.get(slot)}, ${slot})}"></th:block>
             </div>
         </td>
     </tr></tbody>

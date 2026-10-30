@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 const code = fs.readFileSync('src/main/resources/static/js/pages/pickup-alerts.js', 'utf8');
 
-test('pickup polling preserves focused completion controls and rejects login or failed responses', async () => {
+test('pickup polling preserves focused pickup details and rejects login or failed responses', async () => {
     let refresh, visible, calls = 0, focused = false, redirected = false, fail = false, next = 'updated', replacement;
     const message = {textContent: ''};
     const panel = {dataset: {pickupPoll: '/driver/pickup-assistance/upcoming'},

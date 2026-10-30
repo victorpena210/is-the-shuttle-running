@@ -45,10 +45,7 @@ public class AutomaticScheduleController {
         var alerts=pickups.forDates(org,from.minusDays(1),from.plusDays(7),Instant.now());
         var bySlot=new java.util.HashMap<AutomaticScheduleDay.Slot,java.util.List<technology.renatus.routepulse.pickup.PickupAlerts.Alert>>();
         for(var alert:alerts) for(var slot:alert.related()) bySlot.computeIfAbsent(slot,key->new java.util.ArrayList<>()).add(alert);
-        var uncovered=new java.util.HashMap<LocalDate,java.util.List<technology.renatus.routepulse.pickup.PickupAlerts.Alert>>();
-        for(var alert:alerts) if(alert.pending() && alert.needsCoverage())
-            uncovered.computeIfAbsent(alert.row().clockOut().toLocalDate(),key->new java.util.ArrayList<>()).add(alert);
-        model.addAttribute("pickupsBySlot",bySlot);model.addAttribute("uncoveredPickups",uncovered);
+        model.addAttribute("pickupsBySlot",bySlot);
     }
     private String page(Model model,LocalDate from,boolean manager,String name) {
         model.addAttribute("driverPage","assignments");
