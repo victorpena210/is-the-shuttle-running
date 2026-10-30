@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.mail.*;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 class DrivingReminderTests {
     private final ZoneId zone = ZoneId.of("America/Chicago");
@@ -34,7 +35,8 @@ class DrivingReminderTests {
                     new DrivingReminder.Assignment(day.atTime(17, 0), day.atTime(17, 45), "Scare-actor transport", true),
                     new DrivingReminder.Assignment(day.atTime(21, 0), day.plusDays(1).atTime(0, 30), "Employee pickups", false)));
         var mail = mock(JavaMailSender.class);
-        new DrivingReminderEmailSender(mail, "shuttle@example.com", "https://shuttle.example/").send(notice);
+        new DrivingReminderEmailSender(mail, "shuttle@example.com", "https://shuttle.example/",
+                "", "Victor - Shuttle Assignments <victor@istheshuttlerunning.com>").send(notice);
         var captured = ArgumentCaptor.forClass(SimpleMailMessage.class);
         verify(mail).send(captured.capture());
         var message = captured.getValue();
@@ -43,7 +45,27 @@ class DrivingReminderTests {
         assertThat(message.getFrom()).isEqualTo("shuttle@example.com");
         assertThat(message.getText()).contains("3:00 PM–11:00 PM", "5:00 PM–5:45 PM", "9:00 PM–12:30 AM",
                 "Friday, October 30, 2026", "estimated end", "America/Chicago",
-                "https://shuttle.example/my-driving-assignments?date=2026-10-29");
+                "https://shuttle.example/my-driving-assignments?date=2026-10-29",
+                "Please do not reply. Contact your supervisor with questions.");
+        assertThat(message.getReplyTo()).isNull();
+    }
+
+    @Test void resendIsOptInAndDoesNotReconfigureAccountEmail() {
+        var existing = new JavaMailSenderImpl();
+        existing.setHost("existing.example");
+        existing.setPassword("existing-test-secret");
+        assertThat(DrivingReminderEmailSender.reminderMailSender(existing, "")).isSameAs(existing);
+        assertThat(DrivingReminderEmailSender.reminderMailSender(existing, "  ")).isSameAs(existing);
+        var resend = (JavaMailSenderImpl) DrivingReminderEmailSender.reminderMailSender(existing, "test-only-api-key");
+        assertThat(resend).isNotSameAs(existing);
+        assertThat(resend.getHost()).isEqualTo("smtp.resend.com");
+        assertThat(resend.getPort()).isEqualTo(587);
+        assertThat(resend.getUsername()).isEqualTo("resend");
+        assertThat(resend.getPassword()).isEqualTo("test-only-api-key");
+        assertThat(resend.getJavaMailProperties()).containsEntry("mail.smtp.starttls.required", "true")
+                .containsEntry("mail.smtp.ssl.checkserveridentity", "true");
+        assertThat(existing.getHost()).isEqualTo("existing.example");
+        assertThat(existing.getPassword()).isEqualTo("existing-test-secret");
     }
 
     @Test void retriesOnlyKnownPreSubmissionFailuresAndCapsAttempts() {
