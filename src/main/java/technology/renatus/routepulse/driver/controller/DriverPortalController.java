@@ -128,6 +128,8 @@ public class DriverPortalController {
             model.addAttribute("checkpointLabel", checkpointLabel(method));
             model.addAttribute("formAction", formAction);
             model.addAttribute("driver", preview.driver());
+            model.addAttribute("pickupAlerts", pickups.forCheckpoint(preview.driver().getOrganization().getId(),
+                    preview.driver().getId(),java.time.Instant.now()));
             model.addAttribute("assignment", preview.assignment());
             model.addAttribute("checkpointAction", preview.action());
             model.addAttribute(

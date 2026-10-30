@@ -91,6 +91,12 @@ public class PickupAlerts {
                 && a.row().clockOut().toInstant().isAfter(now.minusSeconds(1800))
                 && a.row().clockOut().toInstant().isBefore(now.plusSeconds(86400))).toList();
     }
+    public List<Alert> forCheckpoint(Long org,Long driver,Instant now) {
+        var today=now.atZone(zone).toLocalDate();
+        return forDates(org,today,today.plusDays(1),now).stream().filter(a->a.pending()
+                && a.row().clockOut().toInstant().isAfter(now.minusSeconds(1800))
+                && (a.relatedTo(driver) || !a.row().clockOut().toInstant().isAfter(now.plusSeconds(900)))).toList();
+    }
     @Transactional
     public void outcome(Authentication auth,Long rider,Instant clockOut,PickupOutcome.Status status) {
         var scope=access.require(auth,false);var now=Instant.now();
