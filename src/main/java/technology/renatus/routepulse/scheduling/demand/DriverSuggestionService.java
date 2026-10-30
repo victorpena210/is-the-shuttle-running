@@ -95,7 +95,9 @@ public class DriverSuggestionService {
         var stats = roster.stream().map(d -> new Candidate(d.getId(), d.getName(), d.getEmployeeId(),
                 seconds(history.getOrDefault(d.getId(), List.of()), since, asOf),
                 seconds(history.getOrDefault(d.getId(), List.of()), date.atStartOfDay(zone).toInstant(), asOf) > 0,
-                last.containsKey(d.getId()) ? last.get(d.getId()).atZone(zone) : null)).sorted(ORDER).toList();
+                last.containsKey(d.getId()) ? last.get(d.getId()).atZone(zone) : null,
+                seconds(history.getOrDefault(d.getId(), List.of()), date.atStartOfDay(zone).toInstant(), asOf),
+                DrivingDutyHistory.lastServices(history.getOrDefault(d.getId(),List.of()),date,asOf))).sorted(ORDER).toList();
         var opening = hours.openingStartTime();
         // An afternoon-start roster supplies opening service on late-opening days.
         var earliest = work.values().stream().flatMap(List::stream).map(DriverScheduleWindow::getStartsAt)
@@ -255,7 +257,12 @@ public class DriverSuggestionService {
     private static Instant later(Instant a, Instant b) { return a.isAfter(b) ? a : b; }
     private static LocalDateTime earlier(LocalDateTime a, LocalDateTime b) { return a.isBefore(b) ? a : b; }
     private record Span(Instant start, Instant end) {}
-    public record Candidate(Long driverId, String name, String employeeId, long seconds, boolean droveToday, ZonedDateTime lastDriven) {
+    public record Candidate(Long driverId, String name, String employeeId, long seconds, boolean droveToday, ZonedDateTime lastDriven,
+            long dailySeconds,Map<ShuttleService,LocalDate> lastServices) {
+        public Candidate {lastServices=Map.copyOf(lastServices);}
+        public Candidate(Long driverId,String name,String employeeId,long seconds,boolean droveToday,ZonedDateTime lastDriven) {
+            this(driverId,name,employeeId,seconds,droveToday,lastDriven,0,Map.of());
+        }
         public String drivingTime() { return DriverAnalyticsCalculator.duration(seconds); }
     }
     public record Window(LocalDateTime start, LocalDateTime end, List<Candidate> candidates, String reason, ShuttleService service) {

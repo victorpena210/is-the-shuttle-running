@@ -40,7 +40,7 @@ public class AutomaticScheduleStore {
     public void refresh(Long org,List<ParkOperatingDay> calendar,Instant instant) {
         organizations.findByIdForUpdate(org).orElseThrow(()->new IllegalArgumentException("Organization not found."));
         var now=instant.atZone(zone).toLocalDateTime();
-        var planned=new HashMap<Long,Long>();
+        var rotation=new AutomaticShiftPlanner.Rotation();
         for(var observed:calendar.stream().sorted(Comparator.comparing(ParkOperatingDay::date)).toList()) {
             if(observed.date().isBefore(now.toLocalDate())) continue;
             var date=observed.date();
@@ -64,7 +64,7 @@ public class AutomaticScheduleStore {
                 if(available.noSchedules()) message += " No driver availability is saved for this date.";
                 if(frightFest.required(day)) message += " Required scare-actor transport starts at 5 PM; 5:45 PM is an estimate. Continue until finished, or end earlier when complete.";
             }
-            var next=AutomaticShiftPlanner.plan(windows,saved.slots(),now,planned);
+            var next=AutomaticShiftPlanner.plan(windows,saved.slots(),now,rotation);
             saved.update(day.status().name(),day.verificationSource()==null?"NONE":day.verificationSource(),day.openingTime(),day.closingTime(),
                     hours.usesOpeningWindow()?hours.openingStartTime():null,hours.closingTime(),instant,message,next);
             schedules.save(saved);

@@ -80,7 +80,7 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         assertThat(views(f).stream().map(AutomaticScheduleDay.View::slots).toList()).isEqualTo(before);
         assertThat(sessions.count()).isZero();assertThat(assignmentRepository.count()).isZero();
     }
-    @Test void wholeDayBalancesSoleActorDriverAndKeepsHistoricalWorkloadAfterRefresh() {
+    @Test void wholeDayBalancesSoleActorDriverWithoutCarryingHistoricalWorkload() {
         var date=LocalDate.of(2026,10,31);var before=date.minusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
         var f=fixture("whole-day",date,before);
         work.deleteAll();work.flush();
@@ -99,9 +99,37 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         sessions.saveAndFlush(history);
         store.refresh(f.org().getId(),List.of(park),before);entityManager.flush();entityManager.clear();
         assertThat(plans.findByOrganizationIdAndDate(f.org().getId(),date).orElseThrow().slots())
-                .extracting(AutomaticScheduleDay.Slot::getDriverId).containsExactly(f.a().getId(),f.a().getId(),null);
+                .extracting(AutomaticScheduleDay.Slot::getDriverId).containsExactly(f.b().getId(),f.a().getId(),null);
         assertThat(sessions.count()).isEqualTo(1);assertThat(assignmentRepository.count()).isZero();
     }
+    @Test void tomorrowRotatesActualDutiesEvenWhenTheCapturedPlanNamedSomeoneElse() {
+        var thursday=LocalDate.of(2026,10,29);var friday=thursday.plusDays(1);
+        var now=thursday.atTime(23,20).toInstant(ZoneOffset.UTC);
+        var f=fixture("actual-duty-rotation",thursday,now);
+        var opening=DrivingSession.startUnscheduled(f.org(),f.b(),thursday.atTime(15,30).toInstant(ZoneOffset.UTC),f.manager(),DrivingActionMethod.MANAGER);
+        opening.captureCoveragePlan(List.of(
+                new technology.renatus.routepulse.driving.model.DrivingCoverageWindow(thursday,"MIDDAY_OPENING",f.b().getId(),thursday.atTime(15,0).toInstant(ZoneOffset.UTC),thursday.atTime(17,0).toInstant(ZoneOffset.UTC)),
+                new technology.renatus.routepulse.driving.model.DrivingCoverageWindow(thursday,"SCARE_ACTORS",f.b().getId(),thursday.atTime(17,0).toInstant(ZoneOffset.UTC),thursday.atTime(17,45).toInstant(ZoneOffset.UTC))));
+        opening.end(thursday.atTime(18,4).toInstant(ZoneOffset.UTC),f.manager(),DrivingActionMethod.MANAGER);
+        sessions.saveAndFlush(opening);
+        var evening=DrivingSession.startUnscheduled(f.org(),f.a(),thursday.atTime(21,14).toInstant(ZoneOffset.UTC),f.manager(),DrivingActionMethod.MANAGER);
+        evening.captureCoveragePlan(List.of(new technology.renatus.routepulse.driving.model.DrivingCoverageWindow(thursday,"EMPLOYEE_PICKUP",f.b().getId(),thursday.atTime(19,0).toInstant(ZoneOffset.UTC),thursday.atTime(23,0).toInstant(ZoneOffset.UTC))));
+        evening.end(thursday.atTime(22,56).toInstant(ZoneOffset.UTC),f.manager(),DrivingActionMethod.MANAGER);
+        sessions.saveAndFlush(evening);
+        // A large earlier imbalance must not give tomorrow entirely to the lighter driver.
+        var older=DrivingSession.startUnscheduled(f.org(),f.a(),now.minus(Duration.ofDays(3)),f.manager(),DrivingActionMethod.MANAGER);
+        older.end(older.getStartedAt().plus(Duration.ofHours(4)),f.manager(),DrivingActionMethod.MANAGER);
+        sessions.saveAndFlush(older);
+        for(int refresh=0;refresh<2;refresh++) {
+            store.refresh(f.org().getId(),List.of(open(thursday,17),open(friday,17)),now.plusSeconds(refresh*300));
+            entityManager.flush();entityManager.clear();
+            assertThat(plans.findByOrganizationIdAndDate(f.org().getId(),friday).orElseThrow().slots())
+                    .extracting(AutomaticScheduleDay.Slot::getDriverId).containsExactly(f.a().getId(),f.a().getId(),f.b().getId());
+        }
+        assertThat(sessions.count()).isEqualTo(3);
+        assertThat(sessions.findById(evening.getId()).orElseThrow().getCoveragePlan().get(0).getScheduledDriverId()).isEqualTo(f.b().getId());
+    }
+
     @Test void refreshRestoresTheSeparateEveningAssignmentWhileTheMorningRunIsActive() {
         var date=LocalDate.of(2026,10,25);var before=date.atTime(8,0).toInstant(ZoneOffset.UTC);
         var f=fixture("separate-evening",date,before);
