@@ -83,7 +83,9 @@ public class AutomaticScheduleStore {
         var today=now.atZone(zone).toLocalDate();
         var saved=new TreeMap<LocalDate,AutomaticScheduleDay.View>();
         for(var day:schedules.findAllByOrganizationIdAndDateBetweenOrderByDate(org,from,to)) {
-            var view=day.view(zone,driver); saved.put(view.date(),view);
+            // Planned driving is shared within the organization. Work hours and
+            // recorded sessions below remain scoped to the signed-in driver.
+            var view=day.view(zone,null); saved.put(view.date(),view);
         }
         var start=from.atStartOfDay(zone).toInstant();
         var end=to.plusDays(1).atStartOfDay(zone).toInstant();

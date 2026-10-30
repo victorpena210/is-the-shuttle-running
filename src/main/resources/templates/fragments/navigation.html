@@ -82,7 +82,7 @@
             <nav class="app-nav" aria-label="Driver navigation">
                 <a class="app-nav__link" th:href="@{/driver}" th:attr="aria-current=${driverPage == 'driving' ? 'page' : null}">My driving</a>
                 <a class="app-nav__link" th:href="@{/driver#driving-history}">My records</a>
-                <a class="app-nav__link" th:href="@{/driver/driving-schedule}" th:attr="aria-current=${driverPage == 'assignments' ? 'page' : null}">My assignments</a>
+                <a class="app-nav__link" th:href="@{/driver/driving-schedule}" th:attr="aria-current=${driverPage == 'assignments' ? 'page' : null}">Team assignments</a>
                 <a class="app-nav__link" th:href="@{/driver/pickup-assistance}" th:attr="aria-current=${driverPage == 'pickup-assistance' ? 'page' : null}">Pickup assistance</a>
                 <a class="app-nav__link" th:href="@{/driver/rankings}" th:attr="aria-current=${driverPage == 'rankings' ? 'page' : null}">Driver rankings</a>
                 <a class="app-nav__link" th:href="@{/driver/demand}">Transportation demand</a>

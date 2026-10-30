@@ -50,7 +50,7 @@ class AutomaticSchedulePresentationTests {
         var history=new View(today.minusDays(7),"HISTORY","DRIVING_HISTORY",null,null,null,null,now.atZone(zone),
                 "No saved schedule",List.of(),List.of(record(9,36,10,42,66)),false);
         String html=render(false,List.of(history),history.date(),"driver-history");
-        assertThat(html).contains("No saved schedule","Recorded driving","Sample Driver","1 hr 6 min")
+        assertThat(html).contains("No saved schedule","My recorded driving","Sample Driver","1 hr 6 min")
                 .doesNotContain("Upcoming assignments","/driving-records/sessions/","/driving-schedule/hours","Refresh assignments");
         assertThat(openDates(html)).containsExactly(history.date().toString());
         String empty=render(false,List.of(),today,"empty");
@@ -69,6 +69,21 @@ class AutomaticSchedulePresentationTests {
             var staffed=day(date,List.of(new Slot(date.atTime(17,0),date.atTime(17,45),1L,"Solo Driver","Automatically assigned",ShuttleService.SCARE_ACTORS)));
             assertThat(render(manager,List.of(staffed),date,"staffed-actors-"+manager)).doesNotContain(instruction,"Automatically assigned");
         }
+    }
+
+    @Test void driversSeeTheFullTeamPlanWithTheirOwnRowsMarkedAndCoverageGapsVisible() throws Exception {
+        var date=today.plusDays(1);
+        var team=day(date,List.of(
+                new Slot(date.atTime(9,0),date.atTime(12,0),1L,"My Driver","Assigned",ShuttleService.MORNING_OPENING),
+                new Slot(date.atTime(17,0),date.atTime(17,45),2L,"Other Driver","Assigned",ShuttleService.SCARE_ACTORS),
+                new Slot(date.atTime(19,0),date.atTime(23,0),null,null,"No available driver covers this full window")));
+        String html=render(false,List.of(team),date,"team-driver");
+        assertThat(html).contains("Team driving assignments","Team assignments","My Driver","Other Driver",
+                "Needs coverage","1 shift needs coverage","3 shifts","Scare-actor transport")
+                .doesNotContain("My driving assignments","Refresh assignments","/driving-schedule/hours","/driving-schedule/confirm-open");
+        assertThat(Pattern.compile(">You</span>").matcher(html).results().count()).isEqualTo(1);
+        String manager=render(true,List.of(team),date,"team-manager");
+        assertThat(manager).doesNotContain(">You</span>");
     }
 
     private View sampleDay() {
@@ -115,7 +130,7 @@ class AutomaticSchedulePresentationTests {
         model.put("managerView",manager);model.put("organizationName","Sample Shuttle");model.put("days",days);
         model.put("today",today);model.put("now",now);model.put("from",from);model.put("operationsZone",zone.getId());
         model.put("scheduleUrl",manager?"/driving-schedule":"/driver/driving-schedule");
-        model.put("isOwner",manager);model.put("canManageDrivingQr",manager);
+        model.put("isOwner",manager);model.put("canManageDrivingQr",manager);model.put("currentDriverId",manager?null:1L);
         var resolver=new FileTemplateResolver();resolver.setPrefix("src/main/resources/templates/");resolver.setSuffix(".html");resolver.setTemplateMode("HTML");
         var engine=new SpringTemplateEngine();engine.setTemplateResolver(resolver);
         String html=engine.process("demand/driving-schedule",WebTemplateContext.create(model));

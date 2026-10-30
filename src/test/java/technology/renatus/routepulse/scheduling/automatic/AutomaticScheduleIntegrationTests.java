@@ -275,9 +275,14 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         var slots=views(f).get(0).slots();assertThat(slots).filteredOn(s->s.getService()==ShuttleService.MORNING_OPENING).singleElement().satisfies(s->{
             assertThat(s.getStart()).isEqualTo(day.atTime(9,10));assertThat(s.getEnd()).isEqualTo(day.atTime(12,10));});
     }
-    @Test void managersSeeOnlyTheirOrganizationDriversSeeOnlyThemselvesAndWritesNeedCsrf() throws Exception {
+    @Test void driversSeeTheirTeamsAssignmentsWhileTenantAndManagerAccessRemainEnforced() throws Exception {
         var f=fixture("visible");var other=fixture("PRIVATE-ORG");
         store.refresh(f.org().getId(),List.of(open(day,11)),now);store.refresh(other.org().getId(),List.of(open(day,11)),now);
+        var saved=plans.findByOrganizationIdAndDate(f.org().getId(),day).orElseThrow();
+        var teamSlots=new ArrayList<>(saved.slots());
+        teamSlots.add(new AutomaticScheduleDay.Slot(day.atTime(23,0),day.atTime(23,30),null,null,"No available driver"));
+        saved.update("OPEN","LIVE_API",LocalTime.of(11,0),LocalTime.of(23,0),LocalTime.of(9,0),LocalTime.of(19,0),
+                now,"Saved plan",teamSlots);plans.saveAndFlush(saved);
         var user=createUser("assigned-driver@example.com",true);
         membershipRepository.saveAndFlush(new OrganizationMembership(f.org(),user,OrganizationRole.DRIVER));
         f.a().linkUser(user);driverRepository.flush();
@@ -285,17 +290,48 @@ class AutomaticScheduleIntegrationTests extends MySqlIntegrationTestSupport {
         mockMvc.perform(get("/driving-schedule").param("date",day.toString()).param("organizationId",other.org().getId().toString()).with(authentication(manager)))
                 .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString("Alex visible")))
                 .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("PRIVATE-ORG"))));
-        mockMvc.perform(get("/driver/driving-schedule").param("date",day.toString()).param("driverId",f.b().getId().toString()).with(authentication(driver)))
+        mockMvc.perform(get("/driver/driving-schedule").param("date",day.toString()).param("driverId",f.b().getId().toString()).param("organizationId",other.org().getId().toString()).with(authentication(driver)))
                 .andExpect(status().isOk()).andExpect(model().attribute("driverPage","assignments"))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("/driver/rankings")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("Alex visible")))
-                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Blair visible"))));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Blair visible")))
+                .andExpect(model().attribute("currentDriverId",f.a().getId()))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Team driving assignments")))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("PRIVATE-ORG"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("Refresh assignments"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/driving-schedule/hours"))))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString("/driving-schedule/confirm-open"))));
+        var personal=store.driver(f.org().getId(),f.a().getId(),day,day).get(0);
+        assertThat(personal.slots()).extracting(AutomaticScheduleDay.Slot::getDriverId)
+                .contains(f.a().getId(),f.b().getId());
+        assertThat(personal.slots()).anyMatch(slot->slot.getDriverId()==null);
+        assertThat(personal.workShifts()).isNotEmpty().allSatisfy(shift->assertThat(shift.driverId()).isEqualTo(f.a().getId()));
         mockMvc.perform(get("/driving-schedule").with(authentication(driver))).andExpect(status().isForbidden());
         mockMvc.perform(get("/driving-schedule").with(authentication(authenticationFor(user,OrganizationRole.OWNER)))).andExpect(status().isForbidden());
         mockMvc.perform(post("/driving-schedule/refresh").with(authentication(manager))).andExpect(status().isForbidden());
         mockMvc.perform(post("/driving-schedule/refresh").with(authentication(driver)).with(csrf())).andExpect(status().isForbidden());
+        mockMvc.perform(post("/driving-schedule/hours").with(authentication(driver)).with(csrf())
+                .param("date",day.toString()).param("opening","09:00").param("closing","19:00")).andExpect(status().isForbidden());
+        mockMvc.perform(post("/driving-schedule/confirm-open").with(authentication(driver)).with(csrf())
+                .param("date",day.toString()).param("reason","Attempted override")).andExpect(status().isForbidden());
         assertThat(sessions.count()).isZero();
     }
+    @Test void aDriverWithoutPersonalAssignmentsStillSeesTheTeamPlan() throws Exception {
+        var f=fixture("team-only-plan");
+        var plan=new AutomaticScheduleDay(f.org().getId(),day);
+        plan.update("OPEN","LIVE_API",LocalTime.of(11,0),LocalTime.of(23,0),LocalTime.of(9,0),LocalTime.of(19,0),
+                now,"Saved plan",List.of(new AutomaticScheduleDay.Slot(day.atTime(19,0),day.atTime(23,0),
+                        f.b().getId(),f.b().getName(),"Assigned")));
+        plans.saveAndFlush(plan);
+        var user=createUser("team-only-driver@example.com",true);
+        membershipRepository.saveAndFlush(new OrganizationMembership(f.org(),user,OrganizationRole.DRIVER));
+        f.a().linkUser(user);driverRepository.flush();
+        mockMvc.perform(get("/driver/driving-schedule").param("date",day.toString())
+                .with(authentication(authenticationFor(user,OrganizationRole.DRIVER))))
+                .andExpect(status().isOk()).andExpect(content().string(org.hamcrest.Matchers.containsString(f.b().getName())))
+                .andExpect(content().string(org.hamcrest.Matchers.not(org.hamcrest.Matchers.containsString(">You</span>"))));
+    }
+
     @Test void lateFrightFestOpeningUsesMiddayAndOneDriverWithoutOverlappingTheActorRun() throws Exception {
         var date=LocalDate.of(2026,10,31);var before=date.minusDays(1).atStartOfDay().toInstant(ZoneOffset.UTC);
         var f=fixture("fright-late",date,before);

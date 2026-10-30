@@ -35,6 +35,7 @@ public class AutomaticScheduleController {
     public String driver(Authentication auth,@RequestParam(required=false) @DateTimeFormat(iso=DateTimeFormat.ISO.DATE) LocalDate date,Model model) {
         var driver=drivers.requireCurrentDriver(auth); drivers.requireActiveDriver(driver); var from=date==null?schedules.today():date;
         model.addAttribute("days",store.driver(driver.getOrganization().getId(),driver.getId(),from,from.plusDays(6)));
+        model.addAttribute("currentDriverId",driver.getId());
         return page(model,from,false,driver.getOrganization().getDisplayName());
     }
     private String page(Model model,LocalDate from,boolean manager,String name) {
