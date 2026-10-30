@@ -36,6 +36,7 @@ public record DrivingReminder(Long deliveryId, String recipient, String driverNa
                 .append(baseUrl.replaceAll("/+$", "")).append("/my-driving-assignments?date=")
                 .append(workStart.toLocalDate())
                 .append("\n\nWhen you start driving, use the shuttle QR code or NFC tag to record your run.\n")
+                .append("\nThis is an automated notification. Please do not reply. Contact your supervisor with questions.\n")
                 .append("\nIs the Shuttle Running\n").toString();
     }
 

@@ -311,7 +311,8 @@ are unchanged. No existing drivers are opted in by the migration.
 In production, the app checks every minute and sends five minutes before the driver's
 scheduled **work clock-in**, with all of that day's saved driving assignments. It uses the
 operations timezone (America/Chicago by default), the same UKG-over-upload precedence as
-the assignments page, and the existing `MAIL_*` sender. Closed/unverified park days, plans
+the assignments page, and the existing `MAIL_*` sender unless dedicated Resend delivery is
+configured below. Closed/unverified park days, plans
 older than ten minutes, inactive/disabled drivers, missing work hours, and days with no
 driving assignment during that work shift do not send. Split work shifts can each receive
 one reminder; overlapping/adjacent work-hour rows are merged by the staff schedule service.
@@ -328,6 +329,22 @@ the message, not that the recipient read it. Review `driving_shift_email_reminde
 the delivery-ID-only application log entries when investigating missed email.
 Disable all reminders with `DRIVING_REMINDERS_ENABLED=false`.
 
+For send-only reminders from `victor@istheshuttlerunning.com`, first verify
+`istheshuttlerunning.com` in Resend using the DNS records provided by its dashboard. Leave
+Resend receiving disabled, and check the domain's existing mailbox/forwarding/catch-all
+settings separately: disabling Resend receiving does not disable another mail provider.
+After verification, store a sending-only Resend API key scoped to this domain in Railway as
+`DRIVING_REMINDERS_RESEND_API_KEY`. This activates a separate SMTP connection to
+`smtp.resend.com:587` with mandatory STARTTLS and certificate hostname verification.
+The default sender is `Victor - Shuttle Assignments <victor@istheshuttlerunning.com>`.
+Account verification, password resets, invitations and other app emails continue using
+their existing `MAIL_*` configuration. Remove the dedicated key to restore the existing
+reminder sender. Never enable the new key before the domain is verified.
+
+Reminder emails say not to reply and direct questions to the driver's supervisor. The
+recipient's email application will still show a Reply button. To reject replies, ensure
+the sender address has no mailbox, forwarding alias or catch-all at the inbound provider.
+
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `SPRING_PROFILES_ACTIVE=prod` | Yes | Enables production settings and SMTP delivery |
@@ -343,6 +360,8 @@ Disable all reminders with `DRIVING_REMINDERS_ENABLED=false`.
 | `MAIL_PASSWORD` | Yes | SMTP password |
 | `MAIL_FROM` | Yes | Verified sender address |
 | `DRIVING_REMINDERS_ENABLED` | No | Enables configured driver reminders in production; defaults to `true` |
+| `DRIVING_REMINDERS_RESEND_API_KEY` | No | Secret sending-only key; enables Resend for driver reminders only after domain verification |
+| `DRIVING_REMINDERS_RESEND_FROM` | No | Verified reminder sender; defaults to `Victor - Shuttle Assignments <victor@istheshuttlerunning.com>` |
 | `DEMO_REQUEST_RECIPIENT` | No | Business inbox receiving demo requests |
 | `SENTRY_DSN` | No | Enables error reporting; blank disables Sentry |
 | `SENTRY_ENVIRONMENT` | No | Defaults to `production` in the prod profile |
