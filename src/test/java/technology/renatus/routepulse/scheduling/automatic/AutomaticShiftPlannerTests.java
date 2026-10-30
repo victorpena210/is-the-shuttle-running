@@ -69,6 +69,15 @@ class AutomaticShiftPlannerTests {
         assertThat(AutomaticShiftPlanner.plan(windows,result,BEFORE.plusMinutes(5),new AutomaticShiftPlanner.Rotation())).isEqualTo(result);
     }
 
+    @Test void recordedMonthlyTotalsDoNotChooseOrChangeUpcomingAssignments() {
+        for(long firstHistory:new long[]{0,100_000}) {
+            var a=driver(1,firstHistory,false);var b=driver(2,100_000-firstHistory,false);
+            assertThat(AutomaticShiftPlanner.plan(List.of(window(9,180,ShuttleService.MORNING_OPENING,a,b),window(19,240,a,b)),
+                    List.of(),BEFORE,new AutomaticShiftPlanner.Rotation()))
+                    .extracting(Slot::getDriverId).containsExactly(1L,2L);
+        }
+    }
+
     @Test void equalMinutesRotateByLastActualDrivingIndependentlyOfInputOrder() {
         var recent=new Candidate(1L,"Alex","1",3600,false,DAY.minusDays(1).atStartOfDay(ZoneOffset.UTC));
         var older=new Candidate(2L,"Blair","2",3600,false,DAY.minusDays(5).atStartOfDay(ZoneOffset.UTC));

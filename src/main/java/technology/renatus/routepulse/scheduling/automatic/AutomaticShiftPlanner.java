@@ -98,7 +98,7 @@ public final class AutomaticShiftPlanner {
             var choices=new ArrayList<>(candidates.get(index));
             choices.sort(Comparator.comparingLong((Candidate c)->loads.get(c.driverId()))
                     .thenComparingLong(c->rotation.penalty(c,window))
-                    .thenComparingLong(Candidate::seconds).thenComparing(Candidate::lastDriven,Comparator.nullsFirst(Comparator.naturalOrder()))
+                    .thenComparing(Candidate::lastDriven,Comparator.nullsFirst(Comparator.naturalOrder()))
                     .thenComparing(Candidate::name,String.CASE_INSENSITIVE_ORDER).thenComparing(Candidate::driverId));
             // Keep opening and its adjacent scare-actor run together when eligible,
             // including a run already in progress. A service label is not a handoff.

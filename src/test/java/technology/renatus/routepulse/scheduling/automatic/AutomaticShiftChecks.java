@@ -45,8 +45,8 @@ public final class AutomaticShiftChecks {
         check(midnight.getEnd().toLocalDate().equals(DAY.plusDays(1))&&midnight.seconds()==900,"midnight is next day");
         var early=AutomaticShiftPlanner.plan(List.of(window(9,12,A,B)),List.of(),DAY.atTime(10,7,42),new AutomaticShiftPlanner.Rotation());
         check(early.get(0).getStart().equals(DAY.atTime(10,8)),"never create a new assignment in the past");
-        var heavy=new Candidate(1L,"Alex","100",7200,false,null);
-        check(AutomaticShiftPlanner.plan(List.of(window(9,12,heavy,B)),List.of(),now,new AutomaticShiftPlanner.Rotation()).get(0).getDriverId()==2,"actual driving matters");
+        var heavy=new Candidate(1L,"Alex","100",7200,true,null,7200,Map.of());
+        check(AutomaticShiftPlanner.plan(List.of(window(9,12,heavy,B)),List.of(),now,new AutomaticShiftPlanner.Rotation()).get(0).getDriverId()==2,"today’s actual driving matters");
         var eventWindows=List.of(
                 new Window(DAY.atTime(15,0),DAY.atTime(17,0),List.of(A,B),"",ShuttleService.MIDDAY_OPENING),
                 new Window(DAY.atTime(17,0),DAY.atTime(17,45),List.of(A,B),"",ShuttleService.SCARE_ACTORS));
