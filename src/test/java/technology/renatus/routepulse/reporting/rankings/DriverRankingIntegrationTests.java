@@ -69,11 +69,11 @@ class DriverRankingIntegrationTests extends MySqlIntegrationTestSupport {
     @Test void navigationMakesAssignmentsDiscoverableAndRankingsStayBehindAccountAccess() throws Exception {
         var f=fixture("navigation-ranks");var driver=authenticationFor(f.user(),OrganizationRole.DRIVER);
         mockMvc.perform(get("/driver").with(authentication(driver))).andExpect(status().isOk())
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("View my driving assignments")))
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("View team driving assignments")))
                 .andExpect(content().string(org.hamcrest.Matchers.containsString("/driver/rankings")));
         mockMvc.perform(get("/driver/driving-schedule").with(authentication(driver)))
                 .andExpect(status().isOk()).andExpect(model().attribute("driverPage","assignments"))
-                .andExpect(content().string(org.hamcrest.Matchers.containsString("My driving assignments")));
+                .andExpect(content().string(org.hamcrest.Matchers.containsString("Team driving assignments")));
         mockMvc.perform(get("/driver/rankings")).andExpect(status().is3xxRedirection());
         mockMvc.perform(get("/driving-rankings")).andExpect(status().is3xxRedirection());
         mockMvc.perform(get("/driving-rankings").with(authentication(driver))).andExpect(status().isForbidden());

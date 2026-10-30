@@ -14,8 +14,8 @@
 <main id="main-content" class="app-main demand-page schedule-page" th:with="visibleDays=${days.?[status != 'CLOSED']}">
     <header class="page-header schedule-header">
         <div><p class="eyebrow" th:text="${organizationName}"></p>
-            <h1 th:text="${managerView ? 'Driving assignments' : 'My driving assignments'}"></h1>
-            <p>Who is driving, what needs coverage, and what happened.</p>
+            <h1 th:text="${managerView ? 'Driving assignments' : 'Team driving assignments'}"></h1>
+            <p th:text="${managerView ? 'Who is driving, what needs coverage, and what happened.' : 'See the full day’s driving plan for your team. Your assignments are marked You.'}"></p>
         </div>
         <form th:if="${managerView}" th:action="@{/driving-schedule/refresh}" method="post">
             <button class="button button--secondary" type="submit">Refresh assignments</button>
@@ -107,7 +107,7 @@
                     <th:block th:replace="~{demand/fragments/schedule-slots :: slots(${upcoming}, false)}"></th:block>
                 </section>
                 <section class="schedule-section recorded-driving" th:if="${!day.date.isAfter(today)}" th:attr="aria-labelledby=|recorded-${day.date}|">
-                    <div class="schedule-section-heading"><h2 th:id="|recorded-${day.date}|">Recorded driving</h2><span class="schedule-muted" th:if="${!#lists.isEmpty(day.recordedRuns)}" th:text="|${day.recordedDuration()} logged|"></span></div>
+                    <div class="schedule-section-heading"><h2 th:id="|recorded-${day.date}|" th:text="${managerView ? 'Recorded driving' : 'My recorded driving'}"></h2><span class="schedule-muted" th:if="${!#lists.isEmpty(day.recordedRuns)}" th:text="|${day.recordedDuration()} logged|"></span></div>
                     <p class="schedule-empty" th:if="${#lists.isEmpty(day.recordedRuns)}" th:text="${managerView ? 'No driving was recorded for this date.' : 'You have no recorded driving for this date.'}"></p>
                     <table class="schedule-table schedule-history-table" th:unless="${#lists.isEmpty(day.recordedRuns)}">
                         <caption class="sr-only">Actual recorded driving</caption>
@@ -128,7 +128,7 @@
                 </section>
                 <details class="schedule-earlier" th:unless="${#lists.isEmpty(earlier)}">
                     <summary th:text="|Earlier assignments (${#lists.size(earlier)})|"></summary>
-                    <p class="schedule-muted">Saved plans only. Actual driving appears in Recorded driving.</p>
+                    <p class="schedule-muted" th:text="${managerView ? 'Saved plans only. Actual driving appears in Recorded driving.' : 'The team’s saved assignments. Your actual runs appear in My recorded driving.'}"></p>
                     <th:block th:replace="~{demand/fragments/schedule-slots :: slots(${earlier}, true)}"></th:block>
                 </details>
                 <details class="schedule-details"><summary>Details<span th:if="${managerView}"> &amp; settings</span></summary>

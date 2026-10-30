@@ -9,6 +9,7 @@
         </th>
         <td class="schedule-driver">
             <strong th:if="${slot.driverId != null}" th:text="${slot.driverName}"></strong>
+            <span class="schedule-pill schedule-pill--active" th:if="${currentDriverId != null and currentDriverId == slot.driverId}">You</span>
             <span class="schedule-pill" th:if="${slot.driverId == null}" th:classappend="${!past ? 'schedule-pill--gap' : ''}" th:text="${past ? 'Unassigned' : 'Needs coverage'}"></span>
             <small th:if="${slot.driverId == null or (slot.scareActorTransport and slot.reason != 'Automatically assigned')}" th:text="${slot.reason}"></small>
         </td>
