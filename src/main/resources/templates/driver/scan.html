@@ -46,13 +46,12 @@
                 Signed in as <strong th:text="${driver.name}">Driver Name</strong>.
             </p>
             <section th:if="${pickupAlerts != null and !#lists.isEmpty(pickupAlerts)}" aria-labelledby="checkpoint-pickups-heading">
-                <h2 id="checkpoint-pickups-heading">Upcoming pickups</h2>
-                <p class="pickup-note">Scheduled clock-outs, not confirmed requests. Pickup controls will appear on your driving screen after this checkpoint.</p>
+                <h2 id="checkpoint-pickups-heading">Pickup assistance alerts</h2>
+                <p class="pickup-note">Scheduled clock-outs, not confirmed requests. Help if you're available. No response or pickup confirmation is required.</p>
                 <article class="pickup-alert-card" th:each="alert : ${pickupAlerts}">
                     <h3><span th:text="${alert.row.name}"></span> · Scheduled off <span th:text="${#temporals.format(alert.row.clockOut, 'MMM d, h:mm a')}"></span></h3>
                     <p th:text="${alert.row.location}"></p>
-                    <p th:text="${alert.coverageLabel()}"></p>
-                    <p class="pickup-warning" th:if="${alert.row.stale}">Schedule may be out of date; confirm with the rider.</p>
+                    <p class="pickup-warning" th:if="${alert.row.stale}">Schedule may be out of date.</p>
                 </article>
             </section>
             <div th:if="${checkpointAction.name() == 'START' or checkpointAction.name() == 'START_UNSCHEDULED'}" class="alert alert--info" role="status"><p style="margin:0">

@@ -24,7 +24,6 @@ class PickupIntegrationTests extends MySqlIntegrationTestSupport {
     @Autowired PickupStore store;@Autowired PickupCalendarService calendars;@Autowired PickupRiderRepository riders;
     @Autowired PickupShiftRepository shifts;@Autowired CalendarLinkCipher cipher;
     @Autowired PickupAlerts alerts;
-    @Autowired PickupOutcomeRepository outcomes;
     @Autowired PickupReminderStore reminders;
     @Autowired PickupReminderRepository deliveries;
     @Autowired technology.renatus.routepulse.scheduling.automatic.AutomaticScheduleRepository plans;
@@ -116,26 +115,21 @@ class PickupIntegrationTests extends MySqlIntegrationTestSupport {
         plans.saveAndFlush(plan);
         f.driver().changeDrivingReminderEmail("pickup-driver@example.com");
     }
-    @Test void completionIsScopedCsrfProtectedAndSurvivesCalendarReplacement() throws Exception {
-        var f=fixture("pickup-outcome");var foreign=fixture("pickup-outcome-other");var rider=connected(f);
-        var time=sample().get(0).end();
-        mockMvc.perform(post("/driver/pickup-assistance/outcome").with(authentication(driver(f)))
-                .param("riderId",rider.getId().toString()).param("clockOut",time.toString()).param("outcome","PICKED_UP"))
-                .andExpect(status().isForbidden());
+    @Test void pickupAlertsAreInformationalAndExpireWithoutDriverInput() throws Exception {
+        var f=fixture("pickup-alert-only");var rider=connected(f);rider.synced(due());plan(f);
+        String html=mockMvc.perform(get("/driver/pickup-assistance").param("date",day.toString()).with(authentication(driver(f))))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        assertThat(html).contains("Alex","Test hall","No response or pickup confirmation is required")
+                .doesNotContain("/pickup-assistance/outcome","Picked up","No pickup needed","pickup unconfirmed","Needs coverage");
         mockMvc.perform(post("/driver/pickup-assistance/outcome").with(authentication(driver(f))).with(csrf())
-                .param("riderId",rider.getId().toString()).param("clockOut",time.toString()).param("outcome","PICKED_UP").param("returnTo","home"))
-                .andExpect(redirectedUrl("/driver"));
-        assertThat(alerts.forDates(f.org().getId(),day,day,now)).singleElement().satisfies(a->assertThat(a.status()).isEqualTo(PickupOutcome.Status.PICKED_UP));
-        store.connect(manager(f),rider.getId(),"Alex","",LINK,sample(),now.plusSeconds(1));entityManager.flush();entityManager.clear();
-        assertThat(alerts.forDates(f.org().getId(),day,day,now)).singleElement().satisfies(a->assertThat(a.pending()).isFalse());
-        assertThatThrownBy(()->alerts.outcome(driver(foreign),rider.getId(),time,PickupOutcome.Status.NOT_NEEDED)).isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(()->alerts.outcome(driver(f),rider.getId(),time.plusSeconds(60),PickupOutcome.Status.PICKED_UP)).isInstanceOf(IllegalArgumentException.class);
-        alerts.outcome(driver(f),rider.getId(),time,PickupOutcome.Status.PENDING);
-        assertThat(alerts.forDates(f.org().getId(),day,day,now).get(0).pending()).isTrue();
+                .param("riderId",rider.getId().toString()).param("clockOut",sample().get(0).end().toString()).param("outcome","PICKED_UP"))
+                .andExpect(status().isNotFound());
+        assertThat(alerts.forDriver(f.org().getId(),f.driver().getId(),sample().get(0).end().plusSeconds(1799))).hasSize(1);
+        assertThat(alerts.forDriver(f.org().getId(),f.driver().getId(),sample().get(0).end().plusSeconds(1800))).isEmpty();
         mockMvc.perform(get("/my-pickup-assistance").param("date",day.toString()).with(authentication(driver(f))))
                 .andExpect(redirectedUrl("/driver/pickup-assistance?date="+day));
     }
-    @Test void remindersAreDurableFollowSubstitutesAndStopAfterCompletion() throws Exception {
+    @Test void remindersAreDurableFollowSubstitutesAndNeverRequireAcknowledgment() throws Exception {
         var f=fixture("pickup-delivery");var rider=connected(f);rider.synced(due().minusSeconds(60));plan(f);
         assertThat(reminders.claimNext(f.org().getId(),due().minusSeconds(1))).isEmpty();
         var first=reminders.claimNext(f.org().getId(),due()).orElseThrow();
@@ -150,8 +144,8 @@ class PickupIntegrationTests extends MySqlIntegrationTestSupport {
         sessions.saveAndFlush(session);
         var substitute=reminders.claimNext(f.org().getId(),due().plusSeconds(60)).orElseThrow();
         assertThat(substitute.recipient()).isEqualTo("covering@example.com");
-        alerts.outcome(driver(f),rider.getId(),sample().get(0).end(),PickupOutcome.Status.NOT_NEEDED);
-        assertThat(reminders.stillDue(substitute,due().plusSeconds(61))).isFalse();
+        assertThat(reminders.stillDue(substitute,due().plusSeconds(61))).isTrue();
+        reminders.sent(substitute.deliveryId(),due().plusSeconds(61));
         assertThat(reminders.claimNext(f.org().getId(),due().plusSeconds(120))).isEmpty();
         assertThat(deliveries.count()).isEqualTo(2);
     }

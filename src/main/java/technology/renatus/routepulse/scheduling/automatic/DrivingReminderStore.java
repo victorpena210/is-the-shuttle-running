@@ -58,7 +58,7 @@ public class DrivingReminderStore {
                         own.stream().map(s -> new DrivingReminder.Assignment(s.getStart(), s.getEnd(),
                                 s.getServiceLabel(), s.isScareActorTransport())).toList(),
                         pickups.forDates(org,plan.date(),own.get(own.size()-1).getEnd().plusMinutes(15).toLocalDate(),now).stream()
-                                .filter(a->a.pending() && a.relatedTo(driver.getId())).toList()));
+                                .filter(a->a.relatedTo(driver.getId())).toList()));
             }
         }
         return Optional.empty();

@@ -40,7 +40,7 @@ public record DrivingReminder(Long deliveryId, String recipient, String driverNa
         if(!pickups.isEmpty()) {
             body.append("\nUpcoming pickup assistance\n");
             for(var pickup:pickups) body.append(technology.renatus.routepulse.pickup.PickupReminder.summary(pickup)).append("\n\n");
-            body.append("These are scheduled clock-outs, not confirmed pickup requests. Check the latest coverage before driving.\n");
+            body.append("These are scheduled clock-outs, not confirmed pickup requests. Pickup assistance is optional; help if you are available. No response or pickup confirmation is required.\n");
         }
         return body.append("\nAssignments can change. View your latest schedule:\n")
                 .append(baseUrl.replaceAll("/+$", "")).append("/my-driving-assignments?date=")

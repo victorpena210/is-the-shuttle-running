@@ -52,9 +52,9 @@ class PickupTests {
             var page=new PickupStore.Page("Test park",manager,date,date,zone.getId(),empty?List.of():List.of(row),manager?List.of(person):List.of(),0);
             var model=new HashMap<String,Object>();model.put("page",page);model.put("managerView",manager);model.put("organizationName","Test park");
             model.put("pageUrl",manager?"/pickup-assistance":"/driver/pickup-assistance");model.put("driverPage","pickup-assistance");
-            model.put("pickupAlerts",empty?List.of():List.of(PickupAlerts.route(row,List.of(),null,Set.of(),PickupOutcome.Status.PENDING,zone,time.minusMinutes(15).toInstant())));
+            model.put("pickupAlerts",empty?List.of():List.of(PickupAlerts.route(row,List.of(),null,Set.of(),zone,time.minusMinutes(15).toInstant())));
             String html=engine.process("pickup/index",WebTemplateContext.create(model));
-            assertThat(html).contains("Pickup assistance","Clock-out date","Check driver coverage").doesNotContain("<script>alert(1)</script>");
+            assertThat(html).contains("Pickup assistance","Clock-out date","View driving schedule").doesNotContain("<script>alert(1)</script>","/pickup-assistance/outcome","Picked up","No pickup needed","pickup unconfirmed","Needs coverage");
             if(manager)assertThat(html).contains("First name","Add rider","Pause rider");else assertThat(html).doesNotContain("name=\"subscriptionUrl\"","Add rider","Pause rider");
             if(empty)assertThat(html).contains("No scheduled clock-outs");else assertThat(html).contains("4:15 PM","West hall","&lt;script&gt;");
         }

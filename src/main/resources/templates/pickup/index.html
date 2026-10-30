@@ -15,9 +15,9 @@
     <header class="page-header">
         <div><p class="eyebrow" th:text="${organizationName}"></p><h1>Pickup assistance</h1>
             <p>See who's finishing work and where to meet them.</p></div>
-        <a class="button button--secondary" th:href="@{${managerView ? '/driving-schedule' : '/driver/driving-schedule'}}">Check driver coverage</a>
+        <a class="button button--secondary" th:href="@{${managerView ? '/driving-schedule' : '/driver/driving-schedule'}}">View driving schedule</a>
     </header>
-    <p class="pickup-guidance">Plan pickups when a driver is available and wardrobe coverage allows. A listed clock-out time does not confirm a pickup.</p>
+    <p class="pickup-guidance">These are optional alerts. Help when you are available and wardrobe coverage allows. No response or pickup confirmation is required.</p>
     <div class="alert alert--success" th:if="${successMessage}" th:text="${successMessage}" role="status"></div>
     <div class="alert alert--error" th:if="${errorMessage}" th:text="${errorMessage}" role="alert"></div>
     <form class="pickup-date" th:action="@{${pageUrl}}" method="get">
@@ -29,10 +29,10 @@
     <section class="pickup-board" aria-labelledby="pickups-heading">
         <div class="pickup-heading"><h2 id="pickups-heading" th:text="${#temporals.format(page.date, 'EEEE, MMMM d')}"></h2>
             <span th:text="|${#lists.size(page.rows)} planned clock-out(s)|"></span></div>
-        <p class="pickup-note">Scheduled times from UKG · <span th:text="${page.zone}"></span>. These are scheduled shift endings, not actual clock punches. Confirm the pickup point with the rider.</p>
-        <p class="pickup-warning" th:if="${page.warnings > 0}" role="status">Some calendars need attention. Times or missing shifts may be out of date; confirm with the rider.</p>
+        <p class="pickup-note">Scheduled times from UKG · <span th:text="${page.zone}"></span>. These are scheduled shift endings, not actual clock punches.</p>
+        <p class="pickup-warning" th:if="${page.warnings > 0}" role="status">Some calendars need attention. Times or missing shifts may be out of date.</p>
         <p class="pickup-empty" th:if="${#lists.isEmpty(page.rows)}">No scheduled clock-outs on this date for the active pickup list.</p>
-        <th:block th:replace="~{pickup/cards :: cards(${pickupAlerts}, 'list', ${null})}"></th:block>
+        <th:block th:replace="~{pickup/cards :: cards(${pickupAlerts}, ${null})}"></th:block>
     </section>
     <section class="pickup-management" th:if="${managerView}" aria-labelledby="roster-heading">
         <h2 id="roster-heading">Manage pickup list</h2>

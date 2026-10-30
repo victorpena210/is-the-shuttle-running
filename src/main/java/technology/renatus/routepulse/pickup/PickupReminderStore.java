@@ -42,11 +42,11 @@ public class PickupReminderStore {
         var fresh=schedules.findAllByOrganizationIdAndDateBetweenOrderByDate(org,from.minusDays(1),to.plusDays(1)).stream()
                 .map(d->d.view(zone,null)).filter(d->"OPEN".equals(d.status()) && !d.refreshedAt().toInstant().isBefore(now.minusSeconds(600)))
                 .flatMap(d->d.slots().stream()).toList();
-        return alerts.forDates(org,from,to,now).stream().filter(a->a.pending() && !a.row().stale() && a.reminderDriverId()!=null
+        return alerts.forDates(org,from,to,now).stream().filter(a->!a.row().stale() && a.reminderDriverId()!=null
                 && !now.isBefore(a.row().clockOut().toInstant().minusSeconds(900)) && now.isBefore(a.row().clockOut().toInstant())
                 && (a.covering()!=null ? fresh.contains(a.covering()) : a.related().stream().anyMatch(s->a.reminderDriverId().equals(s.getDriverId()) && fresh.contains(s)))).toList();
     }
-    /** Recheck completion, calendar changes and the actual covering driver immediately before submission. */
+    /** Recheck calendar changes and the actual covering driver immediately before submission. */
     @Transactional
     public boolean stillDue(PickupReminder reminder,Instant now) {
         var org=organizations.findByIdForUpdate(reminder.organizationId()).orElseThrow();
