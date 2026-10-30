@@ -3,7 +3,7 @@ package technology.renatus.routepulse.pickup;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
-public record PickupReminder(Long deliveryId,String recipient,String driverName,PickupAlerts.Alert alert) {
+public record PickupReminder(Long deliveryId,Long organizationId,String recipient,String driverName,PickupAlerts.Alert alert) {
     private static final DateTimeFormatter TIME=DateTimeFormatter.ofPattern("EEE, MMM d, h:mm a",Locale.US);
     public String subject() { return "Pickup assistance — scheduled off at " + alert.row().clockOut().format(DateTimeFormatter.ofPattern("h:mm a",Locale.US)); }
     public String body(String baseUrl) {

@@ -5,6 +5,7 @@
         <p class="pickup-alert-due" th:if="${alert.due}" role="status" th:text="${alert.row.past ? 'Scheduled time passed · pickup unconfirmed' : 'Pickup coming up'}"></p>
         <h3><span th:text="${alert.row.name}"></span> · Scheduled off <time th:datetime="${alert.row.clockOut}" th:text="${#temporals.format(alert.row.clockOut, 'MMM d, h:mm a')}"></time></h3>
         <p th:text="${alert.row.location}"></p>
+        <p class="pickup-note">Last synced <span th:text="${#temporals.format(alert.row.lastSynced, 'MMM d, h:mm a')}"></span></p>
         <p class="pickup-alert-coverage" th:classappend="${alert.needsCoverage() ? 'pickup-warning' : ''}" th:text="${alert.coverageLabel()}"></p>
         <p class="pickup-note" th:if="${slot != null and alert.nearSlot(slot)}">Near your driving time</p>
         <p class="pickup-note" th:if="${alert.needsCoverage()}">Arrange coverage with your supervisor. Your driving assignment has not been extended.</p>

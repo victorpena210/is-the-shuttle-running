@@ -35,7 +35,7 @@ class MigrationIntegrationTests extends MySqlIntegrationTestSupport {
                 Integer.class
         );
 
-        assertEquals(51, successfulMigrations);
+        assertEquals(52, successfulMigrations);
         assertEquals(0, failedMigrations);
     }
 }

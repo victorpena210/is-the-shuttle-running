@@ -5,7 +5,7 @@
         if (!panel || updating || document.hidden || panel.contains(document.activeElement)) return;
         updating = true;
         try {
-            const response = await fetch(panel.dataset.pickupPoll, {credentials: 'same-origin', cache: 'no-store'});
+            const response = await fetch(panel.dataset.pickupPoll, {credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(10000)});
             if (!response.ok || response.redirected) throw new Error('Unavailable');
             const page = new DOMParser().parseFromString(await response.text(), 'text/html');
             const next = page.querySelector('#upcoming-pickups');

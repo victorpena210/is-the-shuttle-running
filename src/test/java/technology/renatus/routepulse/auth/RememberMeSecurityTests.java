@@ -273,6 +273,7 @@ class RememberMeSecurityTests {
                     .password("{noop}test-password").roles("DRIVER").build());
         }
         @Bean PublicRequestThrottle throttle() { return new PublicRequestThrottle(); }
+        @Bean technology.renatus.routepulse.pickup.PickupAlerts pickups() { return mock(technology.renatus.routepulse.pickup.PickupAlerts.class); }
         @Bean DriverPortalService portal() { return mock(DriverPortalService.class); }
         @Bean InternalResourceViewResolver views() {
             return new InternalResourceViewResolver("/WEB-INF/views/", ".html");

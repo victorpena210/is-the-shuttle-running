@@ -33,7 +33,7 @@ public class PickupReminderStore {
                     .orElseGet(()->new PickupReminderDelivery(org,alert.row().riderId(),alert.row().clockOut().toInstant(),driver.getId()));
             if(!delivery.canAttempt(now)) continue;
             delivery.claim(now);deliveries.saveAndFlush(delivery);
-            return Optional.of(new PickupReminder(delivery.getId(),driver.getDrivingReminderEmail(),driver.getName(),alert));
+            return Optional.of(new PickupReminder(delivery.getId(),org,driver.getDrivingReminderEmail(),driver.getName(),alert));
         }
         return Optional.empty();
     }
@@ -49,8 +49,8 @@ public class PickupReminderStore {
     /** Recheck completion, calendar changes and the actual covering driver immediately before submission. */
     @Transactional
     public boolean stillDue(PickupReminder reminder,Instant now) {
+        var org=organizations.findByIdForUpdate(reminder.organizationId()).orElseThrow();
         var delivery=deliveries.findById(reminder.deliveryId()).orElseThrow();
-        var org=organizations.findByIdForUpdate(delivery.getOrganizationId()).orElseThrow();
         var match=org.hasApplicationAccess(now) && due(org.getId(),now).stream().anyMatch(a->a.row().riderId().equals(delivery.getRiderId())
                 && a.row().clockOut().toInstant().equals(delivery.getClockOut()) && a.reminderDriverId().equals(delivery.getDriverId())
                 && a.row().location().equals(reminder.alert().row().location()));
